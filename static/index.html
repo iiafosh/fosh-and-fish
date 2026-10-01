@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Fisher 2099 - Powered by Jev API</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/css/game.css">
+</head>
+<body>
+
+  <!-- 3D WebGL Viewport -->
+  <div id="viewport-container"></div>
+  <div class="scanline-overlay"></div>
+
+  <!-- UI Overlay Layer -->
+  <div class="ui-layer">
+
+    <!-- Top Status Header -->
+    <header class="top-header interactive">
+      <div class="brand-section">
+        <span class="game-title">VIRTUAL FISHER 2099</span>
+        <span class="game-version">v2.4-CYBER</span>
+        
+        <!-- Jev System One Telemetry Pill -->
+        <div class="jev-status-pill" onclick="app.openModal('oracle')">
+          <div class="pulse-dot"></div>
+          <span>JEV SYSTEM ONE: <strong id="jev-mode-label">CONNECTING...</strong></span>
+        </div>
+      </div>
+
+      <!-- Player Vitals & Stats -->
+      <div class="vitals-bar">
+        <div class="stat-pill credits">
+          <span>💵</span>
+          <strong id="stat-credits">0</strong>
+        </div>
+
+        <div class="stat-pill gems">
+          <span>💎</span>
+          <strong id="stat-gems">0</strong>
+        </div>
+
+        <div class="stat-pill level">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span>LVL</span>
+              <strong id="stat-level">1</strong>
+            </div>
+            <div class="xp-progress-bar">
+              <div class="xp-fill" id="xp-fill"></div>
+            </div>
+            <span id="xp-text" style="font-size:0.65rem;color:var(--text-dim);margin-top:2px;">0 / 100 XP</span>
+          </div>
+        </div>
+
+        <button id="btn-mute-toggle" class="dock-btn" style="padding:6px 10px;font-size:1.1rem;" title="Toggle Sound">🔊</button>
+      </div>
+    </header>
+
+    <!-- Center HUD (Biome display + Reel Mini-Game) -->
+    <main class="center-hud">
+      <div class="biome-indicator">
+        <span>SECTOR:</span>
+        <strong id="biome-name-display" style="color:var(--neon-cyan);">Loading Sector...</strong>
+      </div>
+
+      <!-- Real-Time Reeling Combat Widget -->
+      <div id="reel-widget" class="reel-widget hidden interactive">
+        <div class="reel-header">
+          <span>⚡ BITE ENGAGED</span>
+          <span style="font-size:0.75rem;color:#fff;">[MATCH TENSION]</span>
+        </div>
+
+        <div class="tension-meter-container">
+          <div class="sweet-spot-marker"></div>
+          <div class="tension-fill" id="tension-fill"></div>
+        </div>
+
+        <div class="reel-actions">
+          <button id="btn-reel-in" class="btn-reel">REEL IN LINE (SPACE)</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Cyber Dock -->
+    <footer class="bottom-dock interactive">
+      <!-- Quick Action Controls -->
+      <div class="quick-controls">
+        <button id="btn-cast" class="btn-cast">
+          <span>🎣</span> CAST LINE (SPACE)
+        </button>
+
+        <button id="btn-auto-fish" class="btn-auto-fish">
+          🤖 AUTO-FISH (JEV AI)
+        </button>
+
+        <button id="btn-sell-all" class="btn-sell-all">
+          💰 SELL ALL (0)
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-dock">
+        <button class="dock-btn" data-modal="shop">🛒 CYBER SHOP</button>
+        <button class="dock-btn" data-modal="pets">🐾 PET SANCTUARY & ALTAR</button>
+        <button class="dock-btn" data-modal="biomes">🗺️ WARP NAV</button>
+        <button class="dock-btn" data-modal="oracle">🔮 JEV ORACLE</button>
+        <button class="dock-btn" data-modal="aquarium">🐟 AQUARIUM</button>
+        <button class="dock-btn" data-modal="secrets">📜 SECRETS & RELICS</button>
+      </nav>
+    </footer>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL WINDOWS -->
+  <!-- ======================================================== -->
+
+  <!-- 1. SHOP MODAL -->
+  <div id="modal-shop" class="modal-overlay hidden">
+    <div class="cyber-modal">
+      <div class="modal-header">
+        <div class="modal-title">🛒 CYBER OUTFITTER & TACKLE SHOP</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <h3 style="font-family:var(--font-mono);color:var(--neon-cyan);margin-bottom:12px;">AVAILABLE FISHING RODS</h3>
+        <div id="shop-rods-grid" class="cards-grid" style="margin-bottom:24px;"></div>
+
+        <h3 style="font-family:var(--font-mono);color:var(--neon-green);margin-bottom:12px;">NANO-SYNTHETIC BAITS</h3>
+        <div id="shop-baits-grid" class="cards-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PET SANCTUARY & GENESIS ALTAR MODAL -->
+  <div id="modal-pets" class="modal-overlay hidden">
+    <div class="cyber-modal">
+      <div class="modal-header">
+        <div class="modal-title">🐾 CYBER PET SANCTUARY & GENESIS ALTAR</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- GENESIS ALTAR FOR OVERPOWERED SECRET PET AETHELGARD -->
+        <div class="altar-container" style="border-bottom: 1px solid rgba(255,0,234,0.3); padding-bottom: 24px;">
+          <h2 style="font-family:var(--font-mono);color:#ff00ea;letter-spacing:1px;">
+            ⚡ THE GENESIS ALTAR: AWAKEN THE GLITCH SOVEREIGN 🐉
+          </h2>
+          <p style="font-size:0.85rem;color:var(--text-dim);max-width:600px;">
+            Aethelgard is an overpowered deity from Subspace 0x00. It grants <strong>5.0x Sell Value</strong>, 
+            <strong>100% Instant Catch</strong>, <strong>500% Cosmic Luck</strong>, and harvests <strong>250 Credits & 2 Gems every 8s</strong>!
+          </p>
+
+          <div class="altar-requirements">
+            <div id="altar-slot-core" class="req-slot">
+              <span style="font-size:1.8rem;">👾</span>
+              <strong style="color:var(--neon-cyan);font-size:0.85rem;">Glitch Core</strong>
+              <span id="slot-core-count" style="font-family:var(--font-mono);font-size:0.8rem;">0 / 1</span>
+              <span style="font-size:0.7rem;color:var(--text-dim);">Abyssal Trench / Subspace</span>
+            </div>
+
+            <div id="altar-slot-cipher" class="req-slot">
+              <span style="font-size:1.8rem;">🔑</span>
+              <strong style="color:var(--neon-magenta);font-size:0.85rem;">Void Cipher Key</strong>
+              <span id="slot-cipher-count" style="font-family:var(--font-mono);font-size:0.8rem;">0 / 1</span>
+              <span style="font-size:0.7rem;color:var(--text-dim);">Ask Oracle: "GENESIS"</span>
+            </div>
+
+            <div id="altar-slot-pearl" class="req-slot">
+              <span style="font-size:1.8rem;">🔮</span>
+              <strong style="color:var(--neon-purple);font-size:0.85rem;">Singularity Pearls</strong>
+              <span id="slot-pearl-count" style="font-family:var(--font-mono);font-size:0.8rem;">0 / 3</span>
+              <span style="font-size:0.7rem;color:var(--text-dim);">Mythic / Cosmic Catches</span>
+            </div>
+          </div>
+
+          <button class="btn-genesis" onclick="app.triggerGenesisRitual()">
+            🔥 SYNTHESIZE & AWAKEN AETHELGARD
+          </button>
+        </div>
+
+        <h3 style="font-family:var(--font-mono);color:var(--neon-cyan);margin:20px 0 12px;">ACTIVE & AVAILABLE COMPANIONS</h3>
+        <div id="pets-grid" class="cards-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. WARP NAV (BIOMES) MODAL -->
+  <div id="modal-biomes" class="modal-overlay hidden">
+    <div class="cyber-modal">
+      <div class="modal-header">
+        <div class="modal-title">🗺️ SECTOR WARP NAVIGATION</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:16px;">
+          Warp to diverse cyber aquatic sectors. Subspace 0x00 can be opened via Oracle coordinates (<code>404-0x00-VOID</code>).
+        </p>
+        <div id="biomes-grid" class="cards-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. JEV CYBER ORACLE TERMINAL MODAL -->
+  <div id="modal-oracle" class="modal-overlay hidden">
+    <div class="cyber-modal">
+      <div class="modal-header">
+        <div class="modal-title">🔮 JEV SYSTEM ONE CYBER ORACLE</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="terminal-window">
+          <div id="terminal-logs" class="terminal-logs">
+            <div class="term-line term-system">
+              [SYSTEM INITIALIZED] Jev System One Decision Engine active.
+            </div>
+            <div class="term-line term-oracle">
+              Jev Oracle: "Ask of the tides, telemetry, or enter ancient override phrases. Try 'HELP' for secrets."
+            </div>
+          </div>
+
+          <div class="terminal-input-bar">
+            <span class="terminal-prompt">jev://</span>
+            <input type="text" id="oracle-input" class="terminal-input" placeholder="Enter query, riddle answer, or secret code (e.g. TEMPORAL_HOOK)..." autocomplete="off">
+            <button id="btn-send-oracle" class="btn-send-oracle">EXECUTE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. AQUARIUM / POKEDEX MODAL -->
+  <div id="modal-aquarium" class="modal-overlay hidden">
+    <div class="cyber-modal">
+      <div class="modal-header">
+        <div class="modal-title">🐟 HOLOGRAPHIC AQUARIUM & MARINE CATALOG</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:16px;">
+          All discovered aquatic entities, cybernetic fish, and dimensional glitch anomalies.
+        </p>
+        <div id="aquarium-grid" class="cards-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. SECRETS & RELICS MODAL -->
+  <div id="modal-secrets" class="modal-overlay hidden">
+    <div class="cyber-modal">
+      <div class="modal-header">
+        <div class="modal-title">📜 SECRETS, RELICS & CRAFTING</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="cards-grid" style="margin-bottom:24px;">
+          <div class="cyber-card">
+            <div class="card-title"><span>👾</span> Glitch Core</div>
+            <div class="card-desc">Extracted from anomalous code fractures in the Mariana Deep Trench or Subspace 0x00.</div>
+            <div class="card-footer"><span style="color:var(--neon-green)">Count: <strong id="relic-count-core">0</strong></span></div>
+          </div>
+
+          <div class="cyber-card">
+            <div class="card-title"><span>🔮</span> Singularity Pearl</div>
+            <div class="card-desc">Concentrated quantum matter yielded by Mythic and Cosmic catches.</div>
+            <div class="card-footer"><span style="color:var(--neon-green)">Count: <strong id="relic-count-pearl">0</strong></span></div>
+          </div>
+
+          <div class="cyber-card">
+            <div class="card-title"><span>🔑</span> Void Cipher Key</div>
+            <div class="card-desc">Secret matrix formula deciphered by consulting Jev Oracle with "GENESIS".</div>
+            <div class="card-footer"><span style="color:var(--neon-green)">Count: <strong id="relic-count-cipher">0</strong></span></div>
+          </div>
+
+          <div class="cyber-card">
+            <div class="card-title"><span>⏳</span> Chrono Fragment</div>
+            <div class="card-desc">Shattered tachyon crystal. Collect 3 to craft the Chronos Singularity Rod!</div>
+            <div class="card-footer"><span style="color:var(--neon-green)">Count: <strong id="relic-count-fragment">0</strong></span></div>
+          </div>
+        </div>
+
+        <div style="background:rgba(0,0,0,0.4);border:1px solid var(--neon-cyan);border-radius:12px;padding:18px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h4 style="font-family:var(--font-mono);color:var(--neon-cyan);">FORGE THE CHRONOS SINGULARITY ROD</h4>
+            <p style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">Requires 3x Chrono Fragments. Grants infinite tensile strength and timeline detection.</p>
+          </div>
+          <button id="btn-craft-chronos" class="btn-buy" style="background:var(--neon-cyan);" onclick="app.craftChronosRod()">
+            FORGE ROD
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/audio.js"></script>
+  <script src="/js/three_view.js"></script>
+  <script src="/js/game.js"></script>
+</body>
+</html>
