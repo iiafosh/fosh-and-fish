@@ -194,20 +194,41 @@
         </div>
       </div>
 
-      <!-- Right: Rimuru Mascot Wardrobe & Harbor Shop Button -->
-      <div class="flex items-center gap-2.5 pointer-events-auto">
-        <!-- Change Mascot Button -->
-        <button onclick="openModal('mascot')" class="brass-badge px-4 py-2 sm:py-2.5 flex items-center gap-2.5 cursor-pointer hover:border-cyan-400 transition" title="Mascot Wardrobe (Rimuru Tempest)">
-          <div id="hud-mascot-icon" class="text-2xl sm:text-3xl">🌀</div>
+      <!-- Right: Rimuru Mascot, Pet Companion, Radio & Shipyard -->
+      <div class="flex items-center gap-2 pointer-events-auto flex-wrap justify-end">
+        <!-- Equipped Pet Button -->
+        <button onclick="openModal('pets')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-2 cursor-pointer hover:border-pink-400 transition" title="Pet Sanctuary & Sovereign Altar [P]">
+          <div id="hud-pet-icon" class="text-xl sm:text-2xl animate-bounce">🦎</div>
           <div class="text-left">
-            <div class="text-[10px] text-cyan-300 font-black uppercase">MASCOT</div>
-            <div class="text-xs sm:text-sm font-black text-amber-200" id="hud-mascot-name">Rimuru Tempest</div>
+            <div class="text-[9px] text-pink-300 font-black uppercase">PET [P]</div>
+            <div class="text-xs font-black text-amber-200" id="hud-pet-name">Axo-9</div>
+          </div>
+        </button>
+
+        <!-- Radio Transponder Button -->
+        <button onclick="openModal('radio')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-1.5 cursor-pointer hover:border-emerald-400 transition" title="Shortwave Radio & Secret Transponder [R]">
+          <span class="text-xl">📻</span>
+          <span class="text-xs font-black text-emerald-300">RADIO [R]</span>
+        </button>
+
+        <!-- Field Bestiary Journal Button -->
+        <button onclick="openModal('journal')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-1.5 cursor-pointer hover:border-cyan-400 transition" title="Holographic Bestiary [J]">
+          <span class="text-xl">📖</span>
+          <span class="text-xs font-black text-cyan-300">DEX [J]</span>
+        </button>
+
+        <!-- Change Mascot Button -->
+        <button onclick="openModal('mascot')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-2 cursor-pointer hover:border-cyan-400 transition" title="Mascot Wardrobe (Rimuru Tempest)">
+          <div id="hud-mascot-icon" class="text-xl sm:text-2xl">🌀</div>
+          <div class="text-left">
+            <div class="text-[9px] text-cyan-300 font-black uppercase">MASCOT</div>
+            <div class="text-xs font-black text-amber-200" id="hud-mascot-name">Rimuru</div>
           </div>
         </button>
 
         <!-- Harbor Shop Button -->
-        <button onclick="openModal('shop')" class="brass-btn px-4 sm:px-5 py-2.5 sm:py-3 rounded text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer">
-          <img src="assets/Button_Shop.png" class="w-5 h-5 object-contain" alt="Shop">
+        <button onclick="openModal('shop')" class="brass-btn px-3.5 sm:px-4 py-2 sm:py-2.5 rounded text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer">
+          <img src="assets/Button_Shop.png" class="w-4 h-4 object-contain" alt="Shop">
           <span>SHIPYARD</span>
         </button>
       </div>
@@ -231,11 +252,11 @@
     <div class="w-full flex flex-col items-center pointer-events-none gap-2">
       
       <!-- Tactile Hotbar Row -->
-      <div class="wood-panel px-6 py-3 pointer-events-auto flex items-center gap-4 sm:gap-6 text-sm font-bold shadow-2xl flex-wrap justify-center border-t-3 border-amber-500">
+      <div class="wood-panel px-6 py-3 pointer-events-auto flex items-center gap-3 sm:gap-5 text-sm font-bold shadow-2xl flex-wrap justify-center border-t-3 border-amber-500">
         
         <!-- Equipped Rod Indicator -->
         <div class="flex items-center gap-2.5 bg-[#120904] px-3.5 py-2 rounded border border-amber-700/70" title="Equipped Rod">
-          <span class="text-cyan-400 text-xl">🎣</span>
+          <span class="text-cyan-400 text-xl" id="hotbar-rod-icon">🎣</span>
           <div>
             <div class="text-[10px] text-amber-400/80 font-bold uppercase">ROD</div>
             <div class="text-xs sm:text-sm font-black text-white" id="hotbar-rod">Plastic Rod</div>
@@ -243,18 +264,30 @@
         </div>
 
         <!-- Master Brass "CAST LINE" Action Button -->
-        <button id="reel-cast-btn" onclick="castLine()" class="brass-btn px-8 sm:px-10 py-3.5 sm:py-4 rounded text-base sm:text-lg font-black uppercase flex items-center gap-3 cursor-pointer shadow-xl">
+        <button id="reel-cast-btn" onclick="castLine()" class="brass-btn px-6 sm:px-8 py-3 sm:py-3.5 rounded text-sm sm:text-base font-black uppercase flex items-center gap-2.5 cursor-pointer shadow-xl">
           <span>🎣 CAST LINE</span>
           <span class="text-xs bg-amber-950 text-amber-200 px-2 py-0.5 rounded border border-amber-400/50 font-black">[SPACE]</span>
         </button>
 
+        <!-- Autonomous Angler Chill Toggle Button -->
+        <button id="auto-fish-btn" onclick="toggleAutoFish()" class="brass-badge px-3.5 py-2 flex items-center gap-2 cursor-pointer hover:border-cyan-400 transition" title="Toggle Chill Auto-Fish [Z]">
+          <span class="text-lg">🤖</span>
+          <div class="text-left">
+            <div class="text-[9px] text-cyan-300 font-black uppercase">AUTO-ANGLER [Z]</div>
+            <div class="text-xs font-black text-amber-200" id="auto-fish-status">OFF</div>
+          </div>
+        </button>
+
         <!-- Station Fast Walk Buttons -->
-        <div class="flex items-center gap-2 text-xs sm:text-sm border-l-2 border-amber-900/80 pl-4">
-          <button class="brass-badge px-3 py-1.5 text-cyan-300 hover:text-white cursor-pointer hover:border-cyan-400 transition font-black" onclick="walkToStation(0)">1. 🎣 Pier</button>
-          <button class="brass-badge px-3 py-1.5 text-amber-300 hover:text-white cursor-pointer hover:border-amber-400 transition font-black" onclick="walkToStation(1)">2. 🐟 Fillet</button>
-          <button class="brass-badge px-3 py-1.5 text-emerald-300 hover:text-white cursor-pointer hover:border-emerald-400 transition font-black" onclick="walkToStation(2)">3. 🧭 Helm</button>
-          <button class="brass-badge px-3 py-1.5 text-purple-300 hover:text-white cursor-pointer hover:border-purple-400 transition font-black" onclick="walkToStation(3)">4. ⚙️ Forge</button>
-          <button class="brass-badge px-3 py-1.5 text-yellow-300 hover:text-white cursor-pointer hover:border-yellow-400 transition font-black" onclick="walkToStation(4)">5. 💰 Market</button>
+        <div class="flex items-center gap-1.5 text-xs border-l-2 border-amber-900/80 pl-3 flex-wrap">
+          <button class="brass-badge px-2.5 py-1 text-cyan-300 hover:text-white cursor-pointer hover:border-cyan-400 transition font-black" onclick="walkToStation(0)">1. 🎣 Pier</button>
+          <button class="brass-badge px-2.5 py-1 text-amber-300 hover:text-white cursor-pointer hover:border-amber-400 transition font-black" onclick="walkToStation(1)">2. 🐟 Fillet</button>
+          <button class="brass-badge px-2.5 py-1 text-emerald-300 hover:text-white cursor-pointer hover:border-emerald-400 transition font-black" onclick="walkToStation(2)">3. 🧭 Helm</button>
+          <button class="brass-badge px-2.5 py-1 text-purple-300 hover:text-white cursor-pointer hover:border-purple-400 transition font-black" onclick="walkToStation(3)">4. ⚙️ Forge</button>
+          <button class="brass-badge px-2.5 py-1 text-yellow-300 hover:text-white cursor-pointer hover:border-yellow-400 transition font-black" onclick="walkToStation(4)">5. 💰 Market</button>
+          <button class="brass-badge px-2.5 py-1 text-pink-300 hover:text-white cursor-pointer hover:border-pink-400 transition font-black" onclick="walkToStation(5)">6. 🐾 Pets</button>
+          <button class="brass-badge px-2.5 py-1 text-emerald-300 hover:text-white cursor-pointer hover:border-emerald-400 transition font-black" onclick="walkToStation(6)">7. 📻 Radio</button>
+          <button class="brass-badge px-2.5 py-1 text-cyan-300 hover:text-white cursor-pointer hover:border-cyan-400 transition font-black" onclick="walkToStation(7)">8. 📖 Dex</button>
         </div>
 
       </div>
@@ -474,6 +507,134 @@
           </div>
         </div>
 
+        <!-- View 8: Pet Sanctuary & Sovereign Altar -->
+        <div id="view-pets" class="hidden space-y-6">
+          <div class="flex gap-3 border-b-2 border-amber-800 pb-3">
+            <button onclick="switchPetsTab('roster')" id="btn-tab-pet-roster" class="wood-tab active px-5 py-2.5 rounded text-xs sm:text-sm font-black cursor-pointer">
+              🐾 PET COMPANIONS
+            </button>
+            <button onclick="switchPetsTab('altar')" id="btn-tab-pet-altar" class="wood-tab px-5 py-2.5 rounded text-xs sm:text-sm font-black cursor-pointer text-pink-300">
+              🐉 SOVEREIGN ALTAR (AETHELGARD)
+            </button>
+          </div>
+
+          <!-- Subtab A: Standard Companions -->
+          <div id="pets-subtab-roster" class="space-y-4">
+            <div class="wood-card p-4 rounded text-xs sm:text-sm text-amber-200/90 font-bold">
+              Companions swim alongside your vessel in the open water, granting passive buffs, double-catches, and periodic cash/scrap harvest.
+            </div>
+            <div id="pets-roster-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+          </div>
+
+          <!-- Subtab B: The Sovereign Altar -->
+          <div id="pets-subtab-altar" class="hidden space-y-5">
+            <div class="wood-card p-6 rounded border-2 border-pink-500/80 bg-gradient-to-b from-[#1c002b] to-[#12001c] shadow-2xl relative overflow-hidden">
+              <div class="flex items-center gap-4">
+                <span class="text-6xl animate-pulse">🐉</span>
+                <div>
+                  <h3 class="text-xl sm:text-2xl font-black text-pink-300 uppercase tracking-widest">Aethelgard, The Glitch Sovereign</h3>
+                  <div class="text-xs sm:text-sm text-cyan-300 font-bold">Cosmic Singularity Leviathan • Godlike / Transcendent Tier</div>
+                </div>
+              </div>
+              <p class="text-xs sm:text-sm text-amber-100/90 my-4 leading-relaxed font-bold">
+                A legendary celestial serpent born from the code of Subspace 0x00. Its scales bend the fabric of reality itself.<br>
+                <span class="text-pink-300 font-black">🔥 GODLIKE PERKS:</span> 5.0x Sell Multiplier, 100% Instant Auto-Reel Perfection, 500% Cosmic Fish Luck, and passively harvests 250 Cash + 2 Gems every 8 seconds!
+              </p>
+
+              <!-- Ritual Checklist -->
+              <div class="bg-[#0e0017] p-4 rounded border border-pink-900/80 space-y-3">
+                <div class="text-xs sm:text-sm font-black text-amber-300 uppercase">Genesis Awakening Requirements:</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-bold">
+                  <div id="req-core" class="p-2.5 rounded bg-black/50 border border-slate-700 flex items-center justify-between">
+                    <span>👾 1x Glitch Core</span>
+                    <span id="req-core-val" class="font-black text-amber-400">0 / 1</span>
+                  </div>
+                  <div id="req-cipher" class="p-2.5 rounded bg-black/50 border border-slate-700 flex items-center justify-between">
+                    <span>🗝️ 1x Void Cipher Key</span>
+                    <span id="req-cipher-val" class="font-black text-amber-400">0 / 1</span>
+                  </div>
+                  <div id="req-pearls" class="p-2.5 rounded bg-black/50 border border-slate-700 flex items-center justify-between">
+                    <span>🔮 3x Singularity Pearls</span>
+                    <span id="req-pearls-val" class="font-black text-amber-400">0 / 3</span>
+                  </div>
+                </div>
+                <div class="text-[11px] text-amber-200/70 italic">
+                  💡 Hint: Glitch Cores drop from Deep Waters/Subspace. Singularity Pearls drop from Mythic catches. The Void Cipher Key is decoded by tuning the Ship Radio to 'GENESIS'.
+                </div>
+              </div>
+
+              <div class="mt-5">
+                <button id="btn-genesis-ritual" onclick="performGenesisRitual()" class="w-full py-4 text-sm sm:text-base font-black uppercase rounded cursor-pointer bg-gradient-to-r from-pink-600 via-purple-600 to-cyan-600 text-white border-2 border-pink-400 shadow-2xl hover:brightness-125 transition">
+                  🌌 INITIATE GENESIS AWAKENING
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 9: Shortwave Radio & Navigation Transponder -->
+        <div id="view-radio" class="hidden space-y-6">
+          <div class="wood-card p-6 rounded bg-[#070e0a] border-2 border-emerald-500/80 font-mono shadow-2xl">
+            <div class="flex items-center justify-between border-b border-emerald-800 pb-3 mb-4">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl">📻</span>
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-emerald-400 tracking-wider">SS-TEMPEST SHORTWAVE RADIO</h3>
+                  <div class="text-xs text-emerald-600">SUB-ETHER MARITIME TRANSPONDER • MODEL TR-2099</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span class="text-xs text-emerald-400 font-bold">SIGNAL: ONLINE</span>
+              </div>
+            </div>
+
+            <!-- Radio Frequency CRT Display -->
+            <div class="bg-black/90 p-4 rounded border border-emerald-900/80 mb-5 text-emerald-300 text-xs sm:text-sm space-y-2">
+              <div class="flex justify-between items-center text-emerald-500 text-xs">
+                <span>FREQUENCY MONITOR: <span id="radio-display-freq" class="text-emerald-300 font-bold">404.0 KHz</span></span>
+                <span id="radio-audio-status" class="text-emerald-400">STATUS: CARRIER LOCKED</span>
+              </div>
+              <div id="radio-log" class="h-28 overflow-y-auto font-mono text-[11px] sm:text-xs text-emerald-200/90 space-y-1 p-2 bg-[#020904] rounded border border-emerald-950">
+                <div>[00:00:01] Intercepting sub-ether maritime broadcast...</div>
+                <div>[00:00:02] Audio demodulator active. Enter transmission frequency or decryption cipher below.</div>
+              </div>
+            </div>
+
+            <!-- Input & Decrypt Bar -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input id="radio-input-cipher" type="text" placeholder="Enter Cipher (e.g. TEMPORAL_HOOK, 404-0X00-VOID, GENESIS)..." class="flex-1 bg-[#010804] border-2 border-emerald-600 px-4 py-3 rounded text-emerald-300 font-mono text-xs sm:text-sm uppercase tracking-wider focus:outline-none focus:border-emerald-400" onkeydown="if(event.key==='Enter') submitRadioCipher()">
+              <button onclick="submitRadioCipher()" class="brass-btn-emerald px-6 py-3 text-xs sm:text-sm font-black uppercase rounded cursor-pointer whitespace-nowrap">
+                📡 TRANSMIT / DECRYPT
+              </button>
+            </div>
+
+            <!-- Quick Preset Frequencies -->
+            <div class="mt-4 pt-4 border-t border-emerald-900/60 flex items-center gap-2 flex-wrap text-xs">
+              <span class="text-emerald-600 font-bold">PRESET PINGS:</span>
+              <button onclick="tuneRadioPreset('TEMPORAL_HOOK')" class="bg-[#052e16] text-emerald-300 px-2.5 py-1 rounded border border-emerald-700/60 hover:border-emerald-400 cursor-pointer">TEMPORAL_HOOK</button>
+              <button onclick="tuneRadioPreset('0XDEADBEEF')" class="bg-[#052e16] text-emerald-300 px-2.5 py-1 rounded border border-emerald-700/60 hover:border-emerald-400 cursor-pointer">0xDEADBEEF</button>
+              <button onclick="tuneRadioPreset('404-0X00-VOID')" class="bg-[#052e16] text-emerald-300 px-2.5 py-1 rounded border border-emerald-700/60 hover:border-emerald-400 cursor-pointer">404-0x00-VOID</button>
+              <button onclick="tuneRadioPreset('GENESIS')" class="bg-[#052e16] text-emerald-300 px-2.5 py-1 rounded border border-emerald-700/60 hover:border-emerald-400 cursor-pointer">GENESIS</button>
+              <button onclick="tuneRadioPreset('HINT')" class="bg-[#052e16] text-emerald-300 px-2.5 py-1 rounded border border-emerald-700/60 hover:border-emerald-400 cursor-pointer">ORACLE HINT</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 10: Holographic Bestiary & Journal -->
+        <div id="view-journal" class="hidden space-y-6">
+          <div class="wood-card p-4 rounded flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 class="text-base font-black text-cyan-300">HOLOGRAPHIC BESTIARY & FIELD RECORDS</h3>
+              <p class="text-xs sm:text-sm text-amber-200/80">Canonical records of all discovered aquatic life, personal best weights, and secret anomalies.</p>
+            </div>
+            <div class="text-xs sm:text-sm bg-[#100804] px-3.5 py-1.5 rounded border border-cyan-800 text-cyan-300 font-black" id="journal-completion-badge">
+              Discovery: 0 / 27 Species
+            </div>
+          </div>
+          <div id="journal-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+        </div>
+
 
 
       </div>
@@ -481,9 +642,175 @@
     </div>
   </div>
 
-  <!-- Audio System with Authentic SFX -->
+  <!-- Procedural Cyber Synthesizer Audio Engine (Zero Dependency Web Audio API) -->
   <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    class CyberAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+        this.initialized = false;
+      }
+      init() {
+        if (this.initialized) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+          this.initialized = true;
+        } catch(e) {}
+      }
+      ensureContext() {
+        this.init();
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      }
+      playCast() {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.exponentialRampToValueAtTime(150, t + 0.35);
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.35);
+      }
+      playSplash() {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.25;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(600, t);
+        filter.frequency.exponentialRampToValueAtTime(80, t + 0.25);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(t);
+      }
+      playBite() {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.exponentialRampToValueAtTime(2200, t + 0.08);
+        osc.frequency.setValueAtTime(1400, t + 0.1);
+        osc.frequency.exponentialRampToValueAtTime(2600, t + 0.18);
+        gain.gain.setValueAtTime(0.35, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.25);
+      }
+      playReelClick() {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320 + Math.random() * 60, t);
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.04);
+      }
+      playCatchSuccess(isRare = false) {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const notes = isRare ? [440, 554, 659, 880, 1108] : [523, 659, 784, 1046];
+        const duration = 0.08;
+        notes.forEach((freq, idx) => {
+          const t = this.ctx.currentTime + (idx * duration);
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = isRare ? 'square' : 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + duration * 1.5);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + duration * 1.5);
+        });
+      }
+      playPortalWarp() {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(60, t);
+        osc.frequency.exponentialRampToValueAtTime(380, t + 0.6);
+        osc.frequency.exponentialRampToValueAtTime(45, t + 1.2);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(300, t);
+        filter.frequency.exponentialRampToValueAtTime(2400, t + 0.6);
+        filter.frequency.exponentialRampToValueAtTime(200, t + 1.2);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 1.2);
+      }
+      playGenesisAwakening() {
+        if (this.isMuted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const chords = [
+          [220, 330, 440, 554],
+          [277, 415, 554, 659],
+          [330, 495, 659, 880],
+          [440, 660, 880, 1108]
+        ];
+        chords.forEach((chord, step) => {
+          const t = this.ctx.currentTime + (step * 0.4);
+          chord.forEach(freq => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.12, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.6);
+          });
+        });
+      }
+    }
+
+    const cyberAudio = new CyberAudioEngine();
+
     const sfxClips = {
       whoosh: new Audio('assets/sfx/whoosh.mp3'),
       reel: new Audio('assets/sfx/reel.mp3'),
@@ -503,24 +830,26 @@
     }
 
     function playBeep(freq, type, duration, vol=0.15) {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      if (!cyberAudio.ctx) cyberAudio.init();
+      cyberAudio.ensureContext();
+      if (!cyberAudio.ctx) return;
+      const osc = cyberAudio.ctx.createOscillator();
+      const gain = cyberAudio.ctx.createGain();
       osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.frequency.setValueAtTime(freq, cyberAudio.ctx.currentTime);
+      gain.gain.setValueAtTime(vol, cyberAudio.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, cyberAudio.ctx.currentTime + duration);
       osc.connect(gain);
-      gain.connect(audioCtx.destination);
+      gain.connect(cyberAudio.ctx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + duration);
+      osc.stop(cyberAudio.ctx.currentTime + duration);
     }
 
-    function sfxSplash() { playAudioClip('splash', 0.6); }
+    function sfxSplash() { cyberAudio.playSplash(); playAudioClip('splash', 0.6); }
     function sfxCoin() { playAudioClip('click', 0.5); playBeep(987, 'triangle', 0.12); setTimeout(() => playBeep(1318, 'triangle', 0.22), 90); }
-    function sfxCatch() { playAudioClip('success', 0.7); }
-    function sfxCast() { playAudioClip('whoosh', 0.6); }
-    function sfxStrike() { playAudioClip('strike', 0.8); }
+    function sfxCatch(isRare = false) { cyberAudio.playCatchSuccess(isRare); playAudioClip('success', 0.7); }
+    function sfxCast() { cyberAudio.playCast(); playAudioClip('whoosh', 0.6); }
+    function sfxStrike() { cyberAudio.playBite(); playAudioClip('strike', 0.8); }
     function sfxClick() { playAudioClip('click', 0.4); }
   </script>
 
@@ -593,6 +922,19 @@
       isCoolingDown: false,
       cooldownTimer: 0,
       activeStation: null,
+      special_items: {
+        glitch_core: 0,
+        void_cipher_key: 0,
+        singularity_pearl: 0,
+        chrono_fragment: 0
+      },
+      unlocked_pets: ['pet_axo'],
+      equipped_pet: 'pet_axo',
+      unlocked_secrets: [],
+      journal: {}, // Tracks species caught, best weight, count
+      auto_fish_active: false,
+      auto_fish_timer: 0,
+      auto_fish_status: 'IDLE',
       inventory: {
         'Raw Fish': { count: 0, price: 1, xp: 1, sprite: 'sardine', color: '#93c5fd', biome: 'River', weight: '0.4 kg', desc: 'A common small river dweller.' },
         'Raw Salmon': { count: 0, price: 3, xp: 2, sprite: 'mackerel', color: '#fca5a5', biome: 'River', weight: '2.1 kg', desc: 'Leaps against upstream currents.' },
@@ -623,7 +965,13 @@
 
         'Void Ray': { count: 0, price: 8000, xp: 3500, sprite: 'dolphin', color: '#818cf8', biome: 'Abyss', weight: '95.0 kg', desc: 'Flies through darkness like a shadow.' },
         'Abyssal Kraken': { count: 0, price: 50000, xp: 18000, sprite: 'kraken', color: '#6366f1', biome: 'Abyss', weight: '850.0 kg', desc: 'Nightmarish ruler of the eternal abyss.' },
-        'Mythic Celestial Fish': { count: 0, price: 250000, xp: 75000, sprite: 'turtle', color: '#e879f9', biome: 'Abyss', weight: '1200.0 kg', desc: 'Born of stardust and cosmic depths.' }
+        'Mythic Celestial Fish': { count: 0, price: 250000, xp: 75000, sprite: 'turtle', color: '#e879f9', biome: 'Abyss', weight: '1200.0 kg', desc: 'Born of stardust and cosmic depths.' },
+
+        // Secret Biome: Subspace 0x00 Exclusives
+        'ERR_404_NULL_EEL': { count: 0, price: 15000, xp: 6000, sprite: 'sardine', color: '#00ffea', rarity: 'GLITCH', biome: 'Subspace 0x00', weight: '4.2 kg', desc: 'A literal glitch in the aquatic rendering matrix. Body coordinates shift constantly.' },
+        'Quantum Matrix Ray': { count: 0, price: 45000, xp: 18000, sprite: 'dolphin', color: '#ff007f', rarity: 'COSMIC', biome: 'Subspace 0x00', weight: '120.0 kg', desc: 'Swims in 4 spatial dimensions. Furls through the ocean timeline.' },
+        'Tachyon Singularity Chimera': { count: 0, price: 75000, xp: 32000, sprite: 'tuna', color: '#ffd700', rarity: 'COSMIC', biome: 'Subspace 0x00', weight: '450.0 kg', desc: 'Existing in the past and future simultaneously. Reeling it requires temporal anchor.' },
+        'Echo of the Glitch Sovereign': { count: 0, price: 150000, xp: 65000, sprite: 'kraken', color: '#ec4899', rarity: 'GLITCH', biome: 'Subspace 0x00', weight: '2200.0 kg', desc: 'A majestic avatar of Aethelgard that radiates infinite energy.' }
       }
     };
 
@@ -659,7 +1007,82 @@
       }
     };
 
-    // 7 Canonical Biomes
+    // --- 3. PET COMPANIONS DATABASE (Virtual Fisher 2099 System) ---
+    const PETS = {
+      'pet_axo': {
+        id: 'pet_axo',
+        name: 'Axo-9',
+        title: 'Cyber Axolotl',
+        icon: '🦎',
+        color: '#38bdf8',
+        cost: 500,
+        speedBoost: 0.25,
+        xpBoost: 0.15,
+        sellMult: 1.0,
+        doubleCatch: 0.0,
+        passiveCash: 0,
+        desc: 'A tiny neon axolotl with bioluminescent external gills that swim beside your boat. Boosts bite speed by 25% and XP by 15%.'
+      },
+      'pet_ping': {
+        id: 'pet_ping',
+        name: 'Ping-0',
+        title: 'Mecha Penguin',
+        icon: '🐧',
+        color: '#06b6d4',
+        cost: 5000,
+        speedBoost: 0.10,
+        xpBoost: 0.10,
+        sellMult: 1.35,
+        doubleCatch: 0.0,
+        passiveCash: 15,
+        desc: 'Equipped with cold-fusion propulsion. Boosts fish sell prices by 35% and harvests scrap salvage periodically.'
+      },
+      'pet_otter': {
+        id: 'pet_otter',
+        name: 'Otto-Flux',
+        title: 'Holo Otter',
+        icon: '🦦',
+        color: '#f59e0b',
+        cost: 50000,
+        speedBoost: 0.15,
+        xpBoost: 0.20,
+        sellMult: 1.20,
+        doubleCatch: 0.30,
+        passiveCash: 50,
+        desc: 'Playful otter woven of tachyon light. Has a 30% chance for DOUBLE CATCH (catches 2 fish at once!).'
+      },
+      'pet_jelly': {
+        id: 'pet_jelly',
+        name: 'Jelly-Pulse',
+        title: 'Tachyon Jelly',
+        icon: '🪼',
+        color: '#a855f7',
+        cost: 500000,
+        speedBoost: 0.20,
+        xpBoost: 0.25,
+        sellMult: 1.30,
+        doubleCatch: 0.15,
+        passiveCash: 120,
+        desc: 'Emits a localized spacetime dilation field. Slows minigame tension decay by 40% and grants +50% rare fish luck.'
+      },
+      'pet_sovereign': {
+        id: 'pet_sovereign',
+        name: 'Aethelgard, The Glitch Sovereign',
+        title: 'Cosmic Singularity Leviathan',
+        icon: '🐉',
+        color: '#ec4899',
+        isOverpowered: true,
+        cost: 0,
+        speedBoost: 0.80,
+        xpBoost: 1.00,
+        sellMult: 5.0,
+        doubleCatch: 0.50,
+        passiveCash: 250,
+        desc: '🔥 OVERPOWERED GOD-TIER COMPANION: A colossal celestial dragon circling your ship. Grants 5.0x Sell Value, 100% Perfect Auto-Reel, 500% Cosmic Fish Luck, and passive +$250 every 8 seconds!'
+      }
+    };
+
+    // Canonical Biomes + Secret Subspace 0x00
     const BIOMES = {
       'River': { name: 'River Waters', icon: '🏞️', levelReq: 1, fee: 0, species: ['Raw Fish', 'Raw Salmon', 'Cod', 'Pufferfish', 'Golden Fish'], desc: 'Gentle freshwater currents with emerald reflections.' },
       'Ocean': { name: 'Open Ocean', icon: '🌊', levelReq: 5, fee: 100, species: ['Anchovy', 'Mackerel', 'Red Snapper', 'Bluefin Tuna'], desc: 'Wide expanses of rolling saltwater swells.' },
@@ -667,10 +1090,11 @@
       'Deep Ocean': { name: 'Deep Ocean', icon: '🌌', levelReq: 25, fee: 50000, species: ['Anglerfish', 'Giant Squid', 'Emerald Fish'], desc: 'Sunless depths glittering with bioluminescent plankton.' },
       'Swamp': { name: 'Murky Swamp', icon: '🌿', levelReq: 40, fee: 500000, species: ['Mud Catfish', 'Alligator Gar', 'Hydra Eel'], desc: 'Stagnant olive waters bubbling with marsh gas.' },
       'Volcanic': { name: 'Volcanic Core', icon: '🌋', levelReq: 60, fee: 5000000, species: ['Magma Puffer', 'Obsidian Bass', 'Lava Leviathan'], desc: 'Boiling magma flows with floating embers.' },
-      'Abyss': { name: 'The Cosmic Abyss', icon: '🪐', levelReq: 80, fee: 50000000, species: ['Void Ray', 'Abyssal Kraken', 'Mythic Celestial Fish'], desc: 'Cosmic purple abyss echoing with celestial entities.' }
+      'Abyss': { name: 'The Cosmic Abyss', icon: '🪐', levelReq: 80, fee: 50000000, species: ['Void Ray', 'Abyssal Kraken', 'Mythic Celestial Fish'], desc: 'Cosmic purple abyss echoing with celestial entities.' },
+      'subspace_zero': { name: 'Subspace 0x00: Chrono-Singularity', icon: '🌀', levelReq: 1, fee: 0, isSecret: true, unlocked: false, species: ['ERR_404_NULL_EEL', 'Quantum Matrix Ray', 'Tachyon Singularity Chimera', 'Echo of the Glitch Sovereign'], desc: 'Dimensional matrix fissure where oceanic spacetime folds into floating neon tesseracts and glitch matrices.' }
     };
 
-    // 21 Canonical Rods
+    // Canonical Rods + Secret Easter Egg Rods
     const RODS = {
       'Plastic Rod': { cost: 0, min: 2, max: 5, desc: 'Basic starter rod.' },
       'Improved Rod': { cost: 500, min: 3, max: 7, desc: '+25% fish yield.' },
@@ -678,7 +1102,10 @@
       'Fiberglass Rod': { cost: 50000, min: 5, max: 12, desc: 'Flexible and robust.' },
       'Lava Rod': { cost: 1000000, min: 7, max: 15, desc: 'Resists boiling magma.' },
       'Corrupt Rod': { cost: 50000000, min: 10, max: 22, desc: '30% chance for double fish!' },
-      'Celestial Rod': { cost: 1000000000, min: 18, max: 40, desc: 'Forged from fallen stars.' }
+      'Celestial Rod': { cost: 1000000000, min: 18, max: 40, desc: 'Forged from fallen stars.' },
+      // Secret Easter Egg Rods
+      'Chronos Singularity Rod': { cost: 0, min: 25, max: 55, isSecret: true, desc: '🌌 Spacetime bending rod. +200% Fish Value and 35% Double Catch chance!' },
+      '0xDEADBEEF Dev Glitch Rod': { cost: 0, min: 40, max: 99, isSecret: true, desc: '👾 DEVELOPER ROOT TOOL. Line tension never snaps, instant strikes, +300% XP!' }
     };
 
     // 7 Canonical Boats with Unique Visual Specifications
@@ -775,7 +1202,10 @@
         { id: 'dex', name: 'Fillet Table', x: 0, icon: '🐟', prompt: '🔪 Press [E] to Open Fillet Workbench' },
         { id: 'helm', name: 'Ship Helm', x: 0, icon: '🧭', prompt: '🧭 Press [E] to Voyage Map' },
         { id: 'forge', name: 'Charm Forge', x: 0, icon: '⚙️', prompt: '⚙️ Press [E] to Open Forge' },
-        { id: 'market', name: 'Cargo Market', x: 0, icon: '💰', prompt: '💰 Press [E] to Sell Fish' }
+        { id: 'market', name: 'Cargo Market', x: 0, icon: '💰', prompt: '💰 Press [E] to Sell Fish' },
+        { id: 'pets', name: 'Pet Altar', x: 0, icon: '🐾', prompt: '🐾 Press [E] to Pet Sanctuary & Sovereign Altar' },
+        { id: 'radio', name: 'Ship Radio', x: 0, icon: '📻', prompt: '📻 Press [E] to Shortwave Transponder' },
+        { id: 'journal', name: 'Field Journal', x: 0, icon: '📖', prompt: '📖 Press [E] to Holographic Bestiary' }
       ]
     };
 
@@ -817,6 +1247,21 @@
       if (k === 'e') {
         const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
         if (!modalOpen && state.activeStation) triggerStationInteract();
+      }
+      if (k === 'p') {
+        const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+        if (!modalOpen) openModal('pets');
+      }
+      if (k === 'r') {
+        const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+        if (!modalOpen) openModal('radio');
+      }
+      if (k === 'j') {
+        const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+        if (!modalOpen) openModal('journal');
+      }
+      if (k === 'z') {
+        toggleAutoFish();
       }
       if (e.key === ' ' || e.code === 'Space') {
         if (minigame.active) {
@@ -860,11 +1305,14 @@
       deck.leftBoundary = shipX - shipW * 0.40;
       deck.rightBoundary = shipX + shipW * 0.38;
 
-      deck.stations[0].x = deck.leftBoundary + 30;
-      deck.stations[1].x = shipX - shipW * 0.18;
-      deck.stations[2].x = shipX;
-      deck.stations[3].x = shipX + shipW * 0.18;
-      deck.stations[4].x = deck.rightBoundary - 30;
+      deck.stations[0].x = deck.leftBoundary + 25;
+      deck.stations[1].x = shipX - shipW * 0.28;
+      deck.stations[2].x = shipX - shipW * 0.12;
+      deck.stations[3].x = shipX + shipW * 0.04;
+      deck.stations[4].x = shipX + shipW * 0.20;
+      if (deck.stations[5]) deck.stations[5].x = shipX - shipW * 0.36;
+      if (deck.stations[6]) deck.stations[6].x = shipX - shipW * 0.02;
+      if (deck.stations[7]) deck.stations[7].x = deck.rightBoundary - 25;
 
       if (guy.x === 0) guy.x = shipX;
       guy.y = deck.deckY;
@@ -952,6 +1400,20 @@
         }
       }
 
+      // Autonomous Angler Chill Loop
+      if (state.auto_fish_active) {
+        updateAutoAngler(dt);
+      }
+
+      // Passive Pet Salvage Loop (every 8 seconds)
+      if (state.equipped_pet && PETS[state.equipped_pet]) {
+        state.pet_passive_timer = (state.pet_passive_timer || 0) + dt;
+        if (state.pet_passive_timer >= 8.0) {
+          state.pet_passive_timer = 0;
+          collectPetPassive();
+        }
+      }
+
       // Update Minigame
       if (minigame.active) updateMinigame(dt);
 
@@ -976,6 +1438,12 @@
 
     // --- 8. MINIGAME PHYSICS ---
     function updateMinigame(dt) {
+      // Overpowered Sovereign bypasses tension minigame instantly
+      if (state.equipped_pet === 'pet_sovereign') {
+        winMinigame();
+        return;
+      }
+
       minigame.fishAiTimer -= dt;
       if (minigame.fishAiTimer <= 0) {
         minigame.fishAiTimer = 0.35 + Math.random() * 0.85;
@@ -985,6 +1453,17 @@
       minigame.fishVel = Math.sign(fishDiff) * Math.min(Math.abs(fishDiff) * 4.2, minigame.fishAiSpeed);
       minigame.fishY += minigame.fishVel * dt;
       minigame.fishY = Math.max(10, Math.min(minigame.trackHeight - 40, minigame.fishY));
+
+      // Autonomous Angler Tension AI
+      if (state.auto_fish_active) {
+        const fCenter = minigame.fishY + 16;
+        const pCenter = minigame.playerY + minigame.boxHeight / 2;
+        if (pCenter > fCenter + 4) {
+          minigame.isHolding = true;
+        } else if (pCenter < fCenter - 4) {
+          minigame.isHolding = false;
+        }
+      }
 
       const gravity = 480;
       const thrust = 760;
@@ -1008,10 +1487,15 @@
       const isInside = fishCenter >= minigame.playerY && fishCenter <= (minigame.playerY + minigame.boxHeight);
 
       if (isInside) {
-        minigame.progress += 0.35 * dt;
-        if (Math.random() < 0.12) playAudioClip('reel', 0.2);
+        minigame.progress += 0.38 * dt;
+        if (Math.random() < 0.15) playAudioClip('reel', 0.2);
       } else {
-        minigame.progress -= 0.22 * dt;
+        // Dev rod never loses progress!
+        if (state.currentRod !== '0xDEADBEEF Dev Glitch Rod') {
+          let lossRate = 0.22;
+          if (state.equipped_pet === 'pet_jelly') lossRate *= 0.60; // Tachyon time-dilation
+          minigame.progress -= lossRate * dt;
+        }
       }
       minigame.progress = Math.max(0, Math.min(1.0, minigame.progress));
 
@@ -1028,30 +1512,58 @@
     function winMinigame() {
       minigame.active = false;
       document.getElementById('tension-minigame').classList.add('hidden');
-      sfxCatch();
+      sfxCatch(true);
 
       const fName = minigame.targetFishName;
       const fData = minigame.targetFishData;
       let count = minigame.count;
       if (state.mascot === 'rimuru_slime') count += 1;
 
+      let bonusMsg = '';
+
+      // Pet Double Catch Perk (Otto-Flux / Sovereign)
+      if (PETS[state.equipped_pet] && PETS[state.equipped_pet].doubleCatch > 0 && Math.random() < PETS[state.equipped_pet].doubleCatch) {
+        count *= 2;
+        bonusMsg += ' ⚡ [PET DOUBLE-HOOK!]';
+      }
+
       state.inventory[fName].count += count;
+
+      // Bestiary Field Journal Logging
+      recordJournalEntry(fName, fData);
 
       let charmXp = 0;
       if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) charmXp = CHARMS[state.currentCharm].bonusXP || 0;
       let mascotXp = state.mascot === 'rimuru_human' ? 0.10 : 0;
+      let petXp = PETS[state.equipped_pet] ? PETS[state.equipped_pet].xpBoost || 0 : 0;
 
-      const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp));
+      const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp + petXp));
       addXP(totalXp);
 
-      let bonusMsg = '';
       if (fName.includes('Golden') || fName.includes('Gold')) {
         state.gold += 1;
-        bonusMsg = ' + 🪙 1x Gold Fish!';
+        bonusMsg += ' + 🪙 1x Gold Fish!';
       }
       if (fName.includes('Emerald') || fName.includes('Kraken') || fName.includes('Leviathan')) {
         state.emerald += 1;
-        bonusMsg = ' + 💎 1x Emerald Fish!';
+        bonusMsg += ' + 💎 1x Emerald Fish!';
+      }
+
+      // Special Drops Check:
+      // 1. Glitch Core
+      if ((state.currentBiome === 'subspace_zero' && Math.random() < 0.40) || (['Deep Ocean', 'Abyss'].includes(state.currentBiome) && Math.random() < 0.12)) {
+        state.special_items.glitch_core = (state.special_items.glitch_core || 0) + 1;
+        bonusMsg += ' + 👾 1x Glitch Core!';
+      }
+      // 2. Singularity Pearl
+      if (['Golden Fish', 'Emerald Fish', 'Abyssal Kraken', 'Mythic Celestial Fish', 'ERR_404_NULL_EEL', 'Quantum Matrix Ray', 'Tachyon Singularity Chimera', 'Echo of the Glitch Sovereign'].includes(fName) && Math.random() < 0.50) {
+        state.special_items.singularity_pearl = (state.special_items.singularity_pearl || 0) + 1;
+        bonusMsg += ' + 🔮 1x Singularity Pearl!';
+      }
+      // 3. Chrono Fragment
+      if (Math.random() < 0.15) {
+        state.special_items.chrono_fragment = (state.special_items.chrono_fragment || 0) + 1;
+        bonusMsg += ' + ⏳ 1x Chrono Fragment!';
       }
 
       triggerCatchCard(fName, fData, count, totalXp, bonusMsg);
@@ -1093,8 +1605,10 @@
       const shipW = boatData.width;
       const waterY = deck.deckY + 16;
 
-      // 1. SKY PARALLAX (Scale the Depths Hub_BG_Sky.png)
-      if (sprites.sky && sprites.sky.complete) {
+      // 1. SKY PARALLAX (Standard or Secret Subspace 0x00)
+      if (state.currentBiome === 'subspace_zero') {
+        drawSubspaceMatrixSky(ctx, waterY, t);
+      } else if (sprites.sky && sprites.sky.complete) {
         const skyH = waterY;
         const skyW = (sprites.sky.width / sprites.sky.height) * skyH;
         const scrollX = -(t * 12) % skyW;
@@ -1110,7 +1624,19 @@
       }
 
       // 2. BACKGROUND SEA SWELL (Scale the Depths Hub_BG Water.png)
-      if (sprites.bgWater && sprites.bgWater.complete) {
+      if (state.currentBiome === 'subspace_zero') {
+        ctx.fillStyle = '#18002e';
+        ctx.fillRect(0, waterY - 8, canvas.width, canvas.height - (waterY - 8));
+        // Neon Grid scanlines
+        ctx.strokeStyle = 'rgba(0, 255, 234, 0.25)';
+        ctx.lineWidth = 1;
+        for (let gy = waterY; gy < canvas.height; gy += 18) {
+          ctx.beginPath();
+          ctx.moveTo(0, gy);
+          ctx.lineTo(canvas.width, gy);
+          ctx.stroke();
+        }
+      } else if (sprites.bgWater && sprites.bgWater.complete) {
         const bgWaterH = 68;
         const bgWaterW = (sprites.bgWater.width / sprites.bgWater.height) * bgWaterH;
         const bgScroll = -(t * 22) % bgWaterW;
@@ -1121,8 +1647,10 @@
       }
 
       // Background Ocean Depth Solid Fill
-      ctx.fillStyle = '#0a3d5e';
-      ctx.fillRect(0, waterY + 40, canvas.width, canvas.height - (waterY + 40));
+      if (state.currentBiome !== 'subspace_zero') {
+        ctx.fillStyle = '#0a3d5e';
+        ctx.fillRect(0, waterY + 40, canvas.width, canvas.height - (waterY + 40));
+      }
 
       // 3. SHIP BUOYANCY DYNAMICS
       const shipX = canvas.width / 2;
@@ -1130,11 +1658,25 @@
       const roll = Math.sin(t * 1.8 + 0.4) * 0.016; // Gentle 1 degree roll
       const shipY = deck.deckY + heave;
 
-      // Draw the active boat upgrade and character with grounded physics!
+      // Draw active boat upgrade and character with grounded physics
       drawActiveBoatUpgrade(ctx, shipX, shipY, roll, shipW, boatData, t);
 
+      // Draw Equipped Pet Companion Swimming/Hovering Beside the Vessel!
+      drawEquippedPet(ctx, shipX, shipY, waterY, t);
+
       // 4. FOREGROUND ROLLING WATER (Scale the Depths Hub_Front Wave.png)
-      if (sprites.fgWave && sprites.fgWave.complete) {
+      if (state.currentBiome === 'subspace_zero') {
+        ctx.fillStyle = 'rgba(13, 0, 26, 0.6)';
+        ctx.fillRect(0, waterY + 16, canvas.width, canvas.height - (waterY + 16));
+        ctx.strokeStyle = '#ec4899';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 20) {
+          const wy = waterY + 16 + Math.sin(x * 0.02 + t * 4) * 6;
+          if (x === 0) ctx.moveTo(x, wy); else ctx.lineTo(x, wy);
+        }
+        ctx.stroke();
+      } else if (sprites.fgWave && sprites.fgWave.complete) {
         const fgH = 58;
         const fgW = (sprites.fgWave.width / sprites.fgWave.height) * fgH;
         const fgScroll = -(t * 36) % fgW;
@@ -1148,6 +1690,207 @@
         ctx.fillStyle = '#062840';
         ctx.fillRect(0, fgWaveY + fgH - 4, canvas.width, canvas.height - (fgWaveY + fgH - 4));
       }
+    }
+
+    function drawSubspaceMatrixSky(ctx, waterY, t) {
+      const grad = ctx.createLinearGradient(0, 0, 0, waterY);
+      grad.addColorStop(0, '#060012');
+      grad.addColorStop(0.5, '#1e003b');
+      grad.addColorStop(1, '#2e004d');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, waterY);
+
+      // Shimmering stars and matrix digits
+      ctx.save();
+      ctx.fillStyle = '#00ffea';
+      ctx.font = '10px monospace';
+      for (let i = 0; i < 24; i++) {
+        const sx = ((i * 73 + t * 25) % canvas.width);
+        const sy = ((i * 47) % (waterY - 20));
+        ctx.globalAlpha = 0.35 + Math.sin(t * 3 + i) * 0.25;
+        ctx.fillText(i % 2 === 0 ? '0x00' : '404', sx, sy);
+      }
+      ctx.restore();
+
+      // Floating rotating 3D wireframe cyber-cube
+      ctx.save();
+      ctx.strokeStyle = '#00ffea';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#00ffea';
+      ctx.shadowBlur = 10;
+      const cx = canvas.width * 0.78;
+      const cy = waterY * 0.35 + Math.sin(t * 1.5) * 8;
+      const size = 32;
+      const rot = t * 0.6;
+      ctx.translate(cx, cy);
+      ctx.rotate(rot);
+      ctx.strokeRect(-size/2, -size/2, size, size);
+      ctx.strokeStyle = '#ff00ea';
+      ctx.strokeRect(-size/3, -size/3, size * 0.66, size * 0.66);
+      ctx.restore();
+    }
+
+    function drawEquippedPet(ctx, shipX, shipY, waterY, t) {
+      const petId = state.equipped_pet;
+      if (!petId || !PETS[petId]) return;
+
+      ctx.save();
+      if (petId === 'pet_sovereign') {
+        // AETHELGARD, THE GLITCH SOVEREIGN - Celestial Leviathan!
+        const headX = shipX + 220 + Math.cos(t * 1.6) * 60;
+        const headY = waterY + 6 + Math.sin(t * 2.4) * 14;
+
+        for (let i = 12; i >= 1; i--) {
+          const segX = headX - i * 16 + Math.cos(t * 1.6 + i * 0.35) * 22;
+          const segY = waterY + 8 + Math.sin(t * 2.4 + i * 0.45) * 16;
+          const radius = Math.max(4, 16 - i * 0.9);
+
+          ctx.fillStyle = i % 2 === 0 ? '#ff00ea' : '#00ffea';
+          ctx.shadowColor = '#ff00ea';
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(segX, segY, radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (i % 2 === 0) {
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.moveTo(segX, segY - radius);
+            ctx.lineTo(segX - 6, segY - radius - 8);
+            ctx.lineTo(segX + 4, segY - radius);
+            ctx.fill();
+          }
+        }
+
+        ctx.fillStyle = '#ff00ea';
+        ctx.shadowColor = '#00ffea';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(headX, headY, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.moveTo(headX - 6, headY - 14);
+        ctx.lineTo(headX - 18, headY - 30);
+        ctx.lineTo(headX, headY - 16);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(headX + 6, headY - 3, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(headX + 7, headY - 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (petId === 'pet_axo') {
+        const px = shipX + 180 + Math.sin(t * 2.2) * 14;
+        const py = waterY + 12 + Math.cos(t * 2.8) * 5;
+        const tailWag = Math.sin(t * 6) * 6;
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.ellipse(px, py, 18, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(px - 14, py);
+        ctx.lineTo(px - 30, py + tailWag);
+        ctx.lineTo(px - 12, py + 4);
+        ctx.fill();
+
+        ctx.fillStyle = '#f472b6';
+        ctx.beginPath();
+        ctx.arc(px - 4, py - 10, 4, 0, Math.PI * 2);
+        ctx.arc(px - 8, py - 13, 3, 0, Math.PI * 2);
+        ctx.arc(px - 4, py + 10, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(px + 8, py - 2, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (petId === 'pet_ping') {
+        const px = shipX + 180 + Math.sin(t * 1.5) * 10;
+        const py = waterY + 8 + Math.cos(t * 2.0) * 4;
+
+        ctx.fillStyle = '#a5f3fc';
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.ellipse(px, py + 12, 22, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.ellipse(px, py, 12, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.ellipse(px + 3, py + 2, 7, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(px + 4, py - 10, 8, 4);
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(px + 10, py - 8);
+        ctx.lineTo(px + 17, py - 6);
+        ctx.lineTo(px + 10, py - 4);
+        ctx.fill();
+
+      } else if (petId === 'pet_otter') {
+        const px = shipX + 190 + Math.cos(t * 2.0) * 12;
+        const py = waterY + 10 + Math.sin(t * 2.5) * 5;
+
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.ellipse(px, py, 20, 9, Math.PI * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(px + 16, py - 4, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        const orbY = py - 16 + Math.sin(t * 5) * 8;
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(px + 4, orbY, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (petId === 'pet_jelly') {
+        const px = shipX + 170 + Math.sin(t * 1.8) * 15;
+        const py = waterY + 16 + Math.sin(t * 3.2) * 6;
+        const pulse = 1 + Math.sin(t * 3.5) * 0.15;
+
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.75)';
+        ctx.shadowColor = '#c084fc';
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(px, py, 14 * pulse, Math.PI, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#e9d5ff';
+        ctx.lineWidth = 1.5;
+        for (let ti = -2; ti <= 2; ti++) {
+          ctx.beginPath();
+          ctx.moveTo(px + ti * 5, py);
+          ctx.quadraticCurveTo(px + ti * 6 + Math.sin(t * 4 + ti) * 6, py + 14, px + ti * 4, py + 26);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
     }
 
     // --- 10. ACTIVE BOAT UPGRADE RENDERING & GROUNDED MASCOT ---
@@ -1519,7 +2262,7 @@
       const modal = document.getElementById('station-modal');
       modal.classList.remove('hidden');
 
-      const views = ['view-fishing', 'view-dex', 'view-helm', 'view-forge', 'view-market', 'view-mascot', 'view-shop'];
+      const views = ['view-fishing', 'view-dex', 'view-helm', 'view-forge', 'view-market', 'view-mascot', 'view-shop', 'view-pets', 'view-radio', 'view-journal'];
       views.forEach(v => document.getElementById(v).classList.add('hidden'));
 
       const map = {
@@ -1529,7 +2272,10 @@
         'forge': { id: 'view-forge', icon: '⚙️', title: 'The Forge & Enchanter', sub: 'Craft specialized baits and forge ancient stat charms.' },
         'market': { id: 'view-market', icon: '💰', title: 'Cargo Market & Fishmonger', sub: 'Sell your harvested haul for cold, hard gold coins.' },
         'mascot': { id: 'view-mascot', icon: '🌀', title: "Ship's Mascot & Companion Wardrobe", sub: 'Select Rimuru Tempest Demon Lord, Slime, or salty crew.' },
-        'shop': { id: 'view-shop', icon: '🛒', title: 'Harbor Upgrade Shipyard', sub: 'Purchase advanced rods and faster ship hulls.' }
+        'shop': { id: 'view-shop', icon: '🛒', title: 'Harbor Upgrade Shipyard', sub: 'Purchase advanced rods and faster ship hulls.' },
+        'pets': { id: 'view-pets', icon: '🐾', title: 'Pet Sanctuary & Sovereign Altar', sub: 'Adopt loyal companions and perform the ancient Genesis Ritual.' },
+        'radio': { id: 'view-radio', icon: '📻', title: "Shortwave Radio & Sub-Ether Transponder", sub: 'Tune frequencies and enter decryption ciphers for secret rods & biomes.' },
+        'journal': { id: 'view-journal', icon: '📖', title: 'Holographic Bestiary & Field Records', sub: 'Inspect discovered species, record weights, and dimensional anomalies.' }
       };
 
       const info = map[viewId] || map['fishing'];
@@ -1545,6 +2291,9 @@
       else if (viewId === 'market') renderMarket();
       else if (viewId === 'mascot') renderMascotWardrobe();
       else if (viewId === 'shop') renderShop();
+      else if (viewId === 'pets') { switchPetsTab('roster'); renderPets(); }
+      else if (viewId === 'radio') renderRadio();
+      else if (viewId === 'journal') renderJournal();
     }
 
     function closeModal() {
@@ -1586,6 +2335,8 @@
       let rareChance = 0.15;
       if (state.currentBait !== 'None' && BAITS[state.currentBait]) rareChance += BAITS[state.currentBait].rareBoost;
       if (state.mascot === 'rimuru_human') rareChance += 0.15;
+      if (state.equipped_pet === 'pet_sovereign') rareChance += 0.50; // Sovereign cosmic luck
+      if (state.equipped_pet === 'pet_jelly') rareChance += 0.20;
 
       const isRare = Math.random() < rareChance;
       let chosenFish = speciesList[0];
@@ -1600,6 +2351,7 @@
       // Rod Yield
       let count = Math.floor(rodData.min + Math.random() * (rodData.max - rodData.min + 1));
       if (state.currentRod === 'Corrupt Rod' && Math.random() < 0.3) count *= 2;
+      if (state.currentRod === 'Chronos Singularity Rod' && Math.random() < 0.35) count *= 2;
 
       // Consume bait
       if (state.currentBait !== 'None') {
@@ -1612,23 +2364,48 @@
 
       const fData = state.inventory[chosenFish];
 
-      if (isRare || chosenFish.includes('Golden') || chosenFish.includes('Emerald') || chosenFish.includes('Kraken') || chosenFish.includes('Leviathan') || chosenFish.includes('Pike')) {
+      const triggersMinigame = isRare || chosenFish.includes('Golden') || chosenFish.includes('Emerald') || chosenFish.includes('Kraken') || chosenFish.includes('Leviathan') || chosenFish.includes('Pike') || chosenFish.includes('Matrix') || chosenFish.includes('Singularity') || chosenFish.includes('Sovereign') || chosenFish.includes('ERR_404');
+
+      if (triggersMinigame) {
         sfxStrike();
         startMinigame(chosenFish, fData, count);
       } else {
         sfxCatch();
         if (state.mascot === 'rimuru_slime') count += 1;
+
+        let bonusMsg = '';
+        // Pet Double Catch Perk (Otto-Flux / Sovereign)
+        if (PETS[state.equipped_pet] && PETS[state.equipped_pet].doubleCatch > 0 && Math.random() < PETS[state.equipped_pet].doubleCatch) {
+          count *= 2;
+          bonusMsg += ' ⚡ [PET DOUBLE-HOOK!]';
+        }
+
         state.inventory[chosenFish].count += count;
+
+        // Bestiary Record
+        recordJournalEntry(chosenFish, fData);
 
         let charmXp = 0;
         if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) charmXp = CHARMS[state.currentCharm].bonusXP || 0;
         let mascotXp = state.mascot === 'rimuru_human' ? 0.10 : 0;
+        let petXp = PETS[state.equipped_pet] ? PETS[state.equipped_pet].xpBoost || 0 : 0;
+        let rodXp = state.currentRod === '0xDEADBEEF Dev Glitch Rod' ? 3.0 : 0;
 
-        const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp));
+        const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp + petXp + rodXp));
         addXP(totalXp);
 
-        triggerCatchCard(chosenFish, fData, count, totalXp);
-        showLootPopup(`🎉 Reeled in ${count}x ${chosenFish}! (+${totalXp} XP)`);
+        // Special drops on common catch
+        if (Math.random() < 0.10) {
+          state.special_items.chrono_fragment = (state.special_items.chrono_fragment || 0) + 1;
+          bonusMsg += ' + ⏳ 1x Chrono Fragment!';
+        }
+        if (state.currentBiome === 'subspace_zero' && Math.random() < 0.25) {
+          state.special_items.glitch_core = (state.special_items.glitch_core || 0) + 1;
+          bonusMsg += ' + 👾 1x Glitch Core!';
+        }
+
+        triggerCatchCard(chosenFish, fData, count, totalXp, bonusMsg);
+        showLootPopup(`🎉 Reeled in ${count}x ${chosenFish}! (+${totalXp} XP)${bonusMsg}`);
       }
     }
 
@@ -1803,17 +2580,42 @@
 
       for (const [bKey, b] of Object.entries(BIOMES)) {
         const isCurrent = state.currentBiome === bKey;
+
+        // Secret Biome handling
+        if (b.isSecret && !b.unlocked) {
+          const div = document.createElement('div');
+          div.className = "wood-card p-4 flex flex-col justify-between border-dashed border-pink-500/50 bg-[#16001e]/60";
+          div.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-3xl animate-pulse">🔒</span>
+                <span class="text-[10px] bg-pink-950 text-pink-300 px-2 py-0.5 rounded border border-pink-500 font-black">SECRET BIOME</span>
+              </div>
+              <div class="text-sm font-black text-pink-300 mt-2">${b.name}</div>
+              <p class="text-xs text-pink-200/70 my-1.5 font-bold">Uncharted dimensional coordinates required. Intercept sub-ether radio signals via Transponder [R].</p>
+              <div class="text-xs text-pink-400 font-mono font-black">Cipher: 404-0X00-VOID</div>
+            </div>
+            <div class="mt-4">
+              <button onclick="openModal('radio')" class="brass-btn-blue w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer">
+                TUNE TRANSPONDER 📻
+              </button>
+            </div>
+          `;
+          grid.appendChild(div);
+          continue;
+        }
+
         const meetsLevel = state.level >= b.levelReq;
         const canAfford = state.cash >= b.fee;
 
         const div = document.createElement('div');
-        div.className = `wood-card p-4 flex flex-col justify-between ${isCurrent ? 'wood-card-gold' : ''}`;
+        div.className = `wood-card p-4 flex flex-col justify-between ${isCurrent ? 'wood-card-gold' : ''} ${b.isSecret ? 'border-2 border-pink-500/80 bg-[#12001c]' : ''}`;
         div.innerHTML = `
           <div>
             <div class="flex items-center justify-between">
               <span class="text-3xl">${b.icon}</span>
               <span class="text-xs font-black ${meetsLevel ? 'text-emerald-400' : 'text-red-400'}">
-                Req: Lv. ${b.levelReq}
+                ${b.isSecret ? '<span class="text-pink-400 font-mono">DIMENSIONAL FISSURE</span>' : `Req: Lv. ${b.levelReq}`}
               </span>
             </div>
             <div class="text-sm font-black text-amber-200 mt-2">${b.name}</div>
@@ -1826,8 +2628,8 @@
                 ANCHORED HERE
               </button>
             ` : `
-              <button onclick="sailToBiome('${bKey}')" ${(!meetsLevel || !canAfford) ? 'disabled' : ''} class="brass-btn w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${(!meetsLevel || !canAfford) ? 'opacity-40 cursor-not-allowed' : ''}">
-                ${!meetsLevel ? `LOCKED (LV. ${b.levelReq})` : (!canAfford ? 'INSUFFICIENT FUNDS' : 'SET SAIL ➔')}
+              <button onclick="sailToBiome('${bKey}')" ${(!meetsLevel || !canAfford) ? 'disabled' : ''} class="${b.isSecret ? 'brass-btn-emerald' : 'brass-btn'} w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${(!meetsLevel || !canAfford) ? 'opacity-40 cursor-not-allowed' : ''}">
+                ${b.isSecret ? 'WARP TO MATRIX 🌌' : (!meetsLevel ? `LOCKED (LV. ${b.levelReq})` : (!canAfford ? 'INSUFFICIENT FUNDS' : 'SET SAIL ➔'))}
               </button>
             `}
           </div>
@@ -2024,11 +2826,13 @@
       if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) {
         charmValueBonus = CHARMS[state.currentCharm].bonusValue || 0;
       }
+      let petMult = (state.equipped_pet && PETS[state.equipped_pet]) ? (PETS[state.equipped_pet].sellMult || 1.0) : 1.0;
+      if (state.currentRod === 'Chronos Singularity Rod') petMult *= 2.0;
 
       for (const [name, item] of Object.entries(state.inventory)) {
         if (item.count <= 0) continue;
         const spriteFile = `assets/${item.sprite === 'cod' ? 'Fish_Cod.png' : item.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : item.sprite + '.png'}`;
-        const unitVal = Math.floor(item.price * (1 + charmValueBonus));
+        const unitVal = Math.floor(item.price * (1 + charmValueBonus) * petMult);
         const totalVal = unitVal * item.count;
 
         const div = document.createElement('div');
@@ -2038,7 +2842,7 @@
             <img src="${spriteFile}" class="max-h-10 max-w-full object-contain" alt="${name}">
           </div>
           <div class="text-sm font-black mt-2" style="color: ${item.color}">${name}</div>
-          <div class="text-xs text-amber-200/80 font-bold">$${unitVal} ea (x${item.count})</div>
+          <div class="text-xs text-amber-200/80 font-bold">$${unitVal} ea (x${item.count}) ${petMult > 1 ? `<span class="text-emerald-400 font-black">(${petMult}x)</span>` : ''}</div>
           <button onclick="sellSingleFish('${name}')" class="brass-btn-emerald px-3 py-1.5 text-xs font-black rounded mt-2.5 cursor-pointer">
             Sell (+$${totalVal.toLocaleString()})
           </button>
@@ -2063,7 +2867,10 @@
       if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) {
         charmValueBonus = CHARMS[state.currentCharm].bonusValue || 0;
       }
-      const unitVal = Math.floor(item.price * (1 + charmValueBonus));
+      let petMult = (state.equipped_pet && PETS[state.equipped_pet]) ? (PETS[state.equipped_pet].sellMult || 1.0) : 1.0;
+      if (state.currentRod === 'Chronos Singularity Rod') petMult *= 2.0;
+
+      const unitVal = Math.floor(item.price * (1 + charmValueBonus) * petMult);
       const totalEarned = unitVal * item.count;
       state.cash += totalEarned;
       showLootPopup(`Sold ${item.count}x ${name} for +$${totalEarned.toLocaleString()}!`);
@@ -2077,11 +2884,14 @@
       if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) {
         charmValueBonus = CHARMS[state.currentCharm].bonusValue || 0;
       }
+      let petMult = (state.equipped_pet && PETS[state.equipped_pet]) ? (PETS[state.equipped_pet].sellMult || 1.0) : 1.0;
+      if (state.currentRod === 'Chronos Singularity Rod') petMult *= 2.0;
+
       let totalEarned = 0;
       let totalSold = 0;
       for (const [name, item] of Object.entries(state.inventory)) {
         if (item.count > 0) {
-          const unitVal = Math.floor(item.price * (1 + charmValueBonus));
+          const unitVal = Math.floor(item.price * (1 + charmValueBonus) * petMult);
           totalEarned += unitVal * item.count;
           totalSold += item.count;
           item.count = 0;
@@ -2205,6 +3015,472 @@
         pop.classList.remove('opacity-100');
         pop.classList.add('opacity-0');
       }, 3000);
+    }
+    // --- 20. PET SANCTUARY & GENESIS ALTAR ---
+    function switchPetsTab(tab) {
+      sfxClick();
+      if (tab === 'roster') {
+        document.getElementById('pets-subtab-roster').classList.remove('hidden');
+        document.getElementById('pets-subtab-altar').classList.add('hidden');
+        document.getElementById('btn-tab-pet-roster').classList.add('active');
+        document.getElementById('btn-tab-pet-altar').classList.remove('active');
+        renderPets();
+      } else {
+        document.getElementById('pets-subtab-roster').classList.add('hidden');
+        document.getElementById('pets-subtab-altar').classList.remove('hidden');
+        document.getElementById('btn-tab-pet-roster').classList.remove('active');
+        document.getElementById('btn-tab-pet-altar').classList.add('active');
+        renderGenesisAltar();
+      }
+    }
+
+    function renderPets() {
+      const grid = document.getElementById('pets-roster-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      for (const [id, pet] of Object.entries(PETS)) {
+        if (pet.isOverpowered) continue; // Sovereign is shown on the Altar tab!
+
+        const isOwned = state.unlocked_pets.includes(id);
+        const isEquipped = state.equipped_pet === id;
+        const canAdopt = state.cash >= pet.cost;
+
+        const card = document.createElement('div');
+        card.className = `wood-card p-4 rounded flex flex-col justify-between ${isEquipped ? 'wood-card-gold' : ''}`;
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-3xl">${pet.icon}</span>
+                <div>
+                  <div class="text-sm font-black" style="color: ${pet.color}">${pet.name}</div>
+                  <div class="text-[10px] text-amber-200/80 uppercase font-bold">${pet.title}</div>
+                </div>
+              </div>
+              ${isEquipped ? '<span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500 font-black">EQUIPPED</span>' : ''}
+            </div>
+
+            <p class="text-xs text-amber-100/90 my-2.5 font-bold leading-snug">${pet.desc}</p>
+
+            <div class="bg-[#100804] p-2 rounded border border-amber-900/60 text-[11px] space-y-1 font-bold">
+              <div class="flex justify-between text-cyan-300">
+                <span>Speed / Bite Boost:</span>
+                <span>+${Math.round(pet.speedBoost * 100)}%</span>
+              </div>
+              <div class="flex justify-between text-purple-300">
+                <span>Catch XP Boost:</span>
+                <span>+${Math.round(pet.xpBoost * 100)}%</span>
+              </div>
+              <div class="flex justify-between text-amber-300">
+                <span>Sell Multiplier:</span>
+                <span>${pet.sellMult}x Value</span>
+              </div>
+              ${pet.doubleCatch > 0 ? `
+              <div class="flex justify-between text-yellow-300">
+                <span>Double Catch Chance:</span>
+                <span>${Math.round(pet.doubleCatch * 100)}%</span>
+              </div>` : ''}
+              ${pet.passiveCash > 0 ? `
+              <div class="flex justify-between text-emerald-300">
+                <span>Passive Ocean Harvest:</span>
+                <span>+$${pet.passiveCash} / 8s</span>
+              </div>` : ''}
+            </div>
+          </div>
+
+          <div class="mt-3">
+            ${isOwned ? `
+              <button onclick="equipPet('${id}')" class="brass-btn-blue w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${isEquipped ? 'opacity-70' : ''}">
+                ${isEquipped ? 'ACTIVE COMPANION' : 'EQUIP COMPANION'}
+              </button>
+            ` : `
+              <button onclick="adoptPet('${id}')" ${!canAdopt ? 'disabled' : ''} class="brass-btn w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${!canAdopt ? 'opacity-40 cursor-not-allowed' : ''}">
+                ADOPT ($${pet.cost.toLocaleString()})
+              </button>
+            `}
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    function adoptPet(id) {
+      const pet = PETS[id];
+      if (state.cash < pet.cost) return;
+      sfxCoin();
+      state.cash -= pet.cost;
+      state.unlocked_pets.push(id);
+      state.equipped_pet = id;
+      showLootPopup(`🎉 Adopted ${pet.name}! Now swimming alongside your ship!`);
+      renderPets();
+    }
+
+    function equipPet(id) {
+      sfxClick();
+      state.equipped_pet = id;
+      showLootPopup(`🐾 ${PETS[id].name} is now your active swimming companion!`);
+      renderPets();
+    }
+
+    function renderGenesisAltar() {
+      const hasCore = (state.special_items.glitch_core || 0) >= 1;
+      const hasCipher = (state.special_items.void_cipher_key || 0) >= 1;
+      const hasPearls = (state.special_items.singularity_pearl || 0) >= 3;
+      const isAwakened = state.unlocked_pets.includes('pet_sovereign');
+      const isEquipped = state.equipped_pet === 'pet_sovereign';
+
+      const coreVal = document.getElementById('req-core-val');
+      const cipherVal = document.getElementById('req-cipher-val');
+      const pearlsVal = document.getElementById('req-pearls-val');
+      const btn = document.getElementById('btn-genesis-ritual');
+
+      if (coreVal) {
+        coreVal.innerText = `${state.special_items.glitch_core || 0} / 1`;
+        coreVal.className = hasCore ? "font-black text-emerald-400" : "font-black text-amber-400";
+      }
+      if (cipherVal) {
+        cipherVal.innerText = `${state.special_items.void_cipher_key || 0} / 1`;
+        cipherVal.className = hasCipher ? "font-black text-emerald-400" : "font-black text-amber-400";
+      }
+      if (pearlsVal) {
+        pearlsVal.innerText = `${state.special_items.singularity_pearl || 0} / 3`;
+        pearlsVal.className = hasPearls ? "font-black text-emerald-400" : "font-black text-amber-400";
+      }
+
+      if (btn) {
+        if (isAwakened) {
+          btn.innerHTML = isEquipped ? '✨ AETHELGARD BOUND & CIRCLING VESSEL' : '🐉 EQUIP AETHELGARD SOVEREIGN';
+          btn.disabled = isEquipped;
+          btn.className = isEquipped
+            ? "w-full py-4 text-sm sm:text-base font-black uppercase rounded bg-pink-950/70 text-pink-300 border-2 border-pink-500 cursor-default"
+            : "w-full py-4 text-sm sm:text-base font-black uppercase rounded cursor-pointer bg-gradient-to-r from-pink-600 to-purple-600 text-white border-2 border-pink-400 shadow-2xl hover:brightness-125 transition";
+        } else {
+          const canAwaken = hasCore && hasCipher && hasPearls;
+          btn.innerHTML = canAwaken ? '🌌 INITIATE GENESIS AWAKENING (READY)' : '🔒 REQUIREMENTS UNFULFILLED';
+          btn.disabled = !canAwaken;
+          btn.className = canAwaken
+            ? "w-full py-4 text-sm sm:text-base font-black uppercase rounded cursor-pointer bg-gradient-to-r from-pink-600 via-purple-600 to-cyan-600 text-white border-2 border-pink-400 shadow-2xl hover:brightness-125 transition animate-pulse"
+            : "w-full py-4 text-sm sm:text-base font-black uppercase rounded bg-gray-900/60 text-pink-200/40 border border-gray-700 cursor-not-allowed";
+        }
+      }
+    }
+
+    function performGenesisRitual() {
+      if (state.unlocked_pets.includes('pet_sovereign')) {
+        state.equipped_pet = 'pet_sovereign';
+        sfxClick();
+        showLootPopup('🐉 Aethelgard The Glitch Sovereign is now bound to your vessel!');
+        renderGenesisAltar();
+        return;
+      }
+
+      const hasCore = (state.special_items.glitch_core || 0) >= 1;
+      const hasCipher = (state.special_items.void_cipher_key || 0) >= 1;
+      const hasPearls = (state.special_items.singularity_pearl || 0) >= 3;
+
+      if (!hasCore || !hasCipher || !hasPearls) {
+        showLootPopup('⚠️ Altar is dormant: Missing sacred celestial components! Check radio [R] for ciphers.');
+        return;
+      }
+
+      state.special_items.glitch_core -= 1;
+      state.special_items.void_cipher_key -= 1;
+      state.special_items.singularity_pearl -= 3;
+
+      state.unlocked_pets.push('pet_sovereign');
+      state.equipped_pet = 'pet_sovereign';
+
+      cyberAudio.playGenesisAwakening();
+
+      // Screen ripple flash
+      const canvas = document.getElementById('gameCanvas');
+      if (canvas) {
+        canvas.style.filter = 'invert(1) hue-rotate(180deg) brightness(1.5)';
+        setTimeout(() => { canvas.style.filter = ''; }, 700);
+      }
+
+      showLootPopup('🌌 HYMN OF CREATION ECHOES! AETHELGARD, THE GLITCH SOVEREIGN HAS AWAKENED!');
+      renderGenesisAltar();
+    }
+
+    // --- 21. SHORTWAVE RADIO & SUB-ETHER TRANSPONDER ---
+    function renderRadio() {
+      const displayFreq = document.getElementById('radio-display-freq');
+      if (displayFreq) {
+        displayFreq.innerText = state.currentBiome === 'subspace_zero' ? '000.0 MHz [MATRIX]' : '404.0 KHz';
+      }
+    }
+
+    function tuneRadioPreset(cipher) {
+      const input = document.getElementById('radio-input-cipher');
+      if (input) {
+        input.value = cipher;
+        playBeep(920, 'sine', 0.12);
+        submitRadioCipher();
+      }
+    }
+
+    function logRadioMessage(text, isAlert = false) {
+      const log = document.getElementById('radio-log');
+      if (!log) return;
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.className = isAlert ? 'text-pink-400 font-black' : 'text-emerald-300';
+      div.innerHTML = `<span class="text-emerald-600">[${timeStr}]</span> ${text}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function submitRadioCipher() {
+      const input = document.getElementById('radio-input-cipher');
+      if (!input) return;
+      const raw = input.value.trim().toUpperCase();
+      input.value = '';
+
+      if (!raw) return;
+
+      playBeep(1200, 'square', 0.15, 0.2);
+
+      if (raw === 'TEMPORAL_HOOK') {
+        if (state.ownedRods.includes('Chronos Singularity Rod')) {
+          logRadioMessage('[TRANSPONDER] Frequency locked: Chronos Singularity Rod blueprint already downloaded.');
+          showLootPopup('Radio: Chronos Singularity Rod is already in your armory!');
+        } else {
+          state.ownedRods.push('Chronos Singularity Rod');
+          state.currentRod = 'Chronos Singularity Rod';
+          cyberAudio.playPortalWarp();
+          logRadioMessage('🌌 [DECRYPTED] Spacetime resonance matched! FABRICATED: Chronos Singularity Rod! (+200% Fish Value, 35% Double Catch)', true);
+          showLootPopup('🌌 SECRET DISCOVERED: Chronos Singularity Rod!');
+        }
+      } else if (raw === '0XDEADBEEF') {
+        if (state.ownedRods.includes('0xDEADBEEF Dev Glitch Rod')) {
+          logRadioMessage('[TRANSPONDER] Root debugger terminal: 0xDEADBEEF Rod already active.');
+          showLootPopup('Radio: Dev Glitch Rod is already in your equipment!');
+        } else {
+          state.ownedRods.push('0xDEADBEEF Dev Glitch Rod');
+          state.currentRod = '0xDEADBEEF Dev Glitch Rod';
+          cyberAudio.playPortalWarp();
+          logRadioMessage('👾 [ROOT OVERRIDE] Kernel access granted! FORGED: 0xDEADBEEF Dev Glitch Rod! (Unbreakable line tension & +300% XP)', true);
+          showLootPopup('👾 SECRET DISCOVERED: 0xDEADBEEF Dev Glitch Rod!');
+        }
+      } else if (raw === '404-0X00-VOID') {
+        BIOMES['subspace_zero'].unlocked = true;
+        state.currentBiome = 'subspace_zero';
+        cyberAudio.playPortalWarp();
+        logRadioMessage('🌀 [DIMENSIONAL WARP] Vector established: Subspace 0x00: Chrono-Singularity! Matrix sky engaged.', true);
+        showLootPopup('🌀 WARPED TO SUBSPACE 0x00: CHRONO-SINGULARITY!');
+        renderRadio();
+      } else if (raw === 'GENESIS') {
+        if ((state.special_items.void_cipher_key || 0) >= 1) {
+          logRadioMessage('[TRANSPONDER] Quantum resonance memory already contains active Void Cipher Key.');
+          showLootPopup('Radio: You already possess the Void Cipher Key!');
+        } else {
+          state.special_items.void_cipher_key = 1;
+          cyberAudio.playCatchSuccess(true);
+          logRadioMessage('🗝️ [ANCIENT RITUAL CARRIER] Void harmonics decrypted! ACQUIRED: 1x Void Cipher Key! Take to Sovereign Altar [P].', true);
+          showLootPopup('🗝️ SECRET ACQUIRED: 1x Void Cipher Key!');
+        }
+      } else if (raw === 'HINT') {
+        const hints = [
+          "Oracle: 'Tuning 404-0X00-VOID opens the dimensional matrix fissure to Subspace 0x00.'",
+          "Oracle: 'Tuning GENESIS extracts the Void Cipher Key required at the Sovereign Altar [P].'",
+          "Oracle: 'Tuning TEMPORAL_HOOK or 0XDEADBEEF unlocks classified developer angling rods.'",
+          "Oracle: 'Singularity Pearls drop from rare cosmic fish like the Golden Salmon and Abyssal Kraken.'"
+        ];
+        const h = hints[Math.floor(Math.random() * hints.length)];
+        logRadioMessage(`💡 [SIGNAL INTERCEPT] ${h}`);
+      } else {
+        playBeep(180, 'sawtooth', 0.25);
+        logRadioMessage(`[SIGNAL LOSS] Carrier frequency '${raw}' unresponsive. Intercepted atmospheric cosmic white noise.`);
+      }
+    }
+
+    // --- 22. HOLOGRAPHIC BESTIARY & JOURNAL ---
+    function recordJournalEntry(name, data) {
+      if (!state.journal[name]) {
+        state.journal[name] = {
+          count: 0,
+          bestWeight: data.weight || '1.0 kg',
+          firstCaught: Date.now()
+        };
+      }
+      state.journal[name].count += 1;
+
+      const baseW = parseFloat(data.weight) || 2.0;
+      const currentBest = parseFloat(state.journal[name].bestWeight) || baseW;
+      const rollW = +(baseW * (0.85 + Math.random() * 0.45)).toFixed(1);
+      if (rollW > currentBest) {
+        state.journal[name].bestWeight = `${rollW} kg`;
+      }
+    }
+
+    function renderJournal() {
+      const grid = document.getElementById('journal-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      const allSpecies = Object.entries(state.inventory);
+      const totalCount = allSpecies.length;
+      let discoveredCount = 0;
+
+      for (const [name, item] of allSpecies) {
+        const entry = state.journal[name];
+        const isDiscovered = entry && entry.count > 0;
+        if (isDiscovered) discoveredCount++;
+
+        const spriteFile = `assets/${item.sprite === 'cod' ? 'Fish_Cod.png' : item.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : item.sprite + '.png'}`;
+
+        const card = document.createElement('div');
+        card.className = `wood-card p-4 rounded flex flex-col justify-between ${isDiscovered ? '' : 'opacity-65 border-dashed border-amber-900/60'}`;
+
+        if (isDiscovered) {
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between text-[11px] font-black">
+                <span class="text-amber-400 font-mono">#${name.slice(0, 3).toUpperCase()}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] uppercase font-black" style="background: ${item.color}22; color: ${item.color}; border: 1px solid ${item.color}66">
+                  ${item.rarity || 'CLASSIFIED'}
+                </span>
+              </div>
+              <div class="h-16 flex items-center justify-center my-2">
+                <img src="${spriteFile}" class="max-h-14 max-w-full object-contain drop-shadow-md" alt="${name}">
+              </div>
+              <div class="text-sm font-black text-center" style="color: ${item.color}">${name}</div>
+              <p class="text-[11px] text-amber-200/80 my-1 font-bold text-center italic">${item.desc}</p>
+            </div>
+
+            <div class="mt-3 bg-[#0d0703] p-2.5 rounded border border-amber-900/60 text-xs font-bold space-y-1">
+              <div class="flex justify-between text-amber-200/90">
+                <span>Habitat:</span>
+                <span class="text-amber-300 font-black">${item.biome}</span>
+              </div>
+              <div class="flex justify-between text-amber-200/90">
+                <span>Personal Best:</span>
+                <span class="text-emerald-400 font-mono font-black">${entry.bestWeight}</span>
+              </div>
+              <div class="flex justify-between text-amber-200/90">
+                <span>Catch Tally:</span>
+                <span class="text-cyan-300 font-mono font-black">${entry.count} caught</span>
+              </div>
+              <div class="flex justify-between text-amber-200/90">
+                <span>Base Yield:</span>
+                <span class="text-yellow-400 font-black">$${item.price} | +${item.xp} XP</span>
+              </div>
+            </div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between text-[11px] font-black">
+                <span class="text-amber-600 font-mono">#???</span>
+                <span class="px-2 py-0.5 rounded text-[10px] uppercase font-black bg-zinc-900 text-zinc-400 border border-zinc-700">
+                  UNDISCOVERED
+                </span>
+              </div>
+              <div class="h-16 flex items-center justify-center my-2">
+                <img src="${spriteFile}" class="max-h-14 max-w-full object-contain filter grayscale contrast-0 brightness-50 opacity-30" alt="Unknown Species">
+              </div>
+              <div class="text-sm font-black text-center text-zinc-400">??? [UNDISCOVERED]</div>
+              <p class="text-[11px] text-zinc-500 my-1 font-bold text-center">Unrecorded specimen. Cast in ${item.biome} waters to catalog field telemetry.</p>
+            </div>
+
+            <div class="mt-3 bg-[#0d0703] p-2.5 rounded border border-zinc-800 text-xs font-bold space-y-1 text-zinc-500">
+              <div class="flex justify-between">
+                <span>Habitat:</span>
+                <span class="text-zinc-400">${item.biome}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Personal Best:</span>
+                <span>--</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Catch Tally:</span>
+                <span>0 caught</span>
+              </div>
+            </div>
+          `;
+        }
+
+        grid.appendChild(card);
+      }
+
+      const badge = document.getElementById('journal-completion-badge');
+      if (badge) {
+        const pct = Math.floor((discoveredCount / totalCount) * 100);
+        badge.innerText = `Discovery: ${discoveredCount} / ${totalCount} Species (${pct}%)`;
+      }
+    }
+
+    // --- 23. CHILL AUTONOMOUS ANGLER & PASSIVE SALVAGE ---
+    function toggleAutoFish() {
+      state.auto_fish_active = !state.auto_fish_active;
+      sfxClick();
+
+      const btn = document.getElementById('auto-fish-btn');
+      const status = document.getElementById('auto-fish-status');
+
+      if (state.auto_fish_active) {
+        if (btn) btn.classList.add('border-cyan-400', 'shadow-lg', 'shadow-cyan-500/20');
+        if (status) {
+          status.innerText = 'ONLINE (ACTIVE)';
+          status.className = 'text-xs font-black text-cyan-300 animate-pulse';
+        }
+        showLootPopup('🤖 Autonomous Angler ENGAGED! Relax and watch your catches roll in.');
+      } else {
+        if (btn) btn.classList.remove('border-cyan-400', 'shadow-lg', 'shadow-cyan-500/20');
+        if (status) {
+          status.innerText = 'OFF';
+          status.className = 'text-xs font-black text-amber-200';
+        }
+        showLootPopup('🤖 Autonomous Angler DISENGAGED.');
+      }
+    }
+
+    function updateAutoAngler(dt) {
+      const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+      if (modalOpen || minigame.active || state.isCoolingDown) return;
+
+      state.auto_fish_timer = (state.auto_fish_timer || 0) + dt;
+      if (state.auto_fish_timer >= 0.5) {
+        state.auto_fish_timer = 0;
+        castLine();
+      }
+    }
+
+    function collectPetPassive() {
+      if (!state.equipped_pet) return;
+
+      if (state.equipped_pet === 'pet_axo') {
+        state.scrap += 1;
+        showLootPopup('🦎 Axo-9 scavenged 1x ⚙️ Scrap salvage from the seabed!');
+      } else if (state.equipped_pet === 'pet_ping') {
+        state.cash += 25;
+        if (Math.random() < 0.35) {
+          state.gold += 1;
+          showLootPopup('🐧 Ping-0 detected a shiny 🪙 Gold Coin! (+$25 Cash)');
+        } else {
+          showLootPopup('🐧 Ping-0 harvested +$25 Cash from the wake!');
+        }
+      } else if (state.equipped_pet === 'pet_otter') {
+        state.cash += 60;
+        state.strips += 2;
+        showLootPopup('🦦 Otto-Flux fished up +$60 Cash & 2x 🥩 Squid Strips!');
+      } else if (state.equipped_pet === 'pet_jelly') {
+        state.scrap += 2;
+        if (Math.random() < 0.25) {
+          state.special_items.chrono_fragment = (state.special_items.chrono_fragment || 0) + 1;
+          showLootPopup('🪼 Jelly-Pulse condensed 1x ⏳ Chrono Fragment from the tachyon foam!');
+        } else {
+          showLootPopup('🪼 Jelly-Pulse collected 2x ⚙️ Scrap salvage!');
+        }
+      } else if (state.equipped_pet === 'pet_sovereign') {
+        state.cash += 350;
+        state.gold += 2;
+        state.emerald += 1;
+        showLootPopup('🐉 Aethelgard summons celestial treasures: +$350, +2x 🪙 Gold, +1x 💎 Emerald!');
+      }
     }
   </script>
 </body>
