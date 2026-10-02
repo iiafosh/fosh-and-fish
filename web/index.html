@@ -369,9 +369,9 @@
             <span class="text-base group-hover:scale-125 transition-transform">💰</span>
             <span class="dock-label text-yellow-300">Market</span>
           </button>
-          <button class="dock-btn group" onclick="goToStation('shop')" title="Shipyard Depot: Old Salty hulls & rods">
+          <button class="dock-btn group" onclick="goToStation('shop')" title="Harbor Shop: Old Salty hulls & rods">
             <span class="text-base group-hover:scale-125 transition-transform">🛒</span>
-            <span class="dock-label text-cyan-300">Shipyard</span>
+            <span class="dock-label text-cyan-300">Shop</span>
           </button>
           <button class="dock-btn group" onclick="goToStation('pets')" title="Pet Sanctuary: Companion Altar & Sovereign">
             <span class="text-base group-hover:scale-125 transition-transform">🐾</span>
@@ -978,7 +978,9 @@
       fish_sardine: null,
       fish_sunfish: null,
       fish_leviathan: null,
-      kraken: null
+      kraken: null,
+      house: null,
+      dock: null
     };
 
     function loadImg(src) {
@@ -1011,6 +1013,10 @@
     sprites.fish_sunfish = loadImg('assets/Fish_Ocean Sunfish.png');
     sprites.fish_leviathan = loadImg('assets/Fish_Leviathan_Alt.png');
     sprites.kraken = loadImg('assets/kraken.png');
+
+    // Harbor Dock & Shop Building (House on the right)
+    sprites.house = loadImg('assets/finding_sobron/sprites/house/house.png');
+    sprites.dock = loadImg('assets/finding_sobron/sprites/dock/dock.png');
   </script>
 
   <!-- Canonical Virtual Fisher Engine -->
@@ -1438,14 +1444,14 @@
       leftBoundary: 0,
       rightBoundary: 0,
       stations: [
-        { id: 'fishing', name: 'Stern Pier', xOffset: -0.40, icon: '🎣', manager: 'Stern Rail', prompt: '🎣 Press [E] to Fish off Stern Rail' },
-        { id: 'dex', name: 'Fillet Bench', xOffset: -0.27, icon: '🔪', manager: 'Chef Finbar', prompt: '🔪 Press [E] to Fillet Fish with Chef Finbar' },
-        { id: 'helm', name: 'Voyage Helm', xOffset: -0.14, icon: '🧭', manager: 'Navigator Zephyr', prompt: '🧭 Press [E] to Chart Voyage with Navigator Zephyr' },
-        { id: 'forge', name: 'The Forge', xOffset: 0.00, icon: '⚙️', manager: 'Blacksmith Vulcan', prompt: '⚙️ Press [E] to Forge Charms with Blacksmith Vulcan' },
-        { id: 'market', name: 'Cargo Market', xOffset: 0.14, icon: '💰', manager: 'Merchant Barnaby', prompt: '💰 Press [E] to Sell Fish to Merchant Barnaby' },
-        { id: 'shop', name: 'Shipyard Depot', xOffset: 0.27, icon: '🛒', manager: 'Old Salty Magnus', prompt: '🛒 Press [E] to Upgrade Hulls & Rods with Old Salty' },
-        { id: 'radio', name: 'Radio Mast', xOffset: 0.38, icon: '📻', manager: 'Sub-Ether Transponder', prompt: '📻 Press [E] to Decode Frequencies & Ciphers' },
-        { id: 'pets', name: 'Pet Altar', xOffset: -0.45, icon: '🐾', manager: 'Companion Altar', prompt: '🐾 Press [E] to Open Pet Sanctuary & Altar' },
+        { id: 'fishing', name: 'Stern Pier', xOffset: -0.38, icon: '🎣', manager: 'Stern Rail', prompt: '🎣 Press [E] to Fish off Stern Rail' },
+        { id: 'dex', name: 'Fillet Bench', xOffset: -0.19, icon: '🔪', manager: 'Chef Finbar', prompt: '🔪 Press [E] to Fillet Fish with Chef Finbar' },
+        { id: 'helm', name: 'Voyage Helm', xOffset: 0.00, icon: '🧭', manager: 'Navigator Zephyr', prompt: '🧭 Press [E] to Chart Voyage with Navigator Zephyr' },
+        { id: 'forge', name: 'The Forge', xOffset: 0.19, icon: '⚙️', manager: 'Blacksmith Vulcan', prompt: '⚙️ Press [E] to Forge Charms with Blacksmith Vulcan' },
+        { id: 'market', name: 'Cargo Market', xOffset: 0.36, icon: '💰', manager: 'Merchant Barnaby', prompt: '💰 Press [E] to Sell Fish to Merchant Barnaby' },
+        { id: 'shop', name: 'Harbor Shop', xOffset: 0.60, icon: '🛒', manager: 'Old Salty Magnus', prompt: '🛒 Press [E] to Enter Harbor Shop (Old Salty Magnus)' },
+        { id: 'radio', name: 'Radio Mast', xOffset: -0.44, icon: '📻', manager: 'Transponder', prompt: '📻 Press [E] to Decode Frequencies & Ciphers' },
+        { id: 'pets', name: 'Pet Altar', xOffset: -0.46, icon: '🐾', manager: 'Companion Altar', prompt: '🐾 Press [E] to Open Pet Sanctuary & Altar' },
         { id: 'journal', name: 'Field Journal', xOffset: 0.44, icon: '📖', manager: 'Holographic Bestiary', prompt: '📖 Press [E] to Inspect Holographic Bestiary' }
       ]
     };
@@ -1548,7 +1554,7 @@
       const shipX = canvas.width / 2;
       deck.deckY = canvas.height * 0.60;
       deck.leftBoundary = shipX - shipW * 0.44;
-      deck.rightBoundary = shipX + shipW * 0.43;
+      deck.rightBoundary = Math.min(canvas.width - 50, shipX + shipW * 0.60 + 80);
 
       deck.stations.forEach(st => {
         st.x = shipX + shipW * st.xOffset;
@@ -2640,25 +2646,25 @@
 
       // --- LAYER 2.5: PHYSICAL STATION BOOTHS, PROPS & NPC MANAGERS ---
       // 1. Stern Pier (Mooring post, hurricane lantern, tackle box, leaning rods)
-      drawStationPier(ctx, -shipW * 0.40, deckFloorY, t, state.activeStation && state.activeStation.id === 'fishing');
+      drawStationPier(ctx, -shipW * 0.38, deckFloorY, t, state.activeStation && state.activeStation.id === 'fishing');
 
       // 2. Butchery Bench & Chef Finbar (Cutting board, cleaver, hanging dried fish, animated chef)
-      drawStationButchery(ctx, -shipW * 0.27, deckFloorY, t, state.activeStation && state.activeStation.id === 'dex');
+      drawStationButchery(ctx, -shipW * 0.19, deckFloorY, t, state.activeStation && state.activeStation.id === 'dex');
 
       // 3. Captain's Helm & Navigator Zephyr (Mahogany wheel, binnacle compass, charts, spyglass)
-      drawStationHelm(ctx, -shipW * 0.14, deckFloorY, t, state.activeStation && state.activeStation.id === 'helm');
+      drawStationHelm(ctx, 0.00, deckFloorY, t, state.activeStation && state.activeStation.id === 'helm');
 
       // 4. The Forge & Blacksmith Vulcan (Brick hearth, glowing coals, anvil, spark particles)
-      drawStationForge(ctx, 0.00, deckFloorY, t, state.activeStation && state.activeStation.id === 'forge');
+      drawStationForge(ctx, shipW * 0.19, deckFloorY, t, state.activeStation && state.activeStation.id === 'forge');
 
       // 5. Cargo Market & Merchant Barnaby (Canopy awning, fish crates on ice, gold coin flip)
-      drawStationMarket(ctx, shipW * 0.14, deckFloorY, t, state.activeStation && state.activeStation.id === 'market');
+      drawStationMarket(ctx, shipW * 0.36, deckFloorY, t, state.activeStation && state.activeStation.id === 'market');
 
-      // 6. Harbor Shipyard & Old Salty Magnus (Blueprints desk, model ship, lumber, pipe smoke)
-      drawStationShipyard(ctx, shipW * 0.27, deckFloorY, t, state.activeStation && state.activeStation.id === 'shop');
+      // 6. Harbor Shop & Old Salty Magnus (Dedicated building on the right dock with pier and gangplank!)
+      drawStationHarborShop(ctx, shipW * 0.60, deckFloorY, shipW, t, state.activeStation && state.activeStation.id === 'shop');
 
-      // 7. Shortwave Radio & Sub-Ether Transponder (CRT oscilloscope, antenna mast, beacon, radio waves)
-      drawStationRadio(ctx, shipW * 0.38, deckFloorY, t, state.activeStation && state.activeStation.id === 'radio');
+      // 7. Stern Transponder Mast & Sub-Ether Receiver
+      drawStationRadio(ctx, -shipW * 0.44, deckFloorY, t, state.activeStation && state.activeStation.id === 'radio');
 
       // --- LAYER 3: GROUNDED MASCOT CHARACTER (Feet planted ON deckFloorY!) ---
       drawGroundedMascot(ctx, guy.x - shipX, deckFloorY, t);
@@ -3230,85 +3236,155 @@
       ctx.restore();
     }
 
-    // 6. Harbor Shipyard & Old Salty Magnus (User Requested!)
-    function drawStationShipyard(ctx, x, deckFloorY, t, isActive) {
+    // 6. Harbor Shop & Old Salty Magnus (Physical building on the right dock with pier and gangplank!)
+    function drawStationHarborShop(ctx, x, deckFloorY, shipW, t, isActive) {
       ctx.save();
-      ctx.translate(x, deckFloorY);
 
-      // Shipwright Workbench Desk
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(-22, -22, 6, 22);
-      ctx.fillRect(16, -22, 6, 22);
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(-24, -26, 48, 5);
+      // The dock starts at ship's starboard rail (+shipW * 0.41)
+      const dockStartX = shipW * 0.41;
+      const dockW = 420;
+      const dockH = 450;
+      const dockY = deckFloorY - 80;
 
-      // Cyan Blueprint Schematic Scroll
-      ctx.fillStyle = '#0e7490';
-      ctx.fillRect(-18, -30, 22, 5);
-      ctx.fillStyle = '#67e8f9';
-      ctx.fillRect(-16, -29, 8, 2);
-      ctx.fillRect(-6, -29, 8, 2);
+      // 1. Draw Wooden Harbor Dock Pier
+      if (sprites.dock && sprites.dock.complete) {
+        ctx.drawImage(sprites.dock, dockStartX, dockY, dockW, dockH);
+      } else {
+        // Fallback procedural pier with heavy submerged pilings
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(dockStartX, deckFloorY, dockW, 10);
+        ctx.fillStyle = '#451a03';
+        for (let px = dockStartX + 30; px < dockStartX + dockW; px += 45) {
+          ctx.fillRect(px, deckFloorY + 10, 16, 260);
+        }
+      }
 
-      // Model Ship Hull on Display Cradle
+      // 2. Gangplank connecting ship deck to dock
       ctx.fillStyle = '#b45309';
-      ctx.beginPath();
-      ctx.moveTo(8, -27);
-      ctx.lineTo(12, -34);
-      ctx.lineTo(24, -34);
-      ctx.lineTo(26, -27);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#fef08a';
+      ctx.fillRect(shipW * 0.40, deckFloorY - 2, 28, 8);
+      ctx.strokeStyle = '#78350f';
       ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(18, -34); ctx.lineTo(18, -44);
-      ctx.stroke();
-
-      // Timber Planks Stacked beside desk
-      ctx.fillStyle = '#b45309';
-      ctx.fillRect(24, -14, 12, 14);
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(25, -10, 10, 2);
-
-      // --- NPC: OLD SALTY MAGNUS ---
-      ctx.save();
-      ctx.translate(-2, -26);
-      ctx.fillStyle = '#b91c1c';
-      ctx.fillRect(-7, -22, 14, 22);
-      ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(-6, -14, 12, 14);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillRect(-4, -14, 2, 2);
-      ctx.fillRect(2, -14, 2, 2);
-      ctx.fillStyle = '#fed7aa';
-      ctx.fillRect(-5, -32, 10, 10);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-6, -26, 12, 9);
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(-3, -29, 2, 2);
-      ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(-7, -36, 14, 6);
-      ctx.fillStyle = '#172554';
-      ctx.fillRect(-8, -33, 16, 3);
-
-      // Briar Pipe with Puffing Smoke Rings
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(4, -25, 6, 2);
-      ctx.fillRect(8, -28, 4, 5);
-      const smokePuff = Math.sin(t * 3);
-      if (smokePuff > 0) {
-        ctx.fillStyle = 'rgba(226, 232, 240, 0.6)';
+      for (let gx = shipW * 0.40 + 4; gx < shipW * 0.40 + 26; gx += 5) {
         ctx.beginPath();
-        ctx.arc(12 + smokePuff * 3, -33 - smokePuff * 6, 2.5 + smokePuff, 0, Math.PI * 2);
+        ctx.moveTo(gx, deckFloorY - 2);
+        ctx.lineTo(gx, deckFloorY + 6);
+        ctx.stroke();
+      }
+
+      // 3. Draw Harbor Shop House Building
+      const houseW = 210;
+      const houseH = 134;
+      const houseX = x - houseW * 0.38;
+      const houseY = deckFloorY - houseH;
+
+      if (sprites.house && sprites.house.complete) {
+        ctx.drawImage(sprites.house, houseX, houseY, houseW, houseH);
+      } else {
+        // Fallback shop cottage
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(houseX, houseY, houseW, houseH);
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.moveTo(houseX - 10, houseY);
+        ctx.lineTo(houseX + houseW / 2, houseY - 30);
+        ctx.lineTo(houseX + houseW + 10, houseY);
+        ctx.closePath();
         ctx.fill();
       }
 
-      ctx.restore(); // End Old Salty
+      // 4. Chimney Smoke rising into the sea air
+      const chimneyX = houseX + houseW * 0.40;
+      const chimneyY = houseY - 4;
+      for (let s = 0; s < 4; s++) {
+        const sTime = (t * 1.5 + s * 0.7) % 3;
+        const sProgress = sTime / 3;
+        const puffX = chimneyX + Math.sin(sProgress * 4 + s) * 12 + sProgress * 10;
+        const puffY = chimneyY - sProgress * 45;
+        const puffRadius = 3 + sProgress * 7;
+        const puffAlpha = (1 - sProgress) * 0.45;
+        ctx.fillStyle = `rgba(226, 232, 240, ${puffAlpha})`;
+        ctx.beginPath();
+        ctx.arc(puffX, puffY, puffRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      // Hanging Plaque
-      drawStationPlaque(ctx, 0, -88, '🛒', 'SHIPYARD', 'Old Salty Magnus', isActive);
+      // 5. Warm Glowing Lantern on the Shop Wall
+      const lanternX = houseX + houseW * 0.57;
+      const lanternY = houseY + houseH * 0.73;
+      const lampPulse = Math.sin(t * 3) * 0.15 + 0.85;
+      const glowGrad = ctx.createRadialGradient(lanternX, lanternY, 2, lanternX, lanternY, 24 * lampPulse);
+      glowGrad.addColorStop(0, 'rgba(254, 240, 138, 0.7)');
+      glowGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.25)');
+      glowGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(lanternX, lanternY, 24 * lampPulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 6. Window Glow
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+      ctx.fillRect(houseX + houseW * 0.65, houseY + houseH * 0.60, houseW * 0.25, houseH * 0.24);
+
+      // 7. Old Salty Magnus (Shopkeeper NPC standing in front of shop)
+      ctx.save();
+      ctx.translate(x + 24, deckFloorY);
+
+      // Sea boots & Trousers
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-6, -10, 5, 10);
+      ctx.fillRect(1, -10, 5, 10);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(-7, -22, 14, 13);
+
+      // Crimson Fisher Wool Sweater & Navy Peacoat
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(-7, -34, 14, 13);
+      ctx.fillStyle = '#172554';
+      ctx.fillRect(-9, -34, 4, 13);
+      ctx.fillRect(5, -34, 4, 13);
+      ctx.fillStyle = '#fbbf24'; // Brass buttons
+      ctx.fillRect(-1, -30, 2, 2);
+      ctx.fillRect(-1, -25, 2, 2);
+
+      // Head & Weathered Sea Captain Face
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-5, -44, 10, 10);
+      ctx.fillStyle = '#ffffff'; // Bushy White Beard & Moustache
+      ctx.fillRect(-6, -38, 12, 8);
+      ctx.fillStyle = '#1e293b'; // Eyes
+      ctx.fillRect(-3, -41, 2, 2);
+      ctx.fillRect(2, -41, 2, 2);
+
+      // Captain's Bicorn Cap
+      ctx.fillStyle = '#172554';
+      ctx.fillRect(-8, -48, 16, 5);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(-6, -53, 12, 6);
+      ctx.fillStyle = '#fbbf24'; // Gold Anchor Insignia
+      ctx.fillRect(-2, -50, 4, 2);
+
+      // Briar Pipe with Puffing Smoke Rings
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(4, -37, 7, 2);
+      ctx.fillRect(10, -40, 4, 5);
+      const smokePuff = Math.sin(t * 3.5);
+      if (smokePuff > 0) {
+        ctx.fillStyle = 'rgba(226, 232, 240, 0.7)';
+        ctx.beginPath();
+        ctx.arc(14 + smokePuff * 3, -44 - smokePuff * 8, 2.5 + smokePuff, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore(); // End Old Salty Magnus
+
+      // 8. Hanging Illuminated Station Plaque
+      drawStationPlaque(ctx, x, deckFloorY - 145, '🛒', 'HARBOR SHOP', 'Old Salty Magnus', isActive);
 
       ctx.restore();
+    }
+
+    function drawStationShipyard(ctx, x, deckFloorY, t, isActive) {
+      drawStationHarborShop(ctx, x, deckFloorY, 580, t, isActive);
     }
 
     // 7. Shortwave Radio Transponder Mast
@@ -3396,7 +3472,7 @@
         'forge': { id: 'view-forge', icon: '⚙️', title: 'The Forge • Blacksmith Vulcan', sub: 'Blacksmith Vulcan: "Stoke the hearth! With salvage scrap and rare catches, I forge charms that conquer any current."' },
         'market': { id: 'view-market', icon: '💰', title: 'Cargo Market • Merchant Barnaby', sub: 'Merchant Barnaby: "Ahoy friend! Fine fish fetch top gold at my stall. Looking to liquidate your haul?"' },
         'mascot': { id: 'view-mascot', icon: '🌀', title: "Ship's Mascot & Companion Wardrobe", sub: 'Select Rimuru Tempest Demon Lord, Slime, or salty crew.' },
-        'shop': { id: 'view-shop', icon: '🛒', title: 'Shipyard Depot • Old Salty Magnus', sub: 'Old Salty Magnus: "Welcome to the harbor! Sturdier hulls and titanium alloy rods ready for your journey."' },
+        'shop': { id: 'view-shop', icon: '🛒', title: 'Harbor Shop • Old Salty Magnus', sub: 'Old Salty Magnus: "Welcome to my harbor cottage shop! Upgrade your ship hulls and master crafted rods for your voyage."' },
         'pets': { id: 'view-pets', icon: '🐾', title: 'Pet Sanctuary & Sovereign Altar', sub: 'Adopt loyal companions and perform the ancient Genesis Ritual.' },
         'radio': { id: 'view-radio', icon: '📻', title: "Shortwave Radio & Sub-Ether Transponder", sub: 'Tune frequencies and enter decryption ciphers for secret rods & biomes.' },
         'journal': { id: 'view-journal', icon: '📖', title: 'Holographic Bestiary & Field Records', sub: 'Inspect discovered species, record weights, and dimensional anomalies.' }
