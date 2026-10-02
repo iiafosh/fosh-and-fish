@@ -11,6 +11,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.env
+venv/
+.venv/
+data/savegame.json
+
 # OS / Editor ignores
 .DS_Store
 Thumbs.db
