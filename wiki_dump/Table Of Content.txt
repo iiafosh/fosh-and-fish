@@ -1,0 +1,27 @@
+== '''List + Description of Wiki Pages''' ==
+
+[https://virtualfisher.miraheze.org/wiki Main Page] - Welcome page + general info about the bot and game content 
+
+[https://virtualfisher.miraheze.org/wiki/Fish Fish] - Info about fishes
+
+[https://virtualfisher.miraheze.org/wiki/Rod Rods Info] - Info about specific rods
+
+[https://virtualfisher.miraheze.org/wiki/Biome Biome Info] - Info about biomes
+
+[https://virtualfisher.miraheze.org/wiki/Bait Bait Info] - Info about baits
+
+[https://virtualfisher.miraheze.org/wiki/Charm Charms Info] - Info about charms
+
+[https://virtualfisher.miraheze.org/wiki/Command Bot Commands] - Info about bot commands
+
+[https://virtualfisher.miraheze.org/wiki/Temporary_Buff Temporary Buffs] - Info about temporary buffs such as fish boost, treasure boost, global boost, ...
+
+[https://virtualfisher.miraheze.org/wiki/Upgrades Upgrade Info] - Info about upgrades
+
+[https://virtualfisher.miraheze.org/wiki/Boat Boats Info] - Info about boats
+
+[[Worker]] - Info about worker mechanics
+
+[[Pet]] - Info about pets and pets mechanics
+
+[[Quest]] - Info about quests

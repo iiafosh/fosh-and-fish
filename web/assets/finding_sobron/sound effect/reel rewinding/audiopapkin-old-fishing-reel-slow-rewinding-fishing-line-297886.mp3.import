@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bep3vgi485sfq"
+path="res://.godot/imported/audiopapkin-old-fishing-reel-slow-rewinding-fishing-line-297886.mp3-a7ca88939abb3bb801f3c37f3a109404.mp3str"
+
+[deps]
+
+source_file="res://assets/sound effect/reel rewinding/audiopapkin-old-fishing-reel-slow-rewinding-fishing-line-297886.mp3"
+dest_files=["res://.godot/imported/audiopapkin-old-fishing-reel-slow-rewinding-fishing-line-297886.mp3-a7ca88939abb3bb801f3c37f3a109404.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

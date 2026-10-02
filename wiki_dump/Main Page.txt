@@ -1,0 +1,26 @@
+
+[[File:OIP (1).jpg|thumb|The Virtual Fisher Discord bot]]
+__NOTOC__
+== Welcome to {{SITENAME}}! ==
+'''Overview'''
+[[File:A 8e153f0cd53b45a457f77552fcebe956.gif|thumb|saltspreadervf, the owner of the bot]]
+Virtual Fisher (or VF for short) is an economy discord bot that you can add in your server. The bot is created by developer Saltspreader and allow you to catch fish, buy upgrades and level up by fishing virtually in your own discord server. The discord bot is created and managed by Saltspreader
+
+[https://virtualfisher.com/ Official Website]
+
+[https://discord.com/invite/5W4D2fd Official Discord Server]
+
+[https://discord.gg/ZVspnCBQNS Virtual Fisher Wiki Server ]
+
+[https://discord.com/oauth2/authorize?client_id=574652751745777665&permissions=313344&scope=bot%20applications.commands Bot Invite Link]
+
+'''Bot Rules'''
+
+-No forms of automating bot commands
+
+-No abusing bugs/exploits, all bugs must be reported to the bug report channel in the discord server
+
+-Do not violate any discord TOS rule
+
+== Game Content ==
+[https://virtualfisher.miraheze.org/wiki/Table_Of_Content Table Of Content]

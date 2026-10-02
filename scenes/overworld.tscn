@@ -1,0 +1,175 @@
+[gd_scene load_steps=5 format=3 uid="uid://coverworldmap1"]
+
+[ext_resource type="Script" path="res://scripts/overworld.gd" id="1_overworld"]
+[ext_resource type="PackedScene" uid="uid://cboatplayer1" path="res://scenes/ship.tscn" id="2_ship"]
+[ext_resource type="PackedScene" uid="uid://cdockarea1" path="res://scenes/dock_area.tscn" id="3_dock"]
+[ext_resource type="PackedScene" uid="uid://cstationhub1" path="res://scenes/station_hub.tscn" id="4_hub"]
+
+[node name="Overworld" type="Node2D"]
+script = ExtResource("1_overworld")
+
+[node name="Ship" parent="." instance=ExtResource("2_ship")]
+position = Vector2(0, 0)
+
+[node name="Docks" type="Node2D" parent="."]
+
+[node name="RiverHarbor" parent="Docks" instance=ExtResource("3_dock")]
+position = Vector2(0, -90)
+dock_id = "river_harbor"
+dock_name = "Riverwood Harbor"
+dock_type = "harbor"
+biome = "River"
+level_required = 1
+description = "The bustling inland river port. Trade fish, upgrade rods and hulls."
+
+[node name="RiverFishingSpot" parent="Docks" instance=ExtResource("3_dock")]
+position = Vector2(380, 160)
+dock_id = "river_ripples"
+dock_name = "Whispering Shallows"
+dock_type = "fishing_spot"
+biome = "River"
+level_required = 1
+description = "Calm waters teeming with Salmon and Cod."
+
+[node name="VolcanicPort" parent="Docks" instance=ExtResource("3_dock")]
+position = Vector2(1200, 680)
+dock_id = "volcanic_port"
+dock_name = "Magma Outpost"
+dock_type = "harbor"
+biome = "Volcanic"
+level_required = 50
+description = "Boiling sulfur springs. High-tier lava fish and magma forge."
+
+[node name="OceanAtoll" parent="Docks" instance=ExtResource("3_dock")]
+position = Vector2(-1200, 680)
+dock_id = "ocean_atoll"
+dock_name = "Coral Atoll Sanctuary"
+dock_type = "harbor"
+biome = "Ocean"
+level_required = 100
+description = "Deep sea shelf. Rare pelagic fish, Pet Sanctuary, and Charm Vault."
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="SailingHUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopLeft" type="PanelContainer" parent="CanvasLayer/SailingHUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 280.0
+offset_bottom = 90.0
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/SailingHUD/TopLeft"]
+layout_mode = 2
+
+[node name="BiomeLabel" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "Waters: River Biome"
+
+[node name="SpeedLabel" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.9, 0.95, 1)
+theme_override_font_sizes/font_size = 12
+text = "Speed: 0 knots"
+
+[node name="ControlsTip" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 11
+text = "[W/A/S/D] Steer Ship | [Space] Anchor"
+
+[node name="TopRight" type="HBoxContainer" parent="CanvasLayer/SailingHUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_constants/separation = 15
+alignment = 2
+
+[node name="CashLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "$ 150"
+
+[node name="LevelLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "Lv. 1 (0/30 XP)"
+
+[node name="Center" type="Control" parent="CanvasLayer/SailingHUD"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LootPopup" type="Label" parent="CanvasLayer/SailingHUD/Center"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -80.0
+offset_right = 160.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "+4x Cod! (+20 XP)"
+horizontal_alignment = 1
+
+[node name="BottomBar" type="HBoxContainer" parent="CanvasLayer/SailingHUD"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -110.0
+offset_top = -60.0
+offset_right = 110.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+
+[node name="QuickFishBtn" type="Button" parent="CanvasLayer/SailingHUD/BottomBar"]
+layout_mode = 2
+text = "🎣 Fish from Ship"
+
+[node name="StationHub" parent="CanvasLayer" instance=ExtResource("4_hub")]
+visible = false
+
+[connection signal="pressed" from="CanvasLayer/SailingHUD/BottomBar/QuickFishBtn" to="." method="_on_quick_fish_pressed"]

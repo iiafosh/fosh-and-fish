@@ -1,0 +1,297 @@
+[gd_scene load_steps=3 format=3 uid="uid://cstationhub1"]
+
+[ext_resource type="Script" path="res://scripts/station_hub.gd" id="1_hub"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.063, 0.141, 0.165, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.137, 0.294, 0.322, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.6)
+shadow_size = 16
+
+[node name="StationHub" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hub")
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.1, 0.12, 0.75)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -280.0
+offset_right = 480.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Panel"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 20
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="Panel/Header/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Riverwood Harbor"
+
+[node name="SubtitleLabel" type="Label" parent="Panel/Header/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "The bustling inland river port. Trade fish, upgrade rods and hulls."
+
+[node name="Currencies" type="HBoxContainer" parent="Panel/Header"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="CashContainer" type="HBoxContainer" parent="Panel/Header/Currencies"]
+layout_mode = 2
+
+[node name="CashLabel" type="Label" parent="Panel/Header/Currencies/CashContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 16
+text = "$ 150"
+
+[node name="LevelContainer" type="VBoxContainer" parent="Panel/Header/Currencies"]
+layout_mode = 2
+alignment = 1
+
+[node name="LevelLabel" type="Label" parent="Panel/Header/Currencies/LevelContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 0.95, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lv. 1"
+
+[node name="XPBar" type="ProgressBar" parent="Panel/Header/Currencies/LevelContainer"]
+custom_minimum_size = Vector2(90, 8)
+layout_mode = 2
+show_percentage = false
+
+[node name="ExoticContainer" type="HBoxContainer" parent="Panel/Header/Currencies"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="GoldLabel" type="Label" parent="Panel/Header/Currencies/ExoticContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 12
+text = "🪙 0"
+
+[node name="EmeraldLabel" type="Label" parent="Panel/Header/Currencies/ExoticContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "💎 0"
+
+[node name="CloseBtn" type="Button" parent="Panel/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+text = "⛵ Set Sail"
+
+[node name="TabButtons" type="HBoxContainer" parent="Panel"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="MarketBtn" type="Button" parent="Panel/TabButtons"]
+layout_mode = 2
+text = "💰 Market & Fishmonger"
+
+[node name="TackleBtn" type="Button" parent="Panel/TabButtons"]
+layout_mode = 2
+text = "🎣 Tackle & Bait"
+
+[node name="ShipyardBtn" type="Button" parent="Panel/TabButtons"]
+layout_mode = 2
+text = "🚢 Shipyard & Hulls"
+
+[node name="FishingBtn" type="Button" parent="Panel/TabButtons"]
+layout_mode = 2
+text = "🌊 Pier Angling"
+
+[node name="Content" type="Control" parent="Panel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarketPanel" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SellHeader" type="HBoxContainer" parent="Panel/Content/MarketPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/Content/MarketPanel/SellHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.6, 0.8, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = "Sell your caught fish to local merchants for cash to fund expeditions."
+
+[node name="SellAllBtn" type="Button" parent="Panel/Content/MarketPanel/SellHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+text = "💰 Sell All Fish"
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Content/MarketPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FishGrid" type="GridContainer" parent="Panel/Content/MarketPanel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 5
+
+[node name="TacklePanel" type="VBoxContainer" parent="Panel/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Content/TacklePanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Content/TacklePanel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="RodsTitle" type="Label" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "🎣 Available Fishing Rods"
+
+[node name="RodsContainer" type="VBoxContainer" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BaitsTitle" type="Label" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "🪱 Available Baits"
+
+[node name="BaitsContainer" type="VBoxContainer" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ShipyardPanel" type="VBoxContainer" parent="Panel/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Content/ShipyardPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BoatsContainer" type="VBoxContainer" parent="Panel/Content/ShipyardPanel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="FishingPanel" type="VBoxContainer" parent="Panel/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="InfoBar" type="HBoxContainer" parent="Panel/Content/FishingPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 25
+
+[node name="RodInfoLabel" type="Label" parent="Panel/Content/FishingPanel/InfoBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.9, 1, 1)
+text = "Equipped Rod: Plastic Rod"
+
+[node name="BaitInfoLabel" type="Label" parent="Panel/Content/FishingPanel/InfoBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.9, 1, 1)
+text = "Equipped Bait: None"
+
+[node name="CDInfoLabel" type="Label" parent="Panel/Content/FishingPanel/InfoBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 0.9, 1)
+text = "Base Cooldown: 3.5s"
+
+[node name="Center" type="VBoxContainer" parent="Panel/Content/FishingPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="CatchBanner" type="Label" parent="Panel/Content/FishingPanel/Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "Cast your line into the waters to reel in fish!"
+horizontal_alignment = 1
+
+[node name="CastBtn" type="Button" parent="Panel/Content/FishingPanel/Center"]
+custom_minimum_size = Vector2(260, 55)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+text = "🎣 CAST LINE"
+
+[connection signal="pressed" from="Panel/Header/CloseBtn" to="." method="_on_close_btn_pressed"]
+[connection signal="pressed" from="Panel/TabButtons/MarketBtn" to="." method="_on_market_btn_pressed"]
+[connection signal="pressed" from="Panel/TabButtons/TackleBtn" to="." method="_on_tackle_btn_pressed"]
+[connection signal="pressed" from="Panel/TabButtons/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
+[connection signal="pressed" from="Panel/TabButtons/FishingBtn" to="." method="_on_fishing_btn_pressed"]
+[connection signal="pressed" from="Panel/Content/MarketPanel/SellHeader/SellAllBtn" to="." method="_on_sell_all_btn_pressed"]
+[connection signal="pressed" from="Panel/Content/FishingPanel/Center/CastBtn" to="." method="_on_cast_btn_pressed"]

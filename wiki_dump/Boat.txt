@@ -1,0 +1,53 @@
+== Overview ==
+Boats are upgrades that reduce your fish cooldown and give you slightly more fishes. Each boat give the same buff of -0.25s fishing cooldown and +1 fish per cast. Boats can be purchased with cash and have a level requirement corresponding to the biomes you have unlocked.
+
+Note: the +1 fish is NOT subject to modification by baithelper and baitlover, but is scaled by other factors in the fish catch formula e.g. biome reducer, duplicator, boosters.
+
+== List of boats ==
+'''River Biome'''
+
+Rowboat - Level 1 - $5 000
+
+Fishing Boat - Level 1 - $25 000
+
+Speedboat - Level 1 - $100 000
+
+Pontoon - Level 1 - $250 000
+
+Sailboat - Level 1 - $1 000 000
+
+Yacht - Level 1 - $20 000 000
+
+'''Volcanic Biome'''
+
+Luxury Yacht - Level 50 - $100 000 000
+
+'''Ocean Biome'''
+
+Cruise Ship - Level 100 - $500 000 000
+
+'''Sky Biome'''
+
+Gold Boat - Level 250 - $2 500 000 000
+
+Sky Cruiser - Level 250 - $10 000 000 000
+
+'''Space Biome'''
+
+Satellite - Level 500 - $50 000 000 000 
+
+Space Shuttle - Level 500 - $250 000 000 000
+
+Cruiser - Level 500 - $1 000 000 000 000
+
+'''Alien Biome'''
+
+Alien Raft - Level 1 000 - $2 500 000 000 000
+
+Alien Submarine - Level 1 000 - $5 000 000 000 000
+
+'''Abyss Biome'''
+
+Dark Explorer - Level 2 500 - $50 000 000 000 000
+
+Abyssal Surveyor - Level 2 500 - $500 000 000 000 000

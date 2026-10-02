@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Fisher - On-Deck Edition (Rimuru Tempest)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @font-face {
+      font-family: 'PixelFont';
+      src: url('assets/pixel_font.ttf') format('truetype'), monospace;
+    }
+    body {
+      background-color: #03080c;
+      overflow: hidden;
+      font-family: 'PixelFont', -apple-system, monospace;
+      user-select: none;
+      image-rendering: pixelated;
+    }
+    #game-canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    /* --- AUTHENTIC MARITIME WOOD & BRASS THEME (ENHANCED & BIGGER) --- */
+    .wood-panel {
+      background: #231208;
+      background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 3px, transparent 3px, transparent 20px);
+      border: 4px solid #633013;
+      box-shadow: inset 0 0 0 2px #d97706, inset 0 0 24px rgba(0,0,0,0.95), 0 20px 48px rgba(0,0,0,0.9);
+      border-radius: 10px;
+    }
+    .wood-card {
+      background: #190c05;
+      border: 2px solid #853e0d;
+      box-shadow: inset 0 0 0 1px #b45309, inset 0 3px 6px rgba(0,0,0,0.7);
+      border-radius: 8px;
+    }
+    .wood-card-gold {
+      background: #241407;
+      border: 2px solid #f59e0b;
+      box-shadow: inset 0 0 0 2px #fde68a, inset 0 0 16px rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+    }
+    .brass-badge {
+      background: #1c0e06;
+      border: 2px solid #b45309;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 0 10px rgba(0,0,0,0.85);
+      border-radius: 8px;
+    }
+
+    /* 3D Tactile Push Buttons (Bigger & Chunky) */
+    .brass-btn {
+      background: linear-gradient(180deg, #d97706 0%, #b45309 50%, #78350f 100%);
+      border: 2px solid #fde68a;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #451a03, 0 4px 0 #451a03, 0 6px 12px rgba(0,0,0,0.6);
+      color: #ffffff;
+      text-shadow: 1px 1px 2px #451a03;
+      transition: all 0.08s ease;
+    }
+    .brass-btn:hover {
+      filter: brightness(1.18);
+      transform: translateY(-2px);
+    }
+    .brass-btn:active {
+      transform: translateY(3px);
+      box-shadow: inset 0 3px 4px #451a03, 0 1px 0 #451a03;
+    }
+
+    .brass-btn-blue {
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 50%, #075985 100%);
+      border-color: #7dd3fc;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #082f49, 0 4px 0 #082f49, 0 6px 12px rgba(0,0,0,0.6);
+      text-shadow: 1px 1px 2px #082f49;
+    }
+    .brass-btn-emerald {
+      background: linear-gradient(180deg, #059669 0%, #047857 50%, #064e3b 100%);
+      border-color: #6ee7b7;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #022c22, 0 4px 0 #022c22, 0 6px 12px rgba(0,0,0,0.6);
+      text-shadow: 1px 1px 2px #022c22;
+    }
+    .brass-btn-red {
+      background: linear-gradient(180deg, #dc2626 0%, #b91c1c 50%, #7f1d1d 100%);
+      border-color: #fca5a5;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #450a0a, 0 4px 0 #450a0a, 0 6px 12px rgba(0,0,0,0.6);
+      text-shadow: 1px 1px 2px #450a0a;
+    }
+
+    .wood-tab {
+      background: #180c05;
+      border: 2px solid #853e0d;
+      color: #cbd5e1;
+      transition: all 0.1s ease;
+    }
+    .wood-tab.active {
+      background: linear-gradient(180deg, #d97706 0%, #92400e 100%);
+      border-color: #fde68a;
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 #fef08a, 0 3px 6px rgba(0,0,0,0.6);
+    }
+
+    .sign-marker {
+      animation: floatBadge 2.0s infinite alternate ease-in-out;
+    }
+    @keyframes floatBadge {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-8px); }
+    }
+
+    .strike-pulse {
+      animation: strikeAlert 0.4s infinite alternate ease-in-out;
+    }
+    @keyframes strikeAlert {
+      0% { transform: scale(1); filter: drop-shadow(0 0 6px #ef4444); }
+      100% { transform: scale(1.25); filter: drop-shadow(0 0 22px #f59e0b); }
+    }
+
+    #catchcard {
+      transition: transform 0.35s cubic-bezier(0.2, 1.2, 0.4, 1), opacity 0.3s;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #180d06;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #853e0d;
+      border-radius: 5px;
+      border: 1px solid #d97706;
+    }
+  </style>
+</head>
+<body class="m-0 p-0 text-[#f1f5f9]">
+
+  <!-- Side-View Canvas: Scale the Depths Ocean, Dynamic Vessel Hulls & Rimuru Tempest -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Top Sailing & Deck HUD (Enlarged & Prominent) -->
+  <div id="deck-hud" class="fixed inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+    
+    <!-- Top Bar: Nautical Biome, Economy Plaque, Rimuru Avatar & Shop -->
+    <div class="flex items-start justify-between w-full gap-3">
+      
+      <!-- Biome & Voyage Compass Plaque -->
+      <div class="brass-badge px-4 sm:px-5 py-2.5 sm:py-3 pointer-events-auto flex items-center gap-3.5 cursor-pointer hover:border-amber-400 transition" onclick="openModal('helm')" title="Open Nautical Navigation Map [E]">
+        <div class="text-3xl sm:text-4xl" id="hud-biome-icon">🏞️</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm sm:text-base text-amber-300 font-black uppercase tracking-wider" id="hud-biome">River Waters</span>
+            <span class="text-[10px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-600/60 font-black">MAP [E]</span>
+          </div>
+          <div class="text-xs text-amber-200/80 font-bold" id="hud-boat-name">Standard Skiff</div>
+        </div>
+      </div>
+
+      <!-- Center Treasury Plaque (Gold Coins, Fish Strips, Scrap, Gems) -->
+      <div class="brass-badge px-5 sm:px-6 py-2.5 sm:py-3 pointer-events-auto flex items-center gap-4 flex-wrap">
+        <!-- Money Plaque -->
+        <div class="flex items-center gap-2.5" title="Gold Cash">
+          <img src="assets/UI_Money.png" class="h-6 sm:h-7 object-contain" alt="Cash">
+          <span class="text-lg sm:text-2xl font-black text-amber-300 tracking-wider" id="hud-cash">150</span>
+        </div>
+
+        <!-- Crafting Materials -->
+        <div class="flex items-center gap-3.5 border-l-2 border-amber-900/80 pl-4 text-xs sm:text-sm font-black">
+          <span title="Fish Bait Strips (Filleted)" class="text-pink-300">🥩 <span id="hud-strips">0</span></span>
+          <span title="Salvage Scrap (Forge Crafting)" class="text-slate-300">⚙️ <span id="hud-scrap">0</span></span>
+          <span title="Gold Fish (Rare Token)" class="text-amber-300">🪙 <span id="hud-gold">0</span></span>
+          <span title="Emerald Fish (Exotic Token)" class="text-emerald-400">💎 <span id="hud-emerald">0</span></span>
+        </div>
+
+        <!-- Level & XP Liquid Tube -->
+        <div class="w-32 sm:w-36 border-l-2 border-amber-900/80 pl-4">
+          <div class="flex justify-between text-xs font-bold mb-1">
+            <span class="text-cyan-300 font-black" id="hud-level">Lv. 1</span>
+            <span class="text-amber-200/80 font-bold" id="hud-xp">0/30 XP</span>
+          </div>
+          <div class="w-full bg-[#0a0502] h-2.5 border border-amber-600/70 rounded-xs overflow-hidden">
+            <div id="hud-xp-bar" class="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <!-- Equipped Bait & Charm -->
+        <div class="flex items-center gap-2 text-xs border-l-2 border-amber-900/80 pl-4 font-bold">
+          <span id="hud-active-bait" class="bg-[#120904] text-emerald-300 px-2.5 py-1 border border-emerald-600/50 rounded font-black">
+            🪱 Bait: None
+          </span>
+          <span id="hud-active-charm" class="bg-[#120904] text-purple-300 px-2.5 py-1 border border-purple-600/50 rounded font-black">
+            🧿 No Charm
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: Rimuru Mascot Wardrobe & Harbor Shop Button -->
+      <div class="flex items-center gap-2.5 pointer-events-auto">
+        <!-- Change Mascot Button -->
+        <button onclick="openModal('mascot')" class="brass-badge px-4 py-2 sm:py-2.5 flex items-center gap-2.5 cursor-pointer hover:border-cyan-400 transition" title="Mascot Wardrobe (Rimuru Tempest)">
+          <div id="hud-mascot-icon" class="text-2xl sm:text-3xl">🌀</div>
+          <div class="text-left">
+            <div class="text-[10px] text-cyan-300 font-black uppercase">MASCOT</div>
+            <div class="text-xs sm:text-sm font-black text-amber-200" id="hud-mascot-name">Rimuru Tempest</div>
+          </div>
+        </button>
+
+        <!-- Harbor Shop Button -->
+        <button onclick="openModal('shop')" class="brass-btn px-4 sm:px-5 py-2.5 sm:py-3 rounded text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer">
+          <img src="assets/Button_Shop.png" class="w-5 h-5 object-contain" alt="Shop">
+          <span>SHIPYARD</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Center Contextual Prompts & Celebrations -->
+    <div class="flex flex-col items-center justify-center pointer-events-none space-y-3">
+      <!-- On-Deck Interactive Station Prompt -->
+      <div id="deck-prompt" class="hidden wood-panel px-8 py-3.5 pointer-events-auto cursor-pointer border-3 border-amber-400 sign-marker text-center shadow-2xl" onclick="triggerStationInteract()">
+        <span class="text-amber-300 font-black text-base sm:text-lg tracking-wide" id="deck-prompt-text">🎣 Press [E] to Fish off the Stern Rail</span>
+      </div>
+
+      <!-- Quick Loot Notification Banner -->
+      <div id="loot-popup" class="opacity-0 transition-opacity duration-300 wood-panel px-8 py-3 text-center text-amber-300 font-black text-sm sm:text-base border-2 border-amber-400">
+        +4x Cod! (+20 XP)
+      </div>
+    </div>
+
+    <!-- Bottom Maritime Action Console & Station Hotbar -->
+    <div class="w-full flex flex-col items-center pointer-events-none gap-2">
+      
+      <!-- Tactile Hotbar Row -->
+      <div class="wood-panel px-6 py-3 pointer-events-auto flex items-center gap-4 sm:gap-6 text-sm font-bold shadow-2xl flex-wrap justify-center border-t-3 border-amber-500">
+        
+        <!-- Equipped Rod Indicator -->
+        <div class="flex items-center gap-2.5 bg-[#120904] px-3.5 py-2 rounded border border-amber-700/70" title="Equipped Rod">
+          <span class="text-cyan-400 text-xl">🎣</span>
+          <div>
+            <div class="text-[10px] text-amber-400/80 font-bold uppercase">ROD</div>
+            <div class="text-xs sm:text-sm font-black text-white" id="hotbar-rod">Plastic Rod</div>
+          </div>
+        </div>
+
+        <!-- Master Brass "CAST LINE" Action Button -->
+        <button id="reel-cast-btn" onclick="castLine()" class="brass-btn px-8 sm:px-10 py-3.5 sm:py-4 rounded text-base sm:text-lg font-black uppercase flex items-center gap-3 cursor-pointer shadow-xl">
+          <span>🎣 CAST LINE</span>
+          <span class="text-xs bg-amber-950 text-amber-200 px-2 py-0.5 rounded border border-amber-400/50 font-black">[SPACE]</span>
+        </button>
+
+        <!-- Station Fast Walk Buttons -->
+        <div class="flex items-center gap-2 text-xs sm:text-sm border-l-2 border-amber-900/80 pl-4">
+          <button class="brass-badge px-3 py-1.5 text-cyan-300 hover:text-white cursor-pointer hover:border-cyan-400 transition font-black" onclick="walkToStation(0)">1. 🎣 Pier</button>
+          <button class="brass-badge px-3 py-1.5 text-amber-300 hover:text-white cursor-pointer hover:border-amber-400 transition font-black" onclick="walkToStation(1)">2. 🐟 Fillet</button>
+          <button class="brass-badge px-3 py-1.5 text-emerald-300 hover:text-white cursor-pointer hover:border-emerald-400 transition font-black" onclick="walkToStation(2)">3. 🧭 Helm</button>
+          <button class="brass-badge px-3 py-1.5 text-purple-300 hover:text-white cursor-pointer hover:border-purple-400 transition font-black" onclick="walkToStation(3)">4. ⚙️ Forge</button>
+          <button class="brass-badge px-3 py-1.5 text-yellow-300 hover:text-white cursor-pointer hover:border-yellow-400 transition font-black" onclick="walkToStation(4)">5. 💰 Market</button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Sliding Catch Card -->
+  <div id="catchcard" class="fixed top-20 left-8 z-40 transform -translate-x-[150%] opacity-0 pointer-events-none flex items-center gap-4 wood-panel p-4 shadow-2xl border-3 border-amber-400 max-w-md">
+    <div class="w-16 h-16 bg-[#120904] border-2 border-amber-500 rounded flex items-center justify-center p-1.5">
+      <img id="catchcard-icon" src="assets/Fish_Cod.png" class="max-h-full max-w-full object-contain" alt="Fish">
+    </div>
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-black px-2 py-0.5 rounded text-black bg-amber-400" id="catchcard-rarity">EXOTIC</span>
+        <span class="text-xs text-amber-200/90 font-bold" id="catchcard-weight">14.2 kg</span>
+      </div>
+      <div class="text-lg font-black text-amber-100" id="catchcard-name">Golden Fish</div>
+      <div class="text-xs sm:text-sm text-amber-300 font-black" id="catchcard-rewards">+$120 | +45 XP</div>
+    </div>
+  </div>
+
+  <!-- Tension Bar Minigame Overlay -->
+  <div id="tension-minigame" class="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="wood-panel p-8 rounded-lg max-w-md w-full flex flex-col items-center space-y-5 border-3 border-amber-400 shadow-2xl relative">
+      
+      <!-- Strike Warning Banner -->
+      <div class="flex items-center gap-3">
+        <img src="assets/minigame/strike.png" class="w-10 h-10 strike-pulse object-contain" alt="Strike">
+        <h3 class="text-base sm:text-lg font-black text-amber-300 tracking-wider uppercase" id="minigame-fish-title">EXOTIC FISH STRIKE!</h3>
+      </div>
+      <p class="text-xs text-amber-200/90 text-center font-bold">
+        Keep the green bar over the darting fish until catch progress reaches 100%!
+      </p>
+
+
+
+      <!-- Tension Track Frame -->
+      <div class="flex items-center gap-6">
+        <div id="minigame-track" class="relative w-20 h-72 bg-[#100804] border-3 border-amber-700 rounded overflow-hidden">
+          <div id="minigame-player-box" class="absolute left-0 w-full bg-emerald-500/85 border-y-2 border-emerald-300 rounded shadow" style="height: 56px; top: 120px;"></div>
+          <img id="minigame-fish-target" src="assets/minigame/fish-icon.png" class="absolute left-3 w-14 h-10 object-contain" style="top: 100px;" alt="Fish">
+        </div>
+
+        <div class="flex flex-col items-center">
+          <div class="text-xs text-cyan-300 font-black mb-1.5">REEL</div>
+          <div class="w-8 h-72 bg-[#100804] border-3 border-amber-700 rounded relative overflow-hidden flex flex-col justify-end p-0.5">
+            <div id="minigame-progress-fill" class="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 transition-all duration-75" style="height: 35%;"></div>
+          </div>
+          <div class="text-xs sm:text-sm text-emerald-400 font-black mt-1.5" id="minigame-progress-text">35%</div>
+        </div>
+      </div>
+
+      <!-- Reel Controls -->
+      <div class="w-full flex flex-col items-center space-y-2.5">
+        <button id="minigame-reel-btn" class="brass-btn w-full py-4 text-base font-black uppercase rounded cursor-pointer select-none">
+          🎣 HOLD TO REEL (or [SPACE])
+        </button>
+        <span class="text-xs text-amber-300/80 font-bold">Tip: Hold to lift against gravity, let go to sink.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main Modal Station Windows -->
+  <div id="station-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50 hidden">
+    <div class="wood-panel w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col rounded-lg">
+      
+      <!-- Modal Header -->
+      <div class="bg-[#1b0e06] border-b-2 border-amber-800/80 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3.5">
+          <span class="text-4xl" id="modal-icon">🎣</span>
+          <div>
+            <h2 class="text-lg sm:text-xl font-black text-amber-200" id="modal-title">Fishing Rail</h2>
+            <p class="text-xs sm:text-sm text-amber-300/80" id="modal-subtitle">Cast your line into the depths.</p>
+          </div>
+        </div>
+        <button onclick="closeModal()" class="brass-btn-red px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer rounded">
+          <img src="assets/Shop Exit Button.png" class="w-4 h-4 object-contain" alt="Close">
+          <span>CLOSE [ESC]</span>
+        </button>
+      </div>
+
+      <!-- Modal Body Content -->
+      <div class="p-6 overflow-y-auto flex-1 bg-[#150a04]">
+        
+        <!-- View 1: Fishing Rail Action -->
+        <div id="view-fishing" class="hidden flex flex-col items-center justify-center py-6 text-center space-y-5">
+          <div class="wood-card p-6 rounded max-w-lg w-full flex flex-col items-center space-y-4">
+            <div class="text-5xl animate-bounce">🎣</div>
+            <div id="reel-catch-status" class="text-base sm:text-lg font-black text-amber-100">
+              The waters below are rippling with aquatic life!
+            </div>
+            <!-- Quick Bait Selector on Rail -->
+            <div class="flex items-center gap-3 text-sm mt-3">
+              <span class="text-amber-300/80 font-bold">Active Bait:</span>
+              <select id="fishing-bait-select" onchange="changeActiveBait(this.value)" class="bg-[#241308] text-amber-200 border-2 border-amber-700 px-3.5 py-2 rounded font-bold cursor-pointer">
+              </select>
+            </div>
+            <div class="text-xs sm:text-sm text-amber-400/90 pt-3" id="reel-stats-info">
+              Equipped: Plastic Rod | Cooldown: 3.5s | Biome: River
+            </div>
+          </div>
+          <button onclick="castLine(); closeModal();" class="brass-btn w-72 py-4 px-8 font-black text-base uppercase rounded cursor-pointer shadow-xl">
+            🎣 CAST LINE INTO SEA
+          </button>
+        </div>
+
+        <!-- View 2: Scaling Workbench & Fillet Station (Option B - Scale the Depths) -->
+        <div id="view-dex" class="hidden space-y-5">
+          <!-- Sub-tabs: Fishdex vs Fillet -->
+          <div class="flex gap-3 border-b-2 border-amber-800 pb-3">
+            <button onclick="switchDexTab('dex')" id="btn-tab-dex" class="wood-tab active px-5 py-2.5 rounded text-xs sm:text-sm font-black cursor-pointer">
+              📖 BIOLOGICAL RECORDS & FISHDEX
+            </button>
+            <button onclick="switchDexTab('fillet')" id="btn-tab-fillet" class="wood-tab px-5 py-2.5 rounded text-xs sm:text-sm font-black cursor-pointer">
+              🔪 FILLET & BUTCHERY TABLE
+            </button>
+          </div>
+
+          <!-- Subtab A: Records -->
+          <div id="dex-subtab-records" class="space-y-4">
+            <div class="flex items-center justify-between wood-card p-4 rounded text-xs sm:text-sm flex-wrap gap-3">
+              <span class="text-amber-200/90 font-bold">Discovered species catalog with canonical Virtual Fisher weights and values.</span>
+              <button onclick="openModal('market')" class="brass-btn-emerald font-black px-4 py-2 rounded cursor-pointer text-xs sm:text-sm">
+                SELL IN BULK ➔
+              </button>
+            </div>
+            <div id="dex-fish-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+          </div>
+
+          <!-- Subtab B: Fillet Station -->
+          <div id="dex-subtab-fillet" class="hidden space-y-5">
+            <div class="wood-card p-4 rounded flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h4 class="text-base font-black text-amber-300">FISH BUTCHERY & HARVEST</h4>
+                <p class="text-xs sm:text-sm text-amber-200/80">Butcher harvested fish on the cutting board into <b>Bait Strips 🥩</b> and <b>Salvage Scrap ⚙️</b> for the Forge.</p>
+              </div>
+              <button onclick="filletAllCommon()" class="brass-btn px-5 py-2.5 text-xs sm:text-sm font-black rounded cursor-pointer">
+                🔪 FILLET ALL COMMON FISH
+              </button>
+            </div>
+            <div id="fillet-fish-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+          </div>
+        </div>
+
+        <!-- View 3: Ship's Helm & Nautical Map (7 Biomes) -->
+        <div id="view-helm" class="hidden space-y-5">
+          <div class="wood-card p-4 rounded flex items-center justify-between text-xs sm:text-sm flex-wrap gap-3">
+            <span class="text-amber-200/90 font-bold">Chart your voyage across the 7 canonical Virtual Fisher waters.</span>
+            <span class="text-cyan-300 font-black">Current Location: <span id="helm-current-loc">River Waters</span></span>
+          </div>
+          <div id="helm-biomes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- View 4: Bait & Charm Forge -->
+        <div id="view-forge" class="hidden space-y-5">
+          <div class="flex gap-3 border-b-2 border-amber-800 pb-3">
+            <button onclick="switchForgeTab('baits')" id="btn-tab-baits" class="wood-tab active px-5 py-2.5 rounded text-xs sm:text-sm font-black cursor-pointer">
+              🪱 BAIT WORKSHOP & BARRELS
+            </button>
+            <button onclick="switchForgeTab('charms')" id="btn-tab-charms" class="wood-tab px-5 py-2.5 rounded text-xs sm:text-sm font-black cursor-pointer">
+              🧿 CHARM FORGE (8 TIERS)
+            </button>
+          </div>
+
+          <!-- Subtab A: Baits -->
+          <div id="forge-subtab-baits" class="space-y-4">
+            <div class="wood-card p-4 rounded text-xs sm:text-sm text-amber-200/90 font-bold">
+              Mix specialized baits using <b>Fish Strips 🥩</b> filleted at the workbench, or buy with cash.
+            </div>
+            <div id="forge-baits-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+          </div>
+
+          <!-- Subtab B: Charms -->
+          <div id="forge-subtab-charms" class="hidden space-y-4">
+            <div class="wood-card p-4 rounded text-xs sm:text-sm text-amber-200/90 font-bold">
+              Forge ancient charms using <b>Salvage Scrap ⚙️</b>, <b>Rare Fish 🪙💎</b>, and cash.
+            </div>
+            <div id="forge-charms-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+          </div>
+        </div>
+
+        <!-- View 5: Cargo Market -->
+        <div id="view-market" class="hidden space-y-5">
+          <div class="flex items-center justify-between wood-card p-4 rounded flex-wrap gap-3">
+            <div>
+              <div class="text-base font-black text-amber-200">FISHMONGER & CARGO HOLD</div>
+              <div class="text-xs sm:text-sm text-amber-200/80">Sell your harvested fish to merchants visiting the ship deck.</div>
+            </div>
+            <button onclick="sellAllFish()" class="brass-btn-emerald font-black text-xs sm:text-sm px-6 py-3 rounded cursor-pointer shadow-lg">
+              💰 SELL ALL FISH
+            </button>
+          </div>
+          <div id="market-fish-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+        </div>
+
+        <!-- View 6: Mascot Wardrobe Selector (Rimuru & Forms) -->
+        <div id="view-mascot" class="hidden space-y-5">
+          <div class="wood-card p-4 rounded text-xs sm:text-sm">
+            <h4 class="text-base font-black text-cyan-300">SHIP'S MASCOT & COMPANION WARDROBE</h4>
+            <p class="text-amber-200/80 mt-1">Select who commands the deck! Rimuru Tempest features high-res pixel art, custom physics, and unique fishing buffs.</p>
+          </div>
+          <div id="mascot-selection-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-5"></div>
+        </div>
+
+        <!-- View 7: Harbor Upgrade Shipyard (All 7 Boats & Rigs) -->
+        <div id="view-shop" class="hidden space-y-7">
+          <div>
+            <h3 class="text-sm font-black text-emerald-300 uppercase tracking-wider mb-3">Shipyard Vessel Hulls (7 Canonical Tiers)</h3>
+            <div id="shop-boats-list" class="space-y-3"></div>
+          </div>
+          <div class="border-t-2 border-amber-800 pt-5">
+            <h3 class="text-sm font-black text-amber-300 uppercase tracking-wider mb-3">Available Fishing Rods (21 Canonical Tiers)</h3>
+            <div id="shop-rods-list" class="space-y-3"></div>
+          </div>
+        </div>
+
+
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Audio System with Authentic SFX -->
+  <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const sfxClips = {
+      whoosh: new Audio('assets/sfx/whoosh.mp3'),
+      reel: new Audio('assets/sfx/reel.mp3'),
+      splash: new Audio('assets/sfx/splash.mp3'),
+      success: new Audio('assets/sfx/success.wav'),
+      strike: new Audio('assets/sfx/strike.wav'),
+      click: new Audio('assets/sfx/click.mp3')
+    };
+
+    function playAudioClip(name, vol = 0.5) {
+      const clip = sfxClips[name];
+      if (clip) {
+        clip.currentTime = 0;
+        clip.volume = vol;
+        clip.play().catch(() => {});
+      }
+    }
+
+    function playBeep(freq, type, duration, vol=0.15) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function sfxSplash() { playAudioClip('splash', 0.6); }
+    function sfxCoin() { playAudioClip('click', 0.5); playBeep(987, 'triangle', 0.12); setTimeout(() => playBeep(1318, 'triangle', 0.22), 90); }
+    function sfxCatch() { playAudioClip('success', 0.7); }
+    function sfxCast() { playAudioClip('whoosh', 0.6); }
+    function sfxStrike() { playAudioClip('strike', 0.8); }
+    function sfxClick() { playAudioClip('click', 0.4); }
+  </script>
+
+  <!-- Preload Static Transparent Assets -->
+  <script>
+    const sprites = {
+      sky: null,
+      bgWater: null,
+      fgWave: null,
+      shipBack: null,
+      shipFront: null,
+      rock: null,
+      cuttingBoard: null,
+      shopUI: null,
+      rimuruHuman: null, // Pre-processed transparent PNG!
+      rimuruSlime: null  // Pre-processed transparent PNG!
+    };
+
+    function loadImg(src) {
+      const img = new Image();
+      img.src = src;
+      return img;
+    }
+
+    sprites.sky = loadImg('assets/Hub_BG_Sky.png');
+    sprites.bgWater = loadImg('assets/Hub_BG Water.png');
+    sprites.fgWave = loadImg('assets/Hub_Front Wave.png');
+    sprites.shipBack = loadImg('assets/Ship Back.png');
+    sprites.shipFront = loadImg('assets/Ship Front.png');
+    sprites.rock = loadImg('assets/Hub_Rock.png');
+    sprites.cuttingBoard = loadImg('assets/Cutting Board Zoomed in.png');
+    sprites.shopUI = loadImg('assets/Shop UI.png');
+
+    // Load pre-keyed transparent PNGs directly from disk!
+    sprites.rimuruHuman = loadImg('assets/rimuru_human.png');
+    sprites.rimuruSlime = loadImg('assets/rimuru_slime.png');
+  </script>
+
+  <!-- Canonical Virtual Fisher Engine -->
+  <script>
+    // --- 1. GAME STATE ---
+    const state = {
+      cash: 150,
+      xp: 0,
+      level: 1,
+      xpNeeded: 30,
+      currentBiome: 'River',
+      gold: 0,
+      emerald: 0,
+      strips: 0,
+      scrap: 0,
+      mascot: 'rimuru_human', // Default: Rimuru Tempest
+      currentRod: 'Plastic Rod',
+      ownedRods: ['Plastic Rod'],
+      currentBoat: 'Standard Skiff',
+      ownedBoats: ['Standard Skiff'],
+      currentBait: 'None',
+      baitStock: {
+        'Worms': 10,
+        'Minnows': 0,
+        'Leeches': 0,
+        'Squid Strips': 0,
+        'Glowing Bait': 0,
+        'Golden Bait': 0,
+        'Wise Bait': 0,
+        'Magnet Bait': 0
+      },
+      currentCharm: 'None',
+      ownedCharms: [],
+      isCoolingDown: false,
+      cooldownTimer: 0,
+      activeStation: null,
+      inventory: {
+        'Raw Fish': { count: 0, price: 1, xp: 1, sprite: 'sardine', color: '#93c5fd', biome: 'River', weight: '0.4 kg', desc: 'A common small river dweller.' },
+        'Raw Salmon': { count: 0, price: 3, xp: 2, sprite: 'mackerel', color: '#fca5a5', biome: 'River', weight: '2.1 kg', desc: 'Leaps against upstream currents.' },
+        'Cod': { count: 0, price: 10, xp: 5, sprite: 'cod', color: '#fde047', biome: 'River', weight: '5.4 kg', desc: 'Heavy and hearty staple catch.' },
+        'Pufferfish': { count: 0, price: 150, xp: 25, sprite: 'cod', color: '#f59e0b', biome: 'River', weight: '1.2 kg', desc: 'Inflates when threatened. Handle with care!' },
+        'Golden Fish': { count: 0, price: 500, xp: 120, sprite: 'cod', color: '#fbbf24', biome: 'River', weight: '8.5 kg', desc: 'Shimmers with pure gold scales. Highly prized!' },
+
+        'Anchovy': { count: 0, price: 5, xp: 4, sprite: 'sardine', color: '#94a3b8', biome: 'Ocean', weight: '0.1 kg', desc: 'Salty schooling fish.' },
+        'Mackerel': { count: 0, price: 18, xp: 12, sprite: 'mackerel', color: '#67e8f9', biome: 'Ocean', weight: '1.8 kg', desc: 'Fast swimmer with iridescent skin.' },
+        'Red Snapper': { count: 0, price: 65, xp: 35, sprite: 'cod', color: '#f87171', biome: 'Ocean', weight: '6.2 kg', desc: 'Prized delicacy from coral reefs.' },
+        'Bluefin Tuna': { count: 0, price: 450, xp: 180, sprite: 'tuna', color: '#38bdf8', biome: 'Ocean', weight: '65.0 kg', desc: 'Massive apex swimmer of open waters.' },
+
+        'Rainbow Trout': { count: 0, price: 35, xp: 22, sprite: 'mackerel', color: '#c084fc', biome: 'Waterfall', weight: '3.4 kg', desc: 'Glides through foaming white water.' },
+        'Golden Salmon': { count: 0, price: 280, xp: 95, sprite: 'mackerel', color: '#fbbf24', biome: 'Waterfall', weight: '7.8 kg', desc: 'Bathed in sunlit mist.' },
+        'Giant River Pike': { count: 0, price: 900, xp: 350, sprite: 'cod', color: '#4ade80', biome: 'Waterfall', weight: '22.0 kg', desc: 'Predatory monster of the rapids.' },
+
+        'Anglerfish': { count: 0, price: 300, xp: 140, sprite: 'cod', color: '#a78bfa', biome: 'Deep Ocean', weight: '12.0 kg', desc: 'Lures prey with a bioluminescent bulb.' },
+        'Giant Squid': { count: 0, price: 1800, xp: 600, sprite: 'kraken', color: '#f43f5e', biome: 'Deep Ocean', weight: '140.0 kg', desc: 'Tentacled giant from the sunless deep.' },
+        'Emerald Fish': { count: 0, price: 5000, xp: 1500, sprite: 'tuna', color: '#34d399', biome: 'Deep Ocean', weight: '45.0 kg', desc: 'Radiates mystical crystalline energy.' },
+
+        'Mud Catfish': { count: 0, price: 220, xp: 90, sprite: 'cod', color: '#a1a1aa', biome: 'Swamp', weight: '18.0 kg', desc: 'Burrows in thick nutrient mud.' },
+        'Alligator Gar': { count: 0, price: 1400, xp: 480, sprite: 'mackerel', color: '#84cc16', biome: 'Swamp', weight: '55.0 kg', desc: 'Armored predator with prehistoric teeth.' },
+        'Hydra Eel': { count: 0, price: 6500, xp: 2200, sprite: 'kraken', color: '#10b981', biome: 'Swamp', weight: '88.0 kg', desc: 'Mythical serpent hiding in reeds.' },
+
+        'Magma Puffer': { count: 0, price: 1200, xp: 550, sprite: 'cod', color: '#fb923c', biome: 'Volcanic', weight: '8.0 kg', desc: 'Spits burning embers.' },
+        'Obsidian Bass': { count: 0, price: 4200, xp: 1800, sprite: 'tuna', color: '#71717a', biome: 'Volcanic', weight: '38.0 kg', desc: 'Skin as hard as volcanic glass.' },
+        'Lava Leviathan': { count: 0, price: 25000, xp: 8500, sprite: 'kraken', color: '#ef4444', biome: 'Volcanic', weight: '350.0 kg', desc: 'Colossal titan dwelling in boiling magma.' },
+
+        'Void Ray': { count: 0, price: 8000, xp: 3500, sprite: 'dolphin', color: '#818cf8', biome: 'Abyss', weight: '95.0 kg', desc: 'Flies through darkness like a shadow.' },
+        'Abyssal Kraken': { count: 0, price: 50000, xp: 18000, sprite: 'kraken', color: '#6366f1', biome: 'Abyss', weight: '850.0 kg', desc: 'Nightmarish ruler of the eternal abyss.' },
+        'Mythic Celestial Fish': { count: 0, price: 250000, xp: 75000, sprite: 'turtle', color: '#e879f9', biome: 'Abyss', weight: '1200.0 kg', desc: 'Born of stardust and cosmic depths.' }
+      }
+    };
+
+    // --- 2. MASCOTS DATABASE ---
+    const MASCOTS = {
+      'rimuru_human': {
+        name: 'Rimuru Tempest',
+        title: 'Demon Lord Form',
+        icon: '🌀',
+        perk: '+15% Rare Fish Detection & +10% XP',
+        desc: 'Equipped with flowing azure hair, fluttering scarf, Demon Lord coat, and golden anime eyes.'
+      },
+      'rimuru_slime': {
+        name: 'Rimuru (Slime)',
+        title: 'Cute Slime Form',
+        icon: '💧',
+        perk: '+1 Bonus Fish Yield & Squishy High Jumps',
+        desc: 'The iconic adorable blue slime with blushing cheeks and elastic bounce.'
+      },
+      'captain': {
+        name: 'Captain Salty',
+        title: 'Grizzled Sailor',
+        icon: '⚓',
+        perk: '+15% Ship Deck Move Speed',
+        desc: 'Traditional fisherman in yellow oilskins who knows every current.'
+      },
+      'cyber': {
+        name: 'Cyber Angler',
+        title: 'Neo Tokyo Specialist',
+        icon: '⚡',
+        perk: '-0.20s Casting Cooldown',
+        desc: 'Equipped with holographic sonar visor and carbon-fiber winch.'
+      }
+    };
+
+    // 7 Canonical Biomes
+    const BIOMES = {
+      'River': { name: 'River Waters', icon: '🏞️', levelReq: 1, fee: 0, species: ['Raw Fish', 'Raw Salmon', 'Cod', 'Pufferfish', 'Golden Fish'], desc: 'Gentle freshwater currents with emerald reflections.' },
+      'Ocean': { name: 'Open Ocean', icon: '🌊', levelReq: 5, fee: 100, species: ['Anchovy', 'Mackerel', 'Red Snapper', 'Bluefin Tuna'], desc: 'Wide expanses of rolling saltwater swells.' },
+      'Waterfall': { name: 'Rushing Waterfall', icon: '🌊', levelReq: 15, fee: 5000, species: ['Rainbow Trout', 'Golden Salmon', 'Giant River Pike'], desc: 'Vibrant turquoise waters engulfed in roaring spray and rising mist.' },
+      'Deep Ocean': { name: 'Deep Ocean', icon: '🌌', levelReq: 25, fee: 50000, species: ['Anglerfish', 'Giant Squid', 'Emerald Fish'], desc: 'Sunless depths glittering with bioluminescent plankton.' },
+      'Swamp': { name: 'Murky Swamp', icon: '🌿', levelReq: 40, fee: 500000, species: ['Mud Catfish', 'Alligator Gar', 'Hydra Eel'], desc: 'Stagnant olive waters bubbling with marsh gas.' },
+      'Volcanic': { name: 'Volcanic Core', icon: '🌋', levelReq: 60, fee: 5000000, species: ['Magma Puffer', 'Obsidian Bass', 'Lava Leviathan'], desc: 'Boiling magma flows with floating embers.' },
+      'Abyss': { name: 'The Cosmic Abyss', icon: '🪐', levelReq: 80, fee: 50000000, species: ['Void Ray', 'Abyssal Kraken', 'Mythic Celestial Fish'], desc: 'Cosmic purple abyss echoing with celestial entities.' }
+    };
+
+    // 21 Canonical Rods
+    const RODS = {
+      'Plastic Rod': { cost: 0, min: 2, max: 5, desc: 'Basic starter rod.' },
+      'Improved Rod': { cost: 500, min: 3, max: 7, desc: '+25% fish yield.' },
+      'Steel Rod': { cost: 8000, min: 4, max: 9, desc: 'Catches higher tier fish.' },
+      'Fiberglass Rod': { cost: 50000, min: 5, max: 12, desc: 'Flexible and robust.' },
+      'Lava Rod': { cost: 1000000, min: 7, max: 15, desc: 'Resists boiling magma.' },
+      'Corrupt Rod': { cost: 50000000, min: 10, max: 22, desc: '30% chance for double fish!' },
+      'Celestial Rod': { cost: 1000000000, min: 18, max: 40, desc: 'Forged from fallen stars.' }
+    };
+
+    // 7 Canonical Boats with Unique Visual Specifications
+    const BOATS = {
+      'Standard Skiff': {
+        cost: 0,
+        speed: 200,
+        cooldown: 3.5,
+        width: 500,
+        deckOffset: 0,
+        desc: 'Traditional wooden rowboat with clinker cedar planks and brass oarlocks.'
+      },
+      'Wooden Dory': {
+        cost: 1000,
+        speed: 220,
+        cooldown: 3.2,
+        width: 540,
+        deckOffset: 0,
+        desc: 'Flared golden-oak dory with varnished teak deck and mast.'
+      },
+      'Motorboat': {
+        cost: 25000,
+        speed: 260,
+        cooldown: 2.8,
+        width: 580,
+        deckOffset: -2,
+        desc: 'Sportfishing vessel with cabin, twin outboard motors, and chrome railings.'
+      },
+      'Trawler': {
+        cost: 250000,
+        speed: 290,
+        cooldown: 2.4,
+        width: 640,
+        deckOffset: 0,
+        desc: 'Heavy commercial ocean trawler with pilothouse, steel winch, and cargo boom.'
+      },
+      'Submarine': {
+        cost: 5000000,
+        speed: 330,
+        cooldown: 2.0,
+        width: 660,
+        deckOffset: 4,
+        desc: 'Hydrodynamic deep-sea submersible with conning tower and portholes.'
+      },
+      'Hovercraft': {
+        cost: 100000000,
+        speed: 380,
+        cooldown: 1.6,
+        width: 680,
+        deckOffset: 4,
+        desc: 'High-tech amphibious vessel with rubber skirt and twin rear propulsion turbines.'
+      },
+      'Cosmic Dreadnought': {
+        cost: 5000000000,
+        speed: 450,
+        cooldown: 1.2,
+        width: 740,
+        deckOffset: 0,
+        desc: 'Mythic starship cruiser forged of obsidian alloy and celestial ion plasma.'
+      }
+    };
+
+    // 8 Canonical Baits
+    const BAITS = {
+      'Worms': { cost: 10, scrapCost: 0, stripsCost: 1, rareBoost: 0.05, desc: 'Basic wriggling earthworms.' },
+      'Minnows': { cost: 60, scrapCost: 0, stripsCost: 2, rareBoost: 0.12, desc: 'Darting river baitfish.' },
+      'Leeches': { cost: 250, scrapCost: 1, stripsCost: 3, rareBoost: 0.20, desc: 'Attracts predatory river fish.' },
+      'Squid Strips': { cost: 1200, scrapCost: 2, stripsCost: 4, rareBoost: 0.35, desc: 'Scented saltwater tentacles.' },
+      'Glowing Bait': { cost: 6000, scrapCost: 5, stripsCost: 6, rareBoost: 0.50, desc: 'Bioluminescent deep bait.' },
+      'Golden Bait': { cost: 35000, scrapCost: 10, stripsCost: 10, rareBoost: 0.75, desc: 'Infused with glimmering gold.' },
+      'Wise Bait': { cost: 200000, scrapCost: 25, stripsCost: 15, rareBoost: 1.00, desc: 'Multiplies catch XP by 2x.' },
+      'Magnet Bait': { cost: 1500000, scrapCost: 50, stripsCost: 25, rareBoost: 1.50, desc: 'Pulls legendary tokens.' }
+    };
+
+    // 8 Canonical Charms
+    const CHARMS = {
+      'Gold Charm': { cost: 5000, scrap: 5, goldReq: 0, bonusValue: 0.25, desc: '+25% selling value on all fish.' },
+      'Diamond Charm': { cost: 35000, scrap: 15, goldReq: 1, bonusValue: 0.60, desc: '+60% selling value on all fish.' },
+      'Speed Charm': { cost: 150000, scrap: 30, goldReq: 2, cooldownReduction: 0.5, desc: '-0.50s cast cooldown timer.' },
+      'Experience Charm': { cost: 800000, scrap: 50, goldReq: 3, bonusXP: 0.50, desc: '+50% XP gained from every catch.' },
+      'Fortune Charm': { cost: 4000000, scrap: 100, emeraldReq: 1, doubleChance: 0.25, desc: '25% chance for double fish yield.' },
+      'Magnet Charm': { cost: 20000000, scrap: 200, emeraldReq: 2, tokenBonus: 0.35, desc: '+35% chance to extract Gold/Emeralds.' },
+      'Berserk Charm': { cost: 100000000, scrap: 500, emeraldReq: 5, bonusValue: 1.5, desc: '+150% fish value & instant strike.' },
+      'Celestial Charm': { cost: 1000000000, scrap: 1500, emeraldReq: 10, allBoost: 3.0, desc: '3x all earnings, XP, and speed.' }
+    };
+
+    // Deck Stations
+    const deck = {
+      deckY: 0,
+      leftBoundary: 0,
+      rightBoundary: 0,
+      stations: [
+        { id: 'fishing', name: 'Stern Pier', x: 0, icon: '🎣', prompt: '🎣 Press [E] to Fish off Stern Rail' },
+        { id: 'dex', name: 'Fillet Table', x: 0, icon: '🐟', prompt: '🔪 Press [E] to Open Fillet Workbench' },
+        { id: 'helm', name: 'Ship Helm', x: 0, icon: '🧭', prompt: '🧭 Press [E] to Voyage Map' },
+        { id: 'forge', name: 'Charm Forge', x: 0, icon: '⚙️', prompt: '⚙️ Press [E] to Open Forge' },
+        { id: 'market', name: 'Cargo Market', x: 0, icon: '💰', prompt: '💰 Press [E] to Sell Fish' }
+      ]
+    };
+
+    // Character Guy State
+    const guy = {
+      x: 0,
+      y: 0,
+      vx: 0,
+      facing: 1,
+      isWalking: false,
+      animTimer: 0,
+      targetX: null
+    };
+
+    // Hybrid Minigame State
+    const minigame = {
+      active: false,
+      isHolding: false,
+      playerY: 120,
+      playerVel: 0,
+      fishY: 100,
+      fishTargetY: 100,
+      fishVel: 0,
+      fishAiTimer: 0,
+      fishAiSpeed: 240,
+      progress: 0.35,
+      trackHeight: 288,
+      boxHeight: 56,
+      targetFishName: '',
+      targetFishData: null,
+      count: 1
+    };
+
+    // Keyboard Listeners
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      keys[k] = true;
+      if (k === 'e') {
+        const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+        if (!modalOpen && state.activeStation) triggerStationInteract();
+      }
+      if (e.key === ' ' || e.code === 'Space') {
+        if (minigame.active) {
+          e.preventDefault();
+          minigame.isHolding = true;
+        } else {
+          const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+          if (!modalOpen && !state.isCoolingDown) castLine();
+        }
+      }
+      if (e.key === 'Escape') closeModal();
+    });
+
+    window.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      keys[k] = false;
+      if (e.key === ' ' || e.code === 'Space') {
+        if (minigame.active) minigame.isHolding = false;
+      }
+    });
+
+    const reelBtn = document.getElementById('minigame-reel-btn');
+    reelBtn.addEventListener('mousedown', () => { minigame.isHolding = true; });
+    window.addEventListener('mouseup', () => { minigame.isHolding = false; });
+    reelBtn.addEventListener('touchstart', (e) => { e.preventDefault(); minigame.isHolding = true; });
+    reelBtn.addEventListener('touchend', () => { minigame.isHolding = false; });
+
+    // Canvas & Resizing
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      ctx.imageSmoothingEnabled = false;
+
+      const boatData = BOATS[state.currentBoat] || BOATS['Standard Skiff'];
+      const shipW = boatData.width;
+      const shipX = canvas.width / 2;
+      deck.deckY = canvas.height * 0.60;
+      deck.leftBoundary = shipX - shipW * 0.40;
+      deck.rightBoundary = shipX + shipW * 0.38;
+
+      deck.stations[0].x = deck.leftBoundary + 30;
+      deck.stations[1].x = shipX - shipW * 0.18;
+      deck.stations[2].x = shipX;
+      deck.stations[3].x = shipX + shipW * 0.18;
+      deck.stations[4].x = deck.rightBoundary - 30;
+
+      if (guy.x === 0) guy.x = shipX;
+      guy.y = deck.deckY;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function walkToStation(idx) {
+      if (deck.stations[idx]) guy.targetX = deck.stations[idx].x;
+    }
+
+    // --- 7. MAIN UPDATE & RENDER LOOP ---
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min(0.1, (now - lastTime) / 1000);
+      lastTime = now;
+      update(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    function update(dt) {
+      const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+
+      if (!modalOpen && !minigame.active) {
+        let move = 0;
+        if (keys['a'] || keys['arrowleft']) move -= 1;
+        if (keys['d'] || keys['arrowright']) move += 1;
+
+        if (guy.targetX !== null) {
+          const diff = guy.targetX - guy.x;
+          if (Math.abs(diff) > 6) move = Math.sign(diff);
+          else guy.targetX = null;
+        }
+
+        let speed = BOATS[state.currentBoat].speed || 200;
+        if (state.mascot === 'captain') speed *= 1.15;
+
+        if (move !== 0) {
+          guy.vx = move * speed;
+          guy.facing = move;
+          guy.isWalking = true;
+          guy.animTimer += dt * (state.mascot === 'rimuru_slime' ? 12 : 9);
+        } else {
+          guy.vx = 0;
+          guy.isWalking = false;
+        }
+
+        guy.x += guy.vx * dt;
+        guy.x = Math.max(deck.leftBoundary, Math.min(deck.rightBoundary, guy.x));
+      }
+
+      // Proximity check for stations
+      state.activeStation = null;
+      for (const st of deck.stations) {
+        if (Math.abs(guy.x - st.x) < 55) {
+          state.activeStation = st;
+          break;
+        }
+      }
+
+      // Prompt
+      const prompt = document.getElementById('deck-prompt');
+      if (state.activeStation && !modalOpen && !minigame.active) {
+        prompt.classList.remove('hidden');
+        document.getElementById('deck-prompt-text').innerText = state.activeStation.prompt;
+      } else {
+        prompt.classList.add('hidden');
+      }
+
+      // Cooldown timer
+      if (state.isCoolingDown) {
+        state.cooldownTimer -= dt;
+        const btn = document.getElementById('reel-cast-btn');
+        if (state.cooldownTimer <= 0) {
+          state.isCoolingDown = false;
+          btn.innerHTML = '<span>🎣 CAST LINE</span><span class="text-xs bg-amber-950 text-amber-200 px-2 py-0.5 rounded border border-amber-400/50 font-black">[SPACE]</span>';
+          btn.disabled = false;
+          btn.classList.remove('opacity-60', 'cursor-not-allowed');
+        } else {
+          btn.innerText = `WAIT (${state.cooldownTimer.toFixed(1)}s)`;
+          btn.disabled = true;
+          btn.classList.add('opacity-60', 'cursor-not-allowed');
+        }
+      }
+
+      // Update Minigame
+      if (minigame.active) updateMinigame(dt);
+
+      // Update HUD
+      document.getElementById('hud-cash').innerText = state.cash.toLocaleString();
+      document.getElementById('hud-strips').innerText = state.strips;
+      document.getElementById('hud-scrap').innerText = state.scrap;
+      document.getElementById('hud-gold').innerText = state.gold;
+      document.getElementById('hud-emerald').innerText = state.emerald;
+      document.getElementById('hud-level').innerText = `Lv. ${state.level}`;
+      document.getElementById('hud-xp').innerText = `${state.xp}/${state.xpNeeded} XP`;
+      document.getElementById('hud-xp-bar').style.width = Math.min(100, Math.floor((state.xp / state.xpNeeded) * 100)) + '%';
+      document.getElementById('hud-biome').innerText = BIOMES[state.currentBiome].name;
+      document.getElementById('hud-biome-icon').innerText = BIOMES[state.currentBiome].icon;
+      document.getElementById('hud-boat-name').innerText = state.currentBoat;
+      document.getElementById('hotbar-rod').innerText = state.currentRod;
+      document.getElementById('hud-active-bait').innerText = `🪱 Bait: ${state.currentBait}`;
+      document.getElementById('hud-active-charm').innerText = state.currentCharm !== 'None' ? `🧿 ${state.currentCharm}` : '🧿 No Charm';
+      document.getElementById('hud-mascot-name').innerText = MASCOTS[state.mascot].name;
+      document.getElementById('hud-mascot-icon').innerText = MASCOTS[state.mascot].icon;
+    }
+
+    // --- 8. MINIGAME PHYSICS ---
+    function updateMinigame(dt) {
+      minigame.fishAiTimer -= dt;
+      if (minigame.fishAiTimer <= 0) {
+        minigame.fishAiTimer = 0.35 + Math.random() * 0.85;
+        minigame.fishTargetY = 25 + Math.random() * (minigame.trackHeight - 65);
+      }
+      const fishDiff = minigame.fishTargetY - minigame.fishY;
+      minigame.fishVel = Math.sign(fishDiff) * Math.min(Math.abs(fishDiff) * 4.2, minigame.fishAiSpeed);
+      minigame.fishY += minigame.fishVel * dt;
+      minigame.fishY = Math.max(10, Math.min(minigame.trackHeight - 40, minigame.fishY));
+
+      const gravity = 480;
+      const thrust = 760;
+      if (minigame.isHolding) {
+        minigame.playerVel -= thrust * dt;
+      } else {
+        minigame.playerVel += gravity * dt;
+      }
+      minigame.playerVel *= 0.92;
+      minigame.playerY += minigame.playerVel * dt;
+
+      if (minigame.playerY < 0) {
+        minigame.playerY = 0;
+        minigame.playerVel = 0;
+      } else if (minigame.playerY > minigame.trackHeight - minigame.boxHeight) {
+        minigame.playerY = minigame.trackHeight - minigame.boxHeight;
+        minigame.playerVel = 0;
+      }
+
+      const fishCenter = minigame.fishY + 16;
+      const isInside = fishCenter >= minigame.playerY && fishCenter <= (minigame.playerY + minigame.boxHeight);
+
+      if (isInside) {
+        minigame.progress += 0.35 * dt;
+        if (Math.random() < 0.12) playAudioClip('reel', 0.2);
+      } else {
+        minigame.progress -= 0.22 * dt;
+      }
+      minigame.progress = Math.max(0, Math.min(1.0, minigame.progress));
+
+      document.getElementById('minigame-player-box').style.top = `${minigame.playerY}px`;
+      document.getElementById('minigame-fish-target').style.top = `${minigame.fishY}px`;
+      const pct = Math.floor(minigame.progress * 100);
+      document.getElementById('minigame-progress-fill').style.height = `${pct}%`;
+      document.getElementById('minigame-progress-text').innerText = `${pct}%`;
+
+      if (minigame.progress >= 1.0) winMinigame();
+      else if (minigame.progress <= 0.0) loseMinigame();
+    }
+
+    function winMinigame() {
+      minigame.active = false;
+      document.getElementById('tension-minigame').classList.add('hidden');
+      sfxCatch();
+
+      const fName = minigame.targetFishName;
+      const fData = minigame.targetFishData;
+      let count = minigame.count;
+      if (state.mascot === 'rimuru_slime') count += 1;
+
+      state.inventory[fName].count += count;
+
+      let charmXp = 0;
+      if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) charmXp = CHARMS[state.currentCharm].bonusXP || 0;
+      let mascotXp = state.mascot === 'rimuru_human' ? 0.10 : 0;
+
+      const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp));
+      addXP(totalXp);
+
+      let bonusMsg = '';
+      if (fName.includes('Golden') || fName.includes('Gold')) {
+        state.gold += 1;
+        bonusMsg = ' + 🪙 1x Gold Fish!';
+      }
+      if (fName.includes('Emerald') || fName.includes('Kraken') || fName.includes('Leviathan')) {
+        state.emerald += 1;
+        bonusMsg = ' + 💎 1x Emerald Fish!';
+      }
+
+      triggerCatchCard(fName, fData, count, totalXp, bonusMsg);
+      showLootPopup(`🎉 REELED IN ${count}x ${fName}! (+${totalXp} XP)${bonusMsg}`);
+    }
+
+    function loseMinigame() {
+      minigame.active = false;
+      document.getElementById('tension-minigame').classList.add('hidden');
+      sfxSplash();
+      showLootPopup('💥 SNAP! The line snapped and the beast escaped into the dark depths!');
+    }
+
+    function triggerCatchCard(name, data, count, xp, bonusText = '') {
+      const card = document.getElementById('catchcard');
+      document.getElementById('catchcard-name').innerText = `${count}x ${name}`;
+      document.getElementById('catchcard-weight').innerText = data.weight || '5.0 kg';
+      document.getElementById('catchcard-rewards').innerText = `+$${data.price * count} Value | +${xp} XP${bonusText}`;
+
+      const spriteFile = `assets/${data.sprite === 'cod' ? 'Fish_Cod.png' : data.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : data.sprite + '.png'}`;
+      document.getElementById('catchcard-icon').src = spriteFile;
+
+      card.classList.remove('opacity-0', '-translate-x-[150%]');
+      card.classList.add('opacity-100', 'translate-x-0');
+
+      setTimeout(() => {
+        card.classList.remove('opacity-100', 'translate-x-0');
+        card.classList.add('opacity-0', '-translate-x-[150%]');
+      }, 3500);
+    }
+
+    // --- 9. RENDERING ENGINE: PARALLAX OCEAN, BOAT UPGRADES & GROUNDED RIMURU ---
+    function render() {
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const t = performance.now() / 1000;
+      const boatData = BOATS[state.currentBoat] || BOATS['Standard Skiff'];
+      const shipW = boatData.width;
+      const waterY = deck.deckY + 16;
+
+      // 1. SKY PARALLAX (Scale the Depths Hub_BG_Sky.png)
+      if (sprites.sky && sprites.sky.complete) {
+        const skyH = waterY;
+        const skyW = (sprites.sky.width / sprites.sky.height) * skyH;
+        const scrollX = -(t * 12) % skyW;
+        for (let x = scrollX - skyW; x < canvas.width + skyW; x += skyW) {
+          ctx.drawImage(sprites.sky, x, 0, skyW + 1, skyH);
+        }
+      } else {
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, waterY);
+        skyGrad.addColorStop(0, '#38bdf8');
+        skyGrad.addColorStop(1, '#7dd3fc');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, canvas.width, waterY);
+      }
+
+      // 2. BACKGROUND SEA SWELL (Scale the Depths Hub_BG Water.png)
+      if (sprites.bgWater && sprites.bgWater.complete) {
+        const bgWaterH = 68;
+        const bgWaterW = (sprites.bgWater.width / sprites.bgWater.height) * bgWaterH;
+        const bgScroll = -(t * 22) % bgWaterW;
+        const bgBob = Math.sin(t * 1.5) * 2;
+        for (let x = bgScroll - bgWaterW; x < canvas.width + bgWaterW; x += bgWaterW) {
+          ctx.drawImage(sprites.bgWater, x, waterY - 14 + bgBob, bgWaterW + 1, bgWaterH);
+        }
+      }
+
+      // Background Ocean Depth Solid Fill
+      ctx.fillStyle = '#0a3d5e';
+      ctx.fillRect(0, waterY + 40, canvas.width, canvas.height - (waterY + 40));
+
+      // 3. SHIP BUOYANCY DYNAMICS
+      const shipX = canvas.width / 2;
+      const heave = Math.sin(t * 1.8) * 3.5;
+      const roll = Math.sin(t * 1.8 + 0.4) * 0.016; // Gentle 1 degree roll
+      const shipY = deck.deckY + heave;
+
+      // Draw the active boat upgrade and character with grounded physics!
+      drawActiveBoatUpgrade(ctx, shipX, shipY, roll, shipW, boatData, t);
+
+      // 4. FOREGROUND ROLLING WATER (Scale the Depths Hub_Front Wave.png)
+      if (sprites.fgWave && sprites.fgWave.complete) {
+        const fgH = 58;
+        const fgW = (sprites.fgWave.width / sprites.fgWave.height) * fgH;
+        const fgScroll = -(t * 36) % fgW;
+        const fgBob = Math.sin(t * 2.2) * 3;
+        const fgWaveY = waterY + 12 + fgBob;
+
+        for (let x = fgScroll - fgW; x < canvas.width + fgW; x += fgW) {
+          ctx.drawImage(sprites.fgWave, x, fgWaveY, fgW + 1, fgH);
+        }
+
+        ctx.fillStyle = '#062840';
+        ctx.fillRect(0, fgWaveY + fgH - 4, canvas.width, canvas.height - (fgWaveY + fgH - 4));
+      }
+    }
+
+    // --- 10. ACTIVE BOAT UPGRADE RENDERING & GROUNDED MASCOT ---
+    function drawActiveBoatUpgrade(ctx, shipX, shipY, roll, shipW, boatData, t) {
+      ctx.save();
+      ctx.translate(shipX, shipY);
+      ctx.rotate(roll);
+
+      const bName = state.currentBoat;
+      const deckFloorY = boatData.deckOffset || 0; // Exact surface where character boots touch!
+
+      // --- LAYER 1: BACK HULL / CABIN / SUPERSTRUCTURE ---
+      if (bName === 'Standard Skiff') {
+        // Rustic wooden cedar skiff
+        const hullGrad = ctx.createLinearGradient(0, 0, 0, 65);
+        hullGrad.addColorStop(0, '#78350f');
+        hullGrad.addColorStop(1, '#451a03');
+        ctx.fillStyle = hullGrad;
+        ctx.strokeStyle = '#291004';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.48, deckFloorY);
+        ctx.lineTo(-shipW * 0.44, deckFloorY + 60);
+        ctx.lineTo(shipW * 0.38, deckFloorY + 60);
+        ctx.lineTo(shipW * 0.48, deckFloorY - 10);
+        ctx.lineTo(shipW * 0.43, deckFloorY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Planking grooves
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        for (let py = deckFloorY + 14; py < deckFloorY + 55; py += 12) {
+          ctx.beginPath();
+          ctx.moveTo(-shipW * 0.45, py);
+          ctx.lineTo(shipW * 0.40, py);
+          ctx.stroke();
+        }
+
+        // Stern lantern post
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-shipW * 0.44, deckFloorY - 50, 4, 50);
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(-shipW * 0.44 + 2, deckFloorY - 52, 6, 0, Math.PI*2);
+        ctx.fill();
+
+      } else if (bName === 'Wooden Dory') {
+        // Deep flared oak dory with green sheer and mast
+        const hullGrad = ctx.createLinearGradient(0, 0, 0, 70);
+        hullGrad.addColorStop(0, '#14532d'); // Green sheer
+        hullGrad.addColorStop(0.3, '#92400e'); // Varnished oak
+        hullGrad.addColorStop(1, '#7f1d1d'); // Copper bottom
+        ctx.fillStyle = hullGrad;
+        ctx.strokeStyle = '#18181b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.49, deckFloorY);
+        ctx.lineTo(-shipW * 0.43, deckFloorY + 65);
+        ctx.lineTo(shipW * 0.39, deckFloorY + 65);
+        ctx.lineTo(shipW * 0.49, deckFloorY - 14);
+        ctx.lineTo(shipW * 0.44, deckFloorY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Wooden Center Mast & Rigging
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(-6, deckFloorY - 120, 12, 120);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(-45, deckFloorY - 95, 90, 14);
+
+      } else if (bName === 'Motorboat') {
+        // Scale the Depths official vessel: uses Ship Back.png and Ship Front.png!
+        const scale = 4.0;
+        if (sprites.shipBack && sprites.shipBack.complete) {
+          ctx.drawImage(sprites.shipBack, -shipW * 0.46, deckFloorY - (48 * (scale / 4.0)), 105 * (scale / 4.0), 49 * (scale / 4.0));
+        }
+
+      } else if (bName === 'Trawler') {
+        // Commercial ocean trawler with pilothouse & winch
+        const hullGrad = ctx.createLinearGradient(0, 0, 0, 80);
+        hullGrad.addColorStop(0, '#0f766e');
+        hullGrad.addColorStop(0.4, '#134e4a');
+        hullGrad.addColorStop(1, '#7f1d1d');
+        ctx.fillStyle = hullGrad;
+        ctx.strokeStyle = '#042f2e';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.48, deckFloorY);
+        ctx.lineTo(-shipW * 0.42, deckFloorY + 75);
+        ctx.lineTo(shipW * 0.40, deckFloorY + 75);
+        ctx.lineTo(shipW * 0.49, deckFloorY - 18);
+        ctx.lineTo(shipW * 0.44, deckFloorY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Raised Steel Wheelhouse
+        ctx.fillStyle = '#042f2e';
+        ctx.fillRect(-shipW * 0.35, deckFloorY - 90, 85, 90);
+        ctx.fillStyle = '#38bdf8'; // Glowing windows
+        ctx.fillRect(-shipW * 0.33, deckFloorY - 78, 22, 18);
+        ctx.fillRect(-shipW * 0.33 + 26, deckFloorY - 78, 22, 18);
+
+        // Spinning Radar Scanner
+        const rot = (t * 4) % (Math.PI * 2);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.35 + 42 - Math.cos(rot) * 16, deckFloorY - 98);
+        ctx.lineTo(-shipW * 0.35 + 42 + Math.cos(rot) * 16, deckFloorY - 98);
+        ctx.stroke();
+
+        // Cargo Crane Boom
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(shipW * 0.22, deckFloorY);
+        ctx.lineTo(shipW * 0.28, deckFloorY - 80);
+        ctx.lineTo(shipW * 0.36, deckFloorY - 45);
+        ctx.stroke();
+
+      } else if (bName === 'Submarine') {
+        // Deep-sea exploration submarine
+        const hullGrad = ctx.createLinearGradient(0, 0, 0, 75);
+        hullGrad.addColorStop(0, '#eab308');
+        hullGrad.addColorStop(0.5, '#ca8a04');
+        hullGrad.addColorStop(1, '#1e293b');
+        ctx.fillStyle = hullGrad;
+        ctx.strokeStyle = '#713f12';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.ellipse(0, deckFloorY + 36, shipW * 0.48, 42, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Conning Tower & Periscope
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-24, deckFloorY - 55, 48, 55);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, deckFloorY - 55);
+        ctx.lineTo(0, deckFloorY - 85);
+        ctx.lineTo(12, deckFloorY - 85);
+        ctx.stroke();
+
+        // Glowing Blue Portholes
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(-shipW * 0.25, deckFloorY + 36, 12, 0, Math.PI*2);
+        ctx.arc(shipW * 0.25, deckFloorY + 36, 12, 0, Math.PI*2);
+        ctx.fill();
+
+      } else if (bName === 'Hovercraft') {
+        // High-tech amphibious hovercraft
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(-shipW * 0.46, deckFloorY, shipW * 0.92, 45);
+        // Rubber air skirt
+        ctx.fillStyle = '#0f172a';
+        for (let sx = -shipW * 0.46; sx < shipW * 0.46; sx += 30) {
+          ctx.beginPath();
+          ctx.arc(sx + 15, deckFloorY + 45, 16, 0, Math.PI);
+          ctx.fill();
+        }
+        // Cockpit canopy
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.ellipse(shipW * 0.15, deckFloorY - 12, 45, 18, 0, 0, Math.PI*2);
+        ctx.fill();
+        // Rear Propulsion Turbines with spinning blades
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-shipW * 0.42, deckFloorY - 55, 40, 55);
+        const spin = t * 15;
+        ctx.beginPath();
+        ctx.arc(-shipW * 0.42 + 20, deckFloorY - 28, 16, 0, Math.PI*2);
+        ctx.stroke();
+
+      } else if (bName === 'Cosmic Dreadnought') {
+        // Mythic starship cruiser
+        const dreadGrad = ctx.createLinearGradient(0, 0, 0, 80);
+        dreadGrad.addColorStop(0, '#18181b');
+        dreadGrad.addColorStop(0.5, '#09090b');
+        dreadGrad.addColorStop(1, '#581c87');
+        ctx.fillStyle = dreadGrad;
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.48, deckFloorY);
+        ctx.lineTo(-shipW * 0.40, deckFloorY + 75);
+        ctx.lineTo(shipW * 0.40, deckFloorY + 75);
+        ctx.lineTo(shipW * 0.50, deckFloorY - 16);
+        ctx.lineTo(shipW * 0.42, deckFloorY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Pulsing Ion Thruster Plumes
+        const pulse = Math.sin(t * 8) * 8;
+        ctx.fillStyle = '#06b6d4';
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.48, deckFloorY + 15);
+        ctx.lineTo(-shipW * 0.54 - pulse, deckFloorY + 28);
+        ctx.lineTo(-shipW * 0.48, deckFloorY + 42);
+        ctx.closePath();
+        ctx.fill();
+
+        // Levitating Warp Crystal
+        const floatY = Math.sin(t * 3) * 6;
+        ctx.fillStyle = '#e879f9';
+        ctx.shadowColor = '#d946ef';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.moveTo(0, deckFloorY - 70 + floatY);
+        ctx.lineTo(14, deckFloorY - 50 + floatY);
+        ctx.lineTo(0, deckFloorY - 30 + floatY);
+        ctx.lineTo(-14, deckFloorY - 50 + floatY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // --- LAYER 2: DECK FLOOR PLANKS (Character stands directly here!) ---
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(-shipW * 0.45, deckFloorY, shipW * 0.89, 8);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-shipW * 0.45, deckFloorY + 7, shipW * 0.89, 2);
+
+      // Deck cutting board prop
+      if (sprites.cuttingBoard && sprites.cuttingBoard.complete) {
+        ctx.drawImage(sprites.cuttingBoard, -shipW * 0.22, deckFloorY - 26, 48, 26);
+      }
+
+      // Floating Station Markers
+      drawStationSign(-shipW * 0.38, deckFloorY - 70, '🎣', 'PIER', state.activeStation && state.activeStation.id === 'fishing');
+      drawStationSign(-shipW * 0.18, deckFloorY - 55, '🐟', 'FILLET', state.activeStation && state.activeStation.id === 'dex');
+      drawStationSign(0, deckFloorY - 65, '🧭', 'HELM', state.activeStation && state.activeStation.id === 'helm');
+      drawStationSign(shipW * 0.18, deckFloorY - 55, '⚙️', 'FORGE', state.activeStation && state.activeStation.id === 'forge');
+      drawStationSign(shipW * 0.36, deckFloorY - 55, '💰', 'MARKET', state.activeStation && state.activeStation.id === 'market');
+
+      // --- LAYER 3: GROUNDED MASCOT CHARACTER (Feet planted ON deckFloorY!) ---
+      drawGroundedMascot(ctx, guy.x - shipX, deckFloorY, t);
+
+      // --- LAYER 4: FRONT HULL RAILING & PROPS (Character stands behind rail!) ---
+      if (bName === 'Motorboat' && sprites.shipFront && sprites.shipFront.complete) {
+        const scale = 4.0;
+        ctx.drawImage(sprites.shipFront, -shipW * 0.48, deckFloorY - 22, 142 * (scale / 4.0) * (shipW / 580), 69 * (scale / 4.0));
+      } else {
+        // Handcrafted Brass / Polished Deck Railing
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-shipW * 0.45, deckFloorY - 20);
+        ctx.lineTo(shipW * 0.42, deckFloorY - 20);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 2;
+        for (let rx = -shipW * 0.43; rx <= shipW * 0.41; rx += 42) {
+          ctx.beginPath();
+          ctx.moveTo(rx, deckFloorY - 20);
+          ctx.lineTo(rx, deckFloorY);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // --- 11. GROUNDED CHARACTER RENDERING ---
+    function drawGroundedMascot(ctx, localX, deckFloorY, t) {
+      ctx.save();
+      // Feet are pinned EXACTLY to deckFloorY!
+      ctx.translate(localX, deckFloorY);
+      ctx.scale(guy.facing, 1);
+
+      const anim = guy.animTimer;
+
+      if (state.mascot === 'rimuru_human') {
+        // --- RIMURU TEMPEST (DEMON LORD) ---
+        const breath = Math.sin(t * 3.5) * 1.5;
+        const step = guy.isWalking ? Math.sin(anim) * 3 : 0;
+
+        if (sprites.rimuruHuman && sprites.rimuruHuman.complete) {
+          const h = 76; // Crisp, well-proportioned height
+          const w = (sprites.rimuruHuman.width / sprites.rimuruHuman.height) * h;
+          // y = -h means bottom of boots is at y = 0 (exact deck floor line!)
+          ctx.drawImage(sprites.rimuruHuman, -w / 2, -h + breath + step, w, h);
+        } else {
+          ctx.fillStyle = '#0284c7';
+          ctx.fillRect(-12, -60, 24, 60);
+        }
+
+      } else if (state.mascot === 'rimuru_slime') {
+        // --- RIMURU (CUTE BOUNCING SLIME) ---
+        const jumpY = guy.isWalking ? Math.abs(Math.sin(anim)) * 14 : 0;
+        const squishX = guy.isWalking ? (1 + Math.sin(anim) * 0.22) : (1 + Math.sin(t * 3) * 0.05);
+        const squishY = guy.isWalking ? (1 - Math.sin(anim) * 0.22) : (1 - Math.sin(t * 3) * 0.05);
+
+        if (sprites.rimuruSlime && sprites.rimuruSlime.complete) {
+          const h = 42;
+          const w = (sprites.rimuruSlime.width / sprites.rimuruSlime.height) * h;
+          ctx.translate(0, -jumpY);
+          ctx.scale(squishX, squishY);
+          // Bottom of slime at y = 0
+          ctx.drawImage(sprites.rimuruSlime, -w / 2, -h, w, h);
+        } else {
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(0, -18 - jumpY, 18, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (state.mascot === 'captain') {
+        const step = guy.isWalking ? Math.sin(anim) * 4 : 0;
+        ctx.fillStyle = '#eab308';
+        ctx.fillRect(-14, -58, 28, 44);
+        ctx.fillStyle = '#fed7aa';
+        ctx.fillRect(-10, -56, 20, 14);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-12, -48, 24, 10);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-12 + step, -14, 10, 14);
+        ctx.fillRect(2 - step, -14, 10, 14);
+
+      } else if (state.mascot === 'cyber') {
+        const step = guy.isWalking ? Math.sin(anim) * 4 : 0;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-14, -60, 28, 46);
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(-10, -56, 20, 8);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-12 + step, -14, 10, 14);
+        ctx.fillRect(2 - step, -14, 10, 14);
+      }
+
+      ctx.restore();
+    }
+
+
+
+    function drawStationSign(x, y, icon, label, isActive) {
+      ctx.save();
+      ctx.font = '12px PixelFont, monospace';
+      ctx.textAlign = 'center';
+
+      if (isActive) {
+        ctx.fillStyle = '#fde047';
+        ctx.shadowColor = '#eab308';
+        ctx.shadowBlur = 14;
+      } else {
+        ctx.fillStyle = '#fef08a';
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillText(`${icon} ${label}`, x, y);
+      ctx.restore();
+    }
+
+    // --- 12. MODALS & STATION INTERACTION ---
+    function triggerStationInteract() {
+      if (!state.activeStation) return;
+      openModal(state.activeStation.id);
+    }
+
+    function openModal(viewId) {
+      sfxClick();
+      const modal = document.getElementById('station-modal');
+      modal.classList.remove('hidden');
+
+      const views = ['view-fishing', 'view-dex', 'view-helm', 'view-forge', 'view-market', 'view-mascot', 'view-shop'];
+      views.forEach(v => document.getElementById(v).classList.add('hidden'));
+
+      const map = {
+        'fishing': { id: 'view-fishing', icon: '🎣', title: 'Stern Fishing Rail', sub: 'Drop your hook into the open sea depths.' },
+        'dex': { id: 'view-dex', icon: '🐟', title: 'Biological Workbench & Records', sub: 'Study species records or butcher catch into bait strips.' },
+        'helm': { id: 'view-helm', icon: '🧭', title: "Captain's Helm & Sea Chart", sub: 'Set sail across all 7 canonical Virtual Fisher waters.' },
+        'forge': { id: 'view-forge', icon: '⚙️', title: 'The Forge & Enchanter', sub: 'Craft specialized baits and forge ancient stat charms.' },
+        'market': { id: 'view-market', icon: '💰', title: 'Cargo Market & Fishmonger', sub: 'Sell your harvested haul for cold, hard gold coins.' },
+        'mascot': { id: 'view-mascot', icon: '🌀', title: "Ship's Mascot & Companion Wardrobe", sub: 'Select Rimuru Tempest Demon Lord, Slime, or salty crew.' },
+        'shop': { id: 'view-shop', icon: '🛒', title: 'Harbor Upgrade Shipyard', sub: 'Purchase advanced rods and faster ship hulls.' }
+      };
+
+      const info = map[viewId] || map['fishing'];
+      document.getElementById(info.id).classList.remove('hidden');
+      document.getElementById('modal-icon').innerText = info.icon;
+      document.getElementById('modal-title').innerText = info.title;
+      document.getElementById('modal-subtitle').innerText = info.sub;
+
+      if (viewId === 'fishing') renderFishingModal();
+      else if (viewId === 'dex') { switchDexTab('dex'); renderDex(); }
+      else if (viewId === 'helm') renderHelm();
+      else if (viewId === 'forge') { switchForgeTab('baits'); renderBaitForge(); renderCharmForge(); }
+      else if (viewId === 'market') renderMarket();
+      else if (viewId === 'mascot') renderMascotWardrobe();
+      else if (viewId === 'shop') renderShop();
+    }
+
+    function closeModal() {
+      sfxClick();
+      document.getElementById('station-modal').classList.add('hidden');
+    }
+
+    // --- 13. FISHING ACTION SYSTEM (HYBRID OPTION C) ---
+    function castLine() {
+      if (state.isCoolingDown || minigame.active) return;
+      sfxCast();
+
+      let rodCd = BOATS[state.currentBoat].cooldown || 3.5;
+      if (state.mascot === 'cyber') rodCd -= 0.20;
+      if (state.currentCharm !== 'None' && CHARMS[state.currentCharm] && CHARMS[state.currentCharm].cooldownReduction) {
+        rodCd -= CHARMS[state.currentCharm].cooldownReduction;
+      }
+      rodCd = Math.max(0.8, rodCd);
+
+      state.isCoolingDown = true;
+      state.cooldownTimer = rodCd;
+
+      const btn = document.getElementById('reel-cast-btn');
+      btn.innerText = `CASTING...`;
+      btn.disabled = true;
+      btn.classList.add('opacity-60', 'cursor-not-allowed');
+
+      const biteDelay = 600 + Math.random() * 900;
+      setTimeout(() => {
+        resolveBite();
+      }, biteDelay);
+    }
+
+    function resolveBite() {
+      const biomeData = BIOMES[state.currentBiome];
+      const speciesList = biomeData.species;
+      const rodData = RODS[state.currentRod];
+
+      let rareChance = 0.15;
+      if (state.currentBait !== 'None' && BAITS[state.currentBait]) rareChance += BAITS[state.currentBait].rareBoost;
+      if (state.mascot === 'rimuru_human') rareChance += 0.15;
+
+      const isRare = Math.random() < rareChance;
+      let chosenFish = speciesList[0];
+      if (isRare && speciesList.length > 2) {
+        const pool = speciesList.slice(2);
+        chosenFish = pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        const commonPool = speciesList.slice(0, 3);
+        chosenFish = commonPool[Math.floor(Math.random() * commonPool.length)];
+      }
+
+      // Rod Yield
+      let count = Math.floor(rodData.min + Math.random() * (rodData.max - rodData.min + 1));
+      if (state.currentRod === 'Corrupt Rod' && Math.random() < 0.3) count *= 2;
+
+      // Consume bait
+      if (state.currentBait !== 'None') {
+        state.baitStock[state.currentBait] = Math.max(0, state.baitStock[state.currentBait] - 1);
+        if (state.baitStock[state.currentBait] === 0) {
+          state.currentBait = 'None';
+          showLootPopup('⚠️ Exhausted active bait stock!');
+        }
+      }
+
+      const fData = state.inventory[chosenFish];
+
+      if (isRare || chosenFish.includes('Golden') || chosenFish.includes('Emerald') || chosenFish.includes('Kraken') || chosenFish.includes('Leviathan') || chosenFish.includes('Pike')) {
+        sfxStrike();
+        startMinigame(chosenFish, fData, count);
+      } else {
+        sfxCatch();
+        if (state.mascot === 'rimuru_slime') count += 1;
+        state.inventory[chosenFish].count += count;
+
+        let charmXp = 0;
+        if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) charmXp = CHARMS[state.currentCharm].bonusXP || 0;
+        let mascotXp = state.mascot === 'rimuru_human' ? 0.10 : 0;
+
+        const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp));
+        addXP(totalXp);
+
+        triggerCatchCard(chosenFish, fData, count, totalXp);
+        showLootPopup(`🎉 Reeled in ${count}x ${chosenFish}! (+${totalXp} XP)`);
+      }
+    }
+
+    function startMinigame(fName, fData, count) {
+      minigame.active = true;
+      minigame.targetFishName = fName;
+      minigame.targetFishData = fData;
+      minigame.count = count;
+      minigame.progress = 0.35;
+      minigame.playerY = 120;
+      minigame.playerVel = 0;
+      minigame.fishY = 100;
+      minigame.fishTargetY = 100;
+      minigame.fishAiSpeed = (fName.includes('Kraken') || fName.includes('Leviathan')) ? 340 : 250;
+
+      document.getElementById('minigame-fish-title').innerText = `STRIKE: ${fName}!`;
+      document.getElementById('tension-minigame').classList.remove('hidden');
+    }
+
+    function addXP(amount) {
+      state.xp += amount;
+      while (state.xp >= state.xpNeeded) {
+        state.xp -= state.xpNeeded;
+        state.level += 1;
+        state.xpNeeded = Math.floor(state.xpNeeded * 1.45 + 25);
+        sfxCatch();
+        showLootPopup(`🌟 LEVEL UP! You reached Level ${state.level}!`);
+      }
+    }
+
+    function renderFishingModal() {
+      const select = document.getElementById('fishing-bait-select');
+      select.innerHTML = '<option value="None">None (Unbaited Hook)</option>';
+      for (const [bName, count] of Object.entries(state.baitStock)) {
+        if (count > 0) {
+          const opt = document.createElement('option');
+          opt.value = bName;
+          opt.innerText = `${bName} (${count} left)`;
+          if (state.currentBait === bName) opt.selected = true;
+          select.appendChild(opt);
+        }
+      }
+      document.getElementById('reel-stats-info').innerText =
+        `Equipped: ${state.currentRod} | Cooldown: ${BOATS[state.currentBoat].cooldown}s | Biome: ${BIOMES[state.currentBiome].name}`;
+    }
+
+    function changeActiveBait(bName) {
+      state.currentBait = bName;
+      showLootPopup(`Equipped active bait: ${bName}`);
+    }
+
+    // --- 14. FISHDEX & BUTCHERY BENCH (OPTION B) ---
+    function switchDexTab(tab) {
+      sfxClick();
+      if (tab === 'dex') {
+        document.getElementById('dex-subtab-records').classList.remove('hidden');
+        document.getElementById('dex-subtab-fillet').classList.add('hidden');
+        document.getElementById('btn-tab-dex').classList.add('active');
+        document.getElementById('btn-tab-fillet').classList.remove('active');
+        renderDex();
+      } else {
+        document.getElementById('dex-subtab-records').classList.add('hidden');
+        document.getElementById('dex-subtab-fillet').classList.remove('hidden');
+        document.getElementById('btn-tab-dex').classList.remove('active');
+        document.getElementById('btn-tab-fillet').classList.add('active');
+        renderFilletBench();
+      }
+    }
+
+    function renderDex() {
+      const grid = document.getElementById('dex-fish-grid');
+      grid.innerHTML = '';
+      for (const [name, item] of Object.entries(state.inventory)) {
+        const spriteFile = `assets/${item.sprite === 'cod' ? 'Fish_Cod.png' : item.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : item.sprite + '.png'}`;
+        const div = document.createElement('div');
+        div.className = "wood-card p-4 text-center flex flex-col justify-between";
+        div.innerHTML = `
+          <div class="h-14 flex items-center justify-center">
+            <img src="${spriteFile}" class="max-h-12 max-w-full object-contain" alt="${name}">
+          </div>
+          <div class="text-sm font-black mt-2" style="color: ${item.color}">${name}</div>
+          <div class="text-xs text-amber-200/80 font-bold">Biome: ${item.biome}</div>
+          <div class="text-xs sm:text-sm text-amber-300 font-black mt-1">$${item.price} | +${item.xp} XP</div>
+          <div class="text-xs bg-[#100804] text-amber-400 py-1 rounded mt-2 border border-amber-900/60 font-black">In Hold: ${item.count}</div>
+        `;
+        grid.appendChild(div);
+      }
+    }
+
+    function renderFilletBench() {
+      const grid = document.getElementById('fillet-fish-grid');
+      grid.innerHTML = '';
+
+      let hasFish = false;
+      for (const [name, item] of Object.entries(state.inventory)) {
+        if (item.count <= 0) continue;
+        hasFish = true;
+        const spriteFile = `assets/${item.sprite === 'cod' ? 'Fish_Cod.png' : item.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : item.sprite + '.png'}`;
+        const stripsYield = Math.max(1, Math.floor(item.price / 8) + 1);
+        const scrapYield = item.price > 50 ? 1 : 0;
+
+        const div = document.createElement('div');
+        div.className = "wood-card p-4 flex flex-col justify-between text-center";
+        div.innerHTML = `
+          <div class="flex items-center justify-center gap-3">
+            <img src="${spriteFile}" class="h-10 object-contain" alt="${name}">
+            <span class="text-sm font-black" style="color: ${item.color}">${name} (x${item.count})</span>
+          </div>
+          <div class="text-xs text-amber-200/80 my-3 font-bold">
+            Yields per fish: <span class="text-pink-300 font-black">+${stripsYield}x 🥩 Strips</span>
+            ${scrapYield > 0 ? `<br><span class="text-slate-300 font-black">+${scrapYield}x ⚙️ Scrap</span>` : ''}
+          </div>
+          <button onclick="filletSingleFish('${name}', ${stripsYield}, ${scrapYield})" class="brass-btn py-2 px-3 text-xs sm:text-sm font-black rounded cursor-pointer">
+            🔪 FILLET 1x
+          </button>
+        `;
+        grid.appendChild(div);
+      }
+
+      if (!hasFish) {
+        grid.innerHTML = `
+          <div class="col-span-3 text-center py-10 text-sm text-amber-200/60 font-bold">
+            No fish in cargo hold! Cast your line off the stern rail to catch fish.
+          </div>
+        `;
+      }
+    }
+
+    function filletSingleFish(name, stripsYield, scrapYield) {
+      const item = state.inventory[name];
+      if (item.count <= 0) return;
+      sfxCoin();
+      item.count -= 1;
+      state.strips += stripsYield;
+      state.scrap += scrapYield;
+      showLootPopup(`🔪 Filleted 1x ${name}! (+${stripsYield} 🥩 Strips${scrapYield > 0 ? `, +${scrapYield} ⚙️ Scrap` : ''})`);
+      renderFilletBench();
+    }
+
+    function filletAllCommon() {
+      let totalFilleted = 0;
+      let totalStrips = 0;
+      let totalScrap = 0;
+
+      for (const [name, item] of Object.entries(state.inventory)) {
+        if (item.count > 0 && !name.includes('Golden') && !name.includes('Emerald') && !name.includes('Kraken') && !name.includes('Leviathan') && !name.includes('Celestial')) {
+          const stripsYield = Math.max(1, Math.floor(item.price / 8) + 1);
+          const scrapYield = item.price > 50 ? 1 : 0;
+          totalStrips += stripsYield * item.count;
+          totalScrap += scrapYield * item.count;
+          totalFilleted += item.count;
+          item.count = 0;
+        }
+      }
+
+      if (totalFilleted > 0) {
+        sfxCoin();
+        state.strips += totalStrips;
+        state.scrap += totalScrap;
+        showLootPopup(`🔪 Harvested ${totalFilleted} fish into +${totalStrips}x 🥩 Strips and +${totalScrap}x ⚙️ Scrap!`);
+        renderFilletBench();
+      } else {
+        showLootPopup('No common fish available in cargo hold to fillet.');
+      }
+    }
+
+    // --- 15. NAUTICAL HELM & 7 BIOMES VOYAGE MAP ---
+    function renderHelm() {
+      document.getElementById('helm-current-loc').innerText = BIOMES[state.currentBiome].name;
+      const grid = document.getElementById('helm-biomes-grid');
+      grid.innerHTML = '';
+
+      for (const [bKey, b] of Object.entries(BIOMES)) {
+        const isCurrent = state.currentBiome === bKey;
+        const meetsLevel = state.level >= b.levelReq;
+        const canAfford = state.cash >= b.fee;
+
+        const div = document.createElement('div');
+        div.className = `wood-card p-4 flex flex-col justify-between ${isCurrent ? 'wood-card-gold' : ''}`;
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-3xl">${b.icon}</span>
+              <span class="text-xs font-black ${meetsLevel ? 'text-emerald-400' : 'text-red-400'}">
+                Req: Lv. ${b.levelReq}
+              </span>
+            </div>
+            <div class="text-sm font-black text-amber-200 mt-2">${b.name}</div>
+            <p class="text-xs text-amber-200/80 my-1.5 font-bold">${b.desc}</p>
+            <div class="text-xs text-amber-400 font-black">Travel Cost: $${b.fee.toLocaleString()}</div>
+          </div>
+          <div class="mt-4">
+            ${isCurrent ? `
+              <button disabled class="w-full bg-amber-900/50 text-amber-300 border-2 border-amber-600/50 py-2 text-xs sm:text-sm font-black rounded cursor-default">
+                ANCHORED HERE
+              </button>
+            ` : `
+              <button onclick="sailToBiome('${bKey}')" ${(!meetsLevel || !canAfford) ? 'disabled' : ''} class="brass-btn w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${(!meetsLevel || !canAfford) ? 'opacity-40 cursor-not-allowed' : ''}">
+                ${!meetsLevel ? `LOCKED (LV. ${b.levelReq})` : (!canAfford ? 'INSUFFICIENT FUNDS' : 'SET SAIL ➔')}
+              </button>
+            `}
+          </div>
+        `;
+        grid.appendChild(div);
+      }
+    }
+
+    function sailToBiome(bKey) {
+      const b = BIOMES[bKey];
+      if (state.level < b.levelReq || state.cash < b.fee) return;
+      sfxSplash();
+      state.cash -= b.fee;
+      state.currentBiome = bKey;
+      showLootPopup(`⛵ Anchors raised! Arrived at ${b.name}!`);
+      renderHelm();
+    }
+
+    // --- 16. MASCOT WARDROBE SELECTOR (RIMURU TEMPEST) ---
+    function renderMascotWardrobe() {
+      const grid = document.getElementById('mascot-selection-grid');
+      grid.innerHTML = '';
+
+      for (const [mKey, m] of Object.entries(MASCOTS)) {
+        const isCurrent = state.mascot === mKey;
+        const div = document.createElement('div');
+        div.className = `wood-card p-5 flex flex-col justify-between ${isCurrent ? 'wood-card-gold' : ''}`;
+
+        let imgHtml = `<span class="text-5xl">${m.icon}</span>`;
+        if (mKey === 'rimuru_human' && sprites.rimuruHuman) {
+          imgHtml = `<img src="assets/rimuru_human.png" class="w-20 h-20 rounded-lg border-2 border-cyan-400 object-cover bg-black/40" alt="Rimuru">`;
+        } else if (mKey === 'rimuru_slime' && sprites.rimuruSlime) {
+          imgHtml = `<img src="assets/rimuru_slime.png" class="w-20 h-20 rounded-lg border-2 border-cyan-400 object-cover bg-black/40" alt="Slime">`;
+        }
+
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center gap-4">
+              ${imgHtml}
+              <div>
+                <h4 class="text-base font-black text-amber-100">${m.name}</h4>
+                <div class="text-xs sm:text-sm text-cyan-300 font-bold">${m.title}</div>
+              </div>
+            </div>
+            <p class="text-xs sm:text-sm text-amber-200/80 mt-3 font-bold">${m.desc}</p>
+            <div class="mt-3 text-xs sm:text-sm bg-[#100804] text-emerald-300 p-2.5 rounded border border-emerald-900/60 font-black">
+              ⚡ Perk: ${m.perk}
+            </div>
+          </div>
+          <div class="mt-5">
+            ${isCurrent ? `
+              <button disabled class="w-full bg-cyan-950/70 text-cyan-300 border-2 border-cyan-500/60 py-2.5 text-xs sm:text-sm font-black rounded cursor-default">
+                EQUIPPED COMPANION
+              </button>
+            ` : `
+              <button onclick="selectMascot('${mKey}')" class="brass-btn w-full py-2.5 text-xs sm:text-sm font-black rounded cursor-pointer">
+                EQUIP MASCOT
+              </button>
+            `}
+          </div>
+        `;
+        grid.appendChild(div);
+      }
+    }
+
+    function selectMascot(mKey) {
+      sfxClick();
+      state.mascot = mKey;
+      showLootPopup(`🌀 Switched active companion to ${MASCOTS[mKey].name}!`);
+      renderMascotWardrobe();
+    }
+
+    // --- 17. FORGE & CRAFTING (BAITS & CHARMS) ---
+    function switchForgeTab(tab) {
+      sfxClick();
+      if (tab === 'baits') {
+        document.getElementById('forge-subtab-baits').classList.remove('hidden');
+        document.getElementById('forge-subtab-charms').classList.add('hidden');
+        document.getElementById('btn-tab-baits').classList.add('active');
+        document.getElementById('btn-tab-charms').classList.remove('active');
+      } else {
+        document.getElementById('forge-subtab-baits').classList.add('hidden');
+        document.getElementById('forge-subtab-charms').classList.remove('hidden');
+        document.getElementById('btn-tab-baits').classList.remove('active');
+        document.getElementById('btn-tab-charms').classList.add('active');
+      }
+    }
+
+    function renderBaitForge() {
+      const list = document.getElementById('forge-baits-list');
+      list.innerHTML = '';
+
+      for (const [bName, b] of Object.entries(BAITS)) {
+        const currentStock = state.baitStock[bName] || 0;
+        const canMix = state.strips >= b.stripsCost && state.scrap >= b.scrapCost && state.cash >= b.cost;
+
+        const div = document.createElement('div');
+        div.className = "wood-card p-4 flex flex-col justify-between";
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-amber-200">🪱 ${bName}</span>
+              <span class="text-xs bg-[#100804] text-cyan-300 px-2.5 py-0.5 rounded border border-amber-900/60 font-black">Stock: ${currentStock}</span>
+            </div>
+            <p class="text-xs text-amber-200/80 my-2 font-bold">${b.desc}</p>
+            <div class="text-xs text-amber-300 font-black">
+              Cost: $${b.cost.toLocaleString()} ${b.stripsCost > 0 ? `+ ${b.stripsCost}x 🥩 Strips` : ''} ${b.scrapCost > 0 ? `+ ${b.scrapCost}x ⚙️ Scrap` : ''}
+            </div>
+          </div>
+          <button onclick="craftBait('${bName}')" ${!canMix ? 'disabled' : ''} class="brass-btn w-full mt-3 py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${!canMix ? 'opacity-40 cursor-not-allowed' : ''}">
+            MIX 1x BAIT
+          </button>
+        `;
+        list.appendChild(div);
+      }
+    }
+
+    function craftBait(bName) {
+      const b = BAITS[bName];
+      if (state.cash < b.cost || state.strips < b.stripsCost || state.scrap < b.scrapCost) return;
+      sfxCoin();
+      state.cash -= b.cost;
+      state.strips -= b.stripsCost;
+      state.scrap -= b.scrapCost;
+      state.baitStock[bName] = (state.baitStock[bName] || 0) + 1;
+      showLootPopup(`🪱 Mixed 1x ${bName}!`);
+      renderBaitForge();
+    }
+
+    function renderCharmForge() {
+      const list = document.getElementById('forge-charms-list');
+      list.innerHTML = '';
+
+      for (const [cName, c] of Object.entries(CHARMS)) {
+        const isOwned = state.ownedCharms.includes(cName);
+        const isEquipped = state.currentCharm === cName;
+        const canForge = state.cash >= c.cost && state.scrap >= c.scrap && state.gold >= (c.goldReq || 0) && state.emerald >= (c.emeraldReq || 0);
+
+        const div = document.createElement('div');
+        div.className = `wood-card p-4 flex flex-col justify-between ${isEquipped ? 'wood-card-gold' : ''}`;
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-purple-300">🧿 ${cName}</span>
+              ${isEquipped ? '<span class="text-[10px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded border border-purple-500 font-black">ACTIVE</span>' : ''}
+            </div>
+            <p class="text-xs text-amber-200/80 my-2 font-bold">${c.desc}</p>
+            <div class="text-xs text-amber-300 font-black">
+              Cost: $${c.cost.toLocaleString()} + ${c.scrap}x ⚙️ Scrap ${c.goldReq ? `+ ${c.goldReq}x 🪙 Gold` : ''} ${c.emeraldReq ? `+ ${c.emeraldReq}x 💎 Emerald` : ''}
+            </div>
+          </div>
+          <div class="mt-3">
+            ${isOwned ? `
+              <button onclick="equipCharm('${cName}')" class="brass-btn-blue w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer">
+                ${isEquipped ? 'EQUIPPED' : 'EQUIP CHARM'}
+              </button>
+            ` : `
+              <button onclick="forgeCharm('${cName}')" ${!canForge ? 'disabled' : ''} class="brass-btn w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${!canForge ? 'opacity-40 cursor-not-allowed' : ''}">
+                FORGE CHARM
+              </button>
+            `}
+          </div>
+        `;
+        list.appendChild(div);
+      }
+    }
+
+    function forgeCharm(cName) {
+      const c = CHARMS[cName];
+      if (state.cash < c.cost || state.scrap < c.scrap || state.gold < (c.goldReq || 0) || state.emerald < (c.emeraldReq || 0)) return;
+      sfxCatch();
+      state.cash -= c.cost;
+      state.scrap -= c.scrap;
+      state.gold -= (c.goldReq || 0);
+      state.emerald -= (c.emeraldReq || 0);
+      state.ownedCharms.push(cName);
+      state.currentCharm = cName;
+      showLootPopup(`🧿 FORGED & EQUIPPED: ${cName}!`);
+      renderCharmForge();
+    }
+
+    function equipCharm(cName) {
+      sfxClick();
+      state.currentCharm = cName;
+      showLootPopup(`Equipped active charm: ${cName}`);
+      renderCharmForge();
+    }
+
+    // --- 18. CARGO MARKET & SELLING ---
+    function renderMarket() {
+      const grid = document.getElementById('market-fish-grid');
+      grid.innerHTML = '';
+      let charmValueBonus = 0;
+      if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) {
+        charmValueBonus = CHARMS[state.currentCharm].bonusValue || 0;
+      }
+
+      for (const [name, item] of Object.entries(state.inventory)) {
+        if (item.count <= 0) continue;
+        const spriteFile = `assets/${item.sprite === 'cod' ? 'Fish_Cod.png' : item.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : item.sprite + '.png'}`;
+        const unitVal = Math.floor(item.price * (1 + charmValueBonus));
+        const totalVal = unitVal * item.count;
+
+        const div = document.createElement('div');
+        div.className = "wood-card p-4 text-center flex flex-col justify-between";
+        div.innerHTML = `
+          <div class="h-12 flex items-center justify-center">
+            <img src="${spriteFile}" class="max-h-10 max-w-full object-contain" alt="${name}">
+          </div>
+          <div class="text-sm font-black mt-2" style="color: ${item.color}">${name}</div>
+          <div class="text-xs text-amber-200/80 font-bold">$${unitVal} ea (x${item.count})</div>
+          <button onclick="sellSingleFish('${name}')" class="brass-btn-emerald px-3 py-1.5 text-xs font-black rounded mt-2.5 cursor-pointer">
+            Sell (+$${totalVal.toLocaleString()})
+          </button>
+        `;
+        grid.appendChild(div);
+      }
+
+      if (grid.children.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-4 text-center py-10 text-sm text-amber-200/60 font-bold">
+            Your cargo hold is currently empty. Go to the stern rail to catch fish!
+          </div>
+        `;
+      }
+    }
+
+    function sellSingleFish(name) {
+      const item = state.inventory[name];
+      if (item.count <= 0) return;
+      sfxCoin();
+      let charmValueBonus = 0;
+      if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) {
+        charmValueBonus = CHARMS[state.currentCharm].bonusValue || 0;
+      }
+      const unitVal = Math.floor(item.price * (1 + charmValueBonus));
+      const totalEarned = unitVal * item.count;
+      state.cash += totalEarned;
+      showLootPopup(`Sold ${item.count}x ${name} for +$${totalEarned.toLocaleString()}!`);
+      item.count = 0;
+      renderMarket();
+    }
+
+    function sellAllFish() {
+      sfxCoin();
+      let charmValueBonus = 0;
+      if (state.currentCharm !== 'None' && CHARMS[state.currentCharm]) {
+        charmValueBonus = CHARMS[state.currentCharm].bonusValue || 0;
+      }
+      let totalEarned = 0;
+      let totalSold = 0;
+      for (const [name, item] of Object.entries(state.inventory)) {
+        if (item.count > 0) {
+          const unitVal = Math.floor(item.price * (1 + charmValueBonus));
+          totalEarned += unitVal * item.count;
+          totalSold += item.count;
+          item.count = 0;
+        }
+      }
+      if (totalSold > 0) {
+        state.cash += totalEarned;
+        showLootPopup(`💰 Sold all ${totalSold} fish for +$${totalEarned.toLocaleString()}!`);
+        renderMarket();
+      } else {
+        showLootPopup('Cargo hold is already empty.');
+      }
+    }
+
+    // --- 19. HARBOR UPGRADE SHIPYARD ---
+    function renderShop() {
+      const boatList = document.getElementById('shop-boats-list');
+      boatList.innerHTML = '';
+      for (const [bName, b] of Object.entries(BOATS)) {
+        const isOwned = state.ownedBoats.includes(bName);
+        const isEquipped = state.currentBoat === bName;
+        const canBuy = state.cash >= b.cost;
+
+        const div = document.createElement('div');
+        div.className = `wood-card p-4 flex items-center justify-between ${isEquipped ? 'wood-card-gold' : ''}`;
+        div.innerHTML = `
+          <div>
+            <div class="text-base font-black text-emerald-300">${bName} ${isEquipped ? '<span class="text-xs text-amber-300 font-bold">[ACTIVE VESSEL]</span>' : ''}</div>
+            <div class="text-xs text-amber-200/80 font-bold">${b.desc}</div>
+            <div class="text-xs sm:text-sm text-amber-300 font-black mt-1">Cost: $${b.cost.toLocaleString()} | Speed: ${b.speed} | Cooldown: ${b.cooldown}s</div>
+          </div>
+          <div>
+            ${isOwned ? `
+              <button onclick="equipBoat('${bName}')" class="brass-btn-emerald px-5 py-2.5 text-xs sm:text-sm font-black rounded cursor-pointer ${isEquipped ? 'opacity-80' : ''}">
+                ${isEquipped ? 'EQUIPPED' : 'EQUIP VESSEL'}
+              </button>
+            ` : `
+              <button onclick="buyBoat('${bName}')" ${!canBuy ? 'disabled' : ''} class="brass-btn px-5 py-2.5 text-xs sm:text-sm font-black rounded cursor-pointer ${!canBuy ? 'opacity-40 cursor-not-allowed' : ''}">
+                BUY VESSEL
+              </button>
+            `}
+          </div>
+        `;
+        boatList.appendChild(div);
+      }
+
+      const rodList = document.getElementById('shop-rods-list');
+      rodList.innerHTML = '';
+      for (const [rName, r] of Object.entries(RODS)) {
+        const isOwned = state.ownedRods.includes(rName);
+        const isEquipped = state.currentRod === rName;
+        const canBuy = state.cash >= r.cost;
+
+        const div = document.createElement('div');
+        div.className = "wood-card p-4 flex items-center justify-between";
+        div.innerHTML = `
+          <div>
+            <div class="text-sm font-black text-cyan-300">${rName}</div>
+            <div class="text-xs text-amber-200/80 font-bold">${r.desc} (Yield: ${r.min}-${r.max} fish)</div>
+            <div class="text-xs sm:text-sm text-amber-300 font-black mt-1">Cost: $${r.cost.toLocaleString()}</div>
+          </div>
+          <div>
+            ${isOwned ? `
+              <button onclick="equipRod('${rName}')" class="brass-btn-blue px-4 py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${isEquipped ? 'opacity-80' : ''}">
+                ${isEquipped ? 'Equipped' : 'Equip'}
+              </button>
+            ` : `
+              <button onclick="buyRod('${rName}')" ${!canBuy ? 'disabled' : ''} class="brass-btn px-4 py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${!canBuy ? 'opacity-40 cursor-not-allowed' : ''}">
+                Buy
+              </button>
+            `}
+          </div>
+        `;
+        rodList.appendChild(div);
+      }
+    }
+
+    function buyRod(name) {
+      const r = RODS[name];
+      if (state.cash < r.cost) return;
+      sfxCoin();
+      state.cash -= r.cost;
+      state.ownedRods.push(name);
+      state.currentRod = name;
+      showLootPopup(`Upgraded to ${name}!`);
+      renderShop();
+    }
+
+    function equipRod(name) {
+      sfxClick();
+      state.currentRod = name;
+      renderShop();
+    }
+
+    function buyBoat(name) {
+      const b = BOATS[name];
+      if (state.cash < b.cost) return;
+      sfxCoin();
+      state.cash -= b.cost;
+      state.ownedBoats.push(name);
+      state.currentBoat = name;
+      resizeCanvas();
+      showLootPopup(`Acquired ship hull: ${name}!`);
+      renderShop();
+    }
+
+    function equipBoat(name) {
+      sfxClick();
+      state.currentBoat = name;
+      resizeCanvas();
+      showLootPopup(`Equipped vessel hull: ${name}!`);
+      renderShop();
+    }
+
+    function showLootPopup(text) {
+      const pop = document.getElementById('loot-popup');
+      pop.innerText = text;
+      pop.classList.remove('opacity-0');
+      pop.classList.add('opacity-100');
+      setTimeout(() => {
+        pop.classList.remove('opacity-100');
+        pop.classList.add('opacity-0');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

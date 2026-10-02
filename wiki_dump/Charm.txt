@@ -1,0 +1,96 @@
+== Overview ==
+Charms are items that buff your stat based on the tier. They are unlocked after level 20 and are able to be viewed via the /charms command to see both your charm tiers and charm progress, they can be obtained from crates. Each charm have an equal chance of being obtained during fishing, and once you max out your charm level you won't get that specific charm anymore. Having charms maxed are also a requirement to prestige 
+[[File:Charms.png|thumb|Informations about your charms after using /charms command]]
+== Charm Levelling ==
+Charm levels are split into tiers. After finishing each tier you'll get the charm buff, and the next tier will take 1 more charm to finish than the last (For example, tier 1 charm need 1 charm, tier 2 charm need 2 charms, ...., tier n charm need n charms)
+
+To calculate the charms needed to max out a single type of charm, you can either take your current prestige's max charm count (can be found by using the /charms command) and divide it by 8, or use the formula '''n*(n+1)/2 (n is the max charm tier)'''
+
+For P0, charms start out at 10 tiers. From P1 -> P99, each prestige add an additional tier to the cap. P100 requires 3 extra tiers compared to P99 (112 vs 109). For P101 and above, each prestige add 2 additional tiers to the cap. Here's the formula to calculate the maximum charm tier for a specific prestige 
+
+'''10+p for p <= 99; 2n-88 for p >= 100 ''' (p is the prestige count)
+
+== Types of Charms ==
+There are 8 total types of charms in the game:
+
+Marketing Charm: +5% Sell Price per tier (M until tier 50, then A#)
+
+Endurance Charm: +2.5% Fish Catch per tier (A)
+
+Haste Charm: -0.05s Fishing Cooldown per tier [Fishing cooldown cannot go below 2s] (A)
+
+Quantity Charm: +5% Extra Chest Items per tier (A*)
+
+Worker Charm: +3% Worker Fish per tier (A)
+
+Quality Charm: +2.5% Treasure Quality per tier (A)
+
+Experience Charm: +5% XP per tier (A)
+
+Treasure Charm: +2.5% more chests (A)
+
+[Note: A (or Additive) means the effect is calculated by: Base Effect * Tier. M (or Multiplicative) means the effect is calculated by (1 + Base Effect)^Tier]. Multiplicative effects can compound and therefore scale faster than additive the higher the tier is]
+
+ # The buff for marketing charm is calculated as 1.05^x for levels 1-50, where x is the level of marketing charm; [1+0.05(x-50)](1.05^50) for levels 51 and onward.
+
+ * Quantity charm increases the treasure quantity buff by 0.05 exactly.
+
+== Methods to obtain charms ==
+The main way to obtain charms are through rare tier chests from fishing, here are the listed rates
+[[File:Charms Obtained.png|thumb|right|Charms being obtained from chest]]
+{| class="wikitable"
+|+ Base Charm Drop Rate
+|-
+! Crate !! Drop Rate
+|-
+| Rare || 2%
+|-
+| Epic || 25%
+|-
+| Legendary || 40%
+|-
+| Artifact || 75% (1x ~ 3x charms quantity)
+|-
+| Vote || 50%
+|-
+| Super || 51-75% depending on supercrates level (2.5x ~ 7.5x charms quantity)
+|}
+
+The amount of charms you get in a chest can be calculated by the formula: '''CEILING[Charms Quantity Buff * Base Charm Drop]'''
+
+Charms rate per chests can be increase by upgrades or prestige count. The special upgrade "Charmer" unlocked at level 500 give 2.5% more charm per level, and can be upgraded up to 10 times for 25% more charms and costs 3200 Lava Fishes to max out. Every multiple of 5 prestiges, you also get a 10% charm boost.
+
+Charms Quantity Buff can be calculated using this formula '''(1+0.025 * charmer level)(1+floor(prestige/5) * 10%)'''
+
+In addition, treasure chance and treasure quality buff also indirectly boost your charms rate due to them giving you better chests and let you get chests more commonly.
+
+The actual charm quantity of a chest is rather complicated. Set x = charm quantity. For rare, epic and legendary chests, there is an (x-floor(x)) chance of getting (x+1) charms, and (1-x+floor(x)) chance of getting x charms. For artifact chests, it randomly generates a number between x and 3x, and then round it off to get the final charm count. Due to this, the expected number of charms in artifact box is CLOSE TO 2x. Take rnd(x)=c, rnd(3x)=d, expected charm quantity = 0.1875*(c^2-2cx-d^2+6dx)/x. The same principle goes for super chests except it generates charms between 2.5x and 7.5x. Take rnd(2.5x)=e, rnd(7.5x)=f, expected charm quantity = (e^2-5ex-f^2+15fx)/(10x).
+
+Another notable thing is the presence of "charm slots". The game first decides the number of charms to generate, provide the same number of slots and allocate one charm type to each slot. Once it determines the charm for that particular slot, it will check whether the charm can be generate. Finally each slot adds one to the charm count of that particular type. If the charm fails to generate due to reasons e.g. the charm type is maxed, the charm slot will NOT regenerate a different type of charm and hence it goes vacant. As a result, a smaller number of charms (than the number of slots) will be generated. By the end of the prestige level, when your charms are slowly getting maxed, there is an increasing difficulty of charm generation due to the phenomenon of vacant slots. When all slots fail to generate a charm, the chest reward will be replaced by money (50%) or xp (50%).
+
+== Strategy ==
+-Having maxed charms are required for prestiging, so it's recommended to start farming charms once you get the proper setup to do so, as it can dramatically speed up the rest of your progression compare to delaying the charms grind. The main stat that affects charms grinding are:
++Treasure Chance (Capped out at 100%, increase the rate of you getting treasure. Both your rod chance and your treasure chance multiplier should be accounted for)
+
++Treasure Quality (Increase your rate of getting higher rarities treasures which have overall more charms)
+
++Charm Quantity (gained from prestige and "Charmer" upgrade, note that treasure quantity does not affect this stat)
+
++Fishing Cooldown (allow you to get more fishing trips)
+
++On top of that, worker crates, super crates, daily can also give you more charms
+
+-For getting charms, generally the best bait is the Artifact Magnet, whereas the best pet would be axolotl (dolphin and tuna can also be alternative if you lack axolotl or want other benefits they provide). 
+
+-Rods that are made for charms grinding are Golden Rod unlocked in Ocean Biome and Meteor Rod unlocked in Space Biome. Golden Rod have a very high treasure chance as well as being more accessible but in exchange not having treasure quality, while Meteor Rod high treasure quality bonus make it usually the best rod for farming charms by the time you unlock it. Other than that, alien rod and supporter rod also have uses for mixed grinding due to their decent treasure chance and having treasure quality bonuses
+
+-During Charms Grinding, you can use the "Worker Manipulation technique" [Replace with page link later] to let you get more income, therefore saving time grinding for other prestige requirements
+
+== Trivia ==
++Bait Charm used to be in the game but got removed from the game since ver. 1.12 and replaced by quantity charm
+
++Discount Charm used to be in the game but got replaced by Worker Charm in 1.9.6
+
++Chests have a higher rate to give charms in update 1.4.1
+
+[[File:Old Charms.png|thumb|An old bot message showing Bait Charm and Discount Charm]]

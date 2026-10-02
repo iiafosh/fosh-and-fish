@@ -1,0 +1,95 @@
+'''Commands''' are inputs you can use to do actions on the bot such as fishing, checking leaderboard or seeing stats on your profile. There are currently two types of commands which are slash commands and button commands and the bot need some server permission to be able to read them. 
+
+== '''Slash Command''' ==
+These are the commands that have a prefix of / and can be activated within a discord message, note that you do need specific bot permissions for it to work. A list of slash commands can be found on the [https://virtualfisher.com/commands Official Virtual Fisher website] (however it is slightly outdated) or on the section below 
+[[File:Dw.png|thumb|An example of selecting a slash command]]
+== '''List of Slash Commands''' ==
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+'''Basic Commands'''
+
+/guide - Show a quick guide about the bot.
+
+/help - Get this list of commands using the bot.
+
+/fish - Catch some fish! This is the main command of the bot.
+
+/shop - Shop for upgrades to buy using the /buy command.
+
+/buy - Command to buy things from the shop.
+
+/profile - View you or another users' profile.
+
+/play - Show your profile and provide an option to fish. 
+
+/sell - Sell fish you've caught for virtual money.
+
+/daily - Get your daily reward.
+
+/coinflip - Flip a coin to have a chance at doubling your money.
+
+/verify - Let you verify captchas while fishing 
+
+'''Progression'''
+
+/color - Sets the color of the embeds the bot responds to you with. This is used to show off your progress in the bot.
+
+/pos - See your position on leaderboards.
+
+/top - Check out the leaderboards, both global and server specific.
+
+/prestige - Reset your progress for permanent powerful buffs.
+
+/pets - View current pets you own or select a pet to use.
+
+/fishdex - Show the fishes that you've collected
+
+'''Information'''
+
+/clan - If you are clanless, it displays a help command for clans. If you are in a clan you will see your clan menu.
+
+/info - Information about the bot. This shows things such as total servers and who made the bot.
+
+/invite - Get a link to the official server, and a link to invite the bot to your servers.
+
+/vote - Get a voting link.
+
+/donate - Support the development of the bot and receive donator perks.
+
+'''Extra'''
+
+/biome - Switch biomes, or view a list of biomes you have unlocked.
+
+/bait - Select your bait. You can buy different types of bait with /shop bait.
+
+/rod - Select a different rod to use. You can buy different rods with /shop rods.
+
+/quests - List of quests. Quests reset daily at midnight GMT.
+
+/buffs - See your current multipliers. This is affected by things such as bait and upgrades.
+
+/balance - Check your balance.
+
+/boosts - Check your currently active boosts. This also shows the duration left on global boosts, if there is any.
+
+/boosters - Check how many personal and global boosters you have.
+
+/charms - Charms increase many different stats and are found in chests when you are above level 20.
+
+/settings - Allows you to customize various aspects of the bot to your liking.
+
+/badge - View your currently owned badges, or switch to a different badge.
+
+/coinflip - Let you coinflip your balance in heads or tails
+
+/gift - Allow you to gift in-game purchases to other people.
+
+/set - Set settings within your profile.
+
+/clan set - Set settings within your clan.
+
+/use - Use a personal or global booster.
+ </div> </div>
+
+== '''Button Command''' ==
+'''Button Commands''' are commands undle the bot message related to the command you previously did that you can click on. Once clicked, that command will be activated.
+[[File:Buttons.png|thumb|An example of button commands]]

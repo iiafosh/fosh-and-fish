@@ -1,0 +1,52 @@
+
+== Overview ==
+[[File:Screenshot 2026-05-12 225951.png|thumb|A list of quests being shown using the /quests command]]
+'''Quest''' is a main feature of the Virtual Fisher bot. They are missions you can do that give rewards based on the quest type and tier. Quest rewards can scale based on factors such as your biome and prestige, they can be accessed using the command '''/quests'''.
+
+The bot has a leaderboard for most quests completed, it can be checked using the command '''/top''' quests.
+
+== Normal Quest ==
+
+All quests reset everyday, and are the same for everyone.
+
+Normal quests remain the same every day. There are 12 normal quests.
+
+- '''Daily level-ups''': level up 1, 2, 3 time(s). All quests, upon completion, give a certain amount of money and give a chest based on your treasure quality.
+
+- '''Daily fishing''': catch 100, 500, 1000, 2500, 5000 fish. All quests, upon completion, give xp. Only the 4th and 5th quests give a chest. 
+
+- '''Daily artifact hunter''': find 5, 10, 25, 100 chests. Chests from workers and other quests do not count. All quests, upon completion, give money. 
+
+== Special quest ==
+
+There are 7 special quests, but only one generate every day. They reset at the same way as normal quests. Some quests are more common than the others (pet quest is ~50% more common, fisherman is ~25% more common) <sub>this info under speculation</sub>, but there is no known pattern of generation. Assume they generate randomly. All quests, upon completion, give 10 hooks as the only reward. 
+
+- '''Pet locator''': Find a pet. 
+
+- '''Fisherman''': Fish 1,000 times. 
+
+- '''Charmer''': Find 100 charms. 
+
+- '''Exotic fisherman''': Find 250 chests. 
+
+- '''Booster''': Activate 360 minutes of boosts. [This includes both gold and emerald fish boosts of ALL types.]
+
+- '''Artifact specialist''': Find 250 chests. Note that worker and quest chests count. 
+
+- '''Extreme leveler''': Level up 20 times.
+
+For info related to league upgrades, go to [[Upgrade]]
+
+== Tips and tricks ==
+-Quest shouldn't be focused on as they can be done passively and their rewards are rather miniscule and being relatively easy to complete. 
+
+-While most special quests aren't too difficult. Quests related to levelling can be problematic for high prestige players due to the level cap, league quests such as charmer can also be difficult due to how long each prestige take and not being able to get any more charms after hitting the cap
+
+-For most players, the hardest league quest would be pet locator due to its RNG nature. This quest is significantly easier to complete at higher prestiges due to a higher pet catch chance. [[Bait|Supporter Bait]] can be used to speed up the process but it isn't worth it unless you're already going to use the biat anyways
+
+== Trivia ==
+[[File:ScreenCapture1596850429962.webp|thumb|A side by side of new quests leaderboard format vs old quests leaderboard format]]
+
+-Quests have been added in the bot since initial release and recieved virtually no change beside league quests and some buffs to quest rewards in higher levels.
+
+-Quests leaderboard used to have "quest completed" after the number but it was removed after a poll

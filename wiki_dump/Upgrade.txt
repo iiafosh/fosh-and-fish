@@ -1,0 +1,119 @@
+= '''Overview''' =
+'''Upgrades''' are buffs you can purchase for ingame currency and provide long-lasting buffs. Most upgrades last for a prestige and sometimes permanently. Upgrades can usually be purchased via the /shop <category> command and some upgrade type can be purchased in bulk such as shop upgrades, special upgrades, ....
+
+Note: All upgrades stack with itself additively (for example, buying 5% fish catch buff clan upgrade twice would give you 10% more fish catch or 1.1x fish catch multiplier instead of (1.05x)^2 fish catch multiplier
+ 
+= '''List and Description of Upgrades''' =
+== '''Shop Upgrades''' ==
+Shop Upgrade are upgrades that can be purchased through the regular shop using the /shop upgrades command. They can be bought with in-game cash and get reset with each prestige. The upgrades overall are relatively cheap and have no requirement to unlock, as such the shop can be maxed out quite early on.
+
+==== '''List of Shop Upgrades''' ====
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+'''Better Fish''' - Increases Fish Quality by 5%. Can be upgraded 21 times, and costs $14,902,000 to max.
+
+'''Salesman''' - Increases sell price by 5% per upgrade. Can be upgraded 20 times, and costs $34,058,000 to max.
+
+'''Bait Efficiency''' - Lowers the chance of consuming bait by 5% when casting. Can be upgraded 9 times, and costs $220,500 to max.
+
+'''More Chests''' - Increases Treasure Chance by 5%. Can be upgraded 11 times, and costs $6,087,000 to max.
+
+'''Worker Motivation''' - Increases Fish Catch from workers by 10%. Can be upgraded 12 times, and costs $777,310,000 to max.
+
+'''Artifact Specialist''' - Improves Treasure rewards excluding charms by exactly 0.1. Can be upgraded 7 times, and costs $521,500 to max.
+
+'''Experienced''' - Increases XP Gain by 10%. Can be upgraded 5 times, and costs $555,550,000 to max.
+
+'''Better Chests''' - Increases Treasure Quality by 10%. Can be upgraded 5 times, and costs $131,100,000 to max.
+
+'''Better Dailies''' - Increases Daily Rewards items by 10%. Can be upgraded 10 times, and costs $2,990,000 to max.
+</div> </div>
+
+== '''Special Upgrades''' ==
+'''''Special Upgrades''' are upgrades that can be purchased through the special shop through the /shop special command which is unlocked at level 50. They can be bought with exotic fishes (currently gold fishes, emerald fishes, lava fishes, diamond fishes), the shop starts out with only the upgrade "Fish Ovens" but get more upgrades the further you levelled up.
+
+==== '''List of Special Upgrades''' ====
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+'''Fish Ovens''' - Increases Sell Price by 5%. Can be upgraded 20 times, and costs 3360 Lava Fish to max. Unlocked at level 50
+
+'''Bait Lover''' - Increases effectiveness of bait by 15%. Can be upgraded 4 times, and costs 385 Diamond Fish to max. Unlocked at level 100
+
+'''Aquatic Expert''' - Increases Fish Catch by 5%. Can be upgraded 4 times, and costs 385 Diamond Fish to max. Unlocked at level 100
+
+'''Worker Extender''' - Increases the length of Worker Boosts by 10%. Can be upgraded 4 times, and costs 385 Diamond Fish to max. Unlocked at level 100
+
+'''Ultimate Salesman''' - Increases Sell Price by 15%. Can be upgraded 4 times, and costs 385 Diamond Fish to max. Unlocked at level 100
+
+'''Highly Experienced''' - Increases XP Gain by 15%. Can be upgraded 4 times, and costs 385 Diamond Fish to max. Unlocked at level 100
+
+'''Boost Booster''' - Increases Treasure Quality Boost of Treasure Boost <small>(Extra 10% per Level)</small>,  Increase Fish Catch Boost of Fish Boost <small>(Extra 2% per Level)</small>, and Worker fish speed by 0.1. Can be Upgraded 4 times, and costs 385 Diamond Fish to max. Unlocked at level 100
+
+'''Statistician''' - Increases all Multipliers by 2%. Can be upgraded 10 times, and costs 4000 Gold Fish to max. Unlocked at level 250 
+
+'''Duplicator''' - Increases chance to duplicate fish by 2%. This only affects your current trip when it procs. Can be upgraded 10 times, and costs 4400 Emerald Fish to max. Unlocked at level 500
+
+'''Charmer''' - Increases Charms found by 2.5%. Can be upgraded 10 times, and costs 3200 Lava Fish to max. Unlocked at level 500
+
+</div> </div>
+
+== '''League Upgrades'''  ==
+League Upgrades are upgrades that can be purchased through the league shop and can be accessed by using the /shop league command. They can be purchased using the Hooks currency
+
+==== '''List of League Upgrades''' ====
+[[File:Screenshot 2026-03-25 221256.png|thumb|A guide for optimal league upgrades (Credit to _william.1.0_ on Discord, zoom to fully view)]]
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+
+'''Pet Helper''' - Increases max Pet Level by 5, and increases the experience of your lowest level pet by a small margin.                   Can be upgraded 5 times, and costs 1050 hooks to max. 
+
+'''Bait Helper''' - Increases effectiveness of Bait by 10%. Can be upgraded 5 times, and costs 1050 hooks to max.
+
+'''Super Crates''' - Unlocks the ability to find Super Crates. Costs 1050 hooks to max. '''(Super-Crate chance is calculated using the formula 1/4000*Treasure Quality*Super Crates Level)'''
+
+'''Worker Crates''' - Unlocks the ability for Workers to fish crates. With no buffs on the worker, it has a chance (chance at max upgrade is 10-11%) to find a crate. Can be upgraded 5 times, and costs 1050 hooks to max.
+
+'''Fishing Frenzy''' - Increases Worker fish speed by 10% per upgrade. Increases Fish Boost’s and Treasure Boost effectiveness by +0.05 multiplier per level [[Temporary_Buffs|[info on how it affects boosts]]]. Can be upgraded 5 times, and costs 1050 hooks to max.
+
+'''Duplicator 2.0''' - Increases Duplication chance by 3%. Can be upgraded 10 times, and costs 1185 hooks to max.
+</div> </div>
+== Prestige Upgrades  ==
+'''Prestige Upgrades''' are upgrades that can be purchased in the prestige shop (using the command /shop prestige). The prestige shop start out at a cap of /1 per upgrade, and every 5 prestiges the cap increase by +1 (so P5 the cap will be /2, P10 the cap will be /3, .... The formula for the prestige upgrade cap is '''1 + [p/5] (where p is the prestige count)'''). Each upgrade cost 1 azure fish to purchase and will last your entire game.
+
+==== '''List of Prestige Upgrades''' ====
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+
+'''International Ties''' - Increases all multipliers by 10%.
+
+'''Business Education''' - Increases Sell Price by 40%.
+
+'''Fish Whisperer''' - Increases Fish Catch by 25%.
+
+'''Ancient One''' - Increases XP Gain by 35%.
+
+'''Virtual Fisher''' [Unlock at prestige 5]- Increases Fish Quality by 40%, Sell Price by 20%, and XP Gain by 20%.
+
+</div> </div>
+== '''Clan Upgrades'''  ==
+
+'''Clan Upgrades''' are upgrades that can be purchased in the clan shop. They provide buffs to your clan or to your clan members including yourself. Each upgrade cost 1 clan point and you gain 1 clan point per 5 clan levels.  
+
+==== '''List of Clan Upgrades''' ====
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+
+'''Extra Member:''' +1 clan member, can be purchased 5 times.
+
+'''10% Sell Price Buff:''' +10% Sell Price, can be purchased 2 times.
+
+'''5% Fish Catch Buff:''' +5% Fish Catch, can be purchased 2 times.
+
+'''5% XP Buff:''' +5% XP, can be purchased 3 times.
+
+</div> </div>
+
+== '''Trivia'''  ==
+
+-Bait Efficiency is considered as the only upgrade with additive scaling to progression, saving you an expected fixed value of cash every fishing trip.
+
+-While shop upgrades and special upgrades tab have existed since the bot global release, clan upgrades were added in version 1.7; duplicator and charmer were added in version 1.16, league upgrades were added in version 1.19 .
+
+-The upgrade cap of different type of upgrades has been increased in multiple instances throughout the bot history. Shop upgrades have their cap increased in 1.4.1 while for diamond fish it's update 1.9 [[File:Screenshot 2026-09-28 223023.jpg|thumb|A screenshot of the shop upgrades before higher cap]]. 
+
+-In update 1.15, Fish Ovens received increases in lava fish cost.

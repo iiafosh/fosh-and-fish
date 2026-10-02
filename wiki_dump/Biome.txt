@@ -1,0 +1,46 @@
+== '''Overview''' ==
+Biomes are unlocked as you progress further through the bot once you reach a certain levels. Each unlocked at a different level, and rewarding different types of fish per cast as well as new upgrades, exotic fishes, and boat. The biomes will impact your casting time by a little, which can be lowered again with the available boats to purchase. There are a total of 7 biomes as of now.
+
+[[File:Screenshot 3.png|thumb|A list of biomes when using the /biome command. This command was done in version 1.19, before abyss biome was added]]
+
+Higher biomes also give new exotic fishes to unlock upgrades (Gold/Emerald fishes are unlock in river biomes or above. Lava fishes are unlocked in volcanic biomes or above, diamond fishes are unlocked in ocean biomes or above). Biomes also boost pet xp by an some amount.
+
+You can switch to different biomes or view your current biomes using the /biome command.
+
+== Biomes Requirement ==
+You unlock biomes by levelling up. The level requirement to unlock the biomes are listed below :
+
+'''River''' - Unlocked right away (level 1)
+
+'''Volcanic''' - Level 50
+
+'''Ocean''' - Level 100
+
+'''Sky''' - Level 250
+
+'''Space''' - Level 500
+
+'''Alien''' - Level 1000
+
+'''Abyss''' - Level 2500
+
+== '''Biome Info''' ==
+{| class="wikitable"
+|+ '''Biome Info Table (L = Level) '''
+|-
+! Biomes !! Fish CD increase (vs. River) !! Fish Catch Rate !! Catchable Fishes !! New Rods !! New Boats  (Cost)!! New Features Unlocked
+|-
+| River || +0s, starts at 3.5s || 100% || Raw Fish, Raw Salmon, Cod, Tropical Fish, Pufferfish || Plastic Rod (Free), Improved Rod ($500), Steel Rod ($8k), Fiberglass Rod ($50k), Heavy ($100k), Alloy Rod ($250k), Lava Rod ($1M), Magma Rod ($10M) || Rowboat ($5k), Fishing Boat ($25k), Speedboat ($100k), Pontoon ($250k), Sailboat ($1M), Yacht ($20M) ||Cyan Sidebar Color, Yellow Color (L10, P0 only), Red Color (L25, P0 only), Gold & Emerald Fish (L10), Boosts (L10, /shop boosts), Daily (L10, P0 only, /daily), Charms (L20, /charms), Worms Bait, Leeches Bait (L10), Magnet Bait (L20), Wise Bait (L30), Fish Bait (L40)
+|-
+| Volcanic || +0.5s || 60% || Raw Salmon, Cod, Tropical Fish, Fiery Pufferfish, Hot Cod || N/A || Luxury Yacht ($100M) || Special Shop (/shop special), Blue Sidebar Color (P0 only), Lava Fish, Artifact Magnet (L60), Magic Bait (L80)
+|-
+| Ocean || +1s || 30% || Tropical Fish, Pufferfish, Squid, Turtle, Dolphin || Oceanium Rod ($75M), Golden Rod ($120M), Superium Rod ($250M), Infinity Rod ($1B) || Cruise Ship ($500M) || Black Sidebar Color (P0 only), Diamond Fish, Support Bait (Level 150) 
+|-
+| Sky || +2s || 12% || Fiery Pufferfish, Squid, Guardian, Emerald Squid, Rainbow Fish || Floating Rod ($50B), Sky Rod ($250B) || Gold Boat ($2.5B), Sky Cruiser ($10B) || Dark Red Sidebar Color (P0 only), New special shop upgrades
+|-
+| Space || +3s || 6.5% || Fish, Raw Salmon, Rainbow Fish, Space Fish, Galactic Crab || Meteor Rod ($500B), Space Rod ($1T) || Satelite ($50B), Space Shuttle ($250B), Cruiser ($1T) || New special shop upgrades
+|-
+| Alien || +4s || 3% || Emerald Squid, Rainbow Fish, Space Fish, Shark, Alien Fish || Alien Rod ($5T) || Alien Raft ($2.5T), Alien Submarine ($5T) || N/A
+|-
+| Abyss || +5s || 1% || Galactic Crab, Shark, Artifact Fish, Dark Puffer, Dark Tuna || Ultimate Depths Rod ($50T), Abyssal Supermagnet ($250T), Dark Rod ($1Q) || Dark Explorer ($50T), Abyssal Surveyor ($500T) || N/A
+|}

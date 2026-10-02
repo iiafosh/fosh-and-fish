@@ -1,0 +1,86 @@
+== '''Overview''' ==
+Temporary buffs are multipliers that only take effects temporarily. Usually these have a time limit but may also have a limit on fishing trips. Temporary buffs are usually given from buying them or obtaining them from other sources.
+
+== '''Shop Boosts''' ==
+[[File:Shop Boost.png|thumb|The boost shop UI after using the command /shop bost]]
+These are the temporary boosts you can buy from the shop with either gold fishes for a short duration or emerald fishes for a longer duration. Many upgrades can also boost their duration or effectiveness. With platinum donation, you can use /buy boosts to buy all boosts with emerald fish at once. Otherwise you have to use buy each manually 
+
+=== Fish Boost ===
+
+'''Fish Boost''' is a type of boost that buff your fish catch and multiply it by a specific multiplier as well as giving extra fishes per cast. It costs 6 gold fishes for 5 minutes, or 6 emerald fishes for 20 minutes. The fish boost is affected by upgrade boost booster and fishing frenzy which improve its effectiveness, along with your rod multiplier and biome multiplier. Since the fish boost affect both your fish catch multiplier and your extra fishes per trip, the formula will be divided into two different buffs, both of these buffs happen simultaneously during the fish boost. Fish Boost can be bought using the command /buy Fish5m or /buy Fish20m
+
+Fish Boost Formula: 1.4 + 0.02BB + 0.02FF (BB: Boost Booster level, FF: Fishing Frenzy level)
+
+==== Treasure Boost ====
+
+'''Treasure Boost''' is a type of boost that buff your treasure chance and multiply it by a specific multiplier. This translates to increased amount of treasure. It costs 6 gold fishes for 5 minutes, or 6 emerald fishes for 20 minutes. The treasure boost is affected by upgrade boost booster and fish frenzy which improve its effectiveness. Treasure Boost can be bought using the command /buy Treasure5m or /buy Treasure20m
+
+The buff of treasure boost can be affected by boostbooster (found in /shop special) and fishingfrenzy (found in /shop league).
+
+Treasure Boost Multiplier Formula: 1.5 + 0.05 (boost booster level) + 0.05 (fish frenzy level) . The minimum multiplier is 1.5x without proper upgrades, while with maxed levels of every upgrade the multiplier is 1.95x. This directly multiplies with the treasure chance buff.
+
+==== Worker ==== 
+"Worker" is a type of boost that automatically collect fish for you, they are automated and work for a specific amount of time and can be bought for 10 minutes with 8 gold fishes or 30 minutes with 8 emerald fishes. Workers are affected by many factors that are going to be listed in the section below. They can be bought using the command /buy Auto10m and /buy Auto30m
+
+===== Worker Mechanic =====
+See [[Worker]]
+
+== '''Boosters & Special Boosts ''' ==
+==== Personal Booster ==== 
+'''Personal Boosters''' are boosters different from the shop boosts and can be activated alongside them. Personal Boosts amount can be checked using the command /boosters and their boost stack additively with global boosts. Personal Boosts last for 10 minutes and can be used directly with the command /use Personal or by clicking the use personal button in the boosters UI 
+
+They add the booster buff by exactly 0.75, this means they give you a 75% fish boost* when no global boosts are active and a +50% fish boost when global boost are active (so most of the time 1.5x fish boost with global boost active)
+
+('''Note 1''': the "booster buff" is additive, meaning the buff when both personal and global booster are active is 1+0.75+0.5=2.25.
+
+'''Note 2''': due to how fish count works, personal booster always give less than 75% or 50% increase in fish catch at least when you use fish boost.)
+
+Personal Boosts can be obtained from these sources:
+
+-Daily (9.97% chance) [1x]
+ 
+-Voting (100% chance) [1x normally, 20% chance to be 2x if you have platinum donation rank]
+
+-Donation Perk Reward [5x for bronze, 10x for silver, 15x for gold, 25x for platinum]
+
+==== Global Booster ====
+ 
+'''Global Booster''' are boosters that when used, give every single user a +50% fish boost (or 1.5x multiplier without personal boost) for 1 hour or +28.6% boost if personal is activated. It adds 0.5 to the booster buff. If there's already a global boost, you'll be put in a queue and your boost will be activated once the queue get to your boost. User who global boosted will have their name under every fish message while the boost is active.
+
+[[File:Global Boost.png|thumb|An example of a global boost message underneath a fish caught message]]
+Global Boosts can be obtained from these sources:
+
+-Buying from [https://virtualfisher.com/donate Official Website] 
+
+-Daily (0.03% chance) [x1]
+
+-Donation Perk Reward [x1 for Silver, x1 for Gold, x3 for Platinum]
+
+==== Fish/Treasure Quality Booster ====
+
+To be added in the game, only the name is revealed. They are expected to boost fish quality and/or treasure quality.
+
+==== Pet Booster ====
+
+To be added in the game.
+
+==== Special Boost ====
+[[File:Special Boost.png|thumb|A fish and treasure special boost being activated being shown underneath fish caught message]]
+Special boosts are activated by Saltspreader and increases fish and treasure for every single user.
+It is separate from the other boosts, therefore can stack with boosts like global boosts and personal boosts. They usually are for special events like member/users milestones or new update or bot outage compensation, they last for a specific amount of time. 
+They give +50% fish count (independent of the booster buff) and +50% treasure quality.
+
+Special Boosts are announced in the announcement channel of [http://discord.gg/virtualfisher Official VF Discord]
+
+== '''Tips and Trick''' ==
+-Gold Fish Boosts should never be bought even if you lack emerald fish. Gold Fishes are needed for statistician later which provide more long term value, they are also more annoying to replenish compare to emerald fish boosts. The only situation where gold fish boosts are justified is when statistician is maxed but duplicator is not maxed.
+
+-Whenever you can, you should always be using emerald fish boosts once you have a constant supply of them, usually this is during volcanic biome but it can be as early as getting fiberglass rod. The optimal rates for boost usage is as follow:
+
+0-18 emerald fish per hour --> fish boost only
+
+18-36 emerald fish per hour --> treasure boost (increases with emerald fish rate) & fish boost
+
+36+ emerald fish per hour --> all boosts (worker usage increases with emerald fish rate)
+
+52+ emerald fish per hour --> all boosts AT ALL TIMES.

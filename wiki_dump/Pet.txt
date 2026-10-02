@@ -1,0 +1,205 @@
+== Overview ==
+[[File:Screenshot 2026-03-25 220315.png|thumb|An example of the pet UI. Including list of pets + description, their level and average pet xp per trip ]]
+
+Pets are equippable buffs that give you a boost in different categories depending on the pet's type and level. You can view and select pets using the command /pet or using the "Pet" button on your profile. Currently, there are 5 pets in the game with each having different effects:
+
++Puffer (Boost Fish Catch)
+
++Dolphin (Boost XP Increase and Treasure Chance)
+
++Zebrafish (Boost Fish Quality and slightly boost Fish Catch)
+
++Axolotl (Boost Treasure Quality and slightly boost Treasure Chance)
+
++Tuna (Slightly boost Fish Catch, Fish Quality, XP, Treasure Chance, Treasure Quality)
+
+Each of the following pet can be caught randomly during fishing trips and can be levelled up to level 100, with the pet effects increasing the higher the level is. The first time the player caught a new type of pet they will be able to use them; if a duplicate is caught, they'll only get XP on that pet. Pet XP can be obtained from fishing and catching duplicate pets, and the XP from these sources can be increased by various factors
+
+Duplicate pets can only be caught after all pets are obtained.   
+
+== Pet Catch Rate ==
+
+Pets have a 1/10000 chance to be caught per cast. If you don't have any pets, the rate increase to 3/20000 after 6k trips and 3/10000 after 12k trips. To calculate the base chance of getting a pet in a specific amount of trips, use the formula:
+
+let x be the amount of trips
+ 1-(9999/10000)^x (for <6000 trips or after you caught a pet)
+ 1 - 0,548795*(3/20000)^(x-6000) (for 6000 < x < 12000 trips of not getting your first pet)
+ 1 - 0,223108*(3/10000)^(x-12000) (for x > 12000 trips of not getting your first pet)
+(note the probability is decimal, not percentage. For percentage multiply by 100%)
+
+The chance of getting a pet in 10000 trips would be ~70% assuming no prestige. The median duration of getting a pet is ~6620 trips. 
+
+The general pet chance per trip is (ab)/10000 (assuming you already have a pet)
+
+a = 1+0.03p, p = prestige 
+
+b = 1 if you don't use support bait, 1.4*xy if you use support bait, x = baithelper buff, y = baitlover buff
+
+== Pet Buff ==
+
+Pets give different types of buffs to different stats. The current max level for pet is level 100 with the "Pet Helper" league upgrade increasing the cap by 5 up to level 125, the more effective the buffs are. These are the current pet buffs at level 125 without any pet effectiveness buff.
+
+The proportion of different buff won't change as the pet levelled up (so for example, the ratio of XP : Treasure Chance buff in dolphin will be 1 : 1 across all levels), the buff percentage scales is very close to linear rate for most pets, but due to how the bot rounds the buff it won't 100% be accurate but is good enough since the error margin is relatively low.
+
+When a pet is equipped using the /pet command, its buff will be shown in the message UI
+
+{| class="wikitable"
+|+ (Stats are accounted at pet level 125, with no pet effectiveness buff)
+|-
+! Pets (Level 125) !! Fish Catch !! Fish Quality !! XP !! Treasure Chance !! Treasure Quality
+|-
+| Puffer || +103,75% || N/A || N/A || N/A || N/A
+|-
+| Zebrafish || +25,94% || +103,75% || N/A || N/A || N/A
+|-
+| Axolotl || N/A || N/A || N/A || +25,94% || +103,75%
+|-
+| Dolphin || N/A || N/A || +77,81% || +77,81% || N/A
+|-
+| Tuna || +31,12% || +31,12% || +31,12% || +31,12% || +31,12%
+|}
+
+'''General Formula'''
+
+x = Current level
+
+unit of measurement is percentage, buff are shown to be rounded to the nearest two decimal places
+
+
+Puffer: (10 + 0,75x Fish Catch)
+
+Zebrafish: (2,5 + 0,1875x Fish Catch, 10 + 0,75x Fish Quality)
+
+Dolphin: (7,5 + 0,5625x XP & Treasure Chance)
+
+Axolotl: (2,5 + 0,1875x Treasure Chance, 10 + 0,75x Treasure Quality)
+
+Tuna: (3 + 0,225x Fish Catch & Fish Quality & XP & Treasure Chance & Treasure Quality)
+
+'''List of pet effectiveness buff'''
+
+Supporter Bait: +35% at baseline (can be buffed further with bait lover and bait helper)
+
+== Pet XP ==
+
+'''Overview'''
+
+Pet XP are calculated each trip. Although the pet XP gained from a specific trip has a randomized factor, the average pet XP with your current setup can be found using the /pet command. Each fishing trip gives a random value between 75-125% of the mean pet XP per trip.
+
+The factors that affect average pet XP per trip are:
+
+-Prestige and biome (check below formulae for more details)
+
+-Pet Helper (+20% bonus pet XP per trip per level for level 2 pet; scale down linearly with pet level until +0 bonus pet XP when pet is <=10 levels less than its max level)
+
+-Support Bait (+35% pet XP when equipped, up to +84% with max bait lover and bait helper)
+
+'''Pet XP General Formula'''
+
+<div class="mw-collapsible> <div class="mw-collapsible-content">
+Credit: _william.1.0_, Virtual Fisher Discord
+
+Note: the positions of floors are not known as of now.
+
+General formula [X=0 in river, 2 in volcanic, 4 in ocean, 5 in sky, 7 in space, 10 in alien, 12 in abyss]
+
+P0-49: 10+X+prestige+floor(prestige/(50/X))
+
+P50+: 60+X+floor(prestige/(50/X))+floor((prestige-50)/2)
+
+'''river'''
+
+p0~49: 10+prestige
+p50+: 60+floor((prestige-50)/2)
+
+'''volcanic''' 
+
+p0~49: 12+prestige+floor(prestige/25)
+
+p50+:(50+12)+floor(prestige/25)+floor((prestige-50)/2)
+
+'''ocean'''
+
+p0~49: 14+prestige+floor(prestige/12.5)
+
+p50+:(50+14)+floor(prestige/12.5)+floor((prestige-50)/2)
+
+'''sky'''
+
+p0~49: 15+prestige+floor(prestige/10)
+
+p50+:(50+15)+floor(prestige/10)+floor((prestige-50)/2)
+
+'''space'''
+
+p0~49: 17+prestige+floor(prestige/(7+1/7))
+
+p50+:(50+17)+floor(prestige/(7+1/7))+floor((prestige-50)/2)
+
+'''alien'''
+
+p0~49: 20+prestige+floor(prestige/5)
+
+p50+: (50+20)+floor(prestige/5)+floor((prestige-50)/2)
+
+'''abyss'''
+
+p0-49: 22+prestige+floor(prestige/(25/6))
+
+p50+: (50+22)+floor(prestige/(25/6))+floor((prestige-50)/2)
+
+
+Appendix: amount of pet XP needed to get to the next level (in brackets).
+
+50, 75, 100 (4), 150, 200, 250, 300, 350, 400
+
+450, 500 (12), 575, 650, 725, 800 (16), 900, 1000, 1100, 1200
+1300, 1400, 1500, 1600 (24), 1750, 1900, 2050, 2200, 2350, 2500 (30)
+
+2600 (31), 2800, 3000 (33), 3250, 3500, 3750, 4000, 4250, 4500, 4750
+
+5000 (41), 5500, 6000, 6500, 7000 (45), 8000, 9000, 10000 (48), 12000, 14000
+
+16000, 18000, 20000, 22000, 24000, 26000, 28000, 30000 (58), 32500, 35000 (60)
+
+40000, 45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000, 85000
+
+90000, 95000, 100000, 105000, 110000 (75), 120000, 130000, 140000, 150000, 160000
+
+170000 (81), 185000, 200000 (83), 220000, 240000, 260000, 280000, 300000, 320000, 340000
+
+360000, 380000, 400000 (93), 430000 (94), 465000, 500000 (96), 550000, 600000, 650000, 700000 (100)
+
+750000, 800000, 850000, 900000, 950000, 1000000, 1050000, 1100000, 1150000, 1200000
+
+1250000, 1300000, 1350000, 1400000, 1450000, 1500000, 1550000, 1600000, 1650000, 1700000 (120)
+
+1800000, 1900000, 2000000, 2100000 (124), 2500000 (125)
+
+It takes 9,774,225 pet XP to reach level 100; 44,574,225 pet XP to reach level 125.
+</div> </div>
+
+== Tips and Tricks ==
+
+-You should always use your first pet since they only give benefits without drawbacks
+
+-In term of general purposes, Puffer is the best pet for boosting overall money/xp, Zebrafish is the best pet for boosting Fish Quality, Axolotl is the best pet for general charms grinding, Tuna is the best pet for mixed setups, Dolphin is the best pet for mixed level + treasure grinding
+
+-Puffer and Axolotl are by far the most useful pet. Puffer give very generally good boost to money and xp while Axolotl boost to treasure quality can still be relevant even when your rod hit 100% treasure chance unlike dolphin
+
+-Zebrafish have niche uses in earlygame especially on Ocean, River, Volcanic biome, these specific instances are listed in guides, however it's still worth considering that zebrafish may be of inferior level to puffer at that point so it depends on which order you get the pets first. Zebrafish is also quite good for [[Worker|Worker Manipulation]] but face fierce competition to Puffer
+
+-Dolphin XP boost can be on similar ground to Puffer with low fish catch, this makes it an especially good starter pet, for charms grinding it can never match with axolotl but still is quite good for boosting exotic fishes amount early on while giving decent charm boosts if your rod isn't at max treasure chance. Its usage mostly rely in earlygame but is arguably the best pet for pre-supporter rod grind due to its mixed compatibility and role compression, but once you get puffer and axolotl there is little reason to use it.
+
+-Tuna is quite an useful starter pet but haven't seen much usage, it can be used for transient worker setup but it's assuming you have tuna at the proper level which shouldn't be happening. Once you get multiple pets, tuna no longer becomes optimal.
+
+-Once you get puffer and axolotl you should just switch to these since it's not really worth the hassle + lost pet xp switching
+
+-While Supporter Bait does boost the first pet catch rate it's rather insignificant and not worth it due to the oppurtunity cost. Just get pets with the base rate and only use supporter bait for later level where your pets are high levelled enough to utilize the effectiveness boost.
+
+== Trivia ==
+
+-Pet was added in version 1.14, on 16/6/2021
+
+-The first five pets are never duplicates, the game will try very hard to get you a pet. Pets reroll 4 times until you get a pet according to a definite order starting at puffer. Direct quote from Saltspreader about the reroll mechanic:
+[[File:Pet Reroll.png|thumb|Saltspreader's explaination about the pet reroll mechanic]]

@@ -1,0 +1,93 @@
+== '''Overview''' ==
+"Worker" is a type of boost that automatically collect fish for you, they are automated and work for a specific amount of time and can be bought for 10 minutes with 8 gold fishes or 30 minutes with 8 emerald fishes. Workers are affected by many factors that are going to be listed in the sections below. They can be bought using the command /buy Auto10m and /buy Auto30m
+
+== '''Worker Mechanic''' ==
+
+
+Workers are able to do fishing trips for you, with an inital cooldown of 20 seconds per trip and can be boosted by buying these upgrades: Boost Booster, Fishing Frenzy. With max upgrades, worker have a cooldown of ~10.53s per trip. Workers fish catch can be set to "during" or "after". If set to during, if you're fishing while the worker is active then the fish will gradually go into your inventory. If set to after, the entire fish from the worker boost will go in your inventory only after the boost ended. Worker directing fishes into your inventory is triggered when you use any command
+
+'''
+=== Fish ===
+'''
+The amount of fishes that the worker boost catch is determined by many variables. Similar to normal fishing trips, there are random fluctuations with amount of fishes caught, therefore worker fish per cast is usually measured in avarage per trip. These are the list of factors that affect workers fish stat:
+
+{| class="wikitable"
+|+ Worker Buffs
+|-
+! Stat !! Known Variables
+|-
+| Fish Catch || Clan, Worker Motivation (10%/level), Stastician, Charm, Prestige Upgrades, Pet, Official Server Boost, Global, Event
+|-
+| Fish Quality || Same multiplier as /buffs
+|-
+| XP || All upgrades, charms, pet
+|-
+| Cooldown || Boost Booster, Fishing Frenzy '''[20/(1+0.1BB+0.1FF) (BB = Boost Booster, FF = Fishing Frenzy)]'''
+|-
+| Duration || Worker Extender (+1 min for gold boost, +3 min for emerald boost per level)
+|}
+
+'''
+=== Treasures ===
+'''
+
+Treasures can be obtained from worker trips once you purchase the league upgrades "Worker Crates" . In addition, the worker crates upgrade also boost your treasure quality by the formula: 
+
+'''TQ * rod base treasure quality  * (1+0.1WC)'''   [TQ = Treasure Quality from /buffs, WC = Worker Crates Level]
+
+{| class="wikitable"
+|+ '''Worker Treasure Rate per trip (based on worker crates level)'''
+|-
+! Level 1 !! Level 2 !! Level 3 !! Level 4 !! Level 5
+|-
+| ? || ? || ? || ? || 1/10
+|}
+
+This means a worker with maximum upgrades is able to get ~24 chests on average.
+
+== '''Worker Manipulation''' ==
+
+Worker manipulation is an advancted technique to maximize the reward from workers. You have to set worker to "after" to use this.
+
+The main idea is to use a setup that maximizes the amount of fish/xp workers can obtain during the boost, while you only use this setup for a small amount of time it will account for all of your worker duration. This is especially useful during charms grinding as it give you a solid income boost to transition into the lategame of the prestige or skip it entirely and maxing out the money/xp requirement.
+
+'''Factors that affect worker manipulation:'''
+
+Fish catch: affected by clan, workermotivation (+10%/level), statistician, charm, prestige upgrades, pet, official server boost, global booster, biome reducer. Exact specifics to be confirmed.
+
+Treasure chance: workercrates only (most likely).
+
+Treasure quality: = your treasure quality * (1+0.1*workercrates level)
+
+Fish quality, treasure quantity, charm quantity: yours.
+
+XP: affected by normal, special, prestige upgrades, charm, possibly clan, pet.
+
+Cooldown: = 20/(1+0.1BB+0.1FF), BB = boostbooster level, FF = fishingfrenzy level.
+
+Duration: k*[FLOOR(u/k)] seconds. k = worker cooldown (s), u = 600s or 1800s multiplied by (1+0.1WE), WE = workerextender level. This is NOT necessarily equal to u/k (written worker duration).
+
+'''For worker manipulation, the loadout you should use is;'''
+
+-Best money farming rod you have (so best rod excluding heavy, golden, meteor)
+
+-Fish Bait (early prestiges) or Support Bait (P50+ for alien rod / alien biome). It is optimally determined by complex calculation.
+
+-The pet that gives you the highest XP or money gain: for simplicity, puffer > zebrafish > tuna > dolphin > axolotl. If zebrafish or tuna has much higher level than puffer, use that let instead.
+
+-Highest biome you've unlocked
+
+[[File:Image0.webp|thumb|Simple guide on how to do worker manipulation]]
+
+== '''Tips And Trick''' ==
+-Workers should always be set to "after" to reduce message clutter while fishing as well as making worker manipulation easier
+
+-Like all gold fish boosts, gold fish workers should be ignored as they're inconvenient and the gold fishes are better spent on statistician upgrade.
+
+-Workers are the lowest priority out of the boosts but should still always be constantly active once exotic fishes supply is good enough, a rule of thumb would be when you have 36+ emerald fishes per hour
+
+== '''Trivia''' ==
+
+-Genders are randomly assigned to workers, and if set to "during" the gender might change during the boost duration
+
+-In update 1.9.6, discount charms were replaced by worker charms

@@ -1,0 +1,69 @@
+== '''Overview''' ==
+
+Baits are expendable items that can be used to give you a boost per fishing trip. They can be viewed using the command /shop bait. To buy one or multiple baits, you use the command /buy <bait name> <amount>. Each trip with a bait equipped will have a 100% chance to take away 1 bait from your stock, with the bait efficiency upgrading decreasing the chance by 5% each upgrade, up to 9 upgrades. Bait costs are usually negligible later on in the game and make a massive difference so baits are highly recommended to be used to speed up your progression. 
+[[File:Screenshot 1.png|thumb|A list of bait being shown when using /bait command]]
+
+Later baits have a level requirement you need to reach, which you have to redo every prestige to unlock them
+
+== '''List of baits + info''' ==
+
+{| class="wikitable"
+|+ Base Bait Info
+|-
+! Bait Name !! Unlocked At (Level) !! Cost !! Fish Catch !! Fish Quality !! Bonus Fish Per Cast !! Xp Multiplier !! Treasure Chance !! Treasure Quality
+|-
+| Worms || No Requirement || $4 || N/A || N/A || +3 || -10% || N/A || N/A
+|-
+| Leeches || 10 || $25 || +20% || +20% || +3 || -20% || N/A || N/A
+|-
+| Magnet || 20 || $25 || -10% || -10% || N/A || +20% || +40% || N/A
+|-
+| Wise || 30 || $35 || N/A || N/A || N/A || +150% || N/A || N/A
+|-
+| Fish || 40 || $70 || +50% || +100% || +1 || -30% || N/A || N/A
+|-
+| Artifact Magnet || 60 || $75 || -30% || -30% || N/A || +30% || +40% || +50%
+|-
+| Magic || 80 || $250 || +100% || +50% || +2 || -20% ||+15% || +15%
+|}
+
+{| class="wikitable"
+|-
+! Bait Name !! Unlocked at (level) !! Cost !! Pet Catch Chance !! Pet Effectiveness !! Pet Xp !! Fish Catch !! Fish Quality !!  Bonus Fish Per Cast
+|-
+| Supporter || 150 || $500 || +40% || +35% || +35% || +30% || +20% || +5
+
+|}
+
+Bait buffs including bonus fish are affected by baithelper and baitlover solely, and there is divergent effect between positive and negative bait buffs.
+
+Neutral bait buff (buff = 0) --> not affected
+
+Positive bait buff (buff >0): buff = original buff * (1+0.15BL)(1+0.1BH)
+
+Negative bait buff (buff <0): buff = original buff / ((1+0.15BL)(1+0.1BH)).
+
+== '''Tips and Tricks''' ==
+-For the majority of the game, you're going to be either using magic bait or artifact magnet. Magic bait is by far the best bait in term of farming money while being a really strong XP bait and an added bonus of extra treasure chance and treasure quality, making it a very well rounded bait for both mixed grinding and money/xp grinding. Artifact Magnet just simply give a giant boost to treasure quality, making it by far the best bait for charms grinding. It is also notable for giving the worst money and xp gain however.
+
+-Worms is a pretty bad bait overall, it results in a net loss for P0 plastic rod and a slight gain in improved rod. You can use it a little in the earlygame with improved rod but it's fair to skip it entirely and move on with Leeches.
+
+-Leeches is a pretty middling bait and you can start to use it at level 10. It is later outclassed by Fish bait and Magic bait, however it is usually the better bait to use compare to wise bait until level 40.
+
+-Magnet see very little usage due to treasure chance just not being needed in earlygame and the bait not standing out enough compare to artifact magnet for later gameplay. It can be used for some backup route assuming bad RNG but it can be skipped throughout the entire game with little problems
+
+-Wise bait is the best XP bait in the game for the most part, slightly above magic bait. However, the difference isn't that far apart and wise bait does not provide any boost to money or treasure like magic bait. It has some niche uses in getting to good biomes faster (for example, if you already have infinity rod wise bait can be used to get to sky biome which has much better income). But other than that, its main usage is to help get prestige XP requirement once your charms and money requirement is finished or close to finish.
+
+-Fish is quite similar to Magic, but focus more on fish quality. Generally magic bait should be used but fish bait is the best bait to use before that. It has a special use that is fairly irreplaceable being in worker manipulation, as workers don't account fish catch & xp buff but do take fish quality. It is later replaced by support bait in high prestige levels, e.g. alien rod, alien biome only for P50 and above.
+
+-Support Bait boost to pet chance is pretty trash since it's not worth the loss progress, increase pet XP is quite decent but sill just an extra. Pet effectiveness boost allow it to be a strong worker manipulation bait lategame with a high level pet. Overall, while it give good buffs with high level pet and is top 2 or top 3 bait in most aspects, it rarely could compete with magic bait/artifact magnet and is overall mainly used for lategame worker manipulation.
+
+'''Overall Priority List'''
+
+-Money/Mixed: Magic (level 80+) > Fish (level 40-79) > Leeches (level 10-39) >>> Worms (level 1-9 except P0 with plastic rod)
+
+-Charms grinding: Artifact Magnet
+
+-Just XP: Wise
+
+-Worker Manipulation: Fish (Support Bait for ultra lategame)

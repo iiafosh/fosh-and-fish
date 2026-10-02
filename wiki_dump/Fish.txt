@@ -1,0 +1,64 @@
+[[File:260dda543549e84de3f38dd35c60e154.png|thumb|Fish, the lowest value fish type in the bot]]
+'''Overall'''
+
+Fish (not to be confused with exotic fishes), are currencies you get by doing fishing trips. They grant you xp upon catching and stay in your inventory which you can later on sell for money. Different fishes can be unlocked based on your biome and fish quality. 
+
+Fish can be buffed by these following buffs:
+- Sell Price (Increase value when selling fish)
+-Fish Catch (Increase amount of fish per trip)
+-Fish Quality (Increase your chance of getting higher rarity fishes)
+-XP Multiplier (Increase the amount of XP fish gives)
+
+
+'''Fishdex'''
+
+This is a list of fish base xp + money value. You can search this info on the bot by using the command /fishdex to find info on the fishes you have unlocked. Base fish chance of each rod can be found in [[Rods]]
+
+'''Note: These info are calculated with 1x sell price and 1x xp multiplier'''
+
+<u> Raw Fish </u> - Appear in River, Space. Sell for $1 and give 1 XP.
+
+<u> Raw Salmon </u> - Appear in River, Volcanic, Space. Sell for $3 and give 2 XP.
+
+<u> Cod </u> - Appear in River, Volcanic. Sell for $10 and give 5 XP.
+
+<u> Tropical Fish </u> - Appear in River, Volcanic, Ocean. Sell for $50 and give 10 XP
+
+<u> Pufferfish </u> - Appear in River, Volcanic, Ocean. Sell for $150 and give 25 XP.
+
+<u> Fiery Pufferfish </u>  - Appear in Volcanic, Sky. Sell for $250 and give 50 XP.
+
+<u> Hot Cod </u>  - Appear in Volcanic. Sell for $500 and give 100 XP.
+
+<u> Squid </u> - Appear in Ocean, Sky. Sells for $1 200 and give 175 XP.
+
+<u> Turtle </u> - Found first in the Ocean Biome, Turtles sell for $4 000 with a 1x sell multiplier, awarding 400 experience when caught.
+
+<u> Dolphin </u> - Found first in the Ocean Biome, Dolphins sell for $20 000 with a 1x sell multiplier, awarding 800 experience when caught.
+
+<u> Guardian </u> - Found first in the Sky Biome, Guardians sell for $29 000 with a 1x sell multiplier, awarding 1 100 experience when caught.
+
+<u> Emerald Squid </u> - Found first in the Sky Biome, Emerald Squid sells for 
+$42 000 with a 1x sell multiplier, awarding 1 900 experience when caught.
+
+<u> Rainbow Fish </u> - Found first in the Sky Biome, Rainbow Fish sell for 
+$125 000 with a 1x sell multiplier, awarding 4 800 experience when caught.
+
+<u> Space Fish </u> -  Found first in the Space Biome, Space Fish sells for $200 000 with a 1x sell multiplier, awarding 8 000 experience when caught.
+
+<u> Galactic Crab </u> - Found first in the Space Biome, Galactic Crab sells for 
+$600 000 with a 1x sell multiplier, awarding 15 000 experience when caught.
+
+<u> Shark </u>  - Found first in the Alien Biome, Sharks sell for $2 000 000 with a 1x sell multiplier, awarding 35 000 experience when caught.
+
+<u> Alien Fish </u> - Found first in the Alien Biome, Alien Fish sell for 
+$5 000 000 with a 1x sell multiplier, awarding 65 000 experience when caught.
+
+<u> Artifact Fish </u> - Found first in the Abyss Biome, Artifact Fish sell for 
+$8 000 000 with a 1x sell multiplier, awarding 120 000 experience when caught.
+
+<u> Dark Puffer </u> - Found first in the Abyss Biome, Dark Puffer sell for 
+$23 000 000 with a 1x sell multiplier, awarding 270 000 experience when caught.
+
+<u> Dark Tuna </u> - Found first in the Abyss Biome, Impossible Fish sell for 
+$40 000 000 with a 1x sell multiplier, awarding 420 000 experience when caught.

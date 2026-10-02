@@ -1,0 +1,16 @@
+
+== '''Overview''' ==
+Level is one of the key feature in Virtual Fisher, being a progression statistics. To get to a higher level, you must reach the XP requirement and XP can be gained from many sources, most notably fishing, chests and quests. Many of the game features such as commands, upgrades, prestige are tied to a level requirement.
+
+== '''XP''' ==
+Levels are increased via XP, with higher levels taking more XP to level up. A chart of XP requirement for every level can be found [https://docs.google.com/spreadsheets/d/1YfUGuP0hrjIkvBYDOdEwEJH6HP12DUCwwUk674sNoo4/edit?gid=1619481910#gid=1619481910 in this document] (with 1st column being level, 2nd column being XP requirement of that level, 3rd column being total XP needed to reach that level).
+
+'''XP can be obtained via many methods such as:'''
+
+-Catching fishes either by fishing or by using worker award XP depending on the type of fish and XP multiplier, the base value can be found [[https://virtualfisher.miraheze.org/wiki/Fish|in the Fish page]]
+
+-Every crate can award XP with it being either a drop reward or a placeholder reward
+
+-Insta-fish from the daily command award XP
+
+-Completing quests, specifically the "Daily Fishing" quest (XP can also be obtained from the "Daily Level-ups" crate reward)

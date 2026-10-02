@@ -1,0 +1,245 @@
+== '''Overview''' ==
+You cast a fish using rods. There are 21 rods that you can switch using the /rod command. The rod shop page is displayed in another page that can be accessed using the command /shop rods.
+
+== '''Command Usage''' == 
+
+/rod [rod]. If the rod parameter is empty the main rod page is shown. The rod parameter should have at most one space in between for it to be valid, and capitalization does not matter. If the rod parameter is a valid type of rod that you have obtained, the bot will change the type of rod to you. If the rod parameter is a valid type of rod that you haven't unlocked, the bot displays an error message stating that you have not unlocked that rod. If the rod parameter is anything else, "invalid rod" will be displayed as an error message. Note that the words "rod" can be omitted when typing the rod name.
+
+== '''Stats''' ==
+{| class="wikitable"
+|+ Rod Stats (bolded mean not as good as supporter rod in a specific biome, if the entire rod is bolded that means it's outclassed by supporter rod in all biome)
+|-
+! Rod !! Cost !! Base Fish Catch per cast (Average) !! Base Treasure Chance !! Treasure Quality Bonus !! Usable in !! Description
+|-
+| '''Plastic''' || Free || 4-10 (7) || 5% || +0% || River || Basic Starter Rod
+|-
+| '''Improved''' || $500 || 5-10 (7.5) || 5% || +0% || River || Attracts slightly better fish 
+|-
+| '''Steel''' || $8 000 || 5-8 (6.5) || 5% || +0% || River || Allows you to catch better fish, but slightly less of them.
+|-
+| '''Fiberglass''' || $50 000 || 7-10 (8.5) || 5% || +0% || River || Catches large amounts of quality fish.
+|-
+| Heavy || $100 000 || 6-9 (7.5) || 8.5% || +5% || River || Doesn't catch as many fish, but gets you far more treasure.
+|-
+| Alloy || $250 000 || 4 - 13 (8.5) || 5% || +0% || River || Catch rare fish at an inconsistent rate.
+|-
+| '''Lava''' || $1 000 000 || 7 - 11 (9) || 5% || +0% || River, Volcanic, Ocean || Catches many rare fish consistently.
+|-
+| Magma || $10 000 000 || 10-13 (11.5) || 5% || +0% || River, Volcanic, '''Ocean''' || Empowered lava rod to catch even more fish.
+|-
+| '''Oceanium''' || $75 000 000 || 11 - 14 ( 12.5) || 5% || +0% || River, Ocean || Made of rare ocean materials.
+|-
+| Golden || $120 000 000 || 4-6 (5) || 13% || +0% || River, Volcanic, Ocean, Sky || Made of pure gold. Catch treasure like you never thought possible.
+|-
+| Superium || $250 000 000 || 8-18 (13) || 5.5% || +0% || River, Volcanic, Ocean, '''Sky''' || Ultra light strong design for incredible fish catching abilities.
+|-
+| Infinity || $1 000 000 000 || 15-18 (16.5) || 6% || +0% || River, Volcanic, Ocean, '''Sky''' || From 6 stones...
+|-
+| Floating || $50 000 000 000 || 15 - 30 (22.5) || 6.5% || +0% || River, Volcanic, Ocean, Sky, '''Space''' || Emits so much energy it appears to float.
+|-
+| Sky || $250 000 000 000 || 30 - 34 (32) || 6.7% || +0% || River, Volcanic, Ocean, Sky, Space || The ultimate rod - made from elements found in the sky biome.
+|-
+| Meteor || $500 000 000 000 || 20 - 24 (22) || 15% || +30% || Space, Alien || Extremely dense rod capable of attracting much high quality treasure.
+|-
+| Space || $1 000 000 000 000 || 33 - 37 (35) || 6.8% || +0% || River, Volcanic, Ocean, Sky, Space, Alien || SPAAAAAAAAAAAACE.
+|-
+| Alien || $5 000 000 000 000 || 37 - 42 (39.5) || 7% || +5% || All biomes || An extremely complex rod built with alien technology.
+|-
+| Ultimate Depths Rod || $50 000 000 000 000 || 40-47 (43.5) || 7% || +5% || All biomes || A rod capable of fishing in extreme depths.
+|-
+| Abyssal Supermagnet || $250 000 000 000 000 || 22-28 (25) || 5% || +50% || Abyss || A magnetic rod capable of attracting the highest quality treasure.
+|-
+| Dark Rod || $1 000 000 000 000 000 || 42-50 (46) || 7% || +10% || All biomes || The ultimate fishing rod.
+|-
+| Supporter || Free, need P5+ or donation || 7-10 (8.5) [x1.2 Volcanic (10.2), x1.4 Ocean (11.9), x2 Sky (17), x3.2 Space (27.2), x4 Alien (34), x4.6 Abyss (39.1) || 6.5% || +10% || All biomes || Rod given as thanks for supporting Virtual Fisher.
+|}
+
+'''Notable Fish Quality Stat (Based on proportions so that some of the percentages might not add up to 100%)'''
+
+
+{| class="wikitable"
+|+ River Biome
+|-
+! Rod !! Fish !! Salmon !! Cod !! Tropical !! Puffer
+|-
+| Plastic || 84% || 13.5% || 2.5% || 0% || 0%
+
+|-
+| Improved || 56% || 30% || 14% || 0% || 0%
+
+|-
+| Steel || 20% || 35$ || 45% || 0% || 0%
+
+|-
+| Fiberglass || 15% || 30% || 50% || 5% || 0% 
+
+|-
+| Heavy || 15% || 30% || 45% || 10% || 0% 
+
+|-
+| Alloy || 15% || 30% || 42% || 10% || 3%
+
+|-
+| Supporter || 14% || 32% || 47% || 6.3% || 0.7%
+
+|}
+
+{| class="wikitable"
+|+ Volcanic Biome
+|-
+! Rod !! Salmon !! Cod !! Tropical !! Fiery Puffer !! Hot Cod
+|-
+| Lava || 15% || 25% || 37% || 19% || 4%
+
+|-
+| Magma || 10% || 20% || 35% || 27% || 8%
+
+|-
+| Supporter || 10% || 24% || 42% || 20% || 4%
+
+|}
+
+{| class="wikitable"
+|+ Ocean Biome
+|-
+! Rod !! Tropical !! Puffer !! Squid !! Turtle !! Dolphin
+|-
+| Magma || 35% || 54% || 9% || 2% || 0%
+
+|-
+| Oceanium || 35% || 40% || 18% || 7% || 0.1%
+
+|-
+| Golden || 45% || 40% || 10% || 5% || 0%
+
+|-
+| Superium || 3% || 30% || 40% || 25% || 2%
+
+|-
+| Infinity || N/A || 15% || 35% || 45% || 5%
+
+|-
+| Supporter || 30% || 40% || 23% || 6.8% || 0.2%
+|}
+
+{| class="wikitable"
+|+ Sky Biome
+|-
+! Rod !! Fiery Puffer !! Squid !! Guardian !! Emerald Squid !! Rainbow Fish
+|-
+| Infinity || 60% || 24% || 9.7% || 5.5% || 0.8%
+
+|-
+| Floating || 40% || 40% || 10% || 8% || 2%
+
+|-
+| Sky || 20% || 40% || 26% || 10% || 4%
+
+|-
+| Supporter || 39.8% || 39.8% || 12.7% || 6.7% || 1%
+|}
+
+{| class="wikitable"
+|+ Space Biome
+|-
+! Rod !! Fish !! Salmon !! Rainbow Fish !! Space Fish !! Galactic Crab
+|-
+| Sky || 50% || 33% || 12.4% || 4.4% || 0.2%
+
+|-
+| Meteor || 40% || 32.3% || 20% || 7.5% || 0.2%
+
+|-
+| Space || 40% || 25% || 20% || 14.5% || 0.5%
+
+|-
+| Supporter || 40% || 32.7% || 20% || 7.05% || 0.25%
+|}
+
+{| class="wikitable"
+|+ Alien Biome
+|-
+! Rod !! Emerald Squid !! Rainbow Fish !! Space Fish !! Shark !! Alien Fish 
+
+|-
+| Meteor || 30% || 40% || 27.5% || 2% || 0.5%
+
+|-
+| Space || 30% || 40% || 25% || 4% || 1%
+
+|-
+| Alien || 20% || 30% || 45% || 7% || 1.5%
+
+|-
+| Ultimate Depths || 10% || 35% || 45% || 8.1% || 1.9%
+
+|-
+| Dark || 15% || 25% || 46% || 11% || 3%
+
+|-
+| Supporter || 30% || 30% || 36% || 5% || 1% 
+|}
+
+{| class="wikitable"
+|+ Abyss Biome
+|-
+! Rod !! Galactic Crab !! Shark !! Artifact Fish !! Dark Puffer !! Dark Tuna
+|-
+| Alien || 64% || 25% || 10% || 1% || 0%
+
+|-
+| Ultimate Depths || 42% || 42% || 15.7% || 2% || 0.01%
+
+|-
+| Abyssal Supermagnet || 42% || 42% || 14% || 2% || 0.01%
+
+|-
+| Dark || 40% || 40% || 17% || 2.7% || 0.3% 
+
+|-
+| Supporter || 60% || 26.4% || 12.303% || 1.29% || 0.007%
+
+|}
+'''
+
+== '''Formulas''' == 
+The actual stat of rods are dependant on its base stat and your current multiplier, these buff can be viewed using /buffs 
+
+'''Treasure Chance''': Rod Base Treasure Chance * Treasure Chance Multiplier (cap out at 100%)
+
+'''Traeasure Quality''': Rod Base Treasure Quality * Treasure Quality Multiplier
+(Note that rods extra treasure quality are added up first if the rod have them. For instance, meteor rod would be 1.3 * TQ not 1 * TQ + 0.3)
+
+'''Fish Catch''': The fish catch follow this processes in order from up to down
+
+CNT = V * fish catch buff
+CNT += boats
+CNT += BA (rounded)
+CNT *= biome reducer * SR * B
+CNT += boost biome multiplier * (0~4) + 1 + BB + 0~2 * FF
+CNT *= (1.05 + 0.01FF + 0.01BB)
+
+'''Fish Quality:'''
+Let E_n be the current probability of getting the nth fish in the biome and Q_n be the base probability (In practice, n go from highest tier fish to lowest tier fish)
+
+fq is the fish quality multiplier that can be seen in /buffs
+
+E5 = Q5*fq (cap out at 1)
+E_n = min[Q_n*fq, 1 - E_5 - ... - E_(n+1)]
+
+(so for instance, E_3 = min(Q_3*fq , 1 - E_5 - E_4). The min function is used to ensure that the sum of the probabilities don't add up to above 1)
+
+== Refrences ==
+'''
+1. Virtual Fisher Encyclopedia by Trinety
+[[https://docs.google.com/document/d/1ArzSlGQfeu2qxKgSfmZh97ivcH-xI4mWLhQ2i0LE3dE/edit?pli=1&tab=t.0#heading=h.s639ki91fd8c]]
+
+2. Rods Fish Quality Info by Trinety (Discord Link, need to join Virtual Fisher Official Server to see) [[https://discord.com/channels/565375575930437632/626214282702487552/1076451949899153438]]
+
+3. Abyssal Biome Rods Stat (OVF Discord Link)
+[[https://discord.com/channels/565375575930437632/713950245880594494/1517546726989365348]]
+
+4. Abyssal Rods Fish Quality (including low tier biome fish quality, OVF Discord Link + #update-testing channel)
+[[https://discord.com/channels/565375575930437632/713950245880594494/1521571540838256762]]
+
+5. Fish Catch Formula (OVF Discord Link) [[https://discord.com/channels/565375575930437632/626194345757769728/1392171684609523712]]
