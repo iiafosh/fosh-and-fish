@@ -114,6 +114,76 @@
       box-shadow: 0 0 16px rgba(56, 189, 248, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
+    /* --- SLEEK FLOATING COMMAND DOCK & HERO CAST BUTTON --- */
+    .floating-dock {
+      background: rgba(6, 12, 24, 0.90);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1.5px solid rgba(56, 189, 248, 0.32);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 28px rgba(6, 182, 212, 0.15);
+    }
+    .cast-hero-btn {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+      border: 2px solid #fde047;
+      box-shadow: 0 0 24px rgba(245, 158, 11, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.5);
+      color: #1a0802;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+    .cast-hero-btn:hover {
+      filter: brightness(1.18);
+      box-shadow: 0 0 32px rgba(253, 224, 71, 0.7);
+    }
+    .cast-hero-btn:active {
+      transform: scale(0.97);
+    }
+    .cast-hero-btn:disabled {
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      border-color: #475569;
+      color: #94a3b8;
+      text-shadow: none;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .dock-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      min-width: 52px;
+    }
+    .dock-btn:hover {
+      background: rgba(14, 116, 144, 0.45);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 14px rgba(56, 189, 248, 0.3);
+    }
+    .dock-btn:active {
+      transform: translateY(0);
+    }
+    .dock-label {
+      font-size: 8px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+    .hud-pill {
+      background: rgba(7, 15, 28, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+    }
+
     .sign-marker {
       animation: floatBadge 2.0s infinite alternate ease-in-out;
     }
@@ -138,12 +208,12 @@
       width: 10px;
     }
     ::-webkit-scrollbar-track {
-      background: #180d06;
+      background: #080f1d;
     }
     ::-webkit-scrollbar-thumb {
-      background: #853e0d;
+      background: #0284c7;
       border-radius: 5px;
-      border: 1px solid #d97706;
+      border: 1px solid #38bdf8;
     }
   </style>
 </head>
@@ -153,155 +223,168 @@
   <canvas id="game-canvas"></canvas>
 
   <!-- Top Sailing & Deck HUD (Enlarged & Prominent) -->
-  <div id="deck-hud" class="fixed inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+  <div id="deck-hud" class="fixed inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
     
-    <!-- Top Bar: Nautical Biome, Economy Plaque, Rimuru Avatar & Shop -->
-    <div class="flex items-start justify-between w-full gap-3">
+    <!-- Top Bar: Explorer Passport, Nautical Telemetry, and Treasury Vault -->
+    <div class="flex items-start justify-between w-full gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
       
-      <!-- Biome & Voyage Compass Plaque -->
-      <div class="brass-badge px-4 sm:px-5 py-2.5 sm:py-3 pointer-events-auto flex items-center gap-3.5 cursor-pointer hover:border-amber-400 transition" onclick="openModal('helm')" title="Open Nautical Navigation Map [E]">
-        <div class="text-3xl sm:text-4xl" id="hud-biome-icon">🏞️</div>
-        <div>
+      <!-- Left: Explorer Passport (Mascot Avatar, Level, XP Bar & Boat) -->
+      <div class="hud-pill p-2 sm:p-3 pointer-events-auto flex items-center gap-3 cursor-pointer hover:border-cyan-400 transition" onclick="openModal('mascot')" title="Mascot Wardrobe (Rimuru Tempest)">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 border border-cyan-500/60 flex items-center justify-center text-2xl shadow-inner relative overflow-hidden" id="hud-mascot-avatar">
+          <span id="hud-mascot-icon">🌀</span>
+        </div>
+        <div class="text-left">
           <div class="flex items-center gap-2">
-            <span class="text-sm sm:text-base text-amber-300 font-black uppercase tracking-wider" id="hud-biome">River Waters</span>
-            <span class="text-[10px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-600/60 font-black">MAP [E]</span>
+            <span class="text-xs sm:text-sm font-black text-white" id="hud-mascot-name">Rimuru Tempest</span>
+            <span class="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/50 font-black" id="hud-level">Lv. 1</span>
           </div>
-          <div class="text-xs text-amber-200/80 font-bold" id="hud-boat-name">Standard Skiff</div>
+          <!-- XP Progress Tube -->
+          <div class="w-28 sm:w-32 mt-1">
+            <div class="flex justify-between text-[9px] text-cyan-200/80 font-bold mb-0.5">
+              <span>EXP</span>
+              <span id="hud-xp">0/30 XP</span>
+            </div>
+            <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-cyan-900/60">
+              <div id="hud-xp-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+          <div class="text-[10px] text-amber-300/90 font-bold mt-1 flex items-center gap-1">
+            <span>⛵</span>
+            <span id="hud-boat-name">Standard Skiff</span>
+          </div>
         </div>
       </div>
 
-      <!-- Center Treasury Plaque (Gold Coins, Fish Strips, Scrap, Gems) -->
-      <div class="brass-badge px-5 sm:px-6 py-2.5 sm:py-3 pointer-events-auto flex items-center gap-4 flex-wrap">
-        <!-- Money Plaque -->
-        <div class="flex items-center gap-2.5" title="Gold Cash">
-          <img src="assets/UI_Money.png" class="h-6 sm:h-7 object-contain" alt="Cash">
-          <span class="text-lg sm:text-2xl font-black text-amber-300 tracking-wider" id="hud-cash">150</span>
+      <!-- Center: Nautical Telemetry & Voyage Map Compass -->
+      <div class="hud-pill px-4 sm:px-5 py-2 sm:py-2.5 pointer-events-auto flex items-center gap-3 cursor-pointer hover:border-amber-400 transition shadow-lg" onclick="openModal('helm')" title="Chart Voyage Across 7 Waters [E] / [M]">
+        <div class="text-3xl sm:text-4xl" id="hud-biome-icon">🏞️</div>
+        <div class="text-left">
+          <div class="flex items-center gap-2">
+            <span class="text-xs sm:text-sm text-amber-300 font-black uppercase tracking-wider" id="hud-biome">Willow River Basin</span>
+            <span class="text-[9px] bg-amber-950/90 text-amber-300 px-1.5 py-0.5 rounded border border-amber-600/60 font-black">CHART [E]</span>
+          </div>
+          <div class="text-[10px] text-cyan-300/90 font-mono font-bold flex items-center gap-2">
+            <span id="hud-sector-depth">Sector 1 • 5m Depth</span>
+            <span class="text-slate-500">•</span>
+            <span id="hud-active-bait" class="text-emerald-300">🪱 Bait: None</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Treasury Vault (Cash, Crafting Materials & Tokens) -->
+      <div class="hud-pill px-3.5 sm:px-4 py-2 sm:py-2.5 pointer-events-auto flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
+        <!-- Gold Cash -->
+        <div class="flex items-center gap-2" title="Gold Cash Treasury">
+          <img src="assets/UI_Money.png" class="h-5 sm:h-6 object-contain" alt="Cash">
+          <span class="text-base sm:text-xl font-black text-amber-300 tracking-wider" id="hud-cash">150</span>
         </div>
 
         <!-- Crafting Materials -->
-        <div class="flex items-center gap-3.5 border-l-2 border-amber-900/80 pl-4 text-xs sm:text-sm font-black">
-          <span title="Fish Bait Strips (Filleted)" class="text-pink-300">🥩 <span id="hud-strips">0</span></span>
-          <span title="Salvage Scrap (Forge Crafting)" class="text-slate-300">⚙️ <span id="hud-scrap">0</span></span>
-          <span title="Gold Fish (Rare Token)" class="text-amber-300">🪙 <span id="hud-gold">0</span></span>
-          <span title="Emerald Fish (Exotic Token)" class="text-emerald-400">💎 <span id="hud-emerald">0</span></span>
+        <div class="flex items-center gap-2.5 sm:gap-3 border-l border-slate-700/80 pl-2.5 sm:pl-3 text-xs font-black">
+          <span title="Fish Bait Strips (Filleted at Butchery)" class="text-pink-300 hover:scale-110 transition-transform">🥩 <span id="hud-strips">0</span></span>
+          <span title="Salvage Scrap (Crafting at Forge)" class="text-slate-300 hover:scale-110 transition-transform">⚙️ <span id="hud-scrap">0</span></span>
+          <span title="Rare Gold Fish (Exchange Token)" class="text-amber-300 hover:scale-110 transition-transform">🪙 <span id="hud-gold">0</span></span>
+          <span title="Exotic Emerald Fish (Titan Token)" class="text-emerald-400 hover:scale-110 transition-transform">💎 <span id="hud-emerald">0</span></span>
         </div>
 
-        <!-- Level & XP Liquid Tube -->
-        <div class="w-32 sm:w-36 border-l-2 border-amber-900/80 pl-4">
-          <div class="flex justify-between text-xs font-bold mb-1">
-            <span class="text-cyan-300 font-black" id="hud-level">Lv. 1</span>
-            <span class="text-amber-200/80 font-bold" id="hud-xp">0/30 XP</span>
-          </div>
-          <div class="w-full bg-[#0a0502] h-2.5 border border-amber-600/70 rounded-xs overflow-hidden">
-            <div id="hud-xp-bar" class="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full w-0 transition-all duration-300"></div>
-          </div>
+        <!-- Active Charm & Pet Mini Badges -->
+        <div class="flex items-center gap-1.5 border-l border-slate-700/80 pl-2.5 text-xs font-bold">
+          <button onclick="openModal('pets')" class="px-2 py-1 rounded bg-slate-900 border border-pink-500/40 hover:border-pink-400 text-pink-300 transition flex items-center gap-1" title="Companion Pet Sanctuary [P]">
+            <span id="hud-pet-icon">🦎</span>
+            <span class="text-[10px] hidden sm:inline" id="hud-pet-name">Axo-9</span>
+          </button>
+          <button onclick="openModal('forge')" class="px-2 py-1 rounded bg-slate-900 border border-purple-500/40 hover:border-purple-400 text-purple-300 transition flex items-center gap-1" title="Equipped Charm (Forge)">
+            <span id="hud-active-charm">🧿 No Charm</span>
+          </button>
         </div>
-
-        <!-- Equipped Bait & Charm -->
-        <div class="flex items-center gap-2 text-xs border-l-2 border-amber-900/80 pl-4 font-bold">
-          <span id="hud-active-bait" class="bg-[#120904] text-emerald-300 px-2.5 py-1 border border-emerald-600/50 rounded font-black">
-            🪱 Bait: None
-          </span>
-          <span id="hud-active-charm" class="bg-[#120904] text-purple-300 px-2.5 py-1 border border-purple-600/50 rounded font-black">
-            🧿 No Charm
-          </span>
-        </div>
-      </div>
-
-      <!-- Right: Rimuru Mascot, Pet Companion, Radio & Shipyard -->
-      <div class="flex items-center gap-2 pointer-events-auto flex-wrap justify-end">
-        <!-- Equipped Pet Button -->
-        <button onclick="openModal('pets')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-2 cursor-pointer hover:border-pink-400 transition" title="Pet Sanctuary & Sovereign Altar [P]">
-          <div id="hud-pet-icon" class="text-xl sm:text-2xl animate-bounce">🦎</div>
-          <div class="text-left">
-            <div class="text-[9px] text-pink-300 font-black uppercase">PET [P]</div>
-            <div class="text-xs font-black text-amber-200" id="hud-pet-name">Axo-9</div>
-          </div>
-        </button>
-
-        <!-- Radio Transponder Button -->
-        <button onclick="openModal('radio')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-1.5 cursor-pointer hover:border-emerald-400 transition" title="Shortwave Radio & Secret Transponder [R]">
-          <span class="text-xl">📻</span>
-          <span class="text-xs font-black text-emerald-300">RADIO [R]</span>
-        </button>
-
-        <!-- Field Bestiary Journal Button -->
-        <button onclick="openModal('journal')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-1.5 cursor-pointer hover:border-cyan-400 transition" title="Holographic Bestiary [J]">
-          <span class="text-xl">📖</span>
-          <span class="text-xs font-black text-cyan-300">DEX [J]</span>
-        </button>
-
-        <!-- Change Mascot Button -->
-        <button onclick="openModal('mascot')" class="brass-badge px-3 py-1.5 sm:py-2 flex items-center gap-2 cursor-pointer hover:border-cyan-400 transition" title="Mascot Wardrobe (Rimuru Tempest)">
-          <div id="hud-mascot-icon" class="text-xl sm:text-2xl">🌀</div>
-          <div class="text-left">
-            <div class="text-[9px] text-cyan-300 font-black uppercase">MASCOT</div>
-            <div class="text-xs font-black text-amber-200" id="hud-mascot-name">Rimuru</div>
-          </div>
-        </button>
-
-        <!-- Harbor Shop Button -->
-        <button onclick="openModal('shop')" class="brass-btn px-3.5 sm:px-4 py-2 sm:py-2.5 rounded text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer">
-          <img src="assets/Button_Shop.png" class="w-4 h-4 object-contain" alt="Shop">
-          <span>SHIPYARD</span>
-        </button>
       </div>
 
     </div>
 
     <!-- Center Contextual Prompts & Celebrations -->
     <div class="flex flex-col items-center justify-center pointer-events-none space-y-3">
-      <!-- On-Deck Interactive Station Prompt -->
-      <div id="deck-prompt" class="hidden wood-panel px-8 py-3.5 pointer-events-auto cursor-pointer border-3 border-amber-400 sign-marker text-center shadow-2xl" onclick="triggerStationInteract()">
-        <span class="text-amber-300 font-black text-base sm:text-lg tracking-wide" id="deck-prompt-text">🎣 Press [E] to Fish off the Stern Rail</span>
+      <!-- On-Deck Interactive Station Prompt (Floating above stations) -->
+      <div id="deck-prompt" class="hidden hud-pill px-6 sm:px-8 py-2.5 sm:py-3 pointer-events-auto cursor-pointer border-2 border-amber-400 sign-marker text-center shadow-2xl hover:scale-105 transition" onclick="triggerStationInteract()">
+        <span class="text-amber-300 font-black text-sm sm:text-base tracking-wide" id="deck-prompt-text">🎣 Press [E] to Fish off the Stern Rail</span>
       </div>
 
       <!-- Quick Loot Notification Banner -->
-      <div id="loot-popup" class="opacity-0 transition-opacity duration-300 wood-panel px-8 py-3 text-center text-amber-300 font-black text-sm sm:text-base border-2 border-amber-400">
+      <div id="loot-popup" class="opacity-0 transition-opacity duration-300 hud-pill px-6 sm:px-8 py-2.5 text-center text-amber-300 font-black text-xs sm:text-sm border-2 border-amber-400 shadow-xl">
         +4x Cod! (+20 XP)
       </div>
     </div>
 
-    <!-- Bottom Maritime Action Console & Station Hotbar -->
-    <div class="w-full flex flex-col items-center pointer-events-none gap-2">
+    <!-- Redesigned Bottom Floating Cyber-Maritime Command Dock -->
+    <div class="w-full flex flex-col items-center pointer-events-none mb-1 sm:mb-2 px-2">
       
-      <!-- Tactile Hotbar Row -->
-      <div class="wood-panel px-6 py-3 pointer-events-auto flex items-center gap-3 sm:gap-5 text-sm font-bold shadow-2xl flex-wrap justify-center border-t-3 border-amber-500">
+      <div class="floating-dock pointer-events-auto flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-2xl shadow-2xl flex-wrap justify-center border border-cyan-500/30">
         
-        <!-- Equipped Rod Indicator -->
-        <div class="flex items-center gap-2.5 bg-[#120904] px-3.5 py-2 rounded border border-amber-700/70" title="Equipped Rod">
+        <!-- Equipped Rod Indicator & Upgrade Link -->
+        <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-cyan-800/60 hover:border-cyan-400 cursor-pointer transition" onclick="goToStation('shop')" title="Harbor Shipyard: Upgrade Rods & Vessels">
           <span class="text-cyan-400 text-xl" id="hotbar-rod-icon">🎣</span>
-          <div>
-            <div class="text-[10px] text-amber-400/80 font-bold uppercase">ROD</div>
-            <div class="text-xs sm:text-sm font-black text-white" id="hotbar-rod">Plastic Rod</div>
+          <div class="text-left">
+            <div class="text-[8px] text-cyan-400 font-black uppercase tracking-wider">ROD</div>
+            <div class="text-xs font-black text-white" id="hotbar-rod">Plastic Rod</div>
           </div>
         </div>
 
-        <!-- Master Brass "CAST LINE" Action Button -->
-        <button id="reel-cast-btn" onclick="castLine()" class="brass-btn px-6 sm:px-8 py-3 sm:py-3.5 rounded text-sm sm:text-base font-black uppercase flex items-center gap-2.5 cursor-pointer shadow-xl">
-          <span>🎣 CAST LINE</span>
-          <span class="text-xs bg-amber-950 text-amber-200 px-2 py-0.5 rounded border border-amber-400/50 font-black">[SPACE]</span>
+        <!-- Master Hero "CAST HOOK" Action Button -->
+        <button id="reel-cast-btn" onclick="castLine()" class="cast-hero-btn px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-black uppercase flex items-center gap-2.5 cursor-pointer shadow-xl transition-all">
+          <span class="text-lg">🎣</span>
+          <span class="tracking-wide">CAST HOOK</span>
+          <span class="text-[9px] bg-amber-950/90 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/50 font-black tracking-wider">[SPACE]</span>
         </button>
 
-        <!-- Autonomous Angler Chill Toggle Button -->
-        <button id="auto-fish-btn" onclick="toggleAutoFish()" class="brass-badge px-3.5 py-2 flex items-center gap-2 cursor-pointer hover:border-cyan-400 transition" title="Toggle Chill Auto-Fish [Z]">
-          <span class="text-lg">🤖</span>
+        <!-- Autonomous Angler Chill Toggle Button [Z] -->
+        <button id="auto-fish-btn" onclick="toggleAutoFish()" class="px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition border border-slate-700 bg-slate-900/90 hover:border-cyan-400" title="Toggle Chill Auto-Fish [Z]">
+          <span class="text-lg" id="auto-fish-icon">🤖</span>
           <div class="text-left">
-            <div class="text-[9px] text-cyan-300 font-black uppercase">AUTO-ANGLER [Z]</div>
-            <div class="text-xs font-black text-amber-200" id="auto-fish-status">OFF</div>
+            <div class="text-[8px] text-slate-400 font-black uppercase tracking-wider">AUTO-ANGLER [Z]</div>
+            <div class="text-xs font-black text-slate-300 flex items-center gap-1.5" id="auto-fish-status">
+              <span class="w-2 h-2 rounded-full bg-slate-500 inline-block" id="auto-fish-led"></span>
+              <span>OFF</span>
+            </div>
           </div>
         </button>
 
-        <!-- Station Fast Walk Buttons -->
-        <div class="flex items-center gap-1.5 text-xs border-l-2 border-amber-900/80 pl-3 flex-wrap">
-          <button class="brass-badge px-2.5 py-1 text-cyan-300 hover:text-white cursor-pointer hover:border-cyan-400 transition font-black" onclick="walkToStation(0)">1. 🎣 Pier</button>
-          <button class="brass-badge px-2.5 py-1 text-amber-300 hover:text-white cursor-pointer hover:border-amber-400 transition font-black" onclick="walkToStation(1)">2. 🐟 Fillet</button>
-          <button class="brass-badge px-2.5 py-1 text-emerald-300 hover:text-white cursor-pointer hover:border-emerald-400 transition font-black" onclick="walkToStation(2)">3. 🧭 Helm</button>
-          <button class="brass-badge px-2.5 py-1 text-purple-300 hover:text-white cursor-pointer hover:border-purple-400 transition font-black" onclick="walkToStation(3)">4. ⚙️ Forge</button>
-          <button class="brass-badge px-2.5 py-1 text-yellow-300 hover:text-white cursor-pointer hover:border-yellow-400 transition font-black" onclick="walkToStation(4)">5. 💰 Market</button>
-          <button class="brass-badge px-2.5 py-1 text-pink-300 hover:text-white cursor-pointer hover:border-pink-400 transition font-black" onclick="walkToStation(5)">6. 🐾 Pets</button>
-          <button class="brass-badge px-2.5 py-1 text-emerald-300 hover:text-white cursor-pointer hover:border-emerald-400 transition font-black" onclick="walkToStation(6)">7. 📻 Radio</button>
-          <button class="brass-badge px-2.5 py-1 text-cyan-300 hover:text-white cursor-pointer hover:border-cyan-400 transition font-black" onclick="walkToStation(7)">8. 📖 Dex</button>
+        <!-- Station Manager Quick Nav Tiles (Walks Rimuru to Manager + Opens Station) -->
+        <div class="flex items-center gap-1 sm:gap-1.5 border-l border-slate-800 pl-2 sm:pl-3 flex-wrap">
+          <button class="dock-btn group" onclick="goToStation('fishing')" title="Stern Pier: Fish off the stern rail">
+            <span class="text-base group-hover:scale-125 transition-transform">🎣</span>
+            <span class="dock-label text-cyan-300">Pier</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('dex')" title="Fillet Bench: Chef Finbar butchery">
+            <span class="text-base group-hover:scale-125 transition-transform">🔪</span>
+            <span class="dock-label text-pink-300">Fillet</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('helm')" title="Voyage Helm: Navigator Zephyr sea chart">
+            <span class="text-base group-hover:scale-125 transition-transform">🧭</span>
+            <span class="dock-label text-emerald-300">Helm</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('forge')" title="The Forge: Blacksmith Vulcan charms & baits">
+            <span class="text-base group-hover:scale-125 transition-transform">⚙️</span>
+            <span class="dock-label text-purple-300">Forge</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('market')" title="Cargo Market: Merchant Barnaby sell haul">
+            <span class="text-base group-hover:scale-125 transition-transform">💰</span>
+            <span class="dock-label text-yellow-300">Market</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('shop')" title="Shipyard Depot: Old Salty hulls & rods">
+            <span class="text-base group-hover:scale-125 transition-transform">🛒</span>
+            <span class="dock-label text-cyan-300">Shipyard</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('pets')" title="Pet Sanctuary: Companion Altar & Sovereign">
+            <span class="text-base group-hover:scale-125 transition-transform">🐾</span>
+            <span class="dock-label text-pink-300">Pets</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('radio')" title="Ship Radio: Cipher transponder & secret biomes">
+            <span class="text-base group-hover:scale-125 transition-transform">📻</span>
+            <span class="dock-label text-emerald-300">Radio</span>
+          </button>
+          <button class="dock-btn group" onclick="goToStation('journal')" title="Field Bestiary: Holographic species catalog">
+            <span class="text-base group-hover:scale-125 transition-transform">📖</span>
+            <span class="dock-label text-cyan-300">Bestiary</span>
+          </button>
         </div>
 
       </div>
@@ -883,9 +966,19 @@
       shipFront: null,
       rock: null,
       cuttingBoard: null,
+      cleaver: null,
+      bagOfMoney: null,
       shopUI: null,
-      rimuruHuman: null, // Pre-processed transparent PNG!
-      rimuruSlime: null  // Pre-processed transparent PNG!
+      rimuruHuman: null,
+      rimuruSlime: null,
+      fish_cod: null,
+      fish_tuna: null,
+      fish_anchovy: null,
+      fish_mackerel: null,
+      fish_sardine: null,
+      fish_sunfish: null,
+      fish_leviathan: null,
+      kraken: null
     };
 
     function loadImg(src) {
@@ -901,11 +994,23 @@
     sprites.shipFront = loadImg('assets/Ship Front.png');
     sprites.rock = loadImg('assets/Hub_Rock.png');
     sprites.cuttingBoard = loadImg('assets/Cutting Board Zoomed in.png');
+    sprites.cleaver = loadImg('assets/Knife_Meat Cleaver.png');
+    sprites.bagOfMoney = loadImg('assets/bag_of_money.png');
     sprites.shopUI = loadImg('assets/Shop UI.png');
 
-    // Load pre-keyed transparent PNGs directly from disk!
+    // Pre-keyed transparent PNGs
     sprites.rimuruHuman = loadImg('assets/rimuru_human.png');
     sprites.rimuruSlime = loadImg('assets/rimuru_slime.png');
+
+    // Fish species sprites for underwater ecosystem
+    sprites.fish_cod = loadImg('assets/Fish_Cod.png');
+    sprites.fish_tuna = loadImg('assets/Fish_Bluefin Tuna.png');
+    sprites.fish_anchovy = loadImg('assets/Fish_Anchovy.png');
+    sprites.fish_mackerel = loadImg('assets/Fish_Mackerel.png');
+    sprites.fish_sardine = loadImg('assets/Fish_Sardine.png');
+    sprites.fish_sunfish = loadImg('assets/Fish_Ocean Sunfish.png');
+    sprites.fish_leviathan = loadImg('assets/Fish_Leviathan_Alt.png');
+    sprites.kraken = loadImg('assets/kraken.png');
   </script>
 
   <!-- Canonical Virtual Fisher Engine -->
@@ -1327,20 +1432,21 @@
       'Celestial Charm': { cost: 1000000000, scrap: 1500, emeraldReq: 10, allBoost: 3.0, desc: '3x all earnings, XP, and speed.' }
     };
 
-    // Deck Stations
+    // Deck Stations & NPC Managers
     const deck = {
       deckY: 0,
       leftBoundary: 0,
       rightBoundary: 0,
       stations: [
-        { id: 'fishing', name: 'Stern Pier', x: 0, icon: '🎣', prompt: '🎣 Press [E] to Fish off Stern Rail' },
-        { id: 'dex', name: 'Fillet Table', x: 0, icon: '🐟', prompt: '🔪 Press [E] to Open Fillet Workbench' },
-        { id: 'helm', name: 'Ship Helm', x: 0, icon: '🧭', prompt: '🧭 Press [E] to Voyage Map' },
-        { id: 'forge', name: 'Charm Forge', x: 0, icon: '⚙️', prompt: '⚙️ Press [E] to Open Forge' },
-        { id: 'market', name: 'Cargo Market', x: 0, icon: '💰', prompt: '💰 Press [E] to Sell Fish' },
-        { id: 'pets', name: 'Pet Altar', x: 0, icon: '🐾', prompt: '🐾 Press [E] to Pet Sanctuary & Sovereign Altar' },
-        { id: 'radio', name: 'Ship Radio', x: 0, icon: '📻', prompt: '📻 Press [E] to Shortwave Transponder' },
-        { id: 'journal', name: 'Field Journal', x: 0, icon: '📖', prompt: '📖 Press [E] to Holographic Bestiary' }
+        { id: 'fishing', name: 'Stern Pier', xOffset: -0.40, icon: '🎣', manager: 'Stern Rail', prompt: '🎣 Press [E] to Fish off Stern Rail' },
+        { id: 'dex', name: 'Fillet Bench', xOffset: -0.27, icon: '🔪', manager: 'Chef Finbar', prompt: '🔪 Press [E] to Fillet Fish with Chef Finbar' },
+        { id: 'helm', name: 'Voyage Helm', xOffset: -0.14, icon: '🧭', manager: 'Navigator Zephyr', prompt: '🧭 Press [E] to Chart Voyage with Navigator Zephyr' },
+        { id: 'forge', name: 'The Forge', xOffset: 0.00, icon: '⚙️', manager: 'Blacksmith Vulcan', prompt: '⚙️ Press [E] to Forge Charms with Blacksmith Vulcan' },
+        { id: 'market', name: 'Cargo Market', xOffset: 0.14, icon: '💰', manager: 'Merchant Barnaby', prompt: '💰 Press [E] to Sell Fish to Merchant Barnaby' },
+        { id: 'shop', name: 'Shipyard Depot', xOffset: 0.27, icon: '🛒', manager: 'Old Salty Magnus', prompt: '🛒 Press [E] to Upgrade Hulls & Rods with Old Salty' },
+        { id: 'radio', name: 'Radio Mast', xOffset: 0.38, icon: '📻', manager: 'Sub-Ether Transponder', prompt: '📻 Press [E] to Decode Frequencies & Ciphers' },
+        { id: 'pets', name: 'Pet Altar', xOffset: -0.45, icon: '🐾', manager: 'Companion Altar', prompt: '🐾 Press [E] to Open Pet Sanctuary & Altar' },
+        { id: 'journal', name: 'Field Journal', xOffset: 0.44, icon: '📖', manager: 'Holographic Bestiary', prompt: '📖 Press [E] to Inspect Holographic Bestiary' }
       ]
     };
 
@@ -1382,6 +1488,10 @@
       if (k === 'e') {
         const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
         if (!modalOpen && state.activeStation) triggerStationInteract();
+      }
+      if (k === 'm') {
+        const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
+        if (!modalOpen) openModal('helm');
       }
       if (k === 'p') {
         const modalOpen = !document.getElementById('station-modal').classList.contains('hidden');
@@ -1437,17 +1547,12 @@
       const shipW = boatData.width;
       const shipX = canvas.width / 2;
       deck.deckY = canvas.height * 0.60;
-      deck.leftBoundary = shipX - shipW * 0.40;
-      deck.rightBoundary = shipX + shipW * 0.38;
+      deck.leftBoundary = shipX - shipW * 0.44;
+      deck.rightBoundary = shipX + shipW * 0.43;
 
-      deck.stations[0].x = deck.leftBoundary + 25;
-      deck.stations[1].x = shipX - shipW * 0.28;
-      deck.stations[2].x = shipX - shipW * 0.12;
-      deck.stations[3].x = shipX + shipW * 0.04;
-      deck.stations[4].x = shipX + shipW * 0.20;
-      if (deck.stations[5]) deck.stations[5].x = shipX - shipW * 0.36;
-      if (deck.stations[6]) deck.stations[6].x = shipX - shipW * 0.02;
-      if (deck.stations[7]) deck.stations[7].x = deck.rightBoundary - 25;
+      deck.stations.forEach(st => {
+        st.x = shipX + shipW * st.xOffset;
+      });
 
       if (guy.x === 0) guy.x = shipX;
       guy.y = deck.deckY;
@@ -1457,6 +1562,15 @@
 
     function walkToStation(idx) {
       if (deck.stations[idx]) guy.targetX = deck.stations[idx].x;
+    }
+
+    function goToStation(viewId) {
+      sfxClick();
+      const st = deck.stations.find(s => s.id === viewId);
+      if (st) {
+        guy.targetX = st.x;
+      }
+      openModal(viewId);
     }
 
     // --- 7. MAIN UPDATE & RENDER LOOP ---
@@ -1525,11 +1639,11 @@
         const btn = document.getElementById('reel-cast-btn');
         if (state.cooldownTimer <= 0) {
           state.isCoolingDown = false;
-          btn.innerHTML = '<span>🎣 CAST LINE</span><span class="text-xs bg-amber-950 text-amber-200 px-2 py-0.5 rounded border border-amber-400/50 font-black">[SPACE]</span>';
+          btn.innerHTML = '<span class="text-lg">🎣</span><span class="tracking-wide">CAST HOOK</span><span class="text-[9px] bg-amber-950/90 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/50 font-black tracking-wider">[SPACE]</span>';
           btn.disabled = false;
           btn.classList.remove('opacity-60', 'cursor-not-allowed');
         } else {
-          btn.innerText = `WAIT (${state.cooldownTimer.toFixed(1)}s)`;
+          btn.innerHTML = `<span class="text-lg animate-spin">⏳</span><span>WAIT (${state.cooldownTimer.toFixed(1)}s)</span>`;
           btn.disabled = true;
           btn.classList.add('opacity-60', 'cursor-not-allowed');
         }
@@ -1549,10 +1663,13 @@
         }
       }
 
+      // Update Underwater Swimming Biome Fish
+      updateUnderwaterFishes(dt, deck.deckY + 16);
+
       // Update Minigame
       if (minigame.active) updateMinigame(dt);
 
-      // Update HUD
+      // Update HUD & Telemetry
       document.getElementById('hud-cash').innerText = state.cash.toLocaleString();
       document.getElementById('hud-strips').innerText = state.strips;
       document.getElementById('hud-scrap').innerText = state.scrap;
@@ -1561,8 +1678,13 @@
       document.getElementById('hud-level').innerText = `Lv. ${state.level}`;
       document.getElementById('hud-xp').innerText = `${state.xp}/${state.xpNeeded} XP`;
       document.getElementById('hud-xp-bar').style.width = Math.min(100, Math.floor((state.xp / state.xpNeeded) * 100)) + '%';
-      document.getElementById('hud-biome').innerText = BIOMES[state.currentBiome].name;
-      document.getElementById('hud-biome-icon').innerText = BIOMES[state.currentBiome].icon;
+      
+      const curB = BIOMES[state.currentBiome];
+      document.getElementById('hud-biome').innerText = curB.name;
+      document.getElementById('hud-biome-icon').innerText = curB.icon;
+      const secDepthEl = document.getElementById('hud-sector-depth');
+      if (secDepthEl) secDepthEl.innerText = `${curB.sector} • ${curB.depth} Depth`;
+
       document.getElementById('hud-boat-name').innerText = state.currentBoat;
       document.getElementById('hotbar-rod').innerText = state.currentRod;
       document.getElementById('hud-active-bait').innerText = `🪱 Bait: ${state.currentBait}`;
@@ -1730,7 +1852,264 @@
       }, 3500);
     }
 
-    // --- 9. RENDERING ENGINE: PARALLAX OCEAN, BOAT UPGRADES & GROUNDED RIMURU ---
+    // --- 9. UNDERWATER BIOME FISH & ECOSYSTEM ENGINE ---
+    const BIOME_FISH_PROFILES = {
+      'River': [
+        { name: 'Cod', spriteKey: 'fish_cod', speed: 45, size: 36, color: '#38bdf8' },
+        { name: 'Raw Salmon', spriteKey: 'fish_cod', speed: 52, size: 40, color: '#f87171' },
+        { name: 'Raw Fish', spriteKey: 'fish_cod', speed: 38, size: 30, color: '#94a3b8' },
+        { name: 'Pufferfish', spriteKey: 'fish_cod', speed: 28, size: 34, color: '#fde047' },
+        { name: 'Golden Fish', spriteKey: 'fish_cod', speed: 65, size: 42, color: '#fbbf24', glow: '#f59e0b' }
+      ],
+      'Ocean': [
+        { name: 'Anchovy', spriteKey: 'fish_anchovy', speed: 60, size: 28, color: '#93c5fd' },
+        { name: 'Sardine', spriteKey: 'fish_sardine', speed: 56, size: 26, color: '#67e8f9' },
+        { name: 'Mackerel', spriteKey: 'fish_mackerel', speed: 50, size: 38, color: '#38bdf8' },
+        { name: 'Bluefin Tuna', spriteKey: 'fish_tuna', speed: 72, size: 56, color: '#1d4ed8' },
+        { name: 'Red Snapper', spriteKey: 'fish_cod', speed: 46, size: 40, color: '#ef4444' }
+      ],
+      'Waterfall': [
+        { name: 'Rainbow Trout', spriteKey: 'fish_cod', speed: 65, size: 38, color: '#a855f7' },
+        { name: 'Golden Salmon', spriteKey: 'fish_cod', speed: 70, size: 44, color: '#fbbf24', glow: '#eab308' },
+        { name: 'Giant River Pike', spriteKey: 'fish_tuna', speed: 52, size: 60, color: '#059669' }
+      ],
+      'Deep Ocean': [
+        { name: 'Anglerfish', spriteKey: 'fish_cod', speed: 35, size: 44, color: '#1e293b', biolum: '#22d3ee' },
+        { name: 'Giant Squid', spriteKey: 'kraken', speed: 26, size: 76, color: '#dc2626', biolum: '#ef4444' },
+        { name: 'Emerald Fish', spriteKey: 'fish_sunfish', speed: 46, size: 48, color: '#10b981', glow: '#34d399' }
+      ],
+      'Swamp': [
+        { name: 'Mud Catfish', spriteKey: 'fish_cod', speed: 32, size: 42, color: '#78350f' },
+        { name: 'Alligator Gar', spriteKey: 'fish_tuna', speed: 42, size: 58, color: '#3f6212' },
+        { name: 'Hydra Eel', spriteKey: 'fish_leviathan', speed: 54, size: 72, color: '#15803d', glow: '#4ade80' }
+      ],
+      'Volcanic': [
+        { name: 'Magma Puffer', spriteKey: 'fish_cod', speed: 35, size: 40, color: '#ea580c', glow: '#f97316' },
+        { name: 'Obsidian Bass', spriteKey: 'fish_mackerel', speed: 48, size: 46, color: '#18181b', glow: '#ef4444' },
+        { name: 'Lava Leviathan', spriteKey: 'fish_leviathan', speed: 40, size: 85, color: '#b91c1c', glow: '#ff4500' }
+      ],
+      'Abyss': [
+        { name: 'Void Ray', spriteKey: 'fish_sunfish', speed: 42, size: 55, color: '#581c87', glow: '#c084fc' },
+        { name: 'Abyssal Kraken', spriteKey: 'kraken', speed: 25, size: 90, color: '#3b0764', glow: '#e879f9' },
+        { name: 'Mythic Celestial Fish', spriteKey: 'fish_tuna', speed: 65, size: 66, color: '#38bdf8', glow: '#67e8f9' }
+      ],
+      'subspace_zero': [
+        { name: 'ERR_404_NULL_EEL', spriteKey: 'fish_leviathan', speed: 55, size: 68, color: '#00ffea', glow: '#00ffea', isGlitch: true },
+        { name: 'Quantum Matrix Ray', spriteKey: 'fish_sunfish', speed: 45, size: 55, color: '#ec4899', glow: '#f472b6', isGlitch: true },
+        { name: 'Tachyon Singularity Chimera', spriteKey: 'fish_tuna', speed: 70, size: 65, color: '#a855f7', glow: '#c084fc', isGlitch: true },
+        { name: 'Echo of the Glitch Sovereign', spriteKey: 'kraken', speed: 35, size: 88, color: '#f43f5e', glow: '#fda4af', isGlitch: true }
+      ]
+    };
+
+    let underwaterFishes = [];
+    let underwaterBubbles = [];
+
+    function initUnderwaterFishes() {
+      underwaterFishes = [];
+      underwaterBubbles = [];
+      const biomeKey = state.currentBiome || 'River';
+      const profiles = BIOME_FISH_PROFILES[biomeKey] || BIOME_FISH_PROFILES['River'];
+      const count = 10;
+
+      for (let i = 0; i < count; i++) {
+        const p = profiles[i % profiles.length];
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        underwaterFishes.push({
+          species: p.name,
+          spriteKey: p.spriteKey,
+          color: p.color,
+          glow: p.glow || null,
+          biolum: p.biolum || null,
+          isGlitch: p.isGlitch || false,
+          size: p.size,
+          speed: (p.speed || 40) * (0.8 + Math.random() * 0.45),
+          x: Math.random() * (canvas.width || 1200),
+          depthFrac: 0.15 + Math.random() * 0.75,
+          dir: dir,
+          phase: Math.random() * Math.PI * 2,
+          bobAmp: 3 + Math.random() * 5,
+          wiggleSpeed: 5 + Math.random() * 4,
+          bubbleTimer: Math.random() * 2
+        });
+      }
+
+      for (let i = 0; i < 16; i++) {
+        underwaterBubbles.push({
+          x: Math.random() * (canvas.width || 1200),
+          y: (deck.deckY + 30) + Math.random() * 200,
+          vy: 16 + Math.random() * 24,
+          radius: 1 + Math.random() * 2.5,
+          phase: Math.random() * Math.PI * 2,
+          biome: biomeKey
+        });
+      }
+    }
+
+    function updateUnderwaterFishes(dt, waterY) {
+      const t = performance.now() / 1000;
+      const biomeKey = state.currentBiome || 'River';
+      const profiles = BIOME_FISH_PROFILES[biomeKey] || BIOME_FISH_PROFILES['River'];
+
+      for (const fish of underwaterFishes) {
+        fish.x += fish.speed * fish.dir * dt;
+        fish.bubbleTimer -= dt;
+
+        if (fish.bubbleTimer <= 0) {
+          fish.bubbleTimer = 2.5 + Math.random() * 3.5;
+          underwaterBubbles.push({
+            x: fish.x + (fish.dir > 0 ? fish.size * 0.4 : -fish.size * 0.4),
+            y: waterY + 25 + fish.depthFrac * (canvas.height - (waterY + 35)),
+            vy: 16 + Math.random() * 20,
+            radius: 1.2 + Math.random() * 1.8,
+            phase: Math.random() * 6,
+            biome: biomeKey
+          });
+        }
+
+        if (fish.dir > 0 && fish.x > canvas.width + 120) {
+          fish.x = -120;
+          fish.depthFrac = 0.15 + Math.random() * 0.75;
+          const p = profiles[Math.floor(Math.random() * profiles.length)];
+          fish.species = p.name;
+          fish.spriteKey = p.spriteKey;
+          fish.color = p.color;
+          fish.glow = p.glow || null;
+          fish.biolum = p.biolum || null;
+          fish.isGlitch = p.isGlitch || false;
+          fish.size = p.size;
+        } else if (fish.dir < 0 && fish.x < -120) {
+          fish.x = canvas.width + 120;
+          fish.depthFrac = 0.15 + Math.random() * 0.75;
+          const p = profiles[Math.floor(Math.random() * profiles.length)];
+          fish.species = p.name;
+          fish.spriteKey = p.spriteKey;
+          fish.color = p.color;
+          fish.glow = p.glow || null;
+          fish.biolum = p.biolum || null;
+          fish.isGlitch = p.isGlitch || false;
+          fish.size = p.size;
+        }
+      }
+
+      for (let i = underwaterBubbles.length - 1; i >= 0; i--) {
+        const b = underwaterBubbles[i];
+        b.y -= b.vy * dt;
+        b.x += Math.sin(t * 3 + b.phase) * 0.4;
+        if (b.y < waterY + 6) {
+          underwaterBubbles.splice(i, 1);
+        }
+      }
+    }
+
+    function drawUnderwaterBiomeFish(ctx, waterY, t) {
+      const waterDepth = canvas.height - (waterY + 20);
+
+      // Bubbles & cinders
+      ctx.save();
+      for (const b of underwaterBubbles) {
+        if (b.biome === 'Volcanic') {
+          ctx.fillStyle = 'rgba(249, 115, 22, 0.75)';
+          ctx.shadowColor = '#ea580c';
+          ctx.shadowBlur = 6;
+        } else if (b.biome === 'subspace_zero') {
+          ctx.fillStyle = 'rgba(0, 255, 234, 0.8)';
+          ctx.shadowColor = '#00ffea';
+          ctx.shadowBlur = 8;
+        } else {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+          ctx.shadowBlur = 0;
+        }
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Fish School
+      for (const fish of underwaterFishes) {
+        const fy = waterY + 25 + fish.depthFrac * (waterDepth - 50) + Math.sin(t * 2 + fish.phase) * fish.bobAmp;
+        const fx = fish.x;
+        const img = sprites[fish.spriteKey];
+
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.scale(fish.dir, 1);
+
+        const alpha = 0.50 + 0.45 * (1 - fish.depthFrac * 0.7);
+        ctx.globalAlpha = alpha;
+
+        if (fish.glow || fish.biolum) {
+          ctx.shadowColor = fish.glow || fish.biolum;
+          ctx.shadowBlur = 16;
+        }
+
+        if (img && img.complete) {
+          const aspect = img.width / img.height;
+          const w = fish.size;
+          const h = w / aspect;
+          const tailWiggle = Math.sin(t * fish.wiggleSpeed) * 0.12;
+          ctx.rotate(tailWiggle);
+          ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        } else {
+          const tailAngle = Math.sin(t * fish.wiggleSpeed) * 0.35;
+          ctx.fillStyle = fish.color;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, fish.size * 0.45, fish.size * 0.22, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.save();
+          ctx.translate(-fish.size * 0.45, 0);
+          ctx.rotate(tailAngle);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(-fish.size * 0.28, -fish.size * 0.22);
+          ctx.lineTo(-fish.size * 0.28, fish.size * 0.22);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(fish.size * 0.25, -fish.size * 0.06, fish.size * 0.06, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(fish.size * 0.27, -fish.size * 0.06, fish.size * 0.03, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (fish.biolum && state.currentBiome === 'Deep Ocean') {
+          const bulbX = fish.size * 0.45;
+          const bulbY = -fish.size * 0.35;
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(fish.size * 0.2, -fish.size * 0.1);
+          ctx.quadraticCurveTo(fish.size * 0.35, -fish.size * 0.4, bulbX, bulbY);
+          ctx.stroke();
+
+          ctx.fillStyle = fish.biolum;
+          ctx.shadowColor = fish.biolum;
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(bulbX, bulbY, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (fish.isGlitch && state.currentBiome === 'subspace_zero') {
+          ctx.strokeStyle = '#00ffea';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-fish.size * 0.5, -fish.size * 0.25, fish.size, fish.size * 0.5);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    // Initialize underwater school on boot
+    initUnderwaterFishes();
+
+    // --- 10. RENDERING ENGINE: PARALLAX OCEAN, BOAT UPGRADES & GROUNDED RIMURU ---
     function render() {
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1798,6 +2177,9 @@
 
       // Draw Equipped Pet Companion Swimming/Hovering Beside the Vessel!
       drawEquippedPet(ctx, shipX, shipY, waterY, t);
+
+      // Draw Underwater Swimming Biome Fish & Bubble Particles!
+      drawUnderwaterBiomeFish(ctx, waterY, t);
 
       // 4. FOREGROUND ROLLING WATER (Scale the Depths Hub_Front Wave.png)
       if (state.currentBiome === 'subspace_zero') {
@@ -2256,17 +2638,27 @@
       ctx.fillStyle = '#78350f';
       ctx.fillRect(-shipW * 0.45, deckFloorY + 7, shipW * 0.89, 2);
 
-      // Deck cutting board prop
-      if (sprites.cuttingBoard && sprites.cuttingBoard.complete) {
-        ctx.drawImage(sprites.cuttingBoard, -shipW * 0.22, deckFloorY - 26, 48, 26);
-      }
+      // --- LAYER 2.5: PHYSICAL STATION BOOTHS, PROPS & NPC MANAGERS ---
+      // 1. Stern Pier (Mooring post, hurricane lantern, tackle box, leaning rods)
+      drawStationPier(ctx, -shipW * 0.40, deckFloorY, t, state.activeStation && state.activeStation.id === 'fishing');
 
-      // Floating Station Markers
-      drawStationSign(-shipW * 0.38, deckFloorY - 70, '🎣', 'PIER', state.activeStation && state.activeStation.id === 'fishing');
-      drawStationSign(-shipW * 0.18, deckFloorY - 55, '🐟', 'FILLET', state.activeStation && state.activeStation.id === 'dex');
-      drawStationSign(0, deckFloorY - 65, '🧭', 'HELM', state.activeStation && state.activeStation.id === 'helm');
-      drawStationSign(shipW * 0.18, deckFloorY - 55, '⚙️', 'FORGE', state.activeStation && state.activeStation.id === 'forge');
-      drawStationSign(shipW * 0.36, deckFloorY - 55, '💰', 'MARKET', state.activeStation && state.activeStation.id === 'market');
+      // 2. Butchery Bench & Chef Finbar (Cutting board, cleaver, hanging dried fish, animated chef)
+      drawStationButchery(ctx, -shipW * 0.27, deckFloorY, t, state.activeStation && state.activeStation.id === 'dex');
+
+      // 3. Captain's Helm & Navigator Zephyr (Mahogany wheel, binnacle compass, charts, spyglass)
+      drawStationHelm(ctx, -shipW * 0.14, deckFloorY, t, state.activeStation && state.activeStation.id === 'helm');
+
+      // 4. The Forge & Blacksmith Vulcan (Brick hearth, glowing coals, anvil, spark particles)
+      drawStationForge(ctx, 0.00, deckFloorY, t, state.activeStation && state.activeStation.id === 'forge');
+
+      // 5. Cargo Market & Merchant Barnaby (Canopy awning, fish crates on ice, gold coin flip)
+      drawStationMarket(ctx, shipW * 0.14, deckFloorY, t, state.activeStation && state.activeStation.id === 'market');
+
+      // 6. Harbor Shipyard & Old Salty Magnus (Blueprints desk, model ship, lumber, pipe smoke)
+      drawStationShipyard(ctx, shipW * 0.27, deckFloorY, t, state.activeStation && state.activeStation.id === 'shop');
+
+      // 7. Shortwave Radio & Sub-Ether Transponder (CRT oscilloscope, antenna mast, beacon, radio waves)
+      drawStationRadio(ctx, shipW * 0.38, deckFloorY, t, state.activeStation && state.activeStation.id === 'radio');
 
       // --- LAYER 3: GROUNDED MASCOT CHARACTER (Feet planted ON deckFloorY!) ---
       drawGroundedMascot(ctx, guy.x - shipX, deckFloorY, t);
@@ -2369,24 +2761,621 @@
 
 
 
-    function drawStationSign(x, y, icon, label, isActive) {
+    // --- 12. PHYSICAL STATIONS, PROPS & NPC MANAGERS ---
+    function drawStationPlaque(ctx, x, y, icon, title, manager, isActive) {
       ctx.save();
-      ctx.font = '12px PixelFont, monospace';
-      ctx.textAlign = 'center';
+      ctx.translate(x, y);
 
+      // Hanging brass chains
+      ctx.strokeStyle = '#92400e';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-28, -10); ctx.lineTo(-28, 0);
+      ctx.moveTo(28, -10); ctx.lineTo(28, 0);
+      ctx.stroke();
+
+      const pw = 74;
+      const ph = 24;
       if (isActive) {
-        ctx.fillStyle = '#fde047';
-        ctx.shadowColor = '#eab308';
-        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#451a03';
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 1.5;
       } else {
-        ctx.fillStyle = '#fef08a';
         ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(26, 14, 6, 0.9)';
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 1;
       }
-      ctx.fillText(`${icon} ${label}`, x, y);
+      ctx.fillRect(-pw / 2, 0, pw, ph);
+      ctx.strokeRect(-pw / 2, 0, pw, ph);
+
+      ctx.font = 'bold 8px PixelFont, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isActive ? '#fef08a' : '#cbd5e1';
+      ctx.fillText(`${icon} ${title}`, 0, 10);
+
+      ctx.font = '7px PixelFont, monospace';
+      ctx.fillStyle = isActive ? '#fde047' : '#94a3b8';
+      ctx.fillText(manager, 0, 19);
+
       ctx.restore();
     }
 
-    // --- 12. MODALS & STATION INTERACTION ---
+    // 1. Stern Pier (Leftmost Rail)
+    function drawStationPier(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Wooden Mooring Bollard
+      ctx.fillStyle = '#593214';
+      ctx.fillRect(-16, -28, 10, 28);
+      ctx.fillStyle = '#783e18';
+      ctx.fillRect(-18, -32, 14, 5);
+      // Coiled Hemp Rope
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(-11, -14, 6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Brass Hurricane Lantern with Flickering Glow
+      const flicker = Math.sin(t * 7) * 2;
+      ctx.save();
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.18)';
+      ctx.beginPath();
+      ctx.arc(-11, -44, 24 + flicker, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Lantern Bracket & Glass
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-11, -32); ctx.lineTo(-11, -48);
+      ctx.stroke();
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(-14, -46, 6, 8);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(-15, -48, 8, 3);
+
+      // Open Vintage Tackle Box with Lures
+      ctx.fillStyle = '#065f46';
+      ctx.fillRect(-2, -14, 18, 14);
+      ctx.fillStyle = '#047857';
+      ctx.fillRect(0, -18, 16, 5);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(4, -10, 3, 3);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(9, -10, 3, 3);
+
+      // Two Leaning Fishing Rods
+      ctx.strokeStyle = '#b45309';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(14, 0); ctx.lineTo(24, -58);
+      ctx.moveTo(18, 0); ctx.lineTo(28, -54);
+      ctx.stroke();
+
+      // Hanging Wooden Plaque
+      drawStationPlaque(ctx, 4, -75, '🎣', 'STERN PIER', 'Angler Post', isActive);
+
+      ctx.restore();
+    }
+
+    // 2. Butchery Bench & Chef Finbar
+    function drawStationButchery(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Heavy Butcher Block Table
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-22, -22, 6, 22);
+      ctx.fillRect(16, -22, 6, 22);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-24, -28, 48, 8);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(-22, -27, 44, 2);
+
+      // Cutting Board & Meat Cleaver
+      if (sprites.cuttingBoard && sprites.cuttingBoard.complete) {
+        ctx.drawImage(sprites.cuttingBoard, -18, -35, 36, 14);
+      }
+      if (sprites.cleaver && sprites.cleaver.complete) {
+        ctx.drawImage(sprites.cleaver, 6, -38, 16, 12);
+      }
+
+      // Overhead Rack with Hanging Dried Fish
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-18, -28); ctx.lineTo(-18, -62); ctx.lineTo(18, -62); ctx.lineTo(18, -28);
+      ctx.stroke();
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.ellipse(-8, -55, 3, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(8, -55, 3, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- NPC: CHEF FINBAR (The Master Fishmonger) ---
+      ctx.save();
+      ctx.translate(0, -28);
+
+      const chop = Math.sin(t * 5);
+      const isChopping = chop > 0.4;
+
+      // Legs / Dark blue trousers
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(-6, -14, 5, 14);
+      ctx.fillRect(1, -14, 5, 14);
+      // Torso / White chef coat
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(-8, -32, 16, 18);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(-4, -28, 2, 2);
+      ctx.fillRect(2, -28, 2, 2);
+      ctx.fillRect(-4, -22, 2, 2);
+      ctx.fillRect(2, -22, 2, 2);
+      // Red kerchief neck
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(-5, -34, 10, 3);
+      // Head / Face
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-6, -44, 12, 10);
+      // French curled moustache & eyes
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-4, -41, 2, 2);
+      ctx.fillRect(2, -41, 2, 2);
+      ctx.fillRect(-5, -37, 10, 2);
+      // Tall White Chef Toque Hat
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-7, -47, 14, 4);
+      ctx.fillRect(-8, -58, 16, 12);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(-5, -57, 3, 10);
+      ctx.fillRect(2, -57, 3, 10);
+
+      // Chopping Arm with Cleaver
+      ctx.save();
+      ctx.translate(7, -26);
+      if (isChopping) {
+        ctx.rotate(0.35);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(-10, 10, 3, 3);
+      } else {
+        ctx.rotate(-0.25);
+      }
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, 5, 10);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(1, 9, 8, 4);
+      ctx.restore();
+
+      ctx.restore(); // End Chef Finbar
+
+      // Hanging Plaque
+      drawStationPlaque(ctx, 0, -96, '🔪', 'BUTCHERY', 'Chef Finbar', isActive);
+
+      ctx.restore();
+    }
+
+    // 3. Captain's Helm & Navigator Zephyr
+    function drawStationHelm(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Polished Brass Binnacle Compass Pedestal
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-16, -26, 8, 26);
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(-12, -28, 6, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(-12, -28, 4, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      // Mahogany Ship's Steering Wheel (Gently turns with wave swell)
+      const wheelRot = Math.sin(t * 1.5) * 0.25;
+      ctx.save();
+      ctx.translate(12, -28);
+      ctx.rotate(wheelRot);
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 2.5;
+      for (let i = 0; i < 8; i++) {
+        const ang = (i * Math.PI) / 4;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(ang) * 22, Math.sin(ang) * 22);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Steering column
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(9, -26, 6, 26);
+
+      // --- NPC: NAVIGATOR ZEPHYR (First Mate) ---
+      ctx.save();
+      ctx.translate(-2, -18);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(-6, 0, 5, 18);
+      ctx.fillRect(1, 0, 5, 18);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-8, -18, 16, 18);
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(-9, -18, 4, 3);
+      ctx.fillRect(5, -18, 4, 3);
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-5, -28, 10, 10);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-3, -25, 2, 2);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(-7, -35, 14, 6);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-8, -30, 16, 3);
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(-2, -33, 4, 3);
+
+      const look = Math.sin(t * 2);
+      ctx.save();
+      ctx.translate(4, -14);
+      if (look > 0) {
+        ctx.rotate(-0.3);
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(0, -8, 16, 4);
+      } else {
+        ctx.rotate(0.3);
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(0, 0, 12, 4);
+      }
+      ctx.restore();
+
+      ctx.restore(); // End Navigator
+
+      // Hanging Plaque
+      drawStationPlaque(ctx, 0, -84, '🧭', "CAPTAIN'S HELM", 'Nav. Zephyr', isActive);
+
+      ctx.restore();
+    }
+
+    // 4. The Forge & Blacksmith Vulcan
+    function drawStationForge(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Stone Brick Hearth with Glowing Coals
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-28, -32, 24, 32);
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-28, -32, 24, 32);
+      const coalPulse = Math.sin(t * 6) * 4;
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(-24, -24, 16, 16);
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(-22, -22, 12, 12 + coalPulse);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(-20, -18, 8, 6);
+
+      // Heavy Cast Iron Anvil
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(4, -14, 14, 14);
+      ctx.fillRect(-2, -24, 26, 10);
+      ctx.fillRect(-6, -23, 6, 5);
+
+      // Red-Hot glowing hook on the anvil
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(4, -26, 10, 3);
+
+      // Quench Water Bucket with rising steam
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(24, -16, 12, 16);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(25, -16, 10, 4);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(30, -22 + Math.sin(t * 3) * 4, 3, 0, Math.PI * 2);
+      ctx.arc(28, -28 + Math.sin(t * 3 + 1) * 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- NPC: BLACKSMITH VULCAN ---
+      ctx.save();
+      ctx.translate(-4, -22);
+
+      const hammerStrike = Math.sin(t * 5);
+      const isStriking = hammerStrike > 0.4;
+
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(-6, -2, 5, 24);
+      ctx.fillRect(1, -2, 5, 24);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-8, -22, 16, 22);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(-6, -18, 12, 16);
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-6, -34, 12, 12);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-3, -29, 4, 3);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-7, -35, 14, 5);
+      ctx.fillRect(-6, -26, 12, 5);
+
+      // Hammering Arm
+      ctx.save();
+      ctx.translate(6, -16);
+      if (isStriking) {
+        ctx.rotate(0.6);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(10, 6, 2, 2);
+        ctx.fillRect(14, 2, 3, 3);
+        ctx.fillRect(8, 1, 2, 2);
+      } else {
+        ctx.rotate(-0.8);
+      }
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(0, 0, 5, 12);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(1, 10, 4, 12);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-3, 20, 12, 7);
+      ctx.restore();
+
+      ctx.restore(); // End Vulcan
+
+      // Hanging Plaque
+      drawStationPlaque(ctx, 0, -90, '⚙️', 'THE FORGE', 'Vulcan the Smith', isActive);
+
+      ctx.restore();
+    }
+
+    // 5. Cargo Market & Merchant Barnaby (User Requested!)
+    function drawStationMarket(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Wooden Market Counter
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-24, -22, 48, 22);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-26, -26, 52, 5);
+
+      // Crates of Fresh Fish on Bed of Ice
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(-22, -36, 18, 11);
+      ctx.fillStyle = '#e0f2fe';
+      ctx.fillRect(-21, -35, 16, 4);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(-18, -34, 10, 3);
+
+      // Money Bag & Gold Coins
+      if (sprites.bagOfMoney && sprites.bagOfMoney.complete) {
+        ctx.drawImage(sprites.bagOfMoney, 6, -39, 16, 14);
+      } else {
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(8, -32, 10, 6);
+      }
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(2, -28, 3, 0, Math.PI * 2);
+      ctx.arc(6, -28, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Striped Canvas Canopy Awning (Waving valance)
+      const sway = Math.sin(t * 2.5) * 2;
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-24, -62, 3, 38);
+      ctx.fillRect(21, -62, 3, 38);
+      const stripeW = 9;
+      for (let si = -3; si <= 2; si++) {
+        ctx.fillStyle = (si % 2 === 0) ? '#dc2626' : '#fef08a';
+        ctx.fillRect(si * stripeW, -68, stripeW, 10);
+        ctx.beginPath();
+        ctx.arc(si * stripeW + stripeW / 2, -58 + sway * 0.5, stripeW / 2, 0, Math.PI);
+        ctx.fill();
+      }
+
+      // --- NPC: MERCHANT BARNABY ---
+      ctx.save();
+      ctx.translate(0, -26);
+      ctx.fillStyle = '#047857';
+      ctx.fillRect(-7, -24, 14, 24);
+      ctx.fillStyle = '#831843';
+      ctx.fillRect(-4, -20, 8, 14);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(-2, -22, 4, 5);
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-5, -34, 10, 10);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(2, -30, 2.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#047857';
+      ctx.fillRect(-3, -31, 2, 2);
+      ctx.fillStyle = '#581c87';
+      ctx.fillRect(-7, -37, 14, 3);
+      ctx.fillRect(-5, -48, 10, 12);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(-5, -39, 10, 2);
+      ctx.fillStyle = '#ec4899';
+      ctx.fillRect(3, -46, 3, 8);
+
+      // Animated Gold Coin Flip!
+      const coinY = Math.abs(Math.sin(t * 4)) * 14;
+      ctx.fillStyle = '#fbbf24';
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(9, -24 - coinY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.restore(); // End Barnaby
+
+      // Hanging Plaque
+      drawStationPlaque(ctx, 0, -96, '💰', 'CARGO MARKET', 'Merchant Barnaby', isActive);
+
+      ctx.restore();
+    }
+
+    // 6. Harbor Shipyard & Old Salty Magnus (User Requested!)
+    function drawStationShipyard(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Shipwright Workbench Desk
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-22, -22, 6, 22);
+      ctx.fillRect(16, -22, 6, 22);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-24, -26, 48, 5);
+
+      // Cyan Blueprint Schematic Scroll
+      ctx.fillStyle = '#0e7490';
+      ctx.fillRect(-18, -30, 22, 5);
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillRect(-16, -29, 8, 2);
+      ctx.fillRect(-6, -29, 8, 2);
+
+      // Model Ship Hull on Display Cradle
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.moveTo(8, -27);
+      ctx.lineTo(12, -34);
+      ctx.lineTo(24, -34);
+      ctx.lineTo(26, -27);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(18, -34); ctx.lineTo(18, -44);
+      ctx.stroke();
+
+      // Timber Planks Stacked beside desk
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(24, -14, 12, 14);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(25, -10, 10, 2);
+
+      // --- NPC: OLD SALTY MAGNUS ---
+      ctx.save();
+      ctx.translate(-2, -26);
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(-7, -22, 14, 22);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(-6, -14, 12, 14);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(-4, -14, 2, 2);
+      ctx.fillRect(2, -14, 2, 2);
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-5, -32, 10, 10);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-6, -26, 12, 9);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(-3, -29, 2, 2);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(-7, -36, 14, 6);
+      ctx.fillStyle = '#172554';
+      ctx.fillRect(-8, -33, 16, 3);
+
+      // Briar Pipe with Puffing Smoke Rings
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(4, -25, 6, 2);
+      ctx.fillRect(8, -28, 4, 5);
+      const smokePuff = Math.sin(t * 3);
+      if (smokePuff > 0) {
+        ctx.fillStyle = 'rgba(226, 232, 240, 0.6)';
+        ctx.beginPath();
+        ctx.arc(12 + smokePuff * 3, -33 - smokePuff * 6, 2.5 + smokePuff, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore(); // End Old Salty
+
+      // Hanging Plaque
+      drawStationPlaque(ctx, 0, -88, '🛒', 'SHIPYARD', 'Old Salty Magnus', isActive);
+
+      ctx.restore();
+    }
+
+    // 7. Shortwave Radio Transponder Mast
+    function drawStationRadio(ctx, x, deckFloorY, t, isActive) {
+      ctx.save();
+      ctx.translate(x, deckFloorY);
+
+      // Steel Electronics Rack Housing
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(-14, -30, 28, 30);
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-14, -30, 28, 30);
+
+      // Glowing CRT Oscilloscope Screen
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(-10, -26, 20, 14);
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let wx = -9; wx <= 9; wx += 2) {
+        const wy = -19 + Math.sin(wx * 0.6 + t * 8) * 4;
+        if (wx === -9) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+      }
+      ctx.stroke();
+
+      // Tuning Dials & Switches
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(-5, -6, 2.5, 0, Math.PI * 2);
+      ctx.arc(5, -6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tall Copper Mast with Antenna Tip
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -30); ctx.lineTo(0, -74);
+      ctx.stroke();
+
+      // Red Flashing Beacon Light
+      const beacon = Math.sin(t * 6) > 0;
+      ctx.fillStyle = beacon ? '#ef4444' : '#7f1d1d';
+      if (beacon) {
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 10;
+      }
+      ctx.beginPath();
+      ctx.arc(0, -76, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Pulsing Radio Wave Arcs
+      const wavePhase = (t * 2) % 1;
+      ctx.strokeStyle = `rgba(6, 182, 212, ${1 - wavePhase})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, -76, 8 + wavePhase * 16, -Math.PI * 0.75, -Math.PI * 0.25);
+      ctx.stroke();
+
+      // Hanging Plaque
+      drawStationPlaque(ctx, 0, -100, '📻', 'RADIO MAST', 'Transponder', isActive);
+
+      ctx.restore();
+    }
+
+    // --- 13. MODALS & STATION INTERACTION ---
     function triggerStationInteract() {
       if (!state.activeStation) return;
       openModal(state.activeStation.id);
@@ -2402,12 +3391,12 @@
 
       const map = {
         'fishing': { id: 'view-fishing', icon: '🎣', title: 'Stern Fishing Rail', sub: 'Drop your hook into the open sea depths.' },
-        'dex': { id: 'view-dex', icon: '🐟', title: 'Biological Workbench & Records', sub: 'Study species records or butcher catch into bait strips.' },
-        'helm': { id: 'view-helm', icon: '🧭', title: "Captain's Helm & Sea Chart", sub: 'Set sail across all 7 canonical Virtual Fisher waters.' },
-        'forge': { id: 'view-forge', icon: '⚙️', title: 'The Forge & Enchanter', sub: 'Craft specialized baits and forge ancient stat charms.' },
-        'market': { id: 'view-market', icon: '💰', title: 'Cargo Market & Fishmonger', sub: 'Sell your harvested haul for cold, hard gold coins.' },
+        'dex': { id: 'view-dex', icon: '🔪', title: 'Butchery Bench • Chef Finbar', sub: 'Chef Finbar: "Hand me your catch, I\'ll slice you the finest bait strips and salvage in the 7 seas!"' },
+        'helm': { id: 'view-helm', icon: '🧭', title: "Captain's Helm • Navigator Zephyr", sub: 'Navigator Zephyr: "Set the course! Check sector depth readings and chart our voyage across the waters."' },
+        'forge': { id: 'view-forge', icon: '⚙️', title: 'The Forge • Blacksmith Vulcan', sub: 'Blacksmith Vulcan: "Stoke the hearth! With salvage scrap and rare catches, I forge charms that conquer any current."' },
+        'market': { id: 'view-market', icon: '💰', title: 'Cargo Market • Merchant Barnaby', sub: 'Merchant Barnaby: "Ahoy friend! Fine fish fetch top gold at my stall. Looking to liquidate your haul?"' },
         'mascot': { id: 'view-mascot', icon: '🌀', title: "Ship's Mascot & Companion Wardrobe", sub: 'Select Rimuru Tempest Demon Lord, Slime, or salty crew.' },
-        'shop': { id: 'view-shop', icon: '🛒', title: 'Harbor Upgrade Shipyard', sub: 'Purchase advanced rods and faster ship hulls.' },
+        'shop': { id: 'view-shop', icon: '🛒', title: 'Shipyard Depot • Old Salty Magnus', sub: 'Old Salty Magnus: "Welcome to the harbor! Sturdier hulls and titanium alloy rods ready for your journey."' },
         'pets': { id: 'view-pets', icon: '🐾', title: 'Pet Sanctuary & Sovereign Altar', sub: 'Adopt loyal companions and perform the ancient Genesis Ritual.' },
         'radio': { id: 'view-radio', icon: '📻', title: "Shortwave Radio & Sub-Ether Transponder", sub: 'Tune frequencies and enter decryption ciphers for secret rods & biomes.' },
         'journal': { id: 'view-journal', icon: '📖', title: 'Holographic Bestiary & Field Records', sub: 'Inspect discovered species, record weights, and dimensional anomalies.' }
@@ -2834,6 +3823,7 @@
       sfxSplash();
       state.cash -= b.fee;
       state.currentBiome = bKey;
+      initUnderwaterFishes();
       showLootPopup(`⛵ Anchors raised! Arrived at ${b.name}!`);
       renderHelm();
     }
