@@ -23,81 +23,95 @@
       display: block;
     }
 
-    /* --- AUTHENTIC MARITIME WOOD & BRASS THEME (ENHANCED & BIGGER) --- */
+    /* --- MODERN CYBER-MARITIME GLASSMORPHIC UI THEME --- */
     .wood-panel {
-      background: #231208;
-      background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 3px, transparent 3px, transparent 20px);
-      border: 4px solid #633013;
-      box-shadow: inset 0 0 0 2px #d97706, inset 0 0 24px rgba(0,0,0,0.95), 0 20px 48px rgba(0,0,0,0.9);
-      border-radius: 10px;
+      background: rgba(10, 20, 36, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 30px rgba(6, 182, 212, 0.15);
+      border-radius: 16px;
     }
     .wood-card {
-      background: #190c05;
-      border: 2px solid #853e0d;
-      box-shadow: inset 0 0 0 1px #b45309, inset 0 3px 6px rgba(0,0,0,0.7);
-      border-radius: 8px;
+      background: rgba(7, 15, 28, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .wood-card:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.2);
     }
     .wood-card-gold {
-      background: #241407;
-      border: 2px solid #f59e0b;
-      box-shadow: inset 0 0 0 2px #fde68a, inset 0 0 16px rgba(245, 158, 11, 0.35);
-      border-radius: 8px;
+      background: rgba(26, 20, 10, 0.88);
+      border: 1.5px solid #f59e0b;
+      box-shadow: 0 0 22px rgba(245, 158, 11, 0.3), inset 0 0 14px rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
     }
     .brass-badge {
-      background: #1c0e06;
-      border: 2px solid #b45309;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 0 10px rgba(0,0,0,0.85);
-      border-radius: 8px;
+      background: rgba(11, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      transition: all 0.15s ease;
     }
-
-    /* 3D Tactile Push Buttons (Bigger & Chunky) */
+    .brass-badge:hover {
+      border-color: #38bdf8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+    }
     .brass-btn {
-      background: linear-gradient(180deg, #d97706 0%, #b45309 50%, #78350f 100%);
-      border: 2px solid #fde68a;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #451a03, 0 4px 0 #451a03, 0 6px 12px rgba(0,0,0,0.6);
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 50%, #075985 100%);
+      border: 1.5px solid #7dd3fc;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(2, 132, 199, 0.35);
       color: #ffffff;
-      text-shadow: 1px 1px 2px #451a03;
-      transition: all 0.08s ease;
+      border-radius: 10px;
+      transition: all 0.12s ease;
     }
     .brass-btn:hover {
-      filter: brightness(1.18);
+      filter: brightness(1.2);
       transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
     }
     .brass-btn:active {
-      transform: translateY(3px);
-      box-shadow: inset 0 3px 4px #451a03, 0 1px 0 #451a03;
-    }
-
-    .brass-btn-blue {
-      background: linear-gradient(180deg, #0284c7 0%, #0369a1 50%, #075985 100%);
-      border-color: #7dd3fc;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #082f49, 0 4px 0 #082f49, 0 6px 12px rgba(0,0,0,0.6);
-      text-shadow: 1px 1px 2px #082f49;
+      transform: translateY(1px);
     }
     .brass-btn-emerald {
       background: linear-gradient(180deg, #059669 0%, #047857 50%, #064e3b 100%);
-      border-color: #6ee7b7;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #022c22, 0 4px 0 #022c22, 0 6px 12px rgba(0,0,0,0.6);
-      text-shadow: 1px 1px 2px #022c22;
+      border: 1.5px solid #6ee7b7;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(5, 150, 105, 0.35);
+      color: #ffffff;
+      border-radius: 10px;
+    }
+    .brass-btn-blue {
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
+      border: 1.5px solid #93c5fd;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(37, 99, 235, 0.35);
+      color: #ffffff;
+      border-radius: 10px;
     }
     .brass-btn-red {
       background: linear-gradient(180deg, #dc2626 0%, #b91c1c 50%, #7f1d1d 100%);
-      border-color: #fca5a5;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 #450a0a, 0 4px 0 #450a0a, 0 6px 12px rgba(0,0,0,0.6);
-      text-shadow: 1px 1px 2px #450a0a;
+      border: 1.5px solid #fca5a5;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(220, 38, 38, 0.4);
+      color: #ffffff;
+      border-radius: 10px;
     }
-
     .wood-tab {
-      background: #180c05;
-      border: 2px solid #853e0d;
-      color: #cbd5e1;
-      transition: all 0.1s ease;
+      background: rgba(10, 22, 40, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #94a3b8;
+      border-radius: 10px;
+      transition: all 0.15s ease;
     }
     .wood-tab.active {
-      background: linear-gradient(180deg, #d97706 0%, #92400e 100%);
-      border-color: #fde68a;
+      background: linear-gradient(180deg, rgba(14, 116, 144, 0.8) 0%, rgba(8, 51, 68, 0.9) 100%);
+      border-color: #38bdf8;
       color: #ffffff;
-      box-shadow: inset 0 1px 0 #fef08a, 0 3px 6px rgba(0,0,0,0.6);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .sign-marker {
@@ -311,20 +325,26 @@
     </div>
   </div>
 
-  <!-- Tension Bar Minigame Overlay -->
-  <div id="tension-minigame" class="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 hidden">
-    <div class="wood-panel p-8 rounded-lg max-w-md w-full flex flex-col items-center space-y-5 border-3 border-amber-400 shadow-2xl relative">
+  <!-- Tension Bar Minigame Overlay (TITAN BOSS ENCOUNTERS ONLY) -->
+  <div id="tension-minigame" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 hidden">
+    <div class="wood-panel p-6 sm:p-8 rounded-2xl max-w-md w-full flex flex-col items-center space-y-4 border-2 border-red-500/80 shadow-2xl relative bg-gradient-to-b from-[#180205] to-[#0a0f18]">
       
-      <!-- Strike Warning Banner -->
+      <!-- Strike Siren Warning Banner -->
+      <div class="w-full bg-red-950/80 border border-red-500/70 text-red-300 px-4 py-2 rounded-xl flex items-center justify-between text-xs font-mono font-black animate-pulse">
+        <div class="flex items-center gap-2">
+          <span class="text-xl animate-bounce">🚨</span>
+          <span>TITAN BOSS SIGHTED</span>
+        </div>
+        <span class="text-[10px] bg-red-900 text-white px-2 py-0.5 rounded font-black">BOSS ONLY</span>
+      </div>
+
       <div class="flex items-center gap-3">
         <img src="assets/minigame/strike.png" class="w-10 h-10 strike-pulse object-contain" alt="Strike">
-        <h3 class="text-base sm:text-lg font-black text-amber-300 tracking-wider uppercase" id="minigame-fish-title">EXOTIC FISH STRIKE!</h3>
+        <h3 class="text-base sm:text-lg font-black text-red-400 tracking-wider uppercase text-center" id="minigame-fish-title">TITAN BOSS ENGAGED!</h3>
       </div>
-      <p class="text-xs text-amber-200/90 text-center font-bold">
-        Keep the green bar over the darting fish until catch progress reaches 100%!
+      <p class="text-xs text-slate-300 text-center font-bold">
+        A legendary sea titan has latched onto your line! Keep the reel bar aligned to tame the beast!
       </p>
-
-
 
       <!-- Tension Track Frame -->
       <div class="flex items-center gap-6">
@@ -932,6 +952,12 @@
       equipped_pet: 'pet_axo',
       unlocked_secrets: [],
       journal: {}, // Tracks species caught, best weight, count
+      stats: {
+        river_caught: 0,
+        ocean_caught: 0,
+        total_filleted: 0,
+        golden_caught: 0
+      },
       auto_fish_active: false,
       auto_fish_timer: 0,
       auto_fish_status: 'IDLE',
@@ -1008,6 +1034,7 @@
     };
 
     // --- 3. PET COMPANIONS DATABASE (Virtual Fisher 2099 System) ---
+    // --- 3. PET COMPANIONS DATABASE (Virtual Fisher 2099 Quest & Feats System - NOT BUYABLE) ---
     const PETS = {
       'pet_axo': {
         id: 'pet_axo',
@@ -1015,13 +1042,15 @@
         title: 'Cyber Axolotl',
         icon: '🦎',
         color: '#38bdf8',
-        cost: 500,
+        questTitle: 'Cryo-Pod Re-Ignition',
+        questDesc: 'Dormant cryo-capsule salvaged from river silt. Awakened as your loyal starting aquatic scout.',
+        reqLabel: 'Starter Companion / 10 River Catches',
         speedBoost: 0.25,
         xpBoost: 0.15,
         sellMult: 1.0,
         doubleCatch: 0.0,
         passiveCash: 0,
-        desc: 'A tiny neon axolotl with bioluminescent external gills that swim beside your boat. Boosts bite speed by 25% and XP by 15%.'
+        desc: 'A tiny neon axolotl with bioluminescent gills that swims beside your boat. Boosts bite speed by 25% and XP by 15%.'
       },
       'pet_ping': {
         id: 'pet_ping',
@@ -1029,7 +1058,11 @@
         title: 'Mecha Penguin',
         icon: '🐧',
         color: '#06b6d4',
-        cost: 5000,
+        questTitle: 'The Mecha Navigator',
+        questDesc: 'An abandoned arctic survey drone. Fillet 15 fish at the Butchery Bench to supply conductive bio-oil.',
+        reqType: 'fillet',
+        reqAmount: 15,
+        reqLabel: 'Fillet 15 Fish at Bench',
         speedBoost: 0.10,
         xpBoost: 0.10,
         sellMult: 1.35,
@@ -1043,7 +1076,12 @@
         title: 'Holo Otter',
         icon: '🦦',
         color: '#f59e0b',
-        cost: 50000,
+        questTitle: 'Temporal Playmate',
+        questDesc: 'A playful tachyon light spirit. Reach Angler Level 5 and catch at least 1 Golden Fish.',
+        reqType: 'level_gold',
+        reqLevel: 5,
+        reqGold: 1,
+        reqLabel: 'Reach Level 5 & Catch 1 Gold Fish',
         speedBoost: 0.15,
         xpBoost: 0.20,
         sellMult: 1.20,
@@ -1057,7 +1095,11 @@
         title: 'Tachyon Jelly',
         icon: '🪼',
         color: '#a855f7',
-        cost: 500000,
+        questTitle: 'Bioluminescent Resonance',
+        questDesc: 'A deep spacetime jellyfish attracted only to naturalists who discover 8 unique species in the Bestiary Journal.',
+        reqType: 'journal',
+        reqAmount: 8,
+        reqLabel: 'Catalog 8 Species in Bestiary',
         speedBoost: 0.20,
         xpBoost: 0.25,
         sellMult: 1.30,
@@ -1072,7 +1114,10 @@
         icon: '🐉',
         color: '#ec4899',
         isOverpowered: true,
-        cost: 0,
+        questTitle: 'The Genesis Awakening',
+        questDesc: 'Awakened at the Sovereign Altar with 1x Glitch Core, 1x Void Cipher Key, and 3x Singularity Pearls.',
+        reqType: 'ritual',
+        reqLabel: 'Genesis Altar Ritual [P]',
         speedBoost: 0.80,
         xpBoost: 1.00,
         sellMult: 5.0,
@@ -1082,16 +1127,106 @@
       }
     };
 
-    // Canonical Biomes + Secret Subspace 0x00
+    // Canonical Biomes + Sector Navigation Chart Telemetry
     const BIOMES = {
-      'River': { name: 'River Waters', icon: '🏞️', levelReq: 1, fee: 0, species: ['Raw Fish', 'Raw Salmon', 'Cod', 'Pufferfish', 'Golden Fish'], desc: 'Gentle freshwater currents with emerald reflections.' },
-      'Ocean': { name: 'Open Ocean', icon: '🌊', levelReq: 5, fee: 100, species: ['Anchovy', 'Mackerel', 'Red Snapper', 'Bluefin Tuna'], desc: 'Wide expanses of rolling saltwater swells.' },
-      'Waterfall': { name: 'Rushing Waterfall', icon: '🌊', levelReq: 15, fee: 5000, species: ['Rainbow Trout', 'Golden Salmon', 'Giant River Pike'], desc: 'Vibrant turquoise waters engulfed in roaring spray and rising mist.' },
-      'Deep Ocean': { name: 'Deep Ocean', icon: '🌌', levelReq: 25, fee: 50000, species: ['Anglerfish', 'Giant Squid', 'Emerald Fish'], desc: 'Sunless depths glittering with bioluminescent plankton.' },
-      'Swamp': { name: 'Murky Swamp', icon: '🌿', levelReq: 40, fee: 500000, species: ['Mud Catfish', 'Alligator Gar', 'Hydra Eel'], desc: 'Stagnant olive waters bubbling with marsh gas.' },
-      'Volcanic': { name: 'Volcanic Core', icon: '🌋', levelReq: 60, fee: 5000000, species: ['Magma Puffer', 'Obsidian Bass', 'Lava Leviathan'], desc: 'Boiling magma flows with floating embers.' },
-      'Abyss': { name: 'The Cosmic Abyss', icon: '🪐', levelReq: 80, fee: 50000000, species: ['Void Ray', 'Abyssal Kraken', 'Mythic Celestial Fish'], desc: 'Cosmic purple abyss echoing with celestial entities.' },
-      'subspace_zero': { name: 'Subspace 0x00: Chrono-Singularity', icon: '🌀', levelReq: 1, fee: 0, isSecret: true, unlocked: false, species: ['ERR_404_NULL_EEL', 'Quantum Matrix Ray', 'Tachyon Singularity Chimera', 'Echo of the Glitch Sovereign'], desc: 'Dimensional matrix fissure where oceanic spacetime folds into floating neon tesseracts and glitch matrices.' }
+      'River': {
+        name: 'Willow River Basin',
+        icon: '🏞️',
+        sector: 'Sector 1',
+        depth: '5m',
+        hazard: 'Calm Freshwaters',
+        boss: 'None',
+        levelReq: 1,
+        fee: 0,
+        species: ['Raw Fish', 'Raw Salmon', 'Cod', 'Pufferfish', 'Golden Fish'],
+        desc: 'Gentle freshwater currents with emerald reflections and mossy riverbanks.'
+      },
+      'Ocean': {
+        name: 'Open Ocean Shelf',
+        icon: '🌊',
+        sector: 'Sector 2',
+        depth: '45m',
+        hazard: 'Rolling Saline Swells',
+        boss: 'None',
+        levelReq: 5,
+        fee: 100,
+        species: ['Anchovy', 'Mackerel', 'Red Snapper', 'Bluefin Tuna'],
+        desc: 'Wide expanses of rolling saltwater swells with brisk maritime winds.'
+      },
+      'Waterfall': {
+        name: 'Mist-Veil Cascades',
+        icon: '🌊',
+        sector: 'Sector 3',
+        depth: '80m',
+        hazard: 'Frothing White Spray',
+        boss: 'None',
+        levelReq: 15,
+        fee: 5000,
+        species: ['Rainbow Trout', 'Golden Salmon', 'Giant River Pike'],
+        desc: 'Vibrant turquoise waters engulfed in roaring spray and rising vapor.'
+      },
+      'Deep Ocean': {
+        name: 'Sunken Trench',
+        icon: '🌌',
+        sector: 'Sector 4',
+        depth: '450m',
+        hazard: 'Sunless Bioluminescence',
+        boss: '⚠️ Giant Squid',
+        levelReq: 25,
+        fee: 50000,
+        species: ['Anglerfish', 'Giant Squid', 'Emerald Fish'],
+        desc: 'Sunless depths glittering with bioluminescent plankton and apex leviathans.'
+      },
+      'Swamp': {
+        name: 'Bayou Rot-Marsh',
+        icon: '🌿',
+        sector: 'Sector 5',
+        depth: '25m',
+        hazard: 'Toxic Methane Reeds',
+        boss: '⚠️ Hydra Eel',
+        levelReq: 40,
+        fee: 500000,
+        species: ['Mud Catfish', 'Alligator Gar', 'Hydra Eel'],
+        desc: 'Stagnant olive waters bubbling with flammable marsh gas and tangled roots.'
+      },
+      'Volcanic': {
+        name: 'Molten Caldera',
+        icon: '🌋',
+        sector: 'Sector 6',
+        depth: '600m',
+        hazard: 'Boiling Magma & Ash',
+        boss: '🌋 Lava Leviathan',
+        levelReq: 60,
+        fee: 5000000,
+        species: ['Magma Puffer', 'Obsidian Bass', 'Lava Leviathan'],
+        desc: 'Boiling magma currents showered in glowing cinders and volcanic glass.'
+      },
+      'Abyss': {
+        name: 'The Cosmic Abyss',
+        icon: '🪐',
+        sector: 'Sector 7',
+        depth: '3,500m',
+        hazard: 'Gravitational Distortion',
+        boss: '🪐 Abyssal Kraken',
+        levelReq: 80,
+        fee: 50000000,
+        species: ['Void Ray', 'Abyssal Kraken', 'Mythic Celestial Fish'],
+        desc: 'Cosmic purple abyss echoing with celestial entities and stardust.'
+      },
+      'subspace_zero': {
+        name: 'Subspace 0x00: Chrono-Singularity',
+        icon: '🌀',
+        sector: 'Sector 404',
+        depth: '4D Spacetime',
+        hazard: 'Matrix Glitch Disruption',
+        boss: '🌀 Echo of Sovereign',
+        levelReq: 1,
+        fee: 0,
+        isSecret: true,
+        unlocked: false,
+        species: ['ERR_404_NULL_EEL', 'Quantum Matrix Ray', 'Tachyon Singularity Chimera', 'Echo of the Glitch Sovereign'],
+        desc: 'Dimensional matrix fissure where oceanic spacetime folds into floating neon tesseracts and glitch matrices.'
+      }
     };
 
     // Canonical Rods + Secret Easter Egg Rods
@@ -2364,9 +2499,23 @@
 
       const fData = state.inventory[chosenFish];
 
-      const triggersMinigame = isRare || chosenFish.includes('Golden') || chosenFish.includes('Emerald') || chosenFish.includes('Kraken') || chosenFish.includes('Leviathan') || chosenFish.includes('Pike') || chosenFish.includes('Matrix') || chosenFish.includes('Singularity') || chosenFish.includes('Sovereign') || chosenFish.includes('ERR_404');
+      // --- BOSSES ONLY TRIGGER THE TENSION MINIGAME ---
+      const BOSS_SPECIES = [
+        'Abyssal Kraken',
+        'Lava Leviathan',
+        'Giant Squid',
+        'Hydra Eel',
+        'Echo of the Glitch Sovereign',
+        'Mythic Celestial Fish'
+      ];
+      const isBoss = BOSS_SPECIES.includes(chosenFish);
 
-      if (triggersMinigame) {
+      state.stats = state.stats || { river_caught: 0, ocean_caught: 0, total_filleted: 0, golden_caught: 0 };
+      if (state.currentBiome === 'River') state.stats.river_caught = (state.stats.river_caught || 0) + count;
+      if (state.currentBiome === 'Ocean') state.stats.ocean_caught = (state.stats.ocean_caught || 0) + count;
+      if (chosenFish.includes('Golden') || chosenFish.includes('Gold')) state.stats.golden_caught = (state.stats.golden_caught || 0) + count;
+
+      if (isBoss) {
         sfxStrike();
         startMinigame(chosenFish, fData, count);
       } else {
@@ -2394,7 +2543,7 @@
         const totalXp = Math.floor(fData.xp * count * (1 + charmXp + mascotXp + petXp + rodXp));
         addXP(totalXp);
 
-        // Special drops on common catch
+        // Special drops on instant catch
         if (Math.random() < 0.10) {
           state.special_items.chrono_fragment = (state.special_items.chrono_fragment || 0) + 1;
           bonusMsg += ' + ⏳ 1x Chrono Fragment!';
@@ -2402,6 +2551,14 @@
         if (state.currentBiome === 'subspace_zero' && Math.random() < 0.25) {
           state.special_items.glitch_core = (state.special_items.glitch_core || 0) + 1;
           bonusMsg += ' + 👾 1x Glitch Core!';
+        }
+        if (chosenFish.includes('Golden') || chosenFish.includes('Gold')) {
+          state.gold += 1;
+          bonusMsg += ' + 🪙 1x Gold Fish!';
+        }
+        if (chosenFish.includes('Emerald')) {
+          state.emerald += 1;
+          bonusMsg += ' + 💎 1x Emerald Fish!';
         }
 
         triggerCatchCard(chosenFish, fData, count, totalXp, bonusMsg);
@@ -2419,9 +2576,9 @@
       minigame.playerVel = 0;
       minigame.fishY = 100;
       minigame.fishTargetY = 100;
-      minigame.fishAiSpeed = (fName.includes('Kraken') || fName.includes('Leviathan')) ? 340 : 250;
+      minigame.fishAiSpeed = (fName.includes('Kraken') || fName.includes('Leviathan') || fName.includes('Sovereign')) ? 360 : 280;
 
-      document.getElementById('minigame-fish-title').innerText = `STRIKE: ${fName}!`;
+      document.getElementById('minigame-fish-title').innerText = `🚨 TITAN SIGHTED: ${fName.toUpperCase()}!`;
       document.getElementById('tension-minigame').classList.remove('hidden');
     }
 
@@ -2541,6 +2698,8 @@
       item.count -= 1;
       state.strips += stripsYield;
       state.scrap += scrapYield;
+      state.stats = state.stats || { river_caught: 0, ocean_caught: 0, total_filleted: 0, golden_caught: 0 };
+      state.stats.total_filleted = (state.stats.total_filleted || 0) + 1;
       showLootPopup(`🔪 Filleted 1x ${name}! (+${stripsYield} 🥩 Strips${scrapYield > 0 ? `, +${scrapYield} ⚙️ Scrap` : ''})`);
       renderFilletBench();
     }
@@ -2565,6 +2724,8 @@
         sfxCoin();
         state.strips += totalStrips;
         state.scrap += totalScrap;
+        state.stats = state.stats || { river_caught: 0, ocean_caught: 0, total_filleted: 0, golden_caught: 0 };
+        state.stats.total_filleted = (state.stats.total_filleted || 0) + totalFilleted;
         showLootPopup(`🔪 Harvested ${totalFilleted} fish into +${totalStrips}x 🥩 Strips and +${totalScrap}x ⚙️ Scrap!`);
         renderFilletBench();
       } else {
@@ -2572,9 +2733,13 @@
       }
     }
 
-    // --- 15. NAUTICAL HELM & 7 BIOMES VOYAGE MAP ---
+    // --- 15. NAUTICAL HELM & INTERACTIVE SECTOR SEA CHART ---
     function renderHelm() {
-      document.getElementById('helm-current-loc').innerText = BIOMES[state.currentBiome].name;
+      const curB = BIOMES[state.currentBiome];
+      document.getElementById('helm-current-loc').innerHTML = `
+        <span class="text-cyan-300 font-black">${curB.name}</span>
+        <span class="text-xs text-slate-400 font-mono">(${curB.sector} • Depth: ${curB.depth} • Hazard: ${curB.hazard})</span>
+      `;
       const grid = document.getElementById('helm-biomes-grid');
       grid.innerHTML = '';
 
@@ -2584,19 +2749,22 @@
         // Secret Biome handling
         if (b.isSecret && !b.unlocked) {
           const div = document.createElement('div');
-          div.className = "wood-card p-4 flex flex-col justify-between border-dashed border-pink-500/50 bg-[#16001e]/60";
+          div.className = "wood-card p-5 flex flex-col justify-between border-dashed border-pink-500/50 bg-[#16001e]/60";
           div.innerHTML = `
             <div>
               <div class="flex items-center justify-between">
                 <span class="text-3xl animate-pulse">🔒</span>
-                <span class="text-[10px] bg-pink-950 text-pink-300 px-2 py-0.5 rounded border border-pink-500 font-black">SECRET BIOME</span>
+                <span class="text-[10px] bg-pink-950 text-pink-300 px-2 py-0.5 rounded border border-pink-500 font-black">SECRET [404]</span>
               </div>
               <div class="text-sm font-black text-pink-300 mt-2">${b.name}</div>
-              <p class="text-xs text-pink-200/70 my-1.5 font-bold">Uncharted dimensional coordinates required. Intercept sub-ether radio signals via Transponder [R].</p>
-              <div class="text-xs text-pink-400 font-mono font-black">Cipher: 404-0X00-VOID</div>
+              <div class="text-[11px] text-pink-400 font-mono font-bold mt-1">Depth: 4D Spacetime • Glitch Fissure</div>
+              <p class="text-xs text-pink-200/70 my-2 font-bold leading-relaxed">Uncharted coordinates required. Intercept and decode radio transmissions via Transponder [R].</p>
+              <div class="text-xs text-pink-400 font-mono font-black bg-black/50 p-2 rounded border border-pink-900/60">
+                Radio Cipher: 404-0X00-VOID
+              </div>
             </div>
             <div class="mt-4">
-              <button onclick="openModal('radio')" class="brass-btn-blue w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer">
+              <button onclick="openModal('radio')" class="brass-btn-blue w-full py-2.5 text-xs sm:text-sm font-black rounded cursor-pointer">
                 TUNE TRANSPONDER 📻
               </button>
             </div>
@@ -2609,26 +2777,48 @@
         const canAfford = state.cash >= b.fee;
 
         const div = document.createElement('div');
-        div.className = `wood-card p-4 flex flex-col justify-between ${isCurrent ? 'wood-card-gold' : ''} ${b.isSecret ? 'border-2 border-pink-500/80 bg-[#12001c]' : ''}`;
+        div.className = `wood-card p-5 flex flex-col justify-between ${isCurrent ? 'wood-card-gold' : ''} ${b.isSecret ? 'border-2 border-pink-500/80 bg-[#12001c]' : ''}`;
         div.innerHTML = `
           <div>
             <div class="flex items-center justify-between">
-              <span class="text-3xl">${b.icon}</span>
-              <span class="text-xs font-black ${meetsLevel ? 'text-emerald-400' : 'text-red-400'}">
-                ${b.isSecret ? '<span class="text-pink-400 font-mono">DIMENSIONAL FISSURE</span>' : `Req: Lv. ${b.levelReq}`}
+              <div class="flex items-center gap-2">
+                <span class="text-3xl">${b.icon}</span>
+                <div>
+                  <div class="text-[10px] text-cyan-400 font-mono font-bold uppercase">${b.sector || 'ARCHIPELAGO'}</div>
+                  <div class="text-sm font-black text-slate-100">${b.name}</div>
+                </div>
+              </div>
+              <span class="text-xs font-mono font-black ${meetsLevel ? 'text-emerald-400' : 'text-red-400'}">
+                ${b.isSecret ? '<span class="text-pink-400">DIMENSIONAL</span>' : `Lv. ${b.levelReq}`}
               </span>
             </div>
-            <div class="text-sm font-black text-amber-200 mt-2">${b.name}</div>
-            <p class="text-xs text-amber-200/80 my-1.5 font-bold">${b.desc}</p>
-            <div class="text-xs text-amber-400 font-black">Travel Cost: $${b.fee.toLocaleString()}</div>
+
+            <div class="mt-3 bg-black/40 p-2.5 rounded border border-cyan-900/50 space-y-1 text-[11px] font-mono">
+              <div class="flex justify-between text-slate-300">
+                <span>Sea Depth:</span>
+                <span class="text-cyan-300 font-bold">${b.depth}</span>
+              </div>
+              <div class="flex justify-between text-slate-300">
+                <span>Waters / Hazard:</span>
+                <span class="text-amber-300 font-bold">${b.hazard}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Apex Entity:</span>
+                <span class="${b.boss !== 'None' ? 'text-red-400 font-black animate-pulse' : 'text-slate-400'}">${b.boss}</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-300 my-2.5 font-bold leading-relaxed">${b.desc}</p>
+            <div class="text-xs text-amber-300 font-mono font-black">Voyage Fee: $${b.fee.toLocaleString()}</div>
           </div>
+
           <div class="mt-4">
             ${isCurrent ? `
-              <button disabled class="w-full bg-amber-900/50 text-amber-300 border-2 border-amber-600/50 py-2 text-xs sm:text-sm font-black rounded cursor-default">
-                ANCHORED HERE
+              <button disabled class="w-full bg-cyan-950/80 text-cyan-300 border border-cyan-500 py-2.5 text-xs sm:text-sm font-black rounded cursor-default">
+                ⚓ ANCHORED IN SECTOR
               </button>
             ` : `
-              <button onclick="sailToBiome('${bKey}')" ${(!meetsLevel || !canAfford) ? 'disabled' : ''} class="${b.isSecret ? 'brass-btn-emerald' : 'brass-btn'} w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${(!meetsLevel || !canAfford) ? 'opacity-40 cursor-not-allowed' : ''}">
+              <button onclick="sailToBiome('${bKey}')" ${(!meetsLevel || !canAfford) ? 'disabled' : ''} class="${b.isSecret ? 'brass-btn-emerald' : 'brass-btn'} w-full py-2.5 text-xs sm:text-sm font-black rounded cursor-pointer ${(!meetsLevel || !canAfford) ? 'opacity-40 cursor-not-allowed' : ''}">
                 ${b.isSecret ? 'WARP TO MATRIX 🌌' : (!meetsLevel ? `LOCKED (LV. ${b.levelReq})` : (!canAfford ? 'INSUFFICIENT FUNDS' : 'SET SAIL ➔'))}
               </button>
             `}
@@ -3040,30 +3230,64 @@
       grid.innerHTML = '';
 
       for (const [id, pet] of Object.entries(PETS)) {
-        if (pet.isOverpowered) continue; // Sovereign is shown on the Altar tab!
+        if (pet.isOverpowered) continue; // Sovereign is on the Altar tab!
 
         const isOwned = state.unlocked_pets.includes(id);
         const isEquipped = state.equipped_pet === id;
-        const canAdopt = state.cash >= pet.cost;
+
+        // Calculate Quest Progress
+        let cur = 0;
+        let max = 1;
+        if (id === 'pet_axo') {
+          cur = Math.min(10, state.stats?.river_caught || 10);
+          max = 10;
+        } else if (pet.reqType === 'fillet') {
+          cur = Math.min(pet.reqAmount || 15, state.stats?.total_filleted || 0);
+          max = pet.reqAmount || 15;
+        } else if (pet.reqType === 'level_gold') {
+          cur = (state.level >= 5 ? 1 : 0) + ((state.stats?.golden_caught || 0) >= 1 ? 1 : 0);
+          max = 2;
+        } else if (pet.reqType === 'journal') {
+          const disc = Object.values(state.journal || {}).filter(j => j && j.count > 0).length;
+          cur = Math.min(pet.reqAmount || 8, disc);
+          max = pet.reqAmount || 8;
+        }
+
+        const pct = Math.min(100, Math.floor((cur / max) * 100));
+        const isReadyToBond = isOwned || (cur >= max);
 
         const card = document.createElement('div');
-        card.className = `wood-card p-4 rounded flex flex-col justify-between ${isEquipped ? 'wood-card-gold' : ''}`;
+        card.className = `wood-card p-4 rounded-xl flex flex-col justify-between ${isEquipped ? 'wood-card-gold' : ''}`;
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-3">
                 <span class="text-3xl">${pet.icon}</span>
                 <div>
                   <div class="text-sm font-black" style="color: ${pet.color}">${pet.name}</div>
-                  <div class="text-[10px] text-amber-200/80 uppercase font-bold">${pet.title}</div>
+                  <div class="text-[10px] text-cyan-400 font-mono font-bold uppercase">${pet.title}</div>
                 </div>
               </div>
-              ${isEquipped ? '<span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500 font-black">EQUIPPED</span>' : ''}
+              ${isEquipped ? '<span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500 font-black">ACTIVE</span>' : (isOwned ? '<span class="text-[10px] bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500 font-black">BONDED</span>' : '')}
             </div>
 
-            <p class="text-xs text-amber-100/90 my-2.5 font-bold leading-snug">${pet.desc}</p>
+            <!-- Quest Telemetry Box (Pets are NOT Buyable) -->
+            <div class="bg-black/40 p-2.5 rounded-lg border border-cyan-900/60 my-2.5 text-xs">
+              <div class="text-cyan-300 font-bold">📜 Feat: ${pet.questTitle}</div>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-snug">${pet.questDesc}</p>
+              
+              <div class="mt-2 space-y-1">
+                <div class="flex justify-between text-[11px] font-mono">
+                  <span class="text-slate-400">${pet.reqLabel}:</span>
+                  <span class="${isReadyToBond ? 'text-emerald-400 font-black' : 'text-cyan-300 font-bold'}">${isOwned ? 'COMPLETED ✓' : `${cur} / ${max} (${pct}%)`}</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-cyan-950">
+                  <div class="${isReadyToBond ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-cyan-600 to-blue-500'} h-full transition-all duration-300" style="width: ${isOwned ? 100 : pct}%;"></div>
+                </div>
+              </div>
+            </div>
 
-            <div class="bg-[#100804] p-2 rounded border border-amber-900/60 text-[11px] space-y-1 font-bold">
+            <div class="bg-[#0b1422] p-2 rounded border border-cyan-900/40 text-[11px] space-y-1 font-bold">
               <div class="flex justify-between text-cyan-300">
                 <span>Speed / Bite Boost:</span>
                 <span>+${Math.round(pet.speedBoost * 100)}%</span>
@@ -3091,30 +3315,37 @@
 
           <div class="mt-3">
             ${isOwned ? `
-              <button onclick="equipPet('${id}')" class="brass-btn-blue w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${isEquipped ? 'opacity-70' : ''}">
+              <button onclick="equipPet('${id}')" class="brass-btn-blue w-full py-2.5 text-xs sm:text-sm font-black rounded-lg cursor-pointer ${isEquipped ? 'opacity-70' : ''}">
                 ${isEquipped ? 'ACTIVE COMPANION' : 'EQUIP COMPANION'}
               </button>
-            ` : `
-              <button onclick="adoptPet('${id}')" ${!canAdopt ? 'disabled' : ''} class="brass-btn w-full py-2 text-xs sm:text-sm font-black rounded cursor-pointer ${!canAdopt ? 'opacity-40 cursor-not-allowed' : ''}">
-                ADOPT ($${pet.cost.toLocaleString()})
+            ` : (isReadyToBond ? `
+              <button onclick="bondPet('${id}')" class="w-full py-2.5 text-xs sm:text-sm font-black uppercase rounded-lg cursor-pointer bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white shadow-lg shadow-emerald-600/30 transition animate-pulse">
+                ✨ RESCUE & BOND COMPANION
               </button>
-            `}
+            ` : `
+              <button disabled class="w-full py-2.5 text-xs sm:text-sm font-black uppercase rounded-lg bg-slate-800/80 text-slate-400 border border-slate-700 cursor-not-allowed">
+                🔒 QUEST IN PROGRESS (${pct}%)
+              </button>
+            `)}
           </div>
         `;
         grid.appendChild(card);
       }
     }
 
-    function adoptPet(id) {
+    function bondPet(id) {
       const pet = PETS[id];
-      if (state.cash < pet.cost) return;
-      sfxCoin();
-      state.cash -= pet.cost;
-      state.unlocked_pets.push(id);
+      if (!pet) return;
+      sfxCatch(true);
+      cyberAudio.playCatchSuccess(true);
+      if (!state.unlocked_pets.includes(id)) {
+        state.unlocked_pets.push(id);
+      }
       state.equipped_pet = id;
-      showLootPopup(`🎉 Adopted ${pet.name}! Now swimming alongside your ship!`);
+      showLootPopup(`🎉 Quest Complete! Bonded with ${pet.name}! Now swimming alongside your vessel!`);
       renderPets();
     }
+    const adoptPet = bondPet;
 
     function equipPet(id) {
       sfxClick();
