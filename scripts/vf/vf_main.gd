@@ -229,6 +229,7 @@ func money_str(n: float) -> String:
 # ================================================================== build
 func _build() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th := Theme.new()
 	var font: Font = load("res://assets/third_party/fonts/Fredoka.ttf")
 	var fv := FontVariation.new()
@@ -240,6 +241,7 @@ func _build() -> void:
 	var bg := ColorRect.new()
 	bg.color = C_BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE      # clicks must reach the water (tap to cast)
 	add_child(bg)
 	_build_stage()
 	_build_hud()
@@ -250,10 +252,19 @@ func _build() -> void:
 func _build_stage() -> void:
 	stage = load("res://scripts/vf/vf_stage.gd").new()
 	add_child(stage)
+	_click_through.call_deferred(stage)
 	fx_layer = Control.new()
 	fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(fx_layer)
+
+# every stage layer lets clicks fall through to _unhandled_input (tap the water to cast),
+# except the merchant's hitbox
+func _click_through(n: Node) -> void:
+	if n is Control and n != stage.merchant_hit:
+		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in n.get_children():
+		_click_through(c)
 
 func _flat(pad := 10, radius := 16) -> StyleBoxFlat:
 	return sbox(Color(C_PANEL, 0.94), radius, 1, Color("#e3d3b4"), pad, 8)
@@ -1276,10 +1287,19 @@ func _check_capture() -> void:
 		_coach_show()
 		await get_tree().create_timer(1.0).timeout
 		await _shot(dir + "/on0_cast.png")
+		var trips_before: int = VF.stats.trips
 		for i in 6:
 			VF._last_cast_ms = -100000
-			_do_cast()
+			var at: Vector2 = stage.bobber_screen() + Vector2(40, 30)
+			for pressed in [true, false]:
+				var ev := InputEventMouseButton.new()
+				ev.button_index = MOUSE_BUTTON_LEFT
+				ev.pressed = pressed
+				ev.position = at
+				ev.global_position = at
+				Input.parse_input_event(ev)
 			await get_tree().create_timer(0.7).timeout
+		print("TAP_CASTS ", VF.stats.trips - trips_before)
 		await get_tree().create_timer(0.6).timeout
 		await _shot(dir + "/on1_sell.png")
 		_do_sell()

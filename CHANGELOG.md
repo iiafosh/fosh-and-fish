@@ -21,6 +21,7 @@ Play in the browser: https://iiafosh.github.io/vfish.fosh/
 - Animated fisher holding your equipped rod; boats change as you upgrade.
 - Swimming fish, whales and manta rays, flapping seagulls, beach crabs.
 - A Bait & Tackle fish shop on the island — tap it to shop.
+- Tap / click anywhere on the water to cast (fixed: the scene used to swallow the click).
 - Cozy parchment UI, "Next goal" hint, catch card, keyboard shortcuts, sounds and water ambience.
 
 **Platforms**
