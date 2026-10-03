@@ -9,7 +9,7 @@ their licenses in [CREDITS.md](CREDITS.md); fetch the raw packs with `python too
 
 ## Play the 0.1 beta
 
-- **Windows:** download `VirtualFisher-0.1-beta-windows.zip` from the [Releases](https://github.com/iiafosh/vfish.fosh/releases), unzip, run `VirtualFisher.exe`.
+- Download from [Releases](https://github.com/iiafosh/vfish.fosh/releases): **Windows** `…-windows.zip` (run `VirtualFisher.exe`), **Linux** `…-linux.tar.gz` (run `./VirtualFisher.x86_64`), **Android** `…-android.apk` (install on the phone).
 - **Browser / phone:** upload `VirtualFisher-0.1-beta-web.zip` to itch.io (HTML game) or serve `build/web/`.
 - **How to play:** [GUIDE.md](GUIDE.md) or press **G** in-game.  **Feedback:** Guide → Feedback in-game, or [open an issue](https://github.com/iiafosh/vfish.fosh/issues/new/choose).
 - What's in it: [CHANGELOG.md](CHANGELOG.md)

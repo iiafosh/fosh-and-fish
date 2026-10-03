@@ -18,7 +18,7 @@
 - Cozy parchment UI, "Next goal" hint, catch card, keyboard shortcuts, sounds and water ambience.
 
 **Platforms**
-- Windows desktop build, web build (works on phones, installable with *Add to Home Screen*).
+- Windows, Linux and Android (APK) builds, plus a web build that works on any phone browser.
 
 **New in this beta**
 - In-game **Guide** (press **G**) covering every system.
@@ -28,4 +28,4 @@
 - Prestige requirements after P0, per-level upgrade prices and chest weights are estimates
   (the sources don't publish them) — balance feedback welcome.
 - No cloud saves yet; desktop and web saves are separate.
-- No Android/iOS app package yet — use the web version on phones.
+- Android APK is a test (debug-signed) build; no iOS app yet — iPhone players use the web version.
