@@ -12,7 +12,17 @@ their licenses in [CREDITS.md](CREDITS.md); fetch the raw packs with `python too
 ```bash
 launch_game.bat
 ```
-or `Godot.exe --path .` (Godot 4.7). Controls: **Space/F** fish, **S** sell, **Esc** close panel, **F1** admin panel (cheats / "admin abuse" event).
+or `Godot.exe --path .` (Godot 4.7). Controls: **Space/F** or tap/click the water to fish, **S** sell, **1-9** menus, **Esc** close panel. Click the merchant on the island to shop.
+
+## Platforms
+
+| Platform | How |
+|---|---|
+| **Desktop (Windows)** | `Godot_console.exe --headless --path . --export-release "Windows Desktop" build/windows/VirtualFisher.exe` |
+| **Web** | `Godot_console.exe --headless --path . --export-release "Web" build/web/index.html`, then `python tools/serve_web.py` (or upload `build/web/` to itch.io / GitHub Pages) |
+| **Mobile** | Open the web build on your phone (same Wi-Fi: the URL printed by `serve_web.py`) and use *Add to Home Screen* — it installs as a full-screen landscape app (PWA). Tap the water to cast. |
+
+Saves are kept per device (desktop: `%APPDATA%/Godot/app_userdata/Virtual Fisher`, web/mobile: browser storage).
 
 ## What's in the game
 

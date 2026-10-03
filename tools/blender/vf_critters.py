@@ -324,13 +324,29 @@ def _stall():
     return parts
 
 
-def render_merchant(out_dir):
+MARKET_MODEL = "village"       # Quaternius "Market Stalls" (CC0), see CREDITS.md
+
+
+def _market(model, length=7.0):
+    """Quaternius market stalls, cel-shaded, centred at the origin."""
+    meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "market", model + ".glb"))
+    root = V.group_root(roots, "market")
+    for m in meshes:
+        for mt in m.data.materials:
+            if mt:
+                V.toonify(mt)
+    bpy.context.view_layer.update()
+    V.normalize(meshes, root, length=length, center=False)
+    return meshes
+
+
+def render_merchant(out_dir, model=None):
     os.makedirs(out_dir, exist_ok=True)
     cam = _setup(MERCHANT_CELL, TD.CAM_ROT)
-    stall = _stall()
+    stall = _market(model or MARKET_MODEL)
     meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "character.glb"))
     root = V.group_root(roots, "merchant")
-    root.location = (1.75, -1.35, 0)                  # in front of the stall, facing the camera (-Y)
+    root.location = (0.4, -2.0, 0)                    # in front of the stalls, facing the camera (-Y)
     for m in meshes:
         for mt in m.data.materials:
             name = mt.name.split(".")[0]

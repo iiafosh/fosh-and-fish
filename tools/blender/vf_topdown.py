@@ -433,7 +433,7 @@ def render_scene(name, path, mask_path):
     cam.location = CAM_LOC
     bpy.context.view_layer.update()
     spot = merchant_spot(P, cam)
-    EXTRA_AVOID[:] = [(spot[0], spot[1], 4.5)]
+    EXTRA_AVOID[:] = [(spot[0], spot[1], 6.0)]
     parts = build_scene(name, P)
     parts.append(water(P))
     K.outline_all(parts, 0.04)

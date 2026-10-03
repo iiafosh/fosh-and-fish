@@ -9,6 +9,7 @@ only the files the game uses are copied into `assets/third_party/` or baked into
 | [Animated Fish](https://poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g) (fish ×3, dolphin, shark, whale, manta ray) | [Quaternius](https://quaternius.com/packs/animatedfish.html) | CC0 | Swimming fish sprite sheets (`assets/vf/swim/`) |
 | [Animated Woman](https://poly.pizza/m/qJ2gsTUBHL) | Quaternius | CC0 | Animated fisher (`assets/vf/fisher/`) |
 | [Chest](https://poly.pizza/m/O72u4Drp8k) | Quaternius | CC0 | Sunken chests in the Ocean / Abyss scenes |
+| [Village Market](https://poly.pizza/m/0TsHLxX6CB) | Quaternius | CC0 | The merchant's market on the island (`assets/vf/merchant/`) |
 | [Flying gull](https://poly.pizza/m/eMNhHDZakYp) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Seagulls (`assets/vf/critters/gull.png`) |
 | [Crab](https://poly.pizza/m/2DgM36qZW2u) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Beach crabs (`assets/vf/critters/crab.png`) |
 | [Nature Kit](https://kenney.nl/assets/nature-kit) | Kenney | CC0 | Trees, palms, rocks, bushes, flowers, lily pads in scenes |
