@@ -47,33 +47,65 @@ var upgrades: Dictionary = {
 	"experienced": 0     # +10% XP gain per lvl
 }
 
+# Mascots & Companions
+var current_mascot: String = "rimuru_slime"
+var mascots: Dictionary = {
+	"rimuru_slime": {"name": "Rimuru Tempest (Slime)", "icon": "🌀", "fish_bonus": 1, "xp_mult": 1.0, "desc": "+1 Extra fish per reel."},
+	"rimuru_human": {"name": "Rimuru Tempest (Human)", "icon": "👑", "fish_bonus": 0, "xp_mult": 1.15, "desc": "+15% Extra EXP gain."}
+}
+
+var equipped_pet: String = "None"
+var owned_pets: Array[String] = []
+var pets_database: Dictionary = {
+	"Axo-9": {"req_level": 5, "icon": "🦎", "desc": "Cyber Axolotl. +15% XP Gain on all catches.", "xp_boost": 0.15, "double_catch": 0.0},
+	"Otto-Flux": {"req_level": 15, "icon": "🦦", "desc": "Quantum Otter. 25% Chance to double fish catch.", "xp_boost": 0.0, "double_catch": 0.25},
+	"Chrono-Jelly": {"req_level": 25, "icon": "🪼", "desc": "Tachyon Jelly. Slows down boss tension by 40%.", "xp_boost": 0.10, "double_catch": 0.10},
+	"Aethelgard": {"req_level": 40, "icon": "🐉", "desc": "Sovereign Dragon. Instant boss taming & 50% double catch.", "xp_boost": 0.30, "double_catch": 0.50}
+}
+
 # --- Databases ---
 var fish_database: Dictionary = {
-	"Raw Fish": {"price": 1, "xp": 1, "rarity": "Common", "biomes": ["River", "Space"], "color": Color(0.7, 0.8, 0.9)},
-	"Raw Salmon": {"price": 3, "xp": 2, "rarity": "Common", "biomes": ["River", "Volcanic", "Space"], "color": Color(1.0, 0.6, 0.5)},
-	"Cod": {"price": 10, "xp": 5, "rarity": "Uncommon", "biomes": ["River", "Volcanic"], "color": Color(0.9, 0.85, 0.4)},
-	"Tropical Fish": {"price": 50, "xp": 10, "rarity": "Rare", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.2, 0.9, 0.8)},
-	"Pufferfish": {"price": 150, "xp": 25, "rarity": "Epic", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.9, 0.7, 0.2)},
-	"Fiery Pufferfish": {"price": 250, "xp": 50, "rarity": "Rare", "biomes": ["Volcanic", "Sky"], "color": Color(1.0, 0.4, 0.2)},
-	"Hot Cod": {"price": 500, "xp": 100, "rarity": "Epic", "biomes": ["Volcanic"], "color": Color(1.0, 0.2, 0.2)},
-	"Squid": {"price": 1200, "xp": 175, "rarity": "Rare", "biomes": ["Ocean", "Sky"], "color": Color(0.7, 0.4, 0.9)},
-	"Turtle": {"price": 4000, "xp": 400, "rarity": "Epic", "biomes": ["Ocean"], "color": Color(0.3, 0.8, 0.4)},
-	"Dolphin": {"price": 20000, "xp": 800, "rarity": "Legendary", "biomes": ["Ocean"], "color": Color(0.2, 0.6, 1.0)}
+	# River Biome
+	"Raw Fish": {"price": 1, "xp": 1, "rarity": "Common", "biomes": ["River"], "color": Color(0.7, 0.8, 0.9), "is_boss": false},
+	"Raw Salmon": {"price": 3, "xp": 2, "rarity": "Common", "biomes": ["River", "Volcanic"], "color": Color(1.0, 0.6, 0.5), "is_boss": false},
+	"Cod": {"price": 10, "xp": 5, "rarity": "Uncommon", "biomes": ["River", "Volcanic"], "color": Color(0.9, 0.85, 0.4), "is_boss": false},
+	"Tropical Fish": {"price": 50, "xp": 10, "rarity": "Rare", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.2, 0.9, 0.8), "is_boss": false},
+	"Pufferfish": {"price": 150, "xp": 25, "rarity": "Epic", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.9, 0.7, 0.2), "is_boss": false},
+	
+	# Volcanic Biome
+	"Fiery Pufferfish": {"price": 250, "xp": 50, "rarity": "Rare", "biomes": ["Volcanic"], "color": Color(1.0, 0.4, 0.2), "is_boss": false},
+	"Hot Cod": {"price": 500, "xp": 100, "rarity": "Epic", "biomes": ["Volcanic"], "color": Color(1.0, 0.2, 0.2), "is_boss": false},
+	"Magma Ray": {"price": 1500, "xp": 250, "rarity": "Legendary", "biomes": ["Volcanic"], "color": Color(1.0, 0.3, 0.0), "is_boss": false},
+	
+	# Ocean Biome
+	"Squid": {"price": 1200, "xp": 175, "rarity": "Rare", "biomes": ["Ocean"], "color": Color(0.7, 0.4, 0.9), "is_boss": false},
+	"Turtle": {"price": 4000, "xp": 400, "rarity": "Epic", "biomes": ["Ocean"], "color": Color(0.3, 0.8, 0.4), "is_boss": false},
+	"Dolphin": {"price": 20000, "xp": 800, "rarity": "Legendary", "biomes": ["Ocean"], "color": Color(0.2, 0.6, 1.0), "is_boss": false},
+	"Abyssal Kraken": {"price": 100000, "xp": 5000, "rarity": "TITAN BOSS", "biomes": ["Ocean"], "color": Color(0.9, 0.1, 0.2), "is_boss": true},
+
+	# Secret Biome: Subspace 0x00 (Glitch Waters)
+	"ERR_404_NULL_EEL": {"price": 30000, "xp": 1200, "rarity": "Rare", "biomes": ["Subspace 0x00"], "color": Color(0.0, 1.0, 0.8), "is_boss": false},
+	"Quantum Matrix Ray": {"price": 85000, "xp": 3000, "rarity": "Epic", "biomes": ["Subspace 0x00"], "color": Color(0.8, 0.2, 1.0), "is_boss": false},
+	"Tachyon Singularity Chimera": {"price": 250000, "xp": 8000, "rarity": "Legendary", "biomes": ["Subspace 0x00"], "color": Color(1.0, 0.9, 0.0), "is_boss": false},
+	"Echo of the Glitch Sovereign": {"price": 1000000, "xp": 25000, "rarity": "TITAN BOSS", "biomes": ["Subspace 0x00"], "color": Color(0.0, 1.0, 1.0), "is_boss": true}
 }
 
 var rods_database: Dictionary = {
 	"Plastic Rod": {"cost": 0, "min_fish": 4, "max_fish": 10, "cd_penalty": 0.0, "biomes": ["River"], "desc": "Basic starter rod."},
 	"Improved Rod": {"cost": 500, "min_fish": 5, "max_fish": 10, "cd_penalty": 0.0, "biomes": ["River"], "desc": "Attracts slightly better fish."},
 	"Steel Rod": {"cost": 8000, "min_fish": 5, "max_fish": 8, "cd_penalty": 0.0, "biomes": ["River"], "desc": "Catches higher quality fish."},
-	"Fiberglass Rod": {"cost": 50000, "min_fish": 7, "max_fish": 10, "cd_penalty": 0.0, "biomes": ["River"], "desc": "Catches large amounts of quality fish."},
-	"Lava Rod": {"cost": 1000000, "min_fish": 7, "max_fish": 11, "cd_penalty": 0.0, "biomes": ["River", "Volcanic", "Ocean"], "desc": "Forged to resist boiling magma."}
+	"Fiberglass Rod": {"cost": 50000, "min_fish": 7, "max_fish": 10, "cd_penalty": 0.0, "biomes": ["River", "Ocean"], "desc": "Catches large amounts of quality fish."},
+	"Lava Rod": {"cost": 1000000, "min_fish": 7, "max_fish": 11, "cd_penalty": 0.0, "biomes": ["River", "Volcanic", "Ocean"], "desc": "Forged to resist boiling magma."},
+	"Celestial Prism Rod": {"cost": 5000000, "min_fish": 10, "max_fish": 18, "cd_penalty": -0.5, "biomes": ["River", "Volcanic", "Ocean", "Subspace 0x00"], "desc": "Refracts stellar light into pure fishing fortune."},
+	"0xDEADBEEF Dev Glitch Rod": {"cost": 0, "min_fish": 20, "max_fish": 40, "cd_penalty": -1.2, "biomes": ["River", "Volcanic", "Ocean", "Subspace 0x00"], "desc": "Secret Easter Egg relic pulsing with binary code."}
 }
 
 var boats_database: Dictionary = {
 	"Standard Skiff": {"cost": 0, "speed": 180.0, "cd_bonus": 0.0, "fish_bonus": 0, "desc": "Simple wooden skiff."},
 	"Rowboat": {"cost": 5000, "speed": 220.0, "cd_bonus": 0.25, "fish_bonus": 1, "desc": "-0.25s CD, +1 fish per cast, faster rowing."},
 	"Fishing Boat": {"cost": 25000, "speed": 260.0, "cd_bonus": 0.50, "fish_bonus": 2, "desc": "Motorized fishing vessel with improved hold."},
-	"Speedboat": {"cost": 100000, "speed": 340.0, "cd_bonus": 0.75, "fish_bonus": 3, "desc": "High speed marine vessel for long-range cruising."}
+	"Speedboat": {"cost": 100000, "speed": 340.0, "cd_bonus": 0.75, "fish_bonus": 3, "desc": "High speed marine vessel for long-range cruising."},
+	"Hovercraft Vanguard": {"cost": 750000, "speed": 420.0, "cd_bonus": 1.0, "fish_bonus": 5, "desc": "All-terrain air-cushion cruiser navigating reefs and magma alike."}
 }
 
 var baits_database: Dictionary = {
@@ -81,7 +113,8 @@ var baits_database: Dictionary = {
 	"Worms": {"cost": 4, "bonus_fish": 3, "quality_mult": 1.0, "xp_mult": 0.9, "desc": "+3 Fish per cast, -10% XP."},
 	"Leeches": {"cost": 25, "bonus_fish": 3, "quality_mult": 1.2, "xp_mult": 0.8, "desc": "+20% Quality, +3 Fish, -20% XP."},
 	"Wise": {"cost": 35, "bonus_fish": 0, "quality_mult": 1.0, "xp_mult": 2.5, "desc": "+150% XP Gain for rapid leveling."},
-	"Fish": {"cost": 70, "bonus_fish": 1, "quality_mult": 2.0, "xp_mult": 0.7, "desc": "+100% Quality, +1 Fish."}
+	"Fish": {"cost": 70, "bonus_fish": 1, "quality_mult": 2.0, "xp_mult": 0.7, "desc": "+100% Quality, +1 Fish."},
+	"Magic": {"cost": 200, "bonus_fish": 4, "quality_mult": 3.0, "xp_mult": 1.5, "desc": "Mystic bait attracting rare exotic species."}
 }
 
 func _ready() -> void:
@@ -210,19 +243,43 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 		else:
 			selected_fish = "Raw Salmon"
 	elif biome_to_use == "Ocean":
-		if roll < 0.05 and "Dolphin" in eligible_fish:
+		if roll < 0.03 and "Abyssal Kraken" in eligible_fish:
+			selected_fish = "Abyssal Kraken"
+		elif roll < 0.08 and "Dolphin" in eligible_fish:
 			selected_fish = "Dolphin"
-		elif roll < 0.20 and "Turtle" in eligible_fish:
+		elif roll < 0.25 and "Turtle" in eligible_fish:
 			selected_fish = "Turtle"
-		elif roll < 0.45 and "Squid" in eligible_fish:
+		elif roll < 0.50 and "Squid" in eligible_fish:
 			selected_fish = "Squid"
 		else:
 			selected_fish = "Pufferfish"
+	elif biome_to_use == "Subspace 0x00":
+		if roll < 0.04 and "Echo of the Glitch Sovereign" in eligible_fish:
+			selected_fish = "Echo of the Glitch Sovereign"
+		elif roll < 0.18 and "Tachyon Singularity Chimera" in eligible_fish:
+			selected_fish = "Tachyon Singularity Chimera"
+		elif roll < 0.45 and "Quantum Matrix Ray" in eligible_fish:
+			selected_fish = "Quantum Matrix Ray"
+		else:
+			selected_fish = "ERR_404_NULL_EEL"
 
 	# Calculate quantity caught
 	var base_count = randi_range(rod["min_fish"], rod["max_fish"])
 	base_count += bait["bonus_fish"]
 	base_count += boat["fish_bonus"]
+	
+	# Mascot Rimuru Slime Perk
+	if current_mascot == "rimuru_slime":
+		base_count += 1
+		
+	# Pet Perks (Double Catch)
+	var pet_bonus_msg = ""
+	if equipped_pet != "None" and pets_database.has(equipped_pet):
+		var p_data = pets_database[equipped_pet]
+		if p_data.get("double_catch", 0.0) > 0 and randf() < p_data["double_catch"]:
+			base_count *= 2
+			pet_bonus_msg = " ⚡ [PET DOUBLE-CATCH!]"
+
 	base_count = max(1, base_count)
 
 	# Store in inventory
@@ -239,7 +296,13 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 
 	# Award XP
 	var xp_unit = fish_database[selected_fish]["xp"]
-	var total_xp = int(base_count * xp_unit * get_xp_multiplier())
+	var xp_mult = get_xp_multiplier()
+	if current_mascot == "rimuru_human":
+		xp_mult *= 1.15
+	if equipped_pet != "None" and pets_database.has(equipped_pet):
+		xp_mult *= (1.0 + pets_database[equipped_pet].get("xp_boost", 0.0))
+
+	var total_xp = int(base_count * xp_unit * xp_mult)
 	add_xp(total_xp)
 
 	inventory_changed.emit()
@@ -252,5 +315,6 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 		"xp": total_xp,
 		"rarity": rarity,
 		"color": fish_database[selected_fish]["color"],
-		"exotic": exotic_msg
+		"exotic": exotic_msg + pet_bonus_msg,
+		"is_boss": fish_database[selected_fish].get("is_boss", false)
 	}
