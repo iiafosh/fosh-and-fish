@@ -165,7 +165,7 @@ func fish_catch_mult() -> float:
 
 func fish_quality_mult() -> float:
 	return maxf(0.1, 1.0 + 0.05 * up("better_fish") + 0.40 * pk("virtual_fisher") + pet_stat("quality")
-		+ bait_stat("quality")) * stat_mult()
+		+ bait_stat("quality")) * stat_mult() * admin_luck
 
 func marketing_mult() -> float:
 	var t := charm_tier("marketing")
@@ -187,7 +187,7 @@ func treasure_boost_mult() -> float:
 func treasure_chance() -> float:
 	var r: Dictionary = VFData.RODS[rod]
 	var m := (1.0 + 0.05 * up("more_chests") + 0.025 * charm_tier("treasure") + bait_stat("tc") + pet_stat("tc")) * stat_mult()
-	return clampf(r.tc * m * treasure_boost_mult(), 0.0, 1.0)
+	return clampf(r.tc * m * treasure_boost_mult() * admin_luck, 0.0, 1.0)
 
 func treasure_quality() -> float:
 	var r: Dictionary = VFData.RODS[rod]
@@ -209,6 +209,7 @@ func worker_cooldown() -> float:
 
 # ------------------------------------------------------------------ fishing
 func cooldown_left() -> float:
+	if admin_no_cooldown: return 0.0
 	return maxf(0.0, cooldown() - (Time.get_ticks_msec() - _last_cast_ms) / 1000.0)
 
 func rod_usable(r: String = "", b: String = "") -> bool:
@@ -272,6 +273,7 @@ func _fish_count(for_worker: bool = false) -> int:
 		cnt *= 1.05 + 0.01 * ff + 0.01 * bb
 	var n := int(floor(cnt))
 	if rng.randf() < cnt - n: n += 1
+	n = int(n * admin_luck)
 	if n > 0 and rng.randf() < duplicate_chance():
 		n *= 2
 	return n
@@ -466,7 +468,7 @@ func _give_charms(x: float, out: Dictionary) -> void:
 
 # --------------------------------------------------------------------- pets
 func _roll_pet() -> String:
-	var chance := (1.0 + 0.03 * prestige) / 10000.0
+	var chance := (1.0 + 0.03 * prestige) / 10000.0 * admin_luck * admin_luck
 	if bait == "Support Bait" and has_bait():
 		chance *= 1.4 * bait_eff()
 	if pets.is_empty():
@@ -873,3 +875,73 @@ static func commas(n: int) -> String:
 		out = "," + s.substr(s.length() - 3) + out
 		s = s.substr(0, s.length() - 3)
 	return ("-" if n < 0 else "") + s + out
+
+
+# ================================================================== admin
+## Developer / "admin abuse" tools (F1 in game). Runtime only: the luck and
+## cooldown toggles are not saved.
+var admin_no_cooldown := false
+var admin_luck := 1.0
+
+func admin_money(amount: int) -> void:
+	money += amount
+	changed.emit()
+
+func admin_levels(n: int) -> void:
+	var target := mini(MAX_LEVEL, level + n)
+	while level < target:
+		xp = 0
+		level += 1
+		money += levelup_money(level)
+	leveled_up.emit(level, 0)
+	changed.emit()
+
+func admin_exotics(n: int) -> void:
+	for k in exotics:
+		exotics[k] += n
+	hooks += n
+	changed.emit()
+
+func admin_unlock_gear() -> void:
+	level = maxi(level, 2500)
+	for r in VFData.ROD_ORDER:
+		if not (r in owned_rods): owned_rods.append(r)
+	boats_owned = VFData.BOAT_ORDER.size()
+	for b in VFData.BAIT_ORDER:
+		bait_stock[b] = int(bait_stock.get(b, 0)) + 9999
+	changed.emit()
+
+func admin_max_upgrades() -> void:
+	for id in VFData.UPGRADES: upgrades[id] = VFData.UPGRADES[id].max
+	for id in VFData.SPECIALS: specials[id] = VFData.SPECIALS[id].max
+	for id in VFData.LEAGUE: league[id] = VFData.LEAGUE[id].costs.size()
+	changed.emit()
+
+func admin_max_charms() -> void:
+	var per := VFData.charm_total_cap(prestige) / 8
+	for id in VFData.CHARM_ORDER: charms[id] = per
+	changed.emit()
+
+func admin_all_pets() -> void:
+	for p in VFData.PET_ORDER:
+		pets[p] = {"level": pet_level_cap(), "xp": 0}
+	if pet == "": pet = "Puffer"
+	changed.emit()
+
+func admin_chest(tier: String) -> Dictionary:
+	var res := _open_chest(tier)
+	changed.emit()
+	return res
+
+func admin_prestige_now() -> void:
+	admin_max_charms()
+	level = maxi(level, VFData.prestige_level_req(prestige))
+	money = maxi(money, VFData.prestige_money_req(prestige))
+	do_prestige()
+
+func admin_boosts() -> void:
+	var now := Time.get_unix_time_from_system()
+	for k in ["fish", "treasure", "worker"]:
+		boosts[k] = maxf(now, float(boosts.get(k, 0.0))) + 3600.0
+	personal_until = maxf(now, personal_until) + 3600.0
+	changed.emit()

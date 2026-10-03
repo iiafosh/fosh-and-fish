@@ -12,7 +12,7 @@ their licenses in [CREDITS.md](CREDITS.md); fetch the raw packs with `python too
 ```bash
 launch_game.bat
 ```
-or `Godot.exe --path .` (Godot 4.7). Controls: **Space/F** fish, **S** sell, **Esc** close panel.
+or `Godot.exe --path .` (Godot 4.7). Controls: **Space/F** fish, **S** sell, **Esc** close panel, **F1** admin panel (cheats / "admin abuse" event).
 
 ## What's in the game
 
