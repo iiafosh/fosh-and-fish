@@ -1,34 +1,35 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene format=3 uid="uid://bptijihbidvsy"]
 
-[ext_resource type="Script" path="res://scripts/overworld.gd" id="1_overworld"]
-[ext_resource type="Texture2D" path="res://assets/scale_the_depths/Hub_BG_Sky.png" id="2_sky_tex"]
-[ext_resource type="Texture2D" path="res://assets/scale_the_depths/Hub_BG Water.png" id="3_back_wave_tex"]
-[ext_resource type="Texture2D" path="res://assets/scale_the_depths/Hub_Front Wave.png" id="4_fore_wave_tex"]
-[ext_resource type="Texture2D" path="res://web/assets/finding_sobron/sprites/forest/forest-1.png" id="5_forest_tex"]
-[ext_resource type="Texture2D" path="res://web/assets/finding_sobron/sprites/house/house.png" id="6_house_tex"]
-[ext_resource type="Script" path="res://scripts/vessel_deck.gd" id="7_vessel"]
+[ext_resource type="Script" uid="uid://cd46j1ehd805g" path="res://scripts/overworld.gd" id="1_overworld"]
+[ext_resource type="Texture2D" uid="uid://bfay2n425fu70" path="res://assets/scale_the_depths/Hub_BG_Sky.png" id="2_sky_tex"]
+[ext_resource type="Texture2D" uid="uid://dfpp36oj8slh0" path="res://assets/scale_the_depths/Hub_BG Water.png" id="3_back_wave_tex"]
+[ext_resource type="Texture2D" uid="uid://bcqpj3rmwjnj4" path="res://assets/scale_the_depths/Hub_Front Wave.png" id="4_fore_wave_tex"]
+[ext_resource type="Texture2D" uid="uid://c1kg6bi463e2t" path="res://web/assets/finding_sobron/sprites/forest/forest-1.png" id="5_forest_tex"]
+[ext_resource type="Texture2D" uid="uid://yywxtyqfoguu" path="res://web/assets/finding_sobron/sprites/house/house.png" id="6_house_tex"]
+[ext_resource type="Script" uid="uid://ce3rc47sg5xu0" path="res://scripts/vessel_deck.gd" id="7_vessel"]
 [ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="8_theme"]
-[ext_resource type="PackedScene" path="res://scenes/catch_toast.tscn" id="9_toast"]
-[ext_resource type="PackedScene" path="res://scenes/station_hub.tscn" id="10_hub"]
+[ext_resource type="PackedScene" uid="uid://ccatchtoast1" path="res://scenes/catch_toast.tscn" id="9_toast"]
+[ext_resource type="PackedScene" uid="uid://cstationhub1" path="res://scenes/station_hub.tscn" id="10_hub"]
 [ext_resource type="PackedScene" path="res://scenes/boss_minigame.tscn" id="11_boss"]
 [ext_resource type="PackedScene" path="res://scenes/travel_map.tscn" id="12_map"]
 
-[node name="Overworld" type="Node2D"]
+[node name="Overworld" type="Node2D" unique_id=386474908]
 script = ExtResource("1_overworld")
 
-[node name="SkyRect" type="ColorRect" parent="."]
+[node name="SkyRect" type="ColorRect" parent="." unique_id=326898465]
 offset_right = 1280.0
 offset_bottom = 440.0
 color = Color(0.22, 0.74, 0.97, 1)
 
-[node name="SkyTile" type="TextureRect" parent="."]
+[node name="SkyTile" type="TextureRect" parent="." unique_id=1041696880]
 modulate = Color(1, 1, 1, 0.55)
+offset_top = -3.0
 offset_right = 1280.0
-offset_bottom = 437.0
+offset_bottom = 434.0
 texture = ExtResource("2_sky_tex")
 stretch_mode = 1
 
-[node name="DistantForest" type="TextureRect" parent="."]
+[node name="DistantForest" type="TextureRect" parent="." unique_id=903266366]
 modulate = Color(0.85, 0.95, 1, 0.65)
 offset_left = 30.0
 offset_top = 220.0
@@ -38,7 +39,7 @@ texture = ExtResource("5_forest_tex")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="DistantVillage" type="TextureRect" parent="."]
+[node name="DistantVillage" type="TextureRect" parent="." unique_id=2026074975]
 modulate = Color(0.9, 0.95, 1, 0.7)
 offset_left = 940.0
 offset_top = 290.0
@@ -48,22 +49,22 @@ texture = ExtResource("6_house_tex")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="BackWave" type="TextureRect" parent="."]
+[node name="BackWave" type="TextureRect" parent="." unique_id=1657108466]
 offset_top = 396.0
 offset_right = 1280.0
 offset_bottom = 469.0
 texture = ExtResource("3_back_wave_tex")
 stretch_mode = 1
 
-[node name="UnderwaterDepth" type="ColorRect" parent="."]
+[node name="UnderwaterDepth" type="ColorRect" parent="." unique_id=848021429]
 offset_top = 440.0
 offset_right = 1280.0
 offset_bottom = 720.0
 color = Color(0.027, 0.231, 0.361, 1)
 
-[node name="UnderwaterFish" type="Node2D" parent="."]
+[node name="UnderwaterFish" type="Node2D" parent="." unique_id=1773870996]
 
-[node name="AmbientParticles" type="CPUParticles2D" parent="."]
+[node name="AmbientParticles" type="CPUParticles2D" parent="." unique_id=2112028771]
 position = Vector2(640, 200)
 amount = 24
 lifetime = 4.0
@@ -78,7 +79,7 @@ scale_amount_min = 2.0
 scale_amount_max = 4.0
 color = Color(1, 1, 0.85, 0.4)
 
-[node name="SplashParticles" type="CPUParticles2D" parent="."]
+[node name="SplashParticles" type="CPUParticles2D" parent="." unique_id=1328019517]
 position = Vector2(288, 436)
 emitting = false
 amount = 18
@@ -94,14 +95,14 @@ scale_amount_min = 2.5
 scale_amount_max = 5.0
 color = Color(0.85, 0.95, 1, 0.85)
 
-[node name="Vessel" type="Node2D" parent="."]
+[node name="Vessel" type="Node2D" parent="." unique_id=806197601]
 position = Vector2(640, 424)
 script = ExtResource("7_vessel")
 
-[node name="Player" type="Node2D" parent="Vessel"]
+[node name="Player" type="Node2D" parent="Vessel" unique_id=1411395332]
 position = Vector2(0, -6)
 
-[node name="PromptBubble" type="PanelContainer" parent="Vessel/Player"]
+[node name="PromptBubble" type="PanelContainer" parent="Vessel/Player" unique_id=1490365887]
 visible = false
 anchors_preset = 7
 anchor_left = 0.5
@@ -116,7 +117,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme = ExtResource("8_theme")
 
-[node name="PromptLabel" type="Label" parent="Vessel/Player/PromptBubble"]
+[node name="PromptLabel" type="Label" parent="Vessel/Player/PromptBubble" unique_id=1027809332]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.7, 1)
 theme_override_font_sizes/font_size = 11
@@ -124,16 +125,16 @@ text = "[E] Enter Station"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ForeWave" type="TextureRect" parent="."]
+[node name="ForeWave" type="TextureRect" parent="." unique_id=2141040993]
 offset_top = 432.0
 offset_right = 1280.0
 offset_bottom = 490.0
 texture = ExtResource("4_fore_wave_tex")
 stretch_mode = 1
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=352951683]
 
-[node name="TopHUD" type="Control" parent="CanvasLayer"]
+[node name="TopHUD" type="Control" parent="CanvasLayer" unique_id=723661257]
 layout_mode = 3
 anchors_preset = 10
 anchor_right = 1.0
@@ -142,30 +143,30 @@ grow_horizontal = 2
 mouse_filter = 2
 theme = ExtResource("8_theme")
 
-[node name="LeftPill" type="PanelContainer" parent="CanvasLayer/TopHUD"]
+[node name="LeftPill" type="PanelContainer" parent="CanvasLayer/TopHUD" unique_id=513316967]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 16.0
 offset_right = 320.0
 offset_bottom = 60.0
 
-[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/LeftPill"]
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/LeftPill" unique_id=352921111]
 layout_mode = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="BiomeLabel" type="Label" parent="CanvasLayer/TopHUD/LeftPill/HBox"]
+[node name="BiomeLabel" type="Label" parent="CanvasLayer/TopHUD/LeftPill/HBox" unique_id=2070372739]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.4, 1)
 theme_override_font_sizes/font_size = 13
 text = "Riverwood Shallows"
 
-[node name="ChartBtn" type="Button" parent="CanvasLayer/TopHUD/LeftPill/HBox"]
+[node name="ChartBtn" type="Button" parent="CanvasLayer/TopHUD/LeftPill/HBox" unique_id=1459228139]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "🧭 Chart"
 
-[node name="RightPills" type="HBoxContainer" parent="CanvasLayer/TopHUD"]
+[node name="RightPills" type="HBoxContainer" parent="CanvasLayer/TopHUD" unique_id=125882493]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
@@ -178,51 +179,51 @@ grow_horizontal = 0
 theme_override_constants/separation = 12
 alignment = 2
 
-[node name="CashPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills"]
+[node name="CashPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills" unique_id=1511755299]
 layout_mode = 2
 
-[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/CashPill"]
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/CashPill" unique_id=1351579321]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="CashLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/CashPill/HBox"]
+[node name="CashLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/CashPill/HBox" unique_id=341497210]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 15
 text = "$ 150"
 
-[node name="LevelPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills"]
+[node name="LevelPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills" unique_id=1537176927]
 layout_mode = 2
 
-[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/LevelPill"]
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/LevelPill" unique_id=1008266815]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="LevelLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/LevelPill/HBox"]
+[node name="LevelLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/LevelPill/HBox" unique_id=999821655]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 12
 text = "Lv. 1"
 
-[node name="XPBar" type="ProgressBar" parent="CanvasLayer/TopHUD/RightPills/LevelPill/HBox"]
+[node name="XPBar" type="ProgressBar" parent="CanvasLayer/TopHUD/RightPills/LevelPill/HBox" unique_id=83651610]
 custom_minimum_size = Vector2(80, 12)
 layout_mode = 2
 size_flags_vertical = 4
 show_percentage = false
 
-[node name="TokensPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills"]
+[node name="TokensPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills" unique_id=2135920605]
 layout_mode = 2
 
-[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/TokensPill"]
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/TokensPill" unique_id=783742604]
 layout_mode = 2
 
-[node name="TokensLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/TokensPill/HBox"]
+[node name="TokensLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/TokensPill/HBox" unique_id=511123742]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "🪙 0  💎 0"
 
-[node name="BottomDock" type="Control" parent="CanvasLayer"]
+[node name="BottomDock" type="Control" parent="CanvasLayer" unique_id=950565561]
 layout_mode = 3
 anchors_preset = 12
 anchor_top = 1.0
@@ -233,7 +234,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme = ExtResource("8_theme")
 
-[node name="Center" type="HBoxContainer" parent="CanvasLayer/BottomDock"]
+[node name="Center" type="HBoxContainer" parent="CanvasLayer/BottomDock" unique_id=1440121556]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -249,28 +250,28 @@ grow_vertical = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="LeftBox" type="HBoxContainer" parent="CanvasLayer/BottomDock/Center"]
+[node name="LeftBox" type="HBoxContainer" parent="CanvasLayer/BottomDock/Center" unique_id=1888499337]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MarketBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox"]
+[node name="MarketBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox" unique_id=378097928]
 custom_minimum_size = Vector2(90, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "💰 Market"
 
-[node name="TackleBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox"]
+[node name="TackleBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox" unique_id=1008345652]
 custom_minimum_size = Vector2(90, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "🧰 Tackle"
 
-[node name="CenterBox" type="MarginContainer" parent="CanvasLayer/BottomDock/Center"]
+[node name="CenterBox" type="MarginContainer" parent="CanvasLayer/BottomDock/Center" unique_id=978923973]
 layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_right = 6
 
-[node name="HeroCastBtn" type="Button" parent="CanvasLayer/BottomDock/Center/CenterBox"]
+[node name="HeroCastBtn" type="Button" parent="CanvasLayer/BottomDock/Center/CenterBox" unique_id=792666427]
 custom_minimum_size = Vector2(250, 52)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
@@ -278,43 +279,39 @@ theme_override_colors/font_hover_color = Color(1, 1, 0.9, 1)
 theme_override_font_sizes/font_size = 14
 text = "🎣 CAST LINE [SPACE]"
 
-[node name="RightBox" type="HBoxContainer" parent="CanvasLayer/BottomDock/Center"]
+[node name="RightBox" type="HBoxContainer" parent="CanvasLayer/BottomDock/Center" unique_id=665179000]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ShipyardBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox"]
+[node name="ShipyardBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox" unique_id=218022081]
 custom_minimum_size = Vector2(90, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "🚢 Shipyard"
 
-[node name="PetsBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox"]
+[node name="PetsBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox" unique_id=1585887870]
 custom_minimum_size = Vector2(90, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "🐾 Pets"
 
-[node name="MapBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox"]
+[node name="MapBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox" unique_id=1847183919]
 custom_minimum_size = Vector2(85, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "🧭 Chart"
 
-[node name="CatchToast" parent="CanvasLayer" instance=ExtResource("9_toast")]
+[node name="CatchToast" parent="CanvasLayer" unique_id=1060791674 instance=ExtResource("9_toast")]
 
-[node name="StationHub" parent="CanvasLayer" instance=ExtResource("10_hub")]
+[node name="StationHub" parent="CanvasLayer" unique_id=929347928 instance=ExtResource("10_hub")]
 visible = false
 
-[node name="BossMinigame" parent="CanvasLayer" instance=ExtResource("11_boss")]
+[node name="BossMinigame" parent="CanvasLayer" unique_id=1718177443 instance=ExtResource("11_boss")]
 visible = false
 
-[node name="TravelMapModal" parent="CanvasLayer" instance=ExtResource("12_map")]
+[node name="TravelMapModal" parent="CanvasLayer" unique_id=335768816 instance=ExtResource("12_map")]
 visible = false
 
 [connection signal="pressed" from="CanvasLayer/TopHUD/LeftPill/HBox/ChartBtn" to="." method="_open_travel_map"]
-[connection signal="pressed" from="CanvasLayer/BottomDock/Center/LeftBox/MarketBtn" to="." method="_on_dock_btn_pressed" binds= ["market"]]
-[connection signal="pressed" from="CanvasLayer/BottomDock/Center/LeftBox/TackleBtn" to="." method="_on_dock_btn_pressed" binds= ["tackle"]]
 [connection signal="pressed" from="CanvasLayer/BottomDock/Center/CenterBox/HeroCastBtn" to="." method="_on_cast_pressed"]
-[connection signal="pressed" from="CanvasLayer/BottomDock/Center/RightBox/ShipyardBtn" to="." method="_on_dock_btn_pressed" binds= ["shipyard"]]
-[connection signal="pressed" from="CanvasLayer/BottomDock/Center/RightBox/PetsBtn" to="." method="_on_dock_btn_pressed" binds= ["pets"]]
 [connection signal="pressed" from="CanvasLayer/BottomDock/Center/RightBox/MapBtn" to="." method="_open_travel_map"]

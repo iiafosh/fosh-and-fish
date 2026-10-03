@@ -38,7 +38,6 @@ var cooldown_timer: float = 0.0
 @onready var rods_container: VBoxContainer = $Panel/Margin/VBox/Content/TacklePanel/Scroll/VBox/RodsContainer
 @onready var baits_container: VBoxContainer = $Panel/Margin/VBox/Content/TacklePanel/Scroll/VBox/BaitsContainer
 @onready var boats_container: VBoxContainer = $Panel/Margin/VBox/Content/ShipyardPanel/Scroll/BoatsContainer
-@onready var mascots_container: VBoxContainer = $Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox/MascotsContainer
 @onready var pets_container: VBoxContainer = $Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox/PetsContainer
 @onready var upgrades_container: VBoxContainer = $Panel/Margin/VBox/Content/UpgradesPanel/Scroll/UpgradesContainer
 
@@ -59,14 +58,19 @@ func _ready() -> void:
 	GameManager.open_station_requested.connect(open_dock)
 	
 	# Preload fish textures
-	fish_tex_cache["Cod"] = load("res://web/assets/Fish_Cod.png")
-	fish_tex_cache["Bluefin Tuna"] = load("res://web/assets/Fish_Bluefin Tuna.png")
-	fish_tex_cache["Anchovy"] = load("res://web/assets/Fish_Anchovy.png")
-	fish_tex_cache["Sardine"] = load("res://web/assets/Fish_Anchovy.png")
-	fish_tex_cache["Mackerel"] = load("res://web/assets/Fish_Mackerel.png")
-	fish_tex_cache["Turtle"] = load("res://web/assets/turtle.png")
-	fish_tex_cache["Dolphin"] = load("res://web/assets/dolphin.png")
-	fish_tex_cache["Abyssal Kraken"] = load("res://web/assets/kraken.png")
+	var p_dict = {
+		"Cod": "res://web/assets/Fish_Cod.png",
+		"Bluefin Tuna": "res://web/assets/Fish_Bluefin Tuna.png",
+		"Anchovy": "res://web/assets/Fish_Anchovy.png",
+		"Sardine": "res://web/assets/Fish_Anchovy.png",
+		"Mackerel": "res://web/assets/Fish_Mackerel.png",
+		"Turtle": "res://web/assets/turtle.png",
+		"Dolphin": "res://web/assets/dolphin.png",
+		"Abyssal Kraken": "res://web/assets/kraken.png"
+	}
+	for k in p_dict.keys():
+		if ResourceLoader.exists(p_dict[k]):
+			fish_tex_cache[k] = load(p_dict[k])
 
 	refresh_header()
 
@@ -88,7 +92,6 @@ func open_dock(dock_data: Dictionary) -> void:
 	title_label.text = "⚓ " + dock_data.get("name", "Harbor Station")
 	subtitle_label.text = dock_data.get("description", "")
 	
-	# Show appropriate tabs based on dock type
 	var dtype = dock_data.get("type", "harbor")
 	if dtype in ["fishing_spot", "portal"]:
 		tab_market_btn.visible = false
@@ -99,7 +102,6 @@ func open_dock(dock_data: Dictionary) -> void:
 		tab_fishing_btn.visible = true
 		_on_fishing_btn_pressed()
 
-		# Easter egg check for subspace portal
 		if dock_data.get("id") == "subspace_portal":
 			if GameManager.unlock_secret_rod():
 				subtitle_label.text = "👾 ANOMALY CRACKED: Unlocked '0xDEADBEEF Dev Glitch Rod'!\n" + subtitle_label.text
@@ -117,7 +119,7 @@ func open_dock(dock_data: Dictionary) -> void:
 
 	refresh_all()
 
-	# Jev Decision #3: Slide-up bottom drawer tween
+	# Slide-up bottom drawer tween
 	if active_tween and active_tween.is_valid():
 		active_tween.kill()
 	panel.position.y = 720.0
@@ -146,7 +148,7 @@ func refresh_all() -> void:
 	refresh_tackle()
 	refresh_shipyard()
 	refresh_fishing_view()
-	refresh_pets_and_mascots()
+	refresh_pets()
 	refresh_upgrades()
 
 func refresh_header() -> void:
@@ -190,7 +192,7 @@ func refresh_market() -> void:
 		icon_rect.custom_minimum_size = Vector2(48, 48)
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		var icon_tex = fish_tex_cache.get(f_name, fish_tex_cache["Cod"])
+		var icon_tex = fish_tex_cache.get(f_name, fish_tex_cache.get("Cod"))
 		if icon_tex:
 			icon_rect.texture = icon_tex
 		hbox.add_child(icon_rect)
@@ -205,7 +207,7 @@ func refresh_market() -> void:
 		vbox.add_child(name_lbl)
 
 		var info_lbl = Label.new()
-		info_lbl.text = "Owned: %d | $%d each" % [count, unit_price]
+		info_lbl.text = "In Hold: %d | $%d each" % [count, unit_price]
 		info_lbl.add_theme_font_size_override("font_size", 10)
 		info_lbl.modulate = Color(0.9, 0.9, 0.9) if count > 0 else Color(0.5, 0.5, 0.5)
 		vbox.add_child(info_lbl)
@@ -247,6 +249,82 @@ func refresh_tackle() -> void:
 	for child in rods_container.get_children():
 		child.queue_free()
 
+	# --- 1. Automated Trawler Net (Worker Card) ---
+	var worker_card = PanelContainer.new()
+	var w_margin = MarginContainer.new()
+	w_margin.add_theme_constant_override("margin_left", 14)
+	w_margin.add_theme_constant_override("margin_right", 14)
+	w_margin.add_theme_constant_override("margin_top", 10)
+	w_margin.add_theme_constant_override("margin_bottom", 10)
+
+	var w_hbox = HBoxContainer.new()
+	w_hbox.add_theme_constant_override("separation", 16)
+
+	var w_vbox = VBoxContainer.new()
+	w_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var w_title = Label.new()
+	w_title.text = "🕸️ Automated Trawler Net (Worker)"
+	w_title.add_theme_font_size_override("font_size", 13)
+	w_title.modulate = Color("#38bdf8")
+	w_vbox.add_child(w_title)
+
+	var w_desc = Label.new()
+	if GameManager.worker_unlocked:
+		var cd = max(9.0, 18.0 - (GameManager.worker_level - 1) * 2.0)
+		w_desc.text = "Status: ACTIVE [Tier %d/5]  |  Cycle: %.1fs\nPassively hauls %d-%d fish per cycle directly into your cargo hold." % [
+			GameManager.worker_level, cd, 1 + GameManager.worker_level, 2 + GameManager.worker_level * 2
+		]
+	else:
+		w_desc.text = "Status: LOCKED  |  Trails behind your vessel and hauls fish passively every 18s."
+	w_desc.add_theme_font_size_override("font_size", 10)
+	w_desc.modulate = Color("#cbd5e1")
+	w_vbox.add_child(w_desc)
+	w_hbox.add_child(w_vbox)
+
+	if not GameManager.worker_unlocked:
+		var hire_btn = Button.new()
+		hire_btn.text = "Hire Net ($3,500)"
+		hire_btn.custom_minimum_size = Vector2(140, 36)
+		hire_btn.disabled = GameManager.cash < 3500
+		hire_btn.pressed.connect(func():
+			if GameManager.cash >= 3500:
+				AudioManager.play_strike()
+				GameManager.cash -= 3500
+				GameManager.worker_unlocked = true
+				GameManager.worker_level = 1
+				GameManager.stats_changed.emit()
+				GameManager.save_game()
+				refresh_tackle()
+		)
+		w_hbox.add_child(hire_btn)
+	elif GameManager.worker_level < 5:
+		var up_cost = GameManager.worker_level * 3000
+		var up_btn = Button.new()
+		up_btn.text = "Upgrade ($%d)" % up_cost
+		up_btn.custom_minimum_size = Vector2(140, 36)
+		up_btn.disabled = GameManager.cash < up_cost
+		up_btn.pressed.connect(func():
+			if GameManager.cash >= up_cost:
+				AudioManager.play_strike()
+				GameManager.cash -= up_cost
+				GameManager.worker_level += 1
+				GameManager.stats_changed.emit()
+				GameManager.save_game()
+				refresh_tackle()
+		)
+		w_hbox.add_child(up_btn)
+	else:
+		var max_lbl = Label.new()
+		max_lbl.text = "MAX TIER"
+		max_lbl.modulate = Color("#4ade80")
+		w_hbox.add_child(max_lbl)
+
+	w_margin.add_child(w_hbox)
+	worker_card.add_child(w_margin)
+	rods_container.add_child(worker_card)
+
+	# --- 2. Rods ---
 	for r_name in GameManager.rods_database.keys():
 		var r_data = GameManager.rods_database[r_name]
 		var card = PanelContainer.new()
@@ -260,9 +338,11 @@ func refresh_tackle() -> void:
 		hbox.add_theme_constant_override("separation", 14)
 
 		var lbl = Label.new()
-		lbl.text = "🎣 %s | Catches %d-%d fish | %s" % [r_name, r_data["min_fish"], r_data["max_fish"], r_data["desc"]]
+		lbl.text = "🎣 %s | Catch: %d-%d fish | Treasure: %d%% | %s" % [
+			r_name, r_data["min_fish"], r_data["max_fish"], int(r_data.get("treasure_chance", 0.05) * 100), r_data["desc"]
+		]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_font_size_override("font_size", 11)
 		hbox.add_child(lbl)
 
 		if r_name == GameManager.current_rod:
@@ -272,23 +352,23 @@ func refresh_tackle() -> void:
 			eq.add_theme_font_size_override("font_size", 12)
 			hbox.add_child(eq)
 		elif r_name in GameManager.owned_rods:
-			var equip_btn = Button.new()
-			equip_btn.text = "Equip Rod"
-			equip_btn.pressed.connect(func():
+			var eq_btn = Button.new()
+			eq_btn.text = "Equip Rod"
+			eq_btn.pressed.connect(func():
 				AudioManager.play_click()
 				GameManager.current_rod = r_name
 				GameManager.save_game()
 				refresh_tackle()
 				refresh_fishing_view()
 			)
-			hbox.add_child(equip_btn)
+			hbox.add_child(eq_btn)
 		else:
 			var buy_btn = Button.new()
 			buy_btn.text = "Buy ($%d)" % r_data["cost"]
 			buy_btn.disabled = GameManager.cash < r_data["cost"]
 			buy_btn.pressed.connect(func():
 				if GameManager.cash >= r_data["cost"]:
-					AudioManager.play_click()
+					AudioManager.play_strike()
 					GameManager.cash -= r_data["cost"]
 					GameManager.owned_rods.append(r_name)
 					GameManager.current_rod = r_name
@@ -303,7 +383,7 @@ func refresh_tackle() -> void:
 		card.add_child(margin)
 		rods_container.add_child(card)
 
-	# Baits
+	# --- 3. Baits ---
 	for child in baits_container.get_children():
 		child.queue_free()
 
@@ -323,7 +403,7 @@ func refresh_tackle() -> void:
 		var lbl = Label.new()
 		lbl.text = "🪱 %s (Stock: %d) - %s" % [b_name, count, b_data["desc"]]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_font_size_override("font_size", 11)
 		hbox.add_child(lbl)
 
 		if b_name != "None":
@@ -345,13 +425,13 @@ func refresh_tackle() -> void:
 
 		if b_name == GameManager.current_bait:
 			var eq = Label.new()
-			eq.text = " [EQUIPPED] "
+			eq.text = " [ACTIVE] "
 			eq.modulate = Color(0.2, 0.95, 0.45)
 			eq.add_theme_font_size_override("font_size", 12)
 			hbox.add_child(eq)
 		else:
 			var eq_btn = Button.new()
-			eq_btn.text = "Select Bait"
+			eq_btn.text = "Select"
 			eq_btn.disabled = (b_name != "None" and count <= 0)
 			eq_btn.pressed.connect(func():
 				AudioManager.play_click()
@@ -372,48 +452,61 @@ func refresh_shipyard() -> void:
 
 	for b_name in GameManager.boats_database.keys():
 		var b_data = GameManager.boats_database[b_name]
+		var tier = b_data.get("tier", 1)
 		var card = PanelContainer.new()
 		var margin = MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 12)
-		margin.add_theme_constant_override("margin_right", 12)
-		margin.add_theme_constant_override("margin_top", 8)
-		margin.add_theme_constant_override("margin_bottom", 8)
+		margin.add_theme_constant_override("margin_left", 14)
+		margin.add_theme_constant_override("margin_right", 14)
+		margin.add_theme_constant_override("margin_top", 10)
+		margin.add_theme_constant_override("margin_bottom", 10)
 
 		var hbox = HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 14)
+		hbox.add_theme_constant_override("separation", 16)
 
-		var lbl = Label.new()
-		lbl.text = "🚢 %s | Speed: %d knots | CD Bonus: -%.2fs | Bonus Fish: +%d\n%s" % [
-			b_name, b_data["speed"], b_data["cd_bonus"], b_data["fish_bonus"], b_data["desc"]
+		var vbox = VBoxContainer.new()
+		vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+		var name_lbl = Label.new()
+		name_lbl.text = "🚢 [Tier %d] %s" % [tier, b_name]
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.modulate = Color("#fde047")
+		vbox.add_child(name_lbl)
+
+		var stats_lbl = Label.new()
+		stats_lbl.text = "Speed: %d knots | CD Reduction: -%.2fs | Fish Bonus: +%d/cast\n%s" % [
+			b_data["speed"], b_data["cd_bonus"], b_data["fish_bonus"], b_data["desc"]
 		]
-		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.add_theme_font_size_override("font_size", 12)
-		hbox.add_child(lbl)
+		stats_lbl.add_theme_font_size_override("font_size", 10)
+		stats_lbl.modulate = Color("#cbd5e1")
+		vbox.add_child(stats_lbl)
+		hbox.add_child(vbox)
 
 		if b_name == GameManager.current_boat:
 			var eq = Label.new()
-			eq.text = " [ACTIVE HULL] "
-			eq.modulate = Color(0.2, 0.95, 0.45)
+			eq.text = " [ACTIVE VESSEL] "
+			eq.modulate = Color("#4ade80")
 			eq.add_theme_font_size_override("font_size", 12)
 			hbox.add_child(eq)
 		elif b_name in GameManager.owned_boats:
-			var eq_btn = Button.new()
-			eq_btn.text = "Deploy Hull"
-			eq_btn.pressed.connect(func():
-				AudioManager.play_click()
+			var deploy_btn = Button.new()
+			deploy_btn.text = "Deploy Hull"
+			deploy_btn.custom_minimum_size = Vector2(130, 36)
+			deploy_btn.pressed.connect(func():
+				AudioManager.play_strike()
 				GameManager.current_boat = b_name
 				GameManager.save_game()
 				refresh_shipyard()
 				refresh_fishing_view()
 			)
-			hbox.add_child(eq_btn)
+			hbox.add_child(deploy_btn)
 		else:
 			var buy_btn = Button.new()
 			buy_btn.text = "Upgrade ($%d)" % b_data["cost"]
+			buy_btn.custom_minimum_size = Vector2(140, 36)
 			buy_btn.disabled = GameManager.cash < b_data["cost"]
 			buy_btn.pressed.connect(func():
 				if GameManager.cash >= b_data["cost"]:
-					AudioManager.play_click()
+					AudioManager.play_strike()
 					GameManager.cash -= b_data["cost"]
 					GameManager.owned_boats.append(b_name)
 					GameManager.current_boat = b_name
@@ -428,51 +521,14 @@ func refresh_shipyard() -> void:
 		card.add_child(margin)
 		boats_container.add_child(card)
 
-func refresh_pets_and_mascots() -> void:
-	for child in mascots_container.get_children():
-		child.queue_free()
+func refresh_pets() -> void:
+	# Hide legacy mascots container if present
+	var legacy_m = get_node_or_null("Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox/MascotsContainer")
+	if legacy_m:
+		legacy_m.visible = false
+
 	for child in pets_container.get_children():
 		child.queue_free()
-
-	for m_key in GameManager.mascots.keys():
-		var m_data = GameManager.mascots[m_key]
-		var card = PanelContainer.new()
-		var margin = MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 12)
-		margin.add_theme_constant_override("margin_right", 12)
-		margin.add_theme_constant_override("margin_top", 8)
-		margin.add_theme_constant_override("margin_bottom", 8)
-
-		var hbox = HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 14)
-
-		var icon_lbl = Label.new()
-		icon_lbl.text = m_data["icon"]
-		icon_lbl.add_theme_font_size_override("font_size", 20)
-		hbox.add_child(icon_lbl)
-
-		var name_lbl = Label.new()
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.text = "%s\n%s" % [m_data["name"], m_data["desc"]]
-		name_lbl.add_theme_font_size_override("font_size", 12)
-		hbox.add_child(name_lbl)
-
-		var btn = Button.new()
-		if GameManager.current_mascot == m_key:
-			btn.text = "Active Form"
-			btn.disabled = true
-		else:
-			btn.text = "Switch Form"
-			btn.pressed.connect(func():
-				AudioManager.play_click()
-				GameManager.current_mascot = m_key
-				GameManager.save_game()
-				refresh_pets_and_mascots()
-			)
-		hbox.add_child(btn)
-		margin.add_child(hbox)
-		card.add_child(margin)
-		mascots_container.add_child(card)
 
 	for p_name in GameManager.pets_database.keys():
 		var p_data = GameManager.pets_database[p_name]
@@ -494,7 +550,7 @@ func refresh_pets_and_mascots() -> void:
 		var info_lbl = Label.new()
 		info_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info_lbl.text = "%s (Lv. %d Milestone)\n%s" % [p_name, p_data["req_level"], p_data["desc"]]
-		info_lbl.add_theme_font_size_override("font_size", 12)
+		info_lbl.add_theme_font_size_override("font_size", 11)
 		hbox.add_child(info_lbl)
 
 		var btn = Button.new()
@@ -510,7 +566,7 @@ func refresh_pets_and_mascots() -> void:
 				AudioManager.play_click()
 				GameManager.equipped_pet = p_name
 				GameManager.save_game()
-				refresh_pets_and_mascots()
+				refresh_pets()
 			)
 		hbox.add_child(btn)
 		margin.add_child(hbox)
@@ -524,7 +580,7 @@ func refresh_upgrades() -> void:
 	var upgrade_defs = [
 		{"id": "better_fish", "name": "Master Angler", "icon": "🎣", "desc": "Increases probability of reeling in higher rarity species (+5% per rank)."},
 		{"id": "salesman", "name": "Master Merchant", "icon": "💰", "desc": "Negotiates higher payout prices when selling catches (+5% per rank)."},
-		{"id": "more_chests", "name": "Treasure Hunter", "icon": "💎", "desc": "Boosts chances of extracting rare gold and diamond fish (+5% per rank)."},
+		{"id": "more_chests", "name": "Treasure Hunter", "icon": "💎", "desc": "Boosts chances of extracting rare sunken chests and gold fish (+5% per rank)."},
 		{"id": "experienced", "name": "Seasoned Sailor", "icon": "📜", "desc": "Maximizes experience gained on all fishing voyages (+10% per rank)."}
 	]
 
@@ -553,7 +609,7 @@ func refresh_upgrades() -> void:
 
 		var name_lbl = Label.new()
 		name_lbl.text = "%s [Rank %d / 10]" % [u["name"], rank]
-		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.add_theme_font_size_override("font_size", 12)
 		name_lbl.modulate = Color(1.0, 0.88, 0.4)
 		vbox.add_child(name_lbl)
 
@@ -634,7 +690,6 @@ func _on_upgrades_btn_pressed() -> void:
 	pets_panel.visible = false
 	upgrades_panel.visible = true
 	fishing_panel.visible = false
-	refresh_upgrades()
 
 func _on_fishing_btn_pressed() -> void:
 	AudioManager.play_click()
@@ -646,37 +701,40 @@ func _on_fishing_btn_pressed() -> void:
 	fishing_panel.visible = true
 	refresh_fishing_view()
 
+func _on_close_btn_pressed() -> void:
+	AudioManager.play_click()
+	close_dock()
+
+func _on_sell_all_btn_pressed() -> void:
+	AudioManager.play_click()
+	var total_earned = GameManager.sell_all_fish()
+	if total_earned > 0:
+		AudioManager.play_strike()
+	refresh_market()
+	refresh_header()
+
 func _on_cast_btn_pressed() -> void:
 	if is_cooling_down:
 		return
-	
+
 	AudioManager.play_cast()
-	var dock_biome = current_dock_data.get("biome", "River")
-	var result = GameManager.roll_catch(dock_biome)
-	
+	var result = GameManager.roll_catch(current_dock_data.get("biome", GameManager.current_biome))
+
 	if result.get("is_boss", false):
 		close_dock()
 		return
-	
-	catch_banner.text = "🎉 Reeled in %dx %s (+%d XP)!%s" % [
-		result["count"], result["name"], result["xp"], result["exotic"]
-	]
+
+	var q_tag = result["quality"]["tag"]
+	var f_name = result["name"]
+	var count = result["count"]
+	var xp_amt = result["xp"]
+	var exotic_text = result["exotic"]
+
+	var prefix = ("%s " % q_tag) if q_tag != "" else ""
+	catch_banner.text = "Caught %s+%dx %s! (+%d XP%s)" % [prefix, count, f_name, xp_amt, exotic_text]
 	catch_banner.modulate = result["color"]
 
 	is_cooling_down = true
 	cooldown_timer = GameManager.get_fishing_cooldown()
-	refresh_header()
 	refresh_fishing_view()
-
-func _on_sell_all_btn_pressed() -> void:
-	AudioManager.play_click()
-	var total = GameManager.sell_all_fish()
-	if total > 0:
-		catch_banner.text = "💰 Sold your entire catch for $%d!" % total
-		catch_banner.modulate = Color(0.2, 0.9, 0.4)
-	refresh_market()
 	refresh_header()
-
-func _on_close_btn_pressed() -> void:
-	AudioManager.play_click()
-	close_dock()

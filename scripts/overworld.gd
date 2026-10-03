@@ -43,48 +43,51 @@ var is_cooling_down: bool = false
 var cooldown_timer: float = 0.0
 
 # Player Deck Walking
-var player_deck_x: float = 0.0 # Clamped between -250 and +250
+var player_deck_x: float = 0.0
 var player_facing: float = 1.0
 var walk_anim_timer: float = 0.0
 var is_walking: bool = false
 const WALK_SPEED: float = 230.0
 
-# Station Positions (x offsets from vessel center)
-const STATIONS = [
-	{"id": "fishing", "x": -230.0, "name": "Stern Fishing Pier", "tab": "fishing"},
-	{"id": "market",  "x": -115.0, "name": "Fish Cargo Market",  "tab": "market"},
-	{"id": "helm",    "x": 0.0,    "name": "Navigation Helm",    "tab": "map"},
-	{"id": "tackle",  "x": 115.0,  "name": "Tackle & Baits",     "tab": "tackle"},
-	{"id": "pets",    "x": 230.0,  "name": "Companion Sanctuary","tab": "pets"}
-]
+# Active Station
 var active_station: Dictionary = {}
 
 # Textures
-var tex_rimuru_human: Texture2D
-var tex_rimuru_slime: Texture2D
 var fish_textures: Dictionary = {}
 
 # Swimming fish underwater
 var underwater_fishes: Array[Dictionary] = []
 
-func _ready() -> void:
-	# Load Core Visual Assets
-	tex_rimuru_human = load("res://web/assets/rimuru_human.png")
-	tex_rimuru_slime = load("res://web/assets/rimuru_slime.png")
-	
-	fish_textures["Cod"] = load("res://web/assets/Fish_Cod.png")
-	fish_textures["Tuna"] = load("res://web/assets/Fish_Bluefin Tuna.png")
-	fish_textures["Anchovy"] = load("res://web/assets/Fish_Anchovy.png")
-	fish_textures["Turtle"] = load("res://web/assets/turtle.png")
-	fish_textures["Dolphin"] = load("res://web/assets/dolphin.png")
-	fish_textures["Kraken"] = load("res://web/assets/kraken.png")
+# Weather & Storm state
+var storm_lightning_timer: float = 0.0
+var lightning_flash_alpha: float = 0.0
 
-	# Connect Signals
+func _ready() -> void:
+	# Load Fish Textures
+	_load_fish_textures()
+
+	# Connect Game Manager Signals
 	GameManager.stats_changed.connect(_update_hud)
 	GameManager.fish_caught.connect(_on_fish_caught)
 	GameManager.boss_hooked.connect(_on_boss_hooked)
+	GameManager.weather_changed.connect(_on_weather_changed)
+	GameManager.worker_netted.connect(_on_worker_netted)
+	GameManager.treasure_found.connect(_on_treasure_found)
+
 	if boss_minigame:
 		boss_minigame.boss_resolved.connect(_on_boss_resolved)
+
+	# Connect Bottom Dock Buttons directly
+	if btn_market and not btn_market.pressed.is_connected(_on_dock_btn_pressed):
+		btn_market.pressed.connect(func(): _on_dock_btn_pressed("market"))
+	if btn_tackle and not btn_tackle.pressed.is_connected(_on_dock_btn_pressed):
+		btn_tackle.pressed.connect(func(): _on_dock_btn_pressed("tackle"))
+	if btn_shipyard and not btn_shipyard.pressed.is_connected(_on_dock_btn_pressed):
+		btn_shipyard.pressed.connect(func(): _on_dock_btn_pressed("shipyard"))
+	if btn_pets and not btn_pets.pressed.is_connected(_on_dock_btn_pressed):
+		btn_pets.pressed.connect(func(): _on_dock_btn_pressed("pets"))
+	if btn_map and not btn_map.pressed.is_connected(_open_travel_map):
+		btn_map.pressed.connect(_open_travel_map)
 
 	# Setup initial underwater fish
 	_spawn_underwater_fish()
@@ -96,6 +99,19 @@ func _ready() -> void:
 		prompt_bubble.visible = false
 	if travel_map:
 		travel_map.visible = false
+
+func _load_fish_textures() -> void:
+	var paths = {
+		"Cod": "res://web/assets/Fish_Cod.png",
+		"Tuna": "res://web/assets/Fish_Bluefin Tuna.png",
+		"Anchovy": "res://web/assets/Fish_Anchovy.png",
+		"Turtle": "res://web/assets/turtle.png",
+		"Dolphin": "res://web/assets/dolphin.png",
+		"Kraken": "res://web/assets/kraken.png"
+	}
+	for k in paths.keys():
+		if ResourceLoader.exists(paths[k]):
+			fish_textures[k] = load(paths[k])
 
 func _spawn_underwater_fish() -> void:
 	underwater_fishes.clear()
@@ -139,7 +155,8 @@ func _process(delta: float) -> void:
 	if fore_wave:
 		fore_wave.position.y = 432.0 + sin(sim_time * 2.2) * 3.5
 
-	# 3. Player Deck Walking Input
+	# 3. Dynamic Player Deck Walking Clamped per Boat Model
+	var bounds = GameManager.get_deck_bounds()
 	is_walking = false
 	var move_dir = 0.0
 	if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
@@ -151,19 +168,20 @@ func _process(delta: float) -> void:
 		is_walking = true
 		player_facing = move_dir
 		player_deck_x += move_dir * WALK_SPEED * delta
-		player_deck_x = clampf(player_deck_x, -260.0, 260.0)
+		player_deck_x = clampf(player_deck_x, bounds.x + 12.0, bounds.y - 12.0)
 		walk_anim_timer += delta * 12.0
 	else:
 		walk_anim_timer = 0.0
 
-	# Update Player Position on Deck
-	var step_bob = sin(walk_anim_timer) * 3.0 if is_walking else sin(sim_time * 3.5) * 1.5
+	# Update Player Node Position on Deck
+	var step_bob = sin(walk_anim_timer) * 3.0 if is_walking else sin(sim_time * 3.2) * 1.5
 	player_node.position = Vector2(player_deck_x, -6.0 + step_bob)
 
-	# 4. Station Proximity Check
+	# 4. Dynamic Station Proximity Check
+	var stations = _get_current_stations(bounds)
 	active_station = {}
-	for st in STATIONS:
-		if abs(player_deck_x - st["x"]) < 48.0:
+	for st in stations:
+		if abs(player_deck_x - st["x"]) < 42.0:
 			active_station = st
 			break
 
@@ -173,18 +191,30 @@ func _process(delta: float) -> void:
 		prompt_bubble.visible = true
 		prompt_text.text = "[E] %s" % active_station["name"]
 
-	# 5. Cooldown Timer
+	# 5. Cooldown Timer & Dynamic Hero Button State
 	if is_cooling_down:
 		cooldown_timer -= delta
 		if cooldown_timer <= 0.0:
 			is_cooling_down = false
 			hero_cast_btn.disabled = false
 			hero_cast_btn.text = "🎣 CAST LINE [SPACE]"
+			hero_cast_btn.modulate = Color(1.0, 1.0, 1.0)
 		else:
 			hero_cast_btn.disabled = true
-			hero_cast_btn.text = "WAIT (%.1fs)" % cooldown_timer
+			hero_cast_btn.text = "⏳ LINE IN WATER (%.1fs)" % cooldown_timer
+			hero_cast_btn.modulate = Color(0.7, 0.95, 1.0)
 
-	# 6. Update Underwater Fish Positions
+	# 6. Storm Weather Lightning Engine
+	if GameManager.current_weather == "Storm":
+		storm_lightning_timer -= delta
+		if storm_lightning_timer <= 0.0:
+			storm_lightning_timer = randf_range(6.0, 14.0)
+			lightning_flash_alpha = 0.85
+			AudioManager.play_strike()
+	if lightning_flash_alpha > 0.0:
+		lightning_flash_alpha = max(0.0, lightning_flash_alpha - delta * 4.0)
+
+	# 7. Update Underwater Fish Positions
 	for f in underwater_fishes:
 		f["pos"].x += f["speed"] * f["dir"] * delta
 		if f["pos"].x > 1320:
@@ -196,6 +226,15 @@ func _process(delta: float) -> void:
 
 	vessel_node.queue_redraw()
 	queue_redraw()
+
+func _get_current_stations(bounds: Vector2) -> Array:
+	return [
+		{"id": "fishing", "x": bounds.x * 0.80, "name": "Stern Fishing Pier",  "tab": "fishing"},
+		{"id": "market",  "x": bounds.x * 0.40, "name": "Fish Cargo Market",   "tab": "market"},
+		{"id": "helm",    "x": 0.0,              "name": "Navigation Helm",     "tab": "map"},
+		{"id": "tackle",  "x": bounds.y * 0.40, "name": "Tackle & Baits",      "tab": "tackle"},
+		{"id": "pets",    "x": bounds.y * 0.80, "name": "Companion Sanctuary", "tab": "pets"}
+	]
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -261,7 +300,7 @@ func _on_cast_pressed() -> void:
 		return
 
 	AudioManager.play_cast()
-	
+
 	# Trigger splash particles
 	if splash_particles:
 		splash_particles.restart()
@@ -278,9 +317,18 @@ func _on_cast_pressed() -> void:
 	is_cooling_down = true
 	cooldown_timer = GameManager.get_fishing_cooldown()
 
-func _on_fish_caught(f_name: String, count: int, xp_gained: int, rarity: String) -> void:
+func _on_fish_caught(f_name: String, count: int, xp_gained: int, rarity: String, quality_data: Dictionary = {}) -> void:
 	if catch_toast and not boss_minigame.visible:
-		catch_toast.show_catch(f_name, count, xp_gained, rarity)
+		catch_toast.show_catch(f_name, count, xp_gained, rarity, quality_data)
+
+func _on_worker_netted(f_name: String, count: int, earned: int) -> void:
+	if catch_toast and not boss_minigame.visible:
+		var q_data = {"tag": "⚓ AUTO-NET", "mult": 1.0, "color": Color(0.2, 0.9, 0.8)}
+		catch_toast.show_catch(f_name, count, count * 5, "AUTO-TRAWLER", q_data, " +$%d Banked" % earned)
+
+func _on_treasure_found(chest_data: Dictionary) -> void:
+	if catch_toast and not boss_minigame.visible:
+		catch_toast.show_chest(chest_data)
 
 func _on_boss_hooked(boss_data: Dictionary) -> void:
 	if station_hub.visible:
@@ -291,41 +339,75 @@ func _on_boss_hooked(boss_data: Dictionary) -> void:
 
 func _on_boss_resolved(caught: bool, boss_data: Dictionary) -> void:
 	if caught and catch_toast:
-		catch_toast.show_catch(boss_data["name"], boss_data.get("count", 1), boss_data.get("xp", 5000), "TITAN BOSS", " 💎 +1 Diamond Fish!")
+		var q_data = {"tag": "👑 TITAN", "mult": 5.0, "color": Color(1.0, 0.15, 0.2)}
+		catch_toast.show_catch(boss_data["name"], boss_data.get("count", 1), boss_data.get("xp", 5000), "TITAN BOSS", q_data, " 💎 +1 Diamond Fish!")
+
+func _on_weather_changed(_new_weather: String) -> void:
+	_update_biome_atmosphere()
+	_update_hud()
+
+func _get_weather_display() -> String:
+	match GameManager.current_weather:
+		"Rain":
+			return "🌧️ Rain (-20% CD)"
+		"Storm":
+			return "⛈️ Storm (+40% Bite)"
+		"Fog":
+			return "🌫️ Fog (+50% Qual)"
+		_:
+			return "☀️ Clear Sea"
 
 func _update_hud() -> void:
-	hud_biome_label.text = "%s Waters" % GameManager.current_biome
+	hud_biome_label.text = "%s  •  %s" % [GameManager.current_biome, _get_weather_display()]
 	hud_cash_label.text = "$ %d" % GameManager.cash
 	hud_level_label.text = "Lv. %d" % GameManager.level
 	hud_xp_bar.max_value = GameManager.xp_needed
 	hud_xp_bar.value = GameManager.xp
-	hud_tokens_label.text = "🪙 %d  💎 %d" % [GameManager.gold_fish, GameManager.diamond_fish]
+
+	var bait_name = GameManager.current_bait
+	var bait_ct = GameManager.bait_stock.get(bait_name, 0)
+	var bait_badge = "🪱 %s (%d)" % [bait_name, bait_ct] if bait_name != "None" else "🪝 No Bait"
+	hud_tokens_label.text = "🪙 %d  💎 %d  |  %s" % [GameManager.gold_fish, GameManager.diamond_fish, bait_badge]
 
 func _update_biome_atmosphere() -> void:
 	var biome = GameManager.current_biome
+	var weather = GameManager.current_weather
+
+	# Base Biome Colors
+	var sky_col = Color("#38bdf8")
+	var under_col = Color("#073b5c")
+	var ambient_col = Color(1.0, 1.0, 0.8, 0.4)
+
 	match biome:
 		"River":
-			sky_rect.color = Color("#38bdf8")
-			underwater_depth.color = Color("#073b5c")
-			if ambient_particles:
-				ambient_particles.color = Color(1.0, 1.0, 0.8, 0.4)
+			sky_col = Color("#38bdf8")
+			under_col = Color("#073b5c")
+			ambient_col = Color(1.0, 1.0, 0.8, 0.4)
 		"Volcanic":
-			sky_rect.color = Color("#450a0a")
-			underwater_depth.color = Color("#2d0505")
-			if ambient_particles:
-				ambient_particles.color = Color(1.0, 0.4, 0.1, 0.6)
+			sky_col = Color("#450a0a")
+			under_col = Color("#2d0505")
+			ambient_col = Color(1.0, 0.4, 0.1, 0.6)
 		"Ocean":
-			sky_rect.color = Color("#0f172a")
-			underwater_depth.color = Color("#02182b")
-			if ambient_particles:
-				ambient_particles.color = Color(0.3, 0.8, 1.0, 0.4)
+			sky_col = Color("#0f172a")
+			under_col = Color("#02182b")
+			ambient_col = Color(0.3, 0.8, 1.0, 0.4)
 		"Subspace 0x00":
-			sky_rect.color = Color("#050014")
-			underwater_depth.color = Color("#140026")
-			if ambient_particles:
-				ambient_particles.color = Color(0.0, 1.0, 0.9, 0.7)
+			sky_col = Color("#050014")
+			under_col = Color("#140026")
+			ambient_col = Color(0.0, 1.0, 0.9, 0.7)
 
-	hud_biome_label.text = "%s Waters" % biome
+	# Weather Overrides
+	if weather == "Rain":
+		sky_col = sky_col.darkened(0.25)
+	elif weather == "Storm":
+		sky_col = sky_col.darkened(0.50)
+	elif weather == "Fog":
+		sky_col = sky_col.lerp(Color(0.8, 0.85, 0.9), 0.35)
+
+	sky_rect.color = sky_col
+	underwater_depth.color = under_col
+	if ambient_particles:
+		ambient_particles.color = ambient_col
 
 func _open_travel_map() -> void:
 	AudioManager.play_click()
@@ -340,9 +422,9 @@ func travel_to_biome(target_biome: String) -> void:
 	if travel_map:
 		travel_map.visible = false
 	if catch_toast:
-		catch_toast.show_catch("Voyage Arrived", 1, 50, "VOYAGE", " Welcome to " + target_biome)
+		catch_toast.show_catch("Voyage Arrived", 1, 50, "VOYAGE", {"tag": "VOYAGE", "mult": 1.0, "color": Color(0.4, 0.9, 1.0)}, " Welcome to " + target_biome)
 
-# --- Drawing the Lush On-Deck Vessel & Scenery ---
+# --- Drawing the Underwater Scenery & Weather Overlays ---
 func _draw() -> void:
 	# Draw Underwater Swimming Fish (Screen Space)
 	for f in underwater_fishes:
@@ -353,6 +435,25 @@ func _draw() -> void:
 			draw_set_transform(f["pos"], wag_rot, Vector2(f["dir"], 1.0))
 			draw_texture_rect(tex, Rect2(-sz.x * 0.5, -sz.y * 0.5, sz.x, sz.y), false, Color(0.6, 0.85, 1.0, f["alpha"]))
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# Weather Visual Overlays
+	if GameManager.current_weather == "Rain" or GameManager.current_weather == "Storm":
+		# Diagonal rain streaks
+		var streak_count = 55 if GameManager.current_weather == "Rain" else 95
+		for r in range(streak_count):
+			var rx = fmod(r * 47.0 - sim_time * 280.0, 1340.0)
+			var ry = fmod(r * 31.0 + sim_time * 650.0, 480.0)
+			draw_line(Vector2(rx, ry), Vector2(rx - 8.0, ry + 22.0), Color(0.75, 0.88, 1.0, 0.45), 1.2)
+
+	elif GameManager.current_weather == "Fog":
+		# Soft rolling misty fog layers
+		for fy in range(350, 450, 25):
+			var f_drift = sin(sim_time * 0.8 + fy * 0.1) * 40.0
+			draw_rect(Rect2(f_drift - 50, fy, 1380, 22), Color(0.85, 0.92, 1.0, 0.12))
+
+	# Storm Lightning Screen Flash
+	if lightning_flash_alpha > 0.01:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 1.0, 1.0, lightning_flash_alpha))
 
 	# If Subspace 0x00: draw cyber matrix grid scanlines in sky
 	if GameManager.current_biome == "Subspace 0x00":
