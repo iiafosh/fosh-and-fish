@@ -58,7 +58,7 @@ func _on_quick_fish_pressed() -> void:
 	ship.can_control = false
 	station_hub.open_dock(dock_data)
 
-func _on_fish_caught(f_name: String, count: int, xp_gained: int, rarity: String) -> void:
+func _on_fish_caught(f_name: String, count: int, xp_gained: int, _rarity: String) -> void:
 	loot_popup_label.text = "+%dx %s! (+%d XP)" % [count, f_name, xp_gained]
 	loot_popup_label.visible = true
 	var tween = create_tween()
@@ -66,20 +66,12 @@ func _on_fish_caught(f_name: String, count: int, xp_gained: int, rarity: String)
 	tween.tween_property(loot_popup_label, "modulate:a", 0.0, 2.5)
 
 func _draw() -> void:
-	# Draw World Water Gradients & Islands
-	# 1. Base River Water
-	draw_rect(Rect2(-2400, -1800, 4800, 3600), Color("#0a252c"))
+	# Draw Sector Tints & Islands over the Water Shader
+	# 1. Volcanic Sector (South-East)
+	draw_rect(Rect2(600, 300, 1800, 1500), Color(0.35, 0.08, 0.05, 0.40))
 	
-	# 2. Volcanic Sector (South-East)
-	draw_rect(Rect2(600, 300, 1800, 1500), Color(0.22, 0.08, 0.08, 0.65))
-	
-	# 3. Ocean Sector (South-West)
-	draw_rect(Rect2(-2400, 300, 1800, 1500), Color(0.04, 0.10, 0.22, 0.65))
-
-	# Gentle wave lines
-	for i in range(-12, 12):
-		var y = i * 140 + sin(water_time + i) * 12
-		draw_line(Vector2(-2000, y), Vector2(2000, y), Color(1, 1, 1, 0.04), 2.0)
+	# 2. Ocean Sector (South-West)
+	draw_rect(Rect2(-2400, 300, 1800, 1500), Color(0.02, 0.08, 0.25, 0.40))
 
 	# --- Draw Islands ---
 	# Riverwood Home Island (near 0, -150)

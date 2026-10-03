@@ -1,12 +1,36 @@
-[gd_scene load_steps=5 format=3 uid="uid://coverworldmap1"]
+[gd_scene load_steps=8 format=3 uid="uid://coverworldmap1"]
 
 [ext_resource type="Script" path="res://scripts/overworld.gd" id="1_overworld"]
 [ext_resource type="PackedScene" uid="uid://cboatplayer1" path="res://scenes/ship.tscn" id="2_ship"]
 [ext_resource type="PackedScene" uid="uid://cdockarea1" path="res://scenes/dock_area.tscn" id="3_dock"]
 [ext_resource type="PackedScene" uid="uid://cstationhub1" path="res://scenes/station_hub.tscn" id="4_hub"]
+[ext_resource type="Shader" path="res://shaders/water.gdshader" id="5_water_shader"]
+[ext_resource type="Script" path="res://scripts/fish_spawner.gd" id="6_spawner"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
+shader = ExtResource("5_water_shader")
+shader_parameter/deep_color = Color(0.03, 0.12, 0.20, 0.95)
+shader_parameter/shallow_color = Color(0.08, 0.28, 0.38, 0.85)
+shader_parameter/foam_color = Color(0.65, 0.88, 0.95, 0.50)
+shader_parameter/highlight_color = Color(0.35, 0.75, 0.88, 0.30)
+shader_parameter/wave_speed = 1.2
+shader_parameter/wave_frequency = 16.0
+shader_parameter/wave_amplitude = 0.015
+shader_parameter/caustic_intensity = 0.45
 
 [node name="Overworld" type="Node2D"]
 script = ExtResource("1_overworld")
+
+[node name="WaterSurface" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_water")
+offset_left = -3200.0
+offset_top = -2400.0
+offset_right = 3200.0
+offset_bottom = 2400.0
+mouse_filter = 2
+
+[node name="FishSpawner" type="Node2D" parent="."]
+script = ExtResource("6_spawner")
 
 [node name="Ship" parent="." instance=ExtResource("2_ship")]
 position = Vector2(0, 0)
