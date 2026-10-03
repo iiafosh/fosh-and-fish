@@ -26,6 +26,9 @@ var _fisher_tex := {}
 var _anim := "idle"
 var _anim_t := 0.0
 var _biome := ""
+var _rod_name := ""
+var _rod_tex: Texture2D
+var _rod_info := {}
 var _boat := ""
 var _species: Array = []          # [{tex, frames, cell}]
 var _fish: Array = []
@@ -279,16 +282,28 @@ func _set_frame() -> void:
 	at.region = Rect2(_frame_index() * cell, 0, cell, cell)
 	fisher.texture = at
 
+func set_rod(name: String) -> void:
+	if name == _rod_name: return
+	_rod_name = name
+	_rod_tex = _tex("rods_hand/%s.png" % VFData.slug(name))
+	_rod_info = manifest.get("rods_hand", {}).get(name, {"grip": [0.08, 0.5], "tip": [0.98, 0.5]})
+
+func _fisher_point(key: String, fallback: Array) -> Vector2:
+	var pts: Array = _fisher_info.get(_anim, {}).get(key, [fallback])
+	var tp: Array = pts[mini(_frame_index(), pts.size() - 1)]
+	var local := fisher.position + Vector2(tp[0], tp[1]) * fisher.size
+	return boat.position + boat.pivot_offset + (local - boat.pivot_offset).rotated(boat.rotation) * boat.scale
+
+func rod_grip() -> Vector2:
+	return _fisher_point("rod_grip", [0.45, 0.6])
+
 func play_anim(a: String) -> void:
 	_anim = a
 	_anim_t = 0.0
 
 func rod_tip() -> Vector2:
 	if _fisher_info.is_empty() or _boat_info.is_empty(): return _bobber_home
-	var tips: Array = _fisher_info.get(_anim, {}).get("rod_tip", [[0.6, 0.45]])
-	var tp: Array = tips[mini(_frame_index(), tips.size() - 1)]
-	var local := fisher.position + Vector2(tp[0], tp[1]) * fisher.size
-	return boat.position + boat.pivot_offset + (local - boat.pivot_offset).rotated(boat.rotation) * boat.scale
+	return _fisher_point("rod_tip", [0.6, 0.45])
 
 # ------------------------------------------------------------------ life
 func _mask_px(p: Vector2) -> Color:
@@ -322,8 +337,9 @@ func _spawn_life() -> void:
 			var p = _rand_point(func(q): return _in_water(q, 0.2))
 			if p == null: break
 			var sp: Dictionary = _species[randi() % _species.size()]
-			_fish.append({"pos": p, "vel": Vector2.from_angle(randf() * TAU) * randf_range(25, 55), "sp": sp,
-				"size": randf_range(0.6, 1.0), "wig": randf() * TAU})
+			var a := randf() * TAU
+			_fish.append({"pos": p, "vel": Vector2.from_angle(a) * 40.0, "ang": a, "speed": randf_range(25, 55),
+				"target": p, "sp": sp, "size": randf_range(0.6, 1.0), "wig": randf() * TAU})
 	var bigs := {"Ocean": ["whale", "manta"], "Abyss": ["manta"], "Space": ["whale"], "Sky": ["manta"]}
 	for kind in bigs.get(_biome, []):
 		var t := _tex("swim/%s.png" % kind)
@@ -331,12 +347,14 @@ func _spawn_life() -> void:
 	if _biome in ["River", "Ocean", "Volcanic", "Sky"]:
 		var g := _tex("critters/gull.png")
 		for i in 3:
-			_gulls.append({"tex": g, "pos": Vector2(randf() * SCENE.x, randf() * SCENE.y * 0.6), "vel": Vector2.from_angle(randf_range(-0.4, 0.4) + (PI if randf() < 0.5 else 0.0)) * randf_range(90, 140), "ph": randf() * TAU})
+			var ang := randf_range(-0.4, 0.4) + (PI if randf() < 0.5 else 0.0)
+			_gulls.append({"tex": g, "pos": Vector2(randf() * SCENE.x, randf_range(0.05, 0.6) * SCENE.y), "ang": ang,
+				"turn": 0.0, "speed": randf_range(95, 135), "ph": randf() * TAU, "glide": 0.0, "fr": 0.0})
 	if _biome in ["River", "Ocean"]:
 		var c := _tex("critters/crab.png")
 		for i in 3:
 			var p = _rand_point(_on_beach)
-			if p != null: _crabs.append({"tex": c, "pos": p, "home": p, "ph": randf() * TAU, "dir": 1.0})
+			if p != null: _crabs.append({"tex": c, "pos": p, "home": p, "ph": randf() * TAU, "dir": 1.0, "wait": randf() * 2.0, "x": 0.0, "tilt": 0.0})
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -345,13 +363,20 @@ func _process(delta: float) -> void:
 		play_anim("idle")
 	_set_frame()
 	for f in _fish:
-		var v: Vector2 = f.vel
-		v = v.rotated(sin(_t * 0.7 + f.wig) * 0.6 * delta)
-		if not _in_water(f.pos + v.normalized() * 70.0, 0.15):
-			v = v.rotated(PI * 2.7 * delta)
-			if not _in_water(f.pos, 0.1): v = (Vector2(SCENE.x * 0.5, SCENE.y * 0.85) - f.pos).normalized() * v.length()
-		f.vel = v
-		f.pos += v * delta
+		# wander toward a target in deep enough water; turn at a limited rate
+		if f.pos.distance_to(f.target) < 40.0 or not _in_water(f.target, 0.18):
+			for _i in 12:
+				var cand: Vector2 = f.pos + Vector2.from_angle(randf() * TAU) * randf_range(150, 420)
+				if _in_water(cand, 0.2):
+					f.target = cand
+					break
+			f.speed = randf_range(22, 60)
+		var want_ang: float = (f.target - f.pos).angle()
+		if not _in_water(f.pos + Vector2.from_angle(f.ang) * 60.0, 0.12):
+			want_ang = (Vector2(SCENE.x * 0.5, SCENE.y * 0.85) - f.pos).angle()
+		f.ang = rotate_toward(f.ang, want_ang, 1.6 * delta)
+		f.vel = Vector2.from_angle(f.ang) * f.speed
+		f.pos += f.vel * delta
 	for b in _big:
 		if b.wait > 0.0:
 			b.wait -= delta
@@ -361,15 +386,35 @@ func _process(delta: float) -> void:
 			b.pos = Vector2(-500, SCENE.y * randf_range(0.6, 0.95))
 			b.wait = randf_range(15, 35)
 	for g in _gulls:
-		g.pos += g.vel * delta
-		g.vel = g.vel.rotated(sin(_t * 0.3 + g.ph) * 0.15 * delta)
-		if g.pos.x < -200: g.pos.x = SCENE.x + 150
-		if g.pos.x > SCENE.x + 200: g.pos.x = -150
-		g.pos.y = wrapf(g.pos.y, -150, SCENE.y + 150)
+		# wander: ease the turn rate toward a slowly changing target
+		var want := sin(_t * 0.23 + g.ph) * 0.35 + sin(_t * 0.07 + g.ph * 2.0) * 0.25
+		g.turn = lerpf(g.turn, want, delta * 0.8)
+		g.ang += g.turn * delta
+		g.pos += Vector2.from_angle(g.ang) * g.speed * delta
+		# alternate flapping and gliding
+		g.glide -= delta
+		if g.glide < -2.4: g.glide = randf_range(1.0, 2.2)
+		if g.glide <= 0.0: g.fr += delta * 11.0
+		if g.pos.x < -220 or g.pos.x > SCENE.x + 220 or g.pos.y < -220 or g.pos.y > SCENE.y + 220:
+			var from_left := randf() < 0.5
+			g.pos = Vector2(-180 if from_left else SCENE.x + 180, randf_range(0.05, 0.6) * SCENE.y)
+			g.ang = randf_range(-0.3, 0.3) + (0.0 if from_left else PI)
+			g.turn = 0.0
 	for c in _crabs:
 		c.ph += delta
-		var sidestep := sin(c.ph * 0.6) * 70.0
-		c.pos = c.home + Vector2(sidestep, sin(c.ph * 7.0) * 1.5)
+		if c.wait > 0.0:
+			c.wait -= delta
+		else:
+			c.x += c.dir * 55.0 * delta
+			if absf(c.x) > 80.0:
+				c.dir = -signf(c.x)
+				c.wait = randf_range(0.6, 2.5)
+			elif randf() < delta * 0.4:
+				c.dir = -c.dir
+				c.wait = randf_range(0.6, 2.5)
+		var walking: bool = c.wait <= 0.0
+		c.pos = c.home + Vector2(c.x, sin(c.ph * 14.0) * 1.2 if walking else 0.0)
+		c.tilt = sin(c.ph * 14.0) * 0.08 if walking else 0.0
 	boat.rotation = sin(_t * 1.1) * 0.025
 	boat.scale = Vector2.ONE * (1.0 + sin(_t * 1.6) * 0.008)
 	if randf() < delta * 0.9:
@@ -430,25 +475,45 @@ func _draw_life() -> void:
 		var ct: Texture2D = c.tex
 		if ct == null: continue
 		var cs := u * 0.9 / ct.get_width()
-		life_layer.draw_set_transform(c.pos, 0.0, Vector2(cs, cs))
+		life_layer.draw_set_transform(c.pos + Vector2(6, 8), c.tilt, Vector2(cs, cs))
+		life_layer.draw_texture(ct, -ct.get_size() * 0.5, Color(0, 0, 0, 0.18))
+		life_layer.draw_set_transform(c.pos, c.tilt, Vector2(cs, cs))
 		life_layer.draw_texture(ct, -ct.get_size() * 0.5)
 	life_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_sky() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
+	var info: Dictionary = manifest.get("gull", {"frames": 8, "cell": 160})
+	var n: int = info.frames
+	var cell: float = info.cell
 	for g in _gulls:
 		var t: Texture2D = g.tex
 		if t == null: continue
-		var flap := 0.75 + 0.25 * sin(_t * 9.0 + g.ph)
-		var s := u * 1.7 / t.get_width()
-		var ang: float = g.vel.angle()
-		sky_layer.draw_set_transform(g.pos + Vector2(120, 170), ang, Vector2(s, s * flap))
-		sky_layer.draw_texture(t, -t.get_size() * 0.5, Color(0, 0.05, 0.1, 0.16))
-		sky_layer.draw_set_transform(g.pos, ang, Vector2(s, s * flap))
-		sky_layer.draw_texture(t, -t.get_size() * 0.5)
+		var fi := int(g.fr) % n
+		var sc := u * 1.9 / cell
+		var squash := 1.0 - clampf(absf(g.turn) * 0.5, 0.0, 0.2)
+		var src := Rect2(fi * cell, 0, cell, cell)
+		var dst := Rect2(-cell * 0.5, -cell * 0.5, cell, cell)
+		sky_layer.draw_set_transform(g.pos + Vector2(110, 160), g.ang, Vector2(sc, sc * squash))
+		sky_layer.draw_texture_rect_region(t, dst, src, Color(0, 0.05, 0.1, 0.15))
+		sky_layer.draw_set_transform(g.pos, g.ang, Vector2(sc, sc * squash))
+		sky_layer.draw_texture_rect_region(t, dst, src)
 	sky_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
+func _draw_rod() -> void:
+	if _rod_tex == null or _fisher_info.is_empty(): return
+	var g := rod_grip()
+	var t := rod_tip()
+	var sz := _rod_tex.get_size()
+	var gs := Vector2(_rod_info.grip[0], _rod_info.grip[1]) * sz
+	var ts := Vector2(_rod_info.tip[0], _rod_info.tip[1]) * sz
+	var k := (t - g).length() / maxf(1.0, (ts - gs).length())
+	over.draw_set_transform(g, (t - g).angle(), Vector2(k, k))
+	over.draw_texture(_rod_tex, -gs)
+	over.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
 func _draw_over() -> void:
+	_draw_rod()
 	for r in _ripples:
 		if r.t < 0.0: continue
 		var k: float = r.t / 1.4

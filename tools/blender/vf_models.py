@@ -494,8 +494,10 @@ ROD_SPECS = {
 }
 
 
-def build_rod(spec):
-    """Rod along a diagonal in the XZ plane, tip upper-right."""
+def build_rod(spec, strip=False):
+    """Rod along a diagonal in the XZ plane, tip upper-right.
+
+    strip=True leaves out the line and bobber (used for the in-hand rod)."""
     th = spec.get("thick", 1.0)
     d = Vector((1, 0, 1)).normalized()
     L = 3.0
@@ -524,9 +526,12 @@ def build_rod(spec):
                              mat=toon(spec["wraps"], emit=glow)))
     # line + bobber
     hang = tip + Vector((0.0, 0, -1.35))
-    parts.append(tube([tip, tip + Vector((0.05, 0, -0.7)), hang], 0.008, mat=toon("#f2f2f2", flat_glow=True)))
-    parts.append(sphere(loc=hang, scale=0.12, mat=toon("#ff4b3e")))
-    parts.append(sphere(loc=hang + Vector((0, 0, 0.08)), scale=(0.12, 0.12, 0.06), mat=toon("#ffffff")))
+    if strip:
+        hang = tip + d * 0.25
+    else:
+        parts.append(tube([tip, tip + Vector((0.05, 0, -0.7)), hang], 0.008, mat=toon("#f2f2f2", flat_glow=True)))
+        parts.append(sphere(loc=hang, scale=0.12, mat=toon("#ff4b3e")))
+        parts.append(sphere(loc=hang + Vector((0, 0, 0.08)), scale=(0.12, 0.12, 0.06), mat=toon("#ffffff")))
     if spec.get("stones"):
         for i, c in enumerate(["#3fa9ff", "#ff3b3b", "#a64dff", "#ffd23f", "#33d17a", "#ff8a1f"]):
             parts.append(ico(loc=base + d * (0.9 + i * 0.32) + Vector((0, 0.06, 0)), scale=0.07, mat=toon(c, emit=0.5, spec=0.5)))
@@ -567,6 +572,8 @@ def build_rod(spec):
         parts.append(h)
     if spec.get("flames"):
         parts += _flames(tuple(base + d * 1.6), 0.35)
+    if strip:
+        return parts, base, tip
     return parts
 
 

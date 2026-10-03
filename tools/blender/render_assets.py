@@ -175,13 +175,23 @@ def do_critters(only, man):
     d = os.path.join(OUT, "critters")
     os.makedirs(d, exist_ok=True)
     if want("gull", only):
-        CR.render_static("gull", os.path.join(d, "gull.png"), 160)
+        CR.render_gull(os.path.join(d, "gull.png"))
+        man["gull"] = {"frames": 8, "cell": 160}
     if want("crab", only):
         CR.render_static("crab", os.path.join(d, "crab.png"), 96, rot_z=0)
 
 
 def do_fisher(man):
     man["fisher"] = CR.render_fisher(os.path.join(OUT, "fisher"))
+
+
+def do_rods_hand(only, man):
+    d = os.path.join(OUT, "rods_hand")
+    os.makedirs(d, exist_ok=True)
+    rh = man.setdefault("rods_hand", {})
+    for name in M.ROD_SPECS:
+        if want(name, only):
+            rh[name] = CR.render_rod_strip(name, os.path.join(d, slug(name) + ".png"))
 
 
 def main():
@@ -191,7 +201,7 @@ def main():
         i = argv.index("--only")
         only = [s.strip() for s in argv[i + 1].split(",")]
         argv = argv[:i] + argv[i + 2:]
-    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top", "critters", "fisher"]
+    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top", "critters", "fisher", "rods_hand"]
     man = load_manifest()
     for c in cats:
         print("== rendering", c)
@@ -217,6 +227,8 @@ def main():
             do_critters(only, man)
         elif c == "fisher":
             do_fisher(man)
+        elif c == "rods_hand":
+            do_rods_hand(only, man)
         elif c in P.PROPS:
             do_props(c, only)
         save_manifest(man)

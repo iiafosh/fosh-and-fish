@@ -330,24 +330,24 @@ def build_scene(name, P):
     avoid = [(BOAT_SPOT[0], BOAT_SPOT[1], 7.0), (BOBBER_SPOT[0], BOBBER_SPOT[1], 3.0)]
     parts = [terrain(P, rnd)]
     WC = V.WATERCRAFT
-    land_rocks = ["rock_largeA", "rock_largeB", "rock_largeD", "rock_smallA", "rock_smallC", "rock_smallFlatA"]
-    if name in ("River", "Ocean", "Volcanic", "Alien", "Abyss"):
-        parts += scatter(P, rnd, 3, -2.0, -0.9, lambda p, r: [V.place(r.choice(["buoy", "buoy-flag"]), (p[0], p[1], -0.25), 1.1, folder=WC, rnd=r)], avoid)
+    land_rocks = ["rock_largeA", "rock_largeB", "rock_largeD", "rock_largeE"]
+    seaweed = kn(["plant_flatTall", "grass_large", "grass_leafsLarge"], 3.2, tint="#3f9a6a")
+
     if name in ("River", "Ocean"):
         cols = ["#ffb3c7", "#c9a3ff", "#ffd27a", "#7fd6ff", "#ff8a7a"]
         if name == "Ocean":
             parts += scatter(P, rnd, 14, -3.6, -0.6, lambda p, r: coral(p, r.uniform(1.1, 1.8), cols, r), avoid)
             parts += scatter(P, rnd, 14, 0.25, 3.0, kn(["tree_palmTall", "tree_palmBend", "tree_palmDetailedTall", "tree_palmShort"], 2.8))
-            parts += scatter(P, rnd, 14, 0.2, 3.0, kn(["plant_bushSmall", "flower_yellowB", "flower_redB", "grass_large"], 2.0))
+            parts += scatter(P, rnd, 10, 0.2, 3.0, kn(["plant_bushSmall", "flower_yellowB", "flower_redB", "plant_bush"], 3.4))
             parts += scatter(P, rnd, 2, -3.5, -2.0, lambda p, r: [V.place("chest", (p[0], p[1], p[2] + 0.1), 1.3, folder=V.GLB, rnd=r)], avoid)
         else:
             parts += scatter(P, rnd, 22, 0.35, 3.0, kn(["tree_pineRoundA", "tree_pineRoundC", "tree_pineTallA_detailed", "tree_default", "tree_oak"], 2.6))
             parts += scatter(P, rnd, 18, 0.25, 3.0, kn(["plant_bush", "plant_bushDetailed", "plant_bushLarge"], 2.0))
-            parts += scatter(P, rnd, 26, 0.2, 3.0, kn(["flower_redA", "flower_yellowA", "flower_purpleB", "grass_large", "grass_leafsLarge"], 2.2))
-            parts += scatter(P, rnd, 10, -0.4, 0.1, lambda p, r: weed(p, 1.2, "#5a9a4a"), avoid)
+            parts += scatter(P, rnd, 14, 0.2, 3.0, kn(["flower_redA", "flower_yellowA", "flower_purpleB", "plant_bushSmall"], 3.6))
+            parts += scatter(P, rnd, 8, -0.4, 0.1, kn(["grass_large", "plant_flatTall"], 3.0, tint="#5a9a4a"), avoid)
             parts += scatter(P, rnd, 10, -1.4, -0.2, lambda p, r: [V.place(r.choice(["lily_large", "lily_small"]), (p[0], p[1], 0.02), 2.4, rnd=r)], avoid)
-            parts += scatter(P, rnd, 8, 0.2, 3.0, kn(["log", "stump_round", "mushroom_redGroup"], 2.0))
-        parts += scatter(P, rnd, 12, -2.5, -0.3, lambda p, r: weed(p, r.uniform(0.8, 1.3), "#4fae5a"), avoid)
+            parts += scatter(P, rnd, 6, 0.2, 3.0, kn(["log_large", "stump_round", "mushroom_redGroup"], 3.0))
+        parts += scatter(P, rnd, 12, -2.5, -0.3, seaweed, avoid)
         parts += scatter(P, rnd, 10, -P["deep"], 0.6, kn(land_rocks, 2.2), avoid)
         sx = 9.0
         sy = P["shore"] + 3.5 * math.sin(0.11 * sx + 1.0) + 2.2 * math.sin(0.27 * sx + 2.3)
@@ -370,7 +370,7 @@ def build_scene(name, P):
         parts += scatter(P, rnd, 40, -P["deep"], -1.0, lambda p, r: [ico(loc=(p[0], p[1], p[2] + 0.5), scale=r.uniform(0.8, 2.0),
                                                                           sub=2, mat=toon("#ffffff"), smooth=True)], avoid)
         parts += scatter(P, rnd, 14, 0.3, 3.0, kn(["tree_fat", "tree_plateau", "tree_detailed"], 2.6))
-        parts += scatter(P, rnd, 16, 0.2, 3.0, kn(["flower_purpleA", "flower_yellowC", "grass_leafsLarge"], 2.0))
+        parts += scatter(P, rnd, 16, 0.2, 3.0, kn(["flower_purpleA", "flower_yellowC", "plant_bushSmall"], 3.4))
         parts += scatter(P, rnd, 6, 0.6, 3.0, lambda p, r: rock(p, r.uniform(0.4, 0.9), "#d8d0e8"))
     elif name == "Space":
         parts += scatter(P, rnd, 26, -P["deep"], -0.6, lambda p, r: [crystal(p, r.uniform(1.0, 2.6), r.choice(["#c9b3ff", "#7dd6ff", "#ff9cf0"]))], avoid)

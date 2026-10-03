@@ -133,6 +133,12 @@ def build_fisher():
     bpy.context.collection.objects.link(tip)
     tip.parent = rod
     tip.location = (0, L, 0)
+    grip = bpy.data.objects.new("rod_grip", None)
+    bpy.context.collection.objects.link(grip)
+    grip.parent = rod
+    grip.location = (0, 0.18, 0)
+    rod["grip"] = grip.name
+    rod.hide_render = True          # the equipped rod is drawn in-game from rods_hand/ strips
     attach(rod, "Wrist.R")
     return meshes + [rod] + hat, arm, tip
 
@@ -146,6 +152,7 @@ def render_fisher(out_dir):
     sc = bpy.context.scene
     # one framing for every animation so the feet stay put between sheets
     allframes = []
+    objs = [o for o in objs if not o.hide_render]
     for key, (act_name, n) in ANIMS.items():
         act = V.set_action(arm, act_name)
         fr = act.frame_range
@@ -167,13 +174,15 @@ def render_fisher(out_dir):
     K.frame_ortho(cam, [box], 1.08)
     bpy.data.objects.remove(box)
     for o in objs:
-        if o.type == "MESH":
+        if o.type == "MESH" and not o.hide_render:
             K.add_outline(o, 0.022 / max(o.matrix_world.to_scale()))
     W = FISHER_CELL
     for key, (act_name, n) in ANIMS.items():
         act = V.set_action(arm, act_name)
         fr = act.frame_range
         tips = []
+        grips = []
+        grip = bpy.data.objects["rod_grip"]
 
         def step(i, act=act, fr=fr, n=n):
             arm.animation_data.action = act
@@ -186,11 +195,13 @@ def render_fisher(out_dir):
             bpy.context.view_layer.update()
             t = K.project(cam, tip.matrix_world.translation)
             tips.append([round(t[0] / W, 4), round(t[1] / W, 4)])
+            g = K.project(cam, grip.matrix_world.translation)
+            grips.append([round(g[0] / W, 4), round(g[1] / W, 4)])
             p = os.path.join(tmp, "f%02d.png" % i)
             K.render(p)
             paths.append(p)
         V._stitch(paths, os.path.join(out_dir, key + ".png"), W)
-        info[key] = {"frames": n, "rod_tip": tips}
+        info[key] = {"frames": n, "rod_tip": tips, "rod_grip": grips}
     feet = K.project(cam, (0, 0, 0))
     _, _, scale, _ = cam["frame"]
     info["feet"] = [round(feet[0] / W, 4), round(feet[1] / W, 4)]
@@ -198,3 +209,80 @@ def render_fisher(out_dir):
     info["cell"] = W
     K.SOFT[0] = False
     return info
+
+
+# ------------------------------------------------------------ rod strips
+STRIP = (512, 96)
+
+
+def render_rod_strip(name, out_path):
+    """Equipped-rod sprite: the rod laid horizontally (grip left, tip right)."""
+    import vf_models as M
+    K.clear_scene()
+    K.SOFT[0] = True
+    K.setup_render(*STRIP, samples=16)
+    K.setup_world("#9aa6b0", 1.0)
+    K.sun((30, 0, 20), 1.0)
+    cam = K.make_camera((90, 0, 0), ortho=True)
+    K.seed(1)
+    parts, base, tip = M.build_rod(M.ROD_SPECS[name], strip=True)
+    d = (tip - base).normalized()
+    grip = base + d * 0.2
+    root = K.parent_all(parts, "rod")
+    root.rotation_euler = (0, math.radians(45), 0)
+    bpy.context.view_layer.update()
+    lo, hi = V.world_bbox([p for p in parts if p.type == "MESH"])
+    bpy.ops.mesh.primitive_cube_add(size=1.0)
+    box = bpy.context.active_object
+    box.location = (lo + hi) / 2
+    box.scale = hi - lo
+    bpy.context.view_layer.update()
+    K.frame_ortho(cam, [box], 1.04)
+    bpy.data.objects.remove(box)
+    K.outline_all(parts, 0.02)
+    K.render(out_path)
+    R = root.matrix_world
+    g = K.project(cam, R @ grip)
+    t = K.project(cam, R @ tip)
+    K.SOFT[0] = False
+    return {"grip": [round(g[0] / STRIP[0], 4), round(g[1] / STRIP[1], 4)],
+            "tip": [round(t[0] / STRIP[0], 4), round(t[1] / STRIP[1], 4)]}
+
+
+# ------------------------------------------------------------------ gull
+def render_gull(out_path, n=8, size=160):
+    """Seagull flap cycle seen from above, facing +X (wings bend at the shoulder)."""
+    cam = _setup(size, (0, 0, 0))
+    meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "gull.glb"))
+    root = V.group_root(roots)
+    for m in meshes:
+        for mt in m.data.materials:
+            V.toonify(mt)
+    bpy.context.view_layer.update()
+    V.normalize(meshes, root, length=2.0)
+    gull = meshes[0]
+    mw = gull.matrix_world.copy()
+    gull.parent = None
+    gull.matrix_world = mw
+    bpy.ops.object.select_all(action="DESELECT")
+    gull.select_set(True)
+    bpy.context.view_layer.objects.active = gull
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    base = [v.co.copy() for v in gull.data.vertices]
+    ymax = max(abs(c.y) for c in base)
+    w0 = ymax * 0.16
+
+    def flap(i):
+        a = math.radians(40) * math.sin(math.tau * i / n)
+        for v, c in zip(gull.data.vertices, base):
+            r = abs(c.y) - w0
+            if r <= 0:
+                v.co = c
+                continue
+            sgn = 1.0 if c.y > 0 else -1.0
+            v.co = (c.x, sgn * (w0 + r * math.cos(a)), c.z + r * math.sin(a))
+        gull.data.update()
+    flap(0)
+    K.add_outline(gull, 0.03)
+    V.render_sheet(out_path, flap, n, size, cam, [gull], 1.05)
+    K.SOFT[0] = False

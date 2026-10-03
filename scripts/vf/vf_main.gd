@@ -31,7 +31,14 @@ var money_label: Label
 var exotic_labels := {}
 var hooks_label: Label
 var prestige_label: Label
-var biome_label: Label
+var wallet_btn: Button
+var wallet: PanelContainer
+var goal_box: PanelContainer
+var goal_label: Label
+var goal_bar: ProgressBar
+var _goal := {}
+var card: PanelContainer
+var _card_tw: Tween
 
 # catch card
 var card_accent: ColorRect
@@ -95,6 +102,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				if not overlay.visible: _do_sell()
 			KEY_ESCAPE:
 				_close_panel()
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
+				var kinds := ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats"]
+				var k: String = kinds[event.keycode - KEY_1]
+				if overlay.visible and _panel_kind == k: _close_panel()
+				else: _open_panel(k)
 			KEY_F1:
 				if overlay.visible and _panel_kind == "admin": _close_panel()
 				else: _open_panel("admin")
@@ -183,14 +195,9 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 	b.add_theme_color_override("font_pressed_color", fc)
 	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.4))
 	if color == C_NEUTRAL:
-		var n := tbox("button_brown", 12, 8)
-		var h := tbox("button_brown", 12, 8)
-		h.modulate_color = Color(1.06, 1.04, 0.98)
-		var pr := tbox("button_brown", 12, 8)
-		pr.modulate_color = Color(0.9, 0.86, 0.8)
-		b.add_theme_stylebox_override("normal", n)
-		b.add_theme_stylebox_override("hover", h)
-		b.add_theme_stylebox_override("pressed", pr)
+		b.add_theme_stylebox_override("normal", sbox(Color("#f6ecda"), 12, 1, Color("#dccaa8"), 6))
+		b.add_theme_stylebox_override("hover", sbox(Color("#fff6e6"), 12, 2, Color("#c9a86a"), 6))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#ead9b8"), 12, 1, Color("#c9a86a"), 6))
 	else:
 		b.add_theme_stylebox_override("normal", sbox(color, 10, 2, color.darkened(0.3), 8, 2))
 		b.add_theme_stylebox_override("hover", sbox(color.lightened(0.15), 10, 2, color.darkened(0.3), 8))
@@ -235,63 +242,108 @@ func _build_stage() -> void:
 	fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(fx_layer)
 
+func _flat(pad := 10, radius := 16) -> StyleBoxFlat:
+	return sbox(Color(C_PANEL, 0.94), radius, 1, Color("#e3d3b4"), pad, 8)
+
 func _build_hud() -> void:
+	var col := VBoxContainer.new()
+	col.position = Vector2(14, 12)
+	col.add_theme_constant_override("separation", 6)
+	add_child(col)
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", tbox("panel_brown", 22, 12))
-	bar.position = Vector2(12, 10)
-	add_child(bar)
+	bar.add_theme_stylebox_override("panel", _flat(10))
+	col.add_child(bar)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 12)
 	bar.add_child(row)
-	# level badge
 	var badge := PanelContainer.new()
-	badge.add_theme_stylebox_override("panel", sbox(Color("#2f8f9e"), 10, 0, Color.TRANSPARENT, 6))
-	lvl_label = lbl("Lv 1", 17)
+	badge.add_theme_stylebox_override("panel", sbox(Color("#2f8f9e"), 12, 0, Color.TRANSPARENT, 7))
+	lvl_label = lbl("Lv 1", 17, Color.WHITE)
 	badge.add_child(lvl_label)
+	badge.tooltip_text = "Your level. Fish to earn XP."
 	row.add_child(badge)
 	var xpbox := VBoxContainer.new()
 	xpbox.add_theme_constant_override("separation", 2)
-	xp_label = lbl("0 / 100 XP", 12, C_MUTED)
+	xpbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	xp_label = lbl("0 / 100 XP", 11, C_MUTED)
 	xp_bar = ProgressBar.new()
 	xp_bar.show_percentage = false
-	xp_bar.custom_minimum_size = Vector2(170, 10)
+	xp_bar.custom_minimum_size = Vector2(150, 9)
 	xp_bar.add_theme_stylebox_override("background", sbox(C_NEUTRAL, 5, 0, Color.TRANSPARENT, 0))
 	xp_bar.add_theme_stylebox_override("fill", sbox(C_GOOD, 5, 0, Color.TRANSPARENT, 0))
 	xpbox.add_child(xp_label)
 	xpbox.add_child(xp_bar)
 	row.add_child(xpbox)
-	row.add_child(_hud_stat(icon_for("ui", "money"), "money"))
-	for k in ["gold", "emerald", "lava", "diamond", "azure"]:
-		row.add_child(_hud_stat(icon_for("exotic", k), k))
-	row.add_child(_hud_stat(icon_for("ui", "hooks"), "hooks"))
+	var m := HBoxContainer.new()
+	m.add_child(icon(icon_for("ui", "money"), 28))
+	money_label = lbl("$0", 18)
+	m.add_child(money_label)
+	m.tooltip_text = "Money"
+	row.add_child(m)
+	wallet_btn = btn("", C_NEUTRAL, 14)
+	wallet_btn.icon = icon_for("exotic", "gold")
+	wallet_btn.add_theme_constant_override("icon_max_width", 24)
+	wallet_btn.tooltip_text = "Wallet: exotic fish, hooks and azure fish"
+	wallet_btn.pressed.connect(_toggle_wallet)
+	row.add_child(wallet_btn)
 	prestige_label = lbl("P0", 15, C_GOLD)
+	prestige_label.tooltip_text = "Prestige"
+	prestige_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	row.add_child(prestige_label)
-	biome_label = lbl("River", 15, Color.WHITE)
-	var bp := PanelContainer.new()
-	bp.add_theme_stylebox_override("panel", sbox(C_NEUTRAL, 8, 0, Color.TRANSPARENT, 5))
-	bp.add_child(biome_label)
-	row.add_child(bp)
+	# wallet popup (hidden until clicked)
+	wallet = PanelContainer.new()
+	wallet.add_theme_stylebox_override("panel", _flat(10, 12))
+	wallet.visible = false
+	var wg := GridContainer.new()
+	wg.columns = 2
+	wg.add_theme_constant_override("h_separation", 18)
+	wallet.add_child(wg)
+	for k in ["gold", "emerald", "lava", "diamond", "azure"]:
+		var h := HBoxContainer.new()
+		h.add_child(icon(icon_for("exotic", k), 26))
+		var l := lbl("0", 15)
+		h.add_child(l)
+		h.tooltip_text = VFData.EXOTICS[k].name
+		exotic_labels[k] = l
+		wg.add_child(h)
+	var hk := HBoxContainer.new()
+	hk.add_child(icon(icon_for("ui", "hooks"), 26))
+	hooks_label = lbl("0", 15)
+	hk.add_child(hooks_label)
+	hk.tooltip_text = "Hooks (league currency)"
+	wg.add_child(hk)
+	col.add_child(wallet)
+	# next goal hint
+	goal_box = PanelContainer.new()
+	goal_box.add_theme_stylebox_override("panel", _flat(8, 12))
+	var gv := VBoxContainer.new()
+	gv.add_theme_constant_override("separation", 3)
+	goal_label = lbl("", 13)
+	goal_bar = ProgressBar.new()
+	goal_bar.show_percentage = false
+	goal_bar.custom_minimum_size = Vector2(220, 7)
+	goal_bar.add_theme_stylebox_override("background", sbox(C_NEUTRAL, 4, 0, Color.TRANSPARENT, 0))
+	goal_bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 4, 0, Color.TRANSPARENT, 0))
+	gv.add_child(goal_label)
+	gv.add_child(goal_bar)
+	goal_box.add_child(gv)
+	goal_box.mouse_filter = Control.MOUSE_FILTER_STOP
+	goal_box.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _open_goal())
+	goal_box.tooltip_text = "Your next upgrade. Click to open it."
+	col.add_child(goal_box)
 
-func _hud_stat(t: Texture2D, key: String) -> Control:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 3)
-	h.add_child(icon(t, 28))
-	var l := lbl("0", 15)
-	h.add_child(l)
-	if key == "money": money_label = l
-	elif key == "hooks": hooks_label = l
-	else: exotic_labels[key] = l
-	h.tooltip_text = VFData.EXOTICS[key].name if VFData.EXOTICS.has(key) else key.capitalize()
-	return h
+func _toggle_wallet() -> void:
+	wallet.visible = not wallet.visible
 
 func _build_card() -> void:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", tbox("panel_brown", 22, 6))
+	card = PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _flat(0, 14))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
-	card.offset_left = -372
+	card.offset_left = -330
 	card.offset_right = -14
-	card.offset_top = 70
+	card.offset_top = 12
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(card)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 0)
@@ -299,61 +351,86 @@ func _build_card() -> void:
 	card_accent = ColorRect.new()
 	card_accent.custom_minimum_size = Vector2(5, 0)
 	h.add_child(card_accent)
-	var m := MarginContainer.new()
+	var mc := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 12)
-	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(m)
+		mc.add_theme_constant_override("margin_" + side, 10)
+	mc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(mc)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
-	m.add_child(v)
-	card_title = lbl("", 17)
+	v.add_theme_constant_override("separation", 4)
+	mc.add_child(v)
+	card_title = lbl("", 16)
 	v.add_child(card_title)
 	card_body = VBoxContainer.new()
-	card_body.add_theme_constant_override("separation", 4)
+	card_body.add_theme_constant_override("separation", 2)
 	v.add_child(card_body)
 	toast_box = VBoxContainer.new()
 	toast_box.anchor_left = 0.5
 	toast_box.anchor_right = 0.5
-	toast_box.offset_left = -260
-	toast_box.offset_right = 260
-	toast_box.offset_top = 70
-	toast_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	toast_box.offset_left = -230
+	toast_box.offset_right = 230
+	toast_box.offset_top = 84
+	toast_box.add_theme_constant_override("separation", 4)
 	toast_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toast_box)
 
+func _show_card() -> void:
+	card.modulate.a = 1.0
+	card.visible = true
+	if _card_tw: _card_tw.kill()
+	_card_tw = card.create_tween()
+	_card_tw.tween_interval(6.0)
+	_card_tw.tween_property(card, "modulate:a", 0.0, 0.8)
+
+var _bottom: HBoxContainer
+
+func _group(anchor_x: float, grow: int) -> HBoxContainer:
+	if _bottom == null:
+		_bottom = HBoxContainer.new()
+		_bottom.anchor_left = 0.0
+		_bottom.anchor_right = 1.0
+		_bottom.anchor_top = 1.0
+		_bottom.anchor_bottom = 1.0
+		_bottom.offset_left = 12
+		_bottom.offset_right = -12
+		_bottom.offset_bottom = -10
+		_bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_bottom.alignment = BoxContainer.ALIGNMENT_CENTER
+		_bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_bottom)
+	if _bottom.get_child_count() > 0:
+		var sp := Control.new()
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_bottom.add_child(sp)
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _flat(7, 16))
+	p.size_flags_vertical = Control.SIZE_SHRINK_END
+	_bottom.add_child(p)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 6)
+	p.add_child(h)
+	return h
+
 func _build_dock() -> void:
-	var dock := PanelContainer.new()
-	dock.add_theme_stylebox_override("panel", tbox("panel_brown", 22, 16))
-	dock.anchor_top = 1.0
-	dock.anchor_bottom = 1.0
-	dock.anchor_left = 0.5
-	dock.anchor_right = 0.5
-	dock.offset_top = -160
-	dock.offset_bottom = -10
-	dock.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	dock.offset_left = -620
-	dock.offset_right = 620
-	add_child(dock)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	dock.add_child(v)
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 10)
-	v.add_child(top)
+	# left: current setup (rod, bait, biome, pet)
+	var left := _group(0.0, Control.GROW_DIRECTION_END)
 	for key in ["rod", "bait", "biome", "pet"]:
-		var chip := _chip(key)
-		top.add_child(chip)
-	boost_label = lbl("", 13, C_MUTED)
-	boost_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	boost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	top.add_child(boost_label)
-	var bottom := HBoxContainer.new()
-	bottom.add_theme_constant_override("separation", 8)
-	v.add_child(bottom)
-	# fish button with cooldown fill
-	fish_btn = btn("FISH", Color("#3fae6a"), 22, 170)
-	fish_btn.custom_minimum_size.y = 58
+		left.add_child(_chip(key))
+	# centre: fish + sell
+	var mid := _group(0.5, Control.GROW_DIRECTION_BOTH)
+	var midv := VBoxContainer.new()
+	midv.add_theme_constant_override("separation", 4)
+	mid.add_child(midv)
+	boost_label = lbl("", 12, C_MUTED)
+	boost_label.clip_text = true
+	boost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	midv.add_child(boost_label)
+	var mh := HBoxContainer.new()
+	mh.add_theme_constant_override("separation", 6)
+	midv.add_child(mh)
+	fish_btn = btn("FISH", Color("#3fae6a"), 22, 140)
+	fish_btn.custom_minimum_size.y = 54
 	fish_btn.clip_contents = true
 	fish_fill = ColorRect.new()
 	fish_fill.color = Color(1, 1, 1, 0.22)
@@ -361,25 +438,29 @@ func _build_dock() -> void:
 	fish_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fish_btn.add_child(fish_fill)
 	fish_btn.pressed.connect(_do_cast)
-	fish_btn.tooltip_text = "Space / F"
-	bottom.add_child(fish_btn)
-	sell_btn = btn("SELL $0", Color("#e07a3a"), 17, 150)
+	fish_btn.tooltip_text = "Cast your line  [Space / F]"
+	mh.add_child(fish_btn)
+	sell_btn = btn("SELL", Color("#e07a3a"), 15, 112)
 	sell_btn.pressed.connect(_do_sell)
-	sell_btn.tooltip_text = "S"
-	bottom.add_child(sell_btn)
-	var sep := Control.new()
-	sep.custom_minimum_size.x = 6
-	bottom.add_child(sep)
-	for nav in [["inventory", "Fish"], ["shop", "Shop"], ["biomes", "Biomes"], ["charms", "Charms"], ["pets", "Pets"],
+	sell_btn.tooltip_text = "Sell every fish in your hold  [S]"
+	mh.add_child(sell_btn)
+	# right: navigation
+	var right := _group(1.0, Control.GROW_DIRECTION_BEGIN)
+	var i := 1
+	for nav in [["inventory", "Hold"], ["shop", "Shop"], ["biomes", "Map"], ["charms", "Charms"], ["pets", "Pets"],
 			["boosts", "Boosts"], ["quests", "Quests"], ["prestige", "Prestige"], ["stats", "Buffs"]]:
-		bottom.add_child(_nav_button(nav[0], nav[1]))
+		var b := _nav_button(nav[0], nav[1])
+		b.tooltip_text = "%s  [%d]" % [nav[1], i]
+		right.add_child(b)
+		i += 1
 
 func _chip(key: String) -> Button:
-	var b := btn("", C_NEUTRAL, 14)
-	b.custom_minimum_size = Vector2(190, 44)
-	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.expand_icon = false
+	var b := btn("", C_NEUTRAL, 11)
+	b.custom_minimum_size = Vector2(58, 56)
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	b.add_theme_constant_override("icon_max_width", 34)
+	b.clip_text = true
 	b.pressed.connect(_on_chip.bind(key))
 	chips[key] = b
 	return b
@@ -392,16 +473,15 @@ func _on_chip(key: String) -> void:
 		"pet": _open_panel("pets")
 
 func _nav_button(kind: String, text: String) -> Button:
-	var b := btn(text, C_NEUTRAL, 12, 0)
-	b.icon = icon_for("ui", "charms" if kind == "charms" else kind) if kind != "charms" and kind != "pets" and kind != "inventory" else null
+	var b := btn(text, C_NEUTRAL, 11, 0)
 	match kind:
 		"charms": b.icon = icon_for("charm", "quality")
 		"pets": b.icon = icon_for("pet", "Puffer")
-		"inventory": b.icon = icon_for("ui", "inventory")
+		_: b.icon = icon_for("ui", kind)
 	b.add_theme_constant_override("icon_max_width", 30)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	b.custom_minimum_size = Vector2(86, 58)
+	b.custom_minimum_size = Vector2(52, 56)
 	b.pressed.connect(func(): _open_panel(kind))
 	return b
 
@@ -547,6 +627,8 @@ func _toast(text: String, kind: String) -> void:
 	p.add_child(lbl(text, 15, Color.WHITE))
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast_box.add_child(p)
+	while toast_box.get_child_count() > 3:
+		toast_box.get_child(0).free()
 	var tw := p.create_tween()
 	tw.tween_interval(3.0)
 	tw.tween_property(p, "modulate:a", 0.0, 0.6)
@@ -558,6 +640,7 @@ func _clear(node: Node) -> void:
 		c.queue_free()
 
 func _card_intro() -> void:
+	_show_card()
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
 	for t in ["Press FISH (or Space) to cast.", "Sell your catch, buy rods, boats and upgrades.",
@@ -568,6 +651,7 @@ func _card_intro() -> void:
 		card_body.add_child(l)
 
 func _show_catch(res: Dictionary) -> void:
+	_show_card()
 	card_accent.color = accent()
 	card_title.text = "🎣 You caught %d fish!" % res.count if res.count > 0 else "🎣 Nothing bit this time..."
 	_clear(card_body)
@@ -619,46 +703,80 @@ func _refresh() -> void:
 	money_label.text = money_str(VF.money)
 	for k in exotic_labels:
 		exotic_labels[k].text = VF.fmt(VF.exotics.get(k, 0))
-		exotic_labels[k].get_parent().visible = k == "azure" and (VF.prestige > 0 or VF.exotics.azure > 0) \
-			or k != "azure" and VF.level >= VFData.EXOTICS[k].level or VF.exotics.get(k, 0) > 0
 	hooks_label.text = str(VF.hooks)
+	wallet_btn.text = VF.fmt(VF.exotics.gold + VF.exotics.emerald + VF.exotics.lava + VF.exotics.diamond)
 	prestige_label.text = "P%d" % VF.prestige
-	biome_label.text = VF.biome
-	biome_label.add_theme_color_override("font_color", accent().darkened(0.25))
-	sell_btn.text = "SELL %s" % money_str(VF.inventory_value())
+	prestige_label.visible = VF.prestige > 0
+	var inv: int = VF.inventory_value()
+	sell_btn.text = ("SELL\n%s" % money_str(inv)) if inv > 0 else "SELL"
+	sell_btn.disabled = inv <= 0
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
-	rod_chip.text = VF.rod + ("" if VF.rod_usable() else "  ⚠")
+	rod_chip.text = "Rod" if VF.rod_usable() else "⚠ Rod"
+	rod_chip.tooltip_text = "%s — %s\nClick to change rods" % [VF.rod, "ready" if VF.rod_usable() else "can't be used in %s!" % VF.biome]
 	var bait_chip: Button = chips.bait
-	if VF.has_bait():
-		bait_chip.icon = icon_for("bait", VF.bait)
-		bait_chip.text = "%s ×%s" % [VF.bait, VF.fmt(VF.bait_stock[VF.bait])]
-	else:
-		bait_chip.icon = null
-		bait_chip.text = "No bait"
+	bait_chip.icon = icon_for("bait", VF.bait) if VF.has_bait() else icon_for("bait", "Worms")
+	bait_chip.modulate = Color.WHITE if VF.has_bait() else Color(1, 1, 1, 0.6)
+	bait_chip.text = ("×%s" % VF.fmt(VF.bait_stock[VF.bait])) if VF.has_bait() else "No bait"
+	bait_chip.tooltip_text = ("%s: %s left" % [VF.bait, VF.commas(int(VF.bait_stock[VF.bait]))] if VF.has_bait() else "No bait equipped") + "\nClick to buy or change bait"
 	var biome_chip: Button = chips.biome
 	biome_chip.icon = icon_for("ui", "biomes")
-	biome_chip.text = "%s  •  %.2fs" % [VF.biome, VF.cooldown()]
+	biome_chip.text = VF.biome
+	biome_chip.tooltip_text = "%s biome • %.2fs cooldown\nClick to travel" % [VF.biome, VF.cooldown()]
 	var pet_chip: Button = chips.pet
-	if VF.pet != "":
-		pet_chip.icon = icon_for("pet", VF.pet)
-		pet_chip.text = "%s Lv %d" % [VF.pet, VF.pets[VF.pet].level]
-	else:
-		pet_chip.icon = null
-		pet_chip.text = "No pet yet"
+	pet_chip.icon = icon_for("pet", VF.pet if VF.pet != "" else "Puffer")
+	pet_chip.modulate = Color.WHITE if VF.pet != "" else Color(1, 1, 1, 0.5)
+	pet_chip.text = ("Lv %d" % VF.pets[VF.pet].level) if VF.pet != "" else "None"
+	pet_chip.tooltip_text = ("%s (level %d)" % [VF.pet, VF.pets[VF.pet].level]) if VF.pet != "" else "No pet yet — 1 in 10,000 casts"
+	_refresh_goal()
 	_apply_biome()
+	stage.set_rod(VF.rod)
 	_refresh_boosts()
 	if overlay.visible:
 		_render_panel()
 
+## The cheapest useful purchase you can't afford yet (next rod or boat),
+## mirroring the Prestige 0 Guide's buying order.
+func _refresh_goal() -> void:
+	var best := {}
+	for r in VFData.ROD_ORDER:
+		var d: Dictionary = VFData.RODS[r]
+		if r in VF.owned_rods or r == "Supporter Rod" or VF.level < d.level: continue
+		if d.cost > VF.money:
+			best = {"name": r, "cost": d.cost, "panel": ["shop", "Rods"]}
+			break
+	var nb: String = VF.next_boat()
+	if nb != "" and VF.level >= VFData.BOATS[nb].level and VFData.BOATS[nb].cost > VF.money:
+		if best.is_empty() or VFData.BOATS[nb].cost < best.cost:
+			best = {"name": nb, "cost": VFData.BOATS[nb].cost, "panel": ["shop", "Boats"]}
+	if best.is_empty():
+		goal_box.visible = false
+		return
+	goal_box.visible = true
+	_goal = best
+	var have: float = VF.money + VF.inventory_value()
+	goal_label.text = "Next: %s   %s / %s" % [best.name, money_str(have), money_str(best.cost)]
+	goal_bar.max_value = best.cost
+	goal_bar.value = minf(have, best.cost)
+
+func _open_goal() -> void:
+	if not _goal.is_empty():
+		_open_panel(_goal.panel[0], _goal.panel[1])
+
 func _refresh_boosts() -> void:
-	var bits := []
+	var names := []
+	var tips := []
 	for k in ["fish", "treasure", "worker"]:
 		if VF.is_boost_active(k):
-			bits.append("%s %s" % [k.capitalize(), _clock(VF.boost_left(k))])
+			names.append(k.capitalize())
+			tips.append("%s boost: %s left" % [k.capitalize(), _clock(VF.boost_left(k))])
 	if Time.get_unix_time_from_system() < VF.personal_until:
-		bits.append("Personal %s" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
-	boost_label.text = "⚡ " + "   ".join(bits) if bits else "Avg %.1f fish/cast • TC %.1f%%" % [_avg_fish(), VF.treasure_chance() * 100.0]
+		names.append("Personal")
+		tips.append("Personal booster: %s left" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
+	boost_label.text = ("⚡ " + " · ".join(names)) if names else "~%.1f fish per cast" % _avg_fish()
+	boost_label.tooltip_text = "
+".join(tips) if tips else "Average fish per cast with your current setup"
+	boost_label.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _clock(s: float) -> String:
 	return "%d:%02d" % [int(s) / 60, int(s) % 60]
@@ -1078,11 +1196,21 @@ func _panel_stats() -> void:
 		v.add_child(pc)
 		p.add_child(v)
 		_add_to(og, p)
-	var reset := _act("Reset save", Color("#7f1d1d"), func():
-		VF.reset_save()
-		get_tree().reload_current_scene()
-		return "")
-	panel_body.add_child(reset)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	var reset := btn("Reset save…", C_NEUTRAL, 12, 120)
+	reset.tooltip_text = "Erase all progress (asks to confirm)"
+	reset.pressed.connect(func():
+		if reset.text == "Click again to erase everything":
+			VF.reset_save()
+			get_tree().reload_current_scene()
+		else:
+			reset.text = "Click again to erase everything"
+			reset.add_theme_color_override("font_color", C_BAD)
+			get_tree().create_timer(3.0).timeout.connect(func():
+				if is_instance_valid(reset): reset.text = "Reset save…"))
+	row.add_child(reset)
+	panel_body.add_child(row)
 
 # ============================================================ capture mode
 ## godot --path . -- --capture=DIR [--demo=BIOME] : plays a few casts, saves
@@ -1151,8 +1279,8 @@ func _admin_banner_tick(delta: float) -> void:
 		_abuse_label.offset_right = 400
 		_abuse_label.anchor_top = 1.0
 		_abuse_label.anchor_bottom = 1.0
-		_abuse_label.offset_top = -218
-		_abuse_label.offset_bottom = -178
+		_abuse_label.offset_top = -140
+		_abuse_label.offset_bottom = -100
 		_abuse_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_abuse_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_abuse_label)
