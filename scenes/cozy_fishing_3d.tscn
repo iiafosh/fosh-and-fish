@@ -1,0 +1,729 @@
+[gd_scene load_steps=59 format=3]
+
+[ext_resource type="Script" path="res://scripts/cozy_fishing_3d.gd" id="1_scene"]
+[ext_resource type="FontFile" uid="uid://dcknw0n78ir4m" path="res://web/assets/pixel_font.ttf" id="2_font"]
+
+[sub_resource type="Environment" id="Environment_cozy"]
+background_mode = 1
+background_color = Color(0.18, 0.68, 0.65, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.35, 0.65, 0.80, 1)
+ambient_light_energy = 0.34
+tonemap_mode = 2
+tonemap_exposure = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Mat_Sand"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.85, 0.75, 0.54, 1)
+roughness = 0.95
+
+[sub_resource type="PlaneMesh" id="Mesh_Sand"]
+size = Vector2(28, 16)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Seabed"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.32, 0.52, 0.48, 1)
+roughness = 0.95
+
+[sub_resource type="PlaneMesh" id="Mesh_Seabed"]
+size = Vector2(28, 20)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Water"]
+transparency = 1
+diffuse_mode = 2
+specular_mode = 1
+albedo_color = Color(0.16, 0.72, 0.68, 0.78)
+roughness = 0.1
+metallic_specular = 0.45
+
+[sub_resource type="PlaneMesh" id="Mesh_Water"]
+size = Vector2(28, 20)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Foam"]
+transparency = 1
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(1, 1, 1, 0.88)
+roughness = 0.4
+
+[sub_resource type="PlaneMesh" id="Mesh_Foam"]
+size = Vector2(28, 0.28)
+
+[sub_resource type="StandardMaterial3D" id="Mat_FoamFine"]
+transparency = 1
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(1, 1, 1, 0.55)
+roughness = 0.5
+
+[sub_resource type="PlaneMesh" id="Mesh_FoamFine"]
+size = Vector2(28, 0.14)
+
+[sub_resource type="StandardMaterial3D" id="Mat_SeatedRock"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.66, 0.38, 0.28, 1)
+roughness = 0.85
+
+[sub_resource type="SphereMesh" id="Mesh_SeatedRock"]
+radius = 0.58
+height = 0.78
+radial_segments = 14
+rings = 7
+
+[sub_resource type="StandardMaterial3D" id="Mat_BeachBoulder"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.50, 0.52, 0.54, 1)
+roughness = 0.85
+
+[sub_resource type="SphereMesh" id="Mesh_BeachBoulder"]
+radius = 0.85
+height = 1.2
+radial_segments = 14
+rings = 7
+
+[sub_resource type="StandardMaterial3D" id="Mat_SubmergedRock"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.24, 0.38, 0.36, 1)
+roughness = 0.8
+
+[sub_resource type="SphereMesh" id="Mesh_SubmergedRock"]
+radius = 0.45
+height = 0.4
+radial_segments = 12
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_Straw"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.86, 0.72, 0.38, 1)
+roughness = 0.85
+
+[sub_resource type="CylinderMesh" id="Mesh_KasaHat"]
+top_radius = 0.0
+bottom_radius = 0.60
+height = 0.24
+radial_segments = 24
+
+[sub_resource type="StandardMaterial3D" id="Mat_CyanRibbon"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.06, 0.68, 0.78, 1)
+roughness = 0.35
+
+[sub_resource type="TorusMesh" id="Mesh_CyanRibbon"]
+inner_radius = 0.19
+outer_radius = 0.23
+rings = 16
+ring_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_WickerCape"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.76, 0.62, 0.36, 1)
+roughness = 0.85
+
+[sub_resource type="CylinderMesh" id="Mesh_WickerCape"]
+top_radius = 0.22
+bottom_radius = 0.42
+height = 0.38
+radial_segments = 14
+
+[sub_resource type="StandardMaterial3D" id="Mat_Tunic"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.80, 0.48, 0.22, 1)
+roughness = 0.75
+
+[sub_resource type="CylinderMesh" id="Mesh_Tunic"]
+top_radius = 0.18
+bottom_radius = 0.24
+height = 0.44
+radial_segments = 14
+
+[sub_resource type="StandardMaterial3D" id="Mat_Pants"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.28, 0.42, 0.60, 1)
+roughness = 0.75
+
+[sub_resource type="CylinderMesh" id="Mesh_PantsPelvis"]
+top_radius = 0.20
+bottom_radius = 0.20
+height = 0.26
+radial_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_Boots"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.20, 0.28, 0.22, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="Mesh_Boot"]
+size = Vector3(0.11, 0.11, 0.24)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Creel"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.68, 0.50, 0.28, 1)
+roughness = 0.75
+
+[sub_resource type="CylinderMesh" id="Mesh_Creel"]
+top_radius = 0.19
+bottom_radius = 0.16
+height = 0.48
+radial_segments = 14
+
+[sub_resource type="StandardMaterial3D" id="Mat_CreelStrap"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.32, 0.20, 0.12, 1)
+roughness = 0.6
+
+[sub_resource type="CylinderMesh" id="Mesh_CreelStrap"]
+top_radius = 0.21
+bottom_radius = 0.21
+height = 0.05
+radial_segments = 14
+
+[sub_resource type="StandardMaterial3D" id="Mat_Skin"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.95, 0.78, 0.62, 1)
+roughness = 0.6
+
+[sub_resource type="SphereMesh" id="Mesh_Head"]
+radius = 0.16
+height = 0.32
+radial_segments = 14
+rings = 8
+
+[sub_resource type="StandardMaterial3D" id="Mat_Bamboo"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.88, 0.76, 0.32, 1)
+roughness = 0.45
+
+[sub_resource type="CylinderMesh" id="Mesh_RodSegment"]
+top_radius = 0.007
+bottom_radius = 0.022
+height = 2.3
+radial_segments = 10
+
+[sub_resource type="StandardMaterial3D" id="Mat_Line"]
+transparency = 1
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.12, 0.12, 0.12, 0.90)
+
+[sub_resource type="CylinderMesh" id="Mesh_LineSeg"]
+top_radius = 0.003
+bottom_radius = 0.003
+height = 0.42
+radial_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_BobberRed"]
+diffuse_mode = 2
+specular_mode = 1
+albedo_color = Color(0.92, 0.14, 0.12, 1)
+roughness = 0.2
+metallic_specular = 0.5
+
+[sub_resource type="SphereMesh" id="Mesh_BobberTop"]
+radius = 0.055
+height = 0.055
+radial_segments = 12
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_BobberWhite"]
+diffuse_mode = 2
+specular_mode = 1
+albedo_color = Color(0.96, 0.96, 0.96, 1)
+roughness = 0.2
+metallic_specular = 0.5
+
+[sub_resource type="SphereMesh" id="Mesh_BobberBot"]
+radius = 0.053
+height = 0.053
+radial_segments = 12
+rings = 6
+
+[sub_resource type="TorusMesh" id="Mesh_BobberRipple"]
+inner_radius = 0.08
+outer_radius = 0.14
+rings = 14
+ring_segments = 4
+
+[sub_resource type="StandardMaterial3D" id="Mat_CrabRed"]
+diffuse_mode = 2
+specular_mode = 1
+albedo_color = Color(0.94, 0.22, 0.15, 1)
+roughness = 0.35
+metallic_specular = 0.3
+
+[sub_resource type="SphereMesh" id="Mesh_CrabShell"]
+radius = 0.13
+height = 0.14
+radial_segments = 12
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_EyeWhite"]
+diffuse_mode = 2
+specular_mode = 1
+albedo_color = Color(0.98, 0.98, 0.98, 1)
+roughness = 0.1
+metallic_specular = 0.6
+
+[sub_resource type="SphereMesh" id="Mesh_CrabEye"]
+radius = 0.042
+height = 0.084
+radial_segments = 10
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_EyeBlack"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.08, 0.08, 0.08, 1)
+roughness = 0.1
+
+[sub_resource type="SphereMesh" id="Mesh_CrabPupil"]
+radius = 0.018
+height = 0.036
+radial_segments = 8
+rings = 4
+
+[sub_resource type="BoxMesh" id="Mesh_CrabClaw"]
+size = Vector3(0.07, 0.035, 0.11)
+
+[sub_resource type="BoxMesh" id="Mesh_CrabLeg"]
+size = Vector3(0.025, 0.025, 0.11)
+
+[sub_resource type="StandardMaterial3D" id="Mat_SeagullWhite"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.96, 0.96, 0.96, 1)
+roughness = 0.5
+
+[sub_resource type="SphereMesh" id="Mesh_SeagullBody"]
+radius = 0.13
+height = 0.38
+radial_segments = 12
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_SeagullGrey"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.48, 0.52, 0.56, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="Mesh_SeagullWing"]
+size = Vector3(0.55, 0.022, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="Mat_SeagullBlack"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.12, 0.12, 0.12, 1)
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="Mesh_SeagullWingTip"]
+size = Vector3(0.22, 0.018, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Mat_SeagullBeak"]
+diffuse_mode = 2
+specular_mode = 2
+albedo_color = Color(0.98, 0.82, 0.10, 1)
+roughness = 0.35
+
+[sub_resource type="CylinderMesh" id="Mesh_SeagullBeak"]
+top_radius = 0.0
+bottom_radius = 0.034
+height = 0.12
+radial_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_FishSilver"]
+diffuse_mode = 2
+specular_mode = 1
+albedo_color = Color(0.65, 0.75, 0.80, 1)
+roughness = 0.35
+metallic_specular = 0.5
+
+[sub_resource type="SphereMesh" id="Mesh_FishBody"]
+radius = 0.075
+height = 0.30
+radial_segments = 10
+rings = 5
+
+[sub_resource type="BoxMesh" id="Mesh_FishTail"]
+size = Vector3(0.018, 0.07, 0.09)
+
+[node name="CozyFishing3D" type="Node3D"]
+script = ExtResource("1_scene")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_cozy")
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 8, 0)
+light_color = Color(1, 0.98, 0.92, 1)
+light_energy = 1.05
+shadow_enabled = true
+shadow_bias = 0.04
+
+[node name="SkyFillLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.707107, 0.40558, -0.579228, 0, 0.819152, 0.573576, 0.707107, 0.40558, -0.579228, 0, 5, 0)
+light_color = Color(0.28, 0.65, 0.85, 1)
+light_energy = 0.15
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.887011, 0.461749, 0, -0.461749, 0.887011, -0.15, 2.75, -4.51)
+fov = 36.0
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="BeachSand" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 0.99863, -0.052336, 0, 0.052336, 0.99863, 0, 0.06, -7.5)
+material_override = SubResource("Mat_Sand")
+mesh = SubResource("Mesh_Sand")
+
+[node name="SubmergedSeabed" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.42, 9)
+material_override = SubResource("Mat_Seabed")
+mesh = SubResource("Mesh_Seabed")
+
+[node name="OceanWater" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0, 9)
+material_override = SubResource("Mat_Water")
+mesh = SubResource("Mesh_Water")
+
+[node name="ShorelineFoam" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.015, 0.02)
+material_override = SubResource("Mat_Foam")
+mesh = SubResource("Mesh_Foam")
+
+[node name="ShorelineFoamFine" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.35)
+material_override = SubResource("Mat_FoamFine")
+mesh = SubResource("Mesh_FoamFine")
+
+[node name="Rocks" type="Node3D" parent="Environment"]
+
+[node name="SeatedBoulder" type="MeshInstance3D" parent="Environment/Rocks"]
+transform = Transform3D(1.25, 0, 0, 0, 0.75, 0, 0, 0, 1.1, 0.15, 0.20, 0.12)
+material_override = SubResource("Mat_SeatedRock")
+mesh = SubResource("Mesh_SeatedRock")
+
+[node name="BeachBoulderLarge" type="MeshInstance3D" parent="Environment/Rocks"]
+transform = Transform3D(1.4, 0, 0, 0, 1.0, 0, 0, 0, 1.2, 2.5, 0.45, -0.6)
+material_override = SubResource("Mat_BeachBoulder")
+mesh = SubResource("Mesh_BeachBoulder")
+
+[node name="BeachBoulderSmall" type="MeshInstance3D" parent="Environment/Rocks"]
+transform = Transform3D(0.7, 0, 0, 0, 0.6, 0, 0, 0, 0.65, 3.4, 0.24, -1.6)
+material_override = SubResource("Mat_BeachBoulder")
+mesh = SubResource("Mesh_BeachBoulder")
+
+[node name="SubmergedRock1" type="MeshInstance3D" parent="Environment/Rocks"]
+transform = Transform3D(1.2, 0, 0, 0, 0.6, 0, 0, 0, 1.0, -0.6, -0.22, 2.4)
+material_override = SubResource("Mat_SubmergedRock")
+mesh = SubResource("Mesh_SubmergedRock")
+
+[node name="SubmergedRock2" type="MeshInstance3D" parent="Environment/Rocks"]
+transform = Transform3D(1.6, 0, 0, 0, 0.7, 0, 0, 0, 1.4, -2.6, -0.24, 4.0)
+material_override = SubResource("Mat_SubmergedRock")
+mesh = SubResource("Mesh_SubmergedRock")
+
+[node name="SubmergedRock3" type="MeshInstance3D" parent="Environment/Rocks"]
+transform = Transform3D(1.0, 0, 0, 0, 0.5, 0, 0, 0, 0.9, 1.6, -0.22, 3.5)
+material_override = SubResource("Mat_SubmergedRock")
+mesh = SubResource("Mesh_SubmergedRock")
+
+[node name="Characters" type="Node3D" parent="."]
+
+[node name="Fisherman" type="Node3D" parent="Characters"]
+transform = Transform3D(0.766044, 0, -0.642788, 0, 1, 0, 0.642788, 0, 0.766044, 0.15, 0.42, 0.12)
+
+[node name="Pelvis" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0)
+material_override = SubResource("Mat_Pants")
+mesh = SubResource("Mesh_PantsPelvis")
+
+[node name="LegL" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, -0.14, -0.04, 0.20)
+material_override = SubResource("Mat_Pants")
+mesh = SubResource("Mesh_Boot")
+
+[node name="LegR" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0.14, -0.04, 0.20)
+material_override = SubResource("Mat_Pants")
+mesh = SubResource("Mesh_Boot")
+
+[node name="BootL" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, -0.20, 0.32)
+material_override = SubResource("Mat_Boots")
+mesh = SubResource("Mesh_Boot")
+
+[node name="BootR" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, -0.20, 0.32)
+material_override = SubResource("Mat_Boots")
+mesh = SubResource("Mesh_Boot")
+
+[node name="Torso" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 0.984808, -0.173648, 0, 0.173648, 0.984808, 0, 0.40, -0.04)
+material_override = SubResource("Mat_Tunic")
+mesh = SubResource("Mesh_Tunic")
+
+[node name="StrawCape" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 0.984808, -0.173648, 0, 0.173648, 0.984808, 0, 0.48, -0.04)
+material_override = SubResource("Mat_WickerCape")
+mesh = SubResource("Mesh_WickerCape")
+
+[node name="Head" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.74, -0.02)
+material_override = SubResource("Mat_Skin")
+mesh = SubResource("Mesh_Head")
+
+[node name="KasaHat" type="MeshInstance3D" parent="Characters/Fisherman"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 0.86, 0.04)
+material_override = SubResource("Mat_Straw")
+mesh = SubResource("Mesh_KasaHat")
+
+[node name="CyanRibbon" type="MeshInstance3D" parent="Characters/Fisherman/KasaHat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+material_override = SubResource("Mat_CyanRibbon")
+mesh = SubResource("Mesh_CyanRibbon")
+
+[node name="HatTip" type="MeshInstance3D" parent="Characters/Fisherman/KasaHat"]
+transform = Transform3D(0.18, 0, 0, 0, 0.18, 0, 0, 0, 0.18, 0, 0.14, 0)
+material_override = SubResource("Mat_CyanRibbon")
+mesh = SubResource("Mesh_Head")
+
+[node name="WovenCreel" type="Node3D" parent="Characters/Fisherman"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 0.32, 0.28, -0.10)
+
+[node name="CreelBody" type="MeshInstance3D" parent="Characters/Fisherman/WovenCreel"]
+material_override = SubResource("Mat_Creel")
+mesh = SubResource("Mesh_Creel")
+
+[node name="CreelStrap" type="MeshInstance3D" parent="Characters/Fisherman/WovenCreel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+material_override = SubResource("Mat_CreelStrap")
+mesh = SubResource("Mesh_CreelStrap")
+
+[node name="BambooRod" type="Node3D" parent="Characters/Fisherman"]
+transform = Transform3D(0.707107, -0.5, 0.5, 0.707107, 0.5, -0.5, 0, 0.707107, 0.707107, -0.20, 0.44, 0.22)
+
+[node name="RodMesh" type="MeshInstance3D" parent="Characters/Fisherman/BambooRod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+material_override = SubResource("Mat_Bamboo")
+mesh = SubResource("Mesh_RodSegment")
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Bobber" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9, 0.02, 1.6)
+
+[node name="TopRed" type="MeshInstance3D" parent="Props/Bobber"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, 0)
+material_override = SubResource("Mat_BobberRed")
+mesh = SubResource("Mesh_BobberTop")
+
+[node name="BotWhite" type="MeshInstance3D" parent="Props/Bobber"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.026, 0)
+material_override = SubResource("Mat_BobberWhite")
+mesh = SubResource("Mesh_BobberBot")
+
+[node name="Ripple" type="MeshInstance3D" parent="Props/Bobber"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
+material_override = SubResource("Mat_FoamFine")
+mesh = SubResource("Mesh_BobberRipple")
+
+[node name="FishingLineArc" type="Node3D" parent="Props"]
+
+[node name="Seg1" type="MeshInstance3D" parent="Props/FishingLineArc"]
+transform = Transform3D(0.965926, 0, -0.258819, 0.12941, 0.866025, 0.482963, 0.224144, -0.5, 0.836516, -1.36, 1.05, 1.34)
+material_override = SubResource("Mat_Line")
+mesh = SubResource("Mesh_LineSeg")
+
+[node name="Seg2" type="MeshInstance3D" parent="Props/FishingLineArc"]
+transform = Transform3D(0.965926, 0, -0.258819, 0.166366, 0.766044, 0.620885, 0.198267, -0.642788, 0.739942, -1.50, 0.68, 1.42)
+material_override = SubResource("Mat_Line")
+mesh = SubResource("Mesh_LineSeg")
+
+[node name="Seg3" type="MeshInstance3D" parent="Props/FishingLineArc"]
+transform = Transform3D(0.965926, 0, -0.258819, 0.224144, 0.5, 0.836516, 0.12941, -0.866025, 0.482963, -1.68, 0.36, 1.50)
+material_override = SubResource("Mat_Line")
+mesh = SubResource("Mesh_LineSeg")
+
+[node name="Seg4" type="MeshInstance3D" parent="Props/FishingLineArc"]
+transform = Transform3D(0.965926, 0, -0.258819, 0.25, 0.258819, 0.933013, 0.0669873, -0.965926, 0.25, -1.82, 0.14, 1.56)
+material_override = SubResource("Mat_Line")
+mesh = SubResource("Mesh_LineSeg")
+
+[node name="RedCrab" type="Node3D" parent="Characters"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -1.3, 0.05, 0.18)
+
+[node name="Shell" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(1.3, 0, 0, 0, 0.7, 0, 0, 0, 1.0, 0, 0, 0)
+material_override = SubResource("Mat_CrabRed")
+mesh = SubResource("Mesh_CrabShell")
+
+[node name="EyeStalkL" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, 0.08, 0.08)
+material_override = SubResource("Mat_EyeWhite")
+mesh = SubResource("Mesh_CrabEye")
+
+[node name="PupilL" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, 0.09, 0.115)
+material_override = SubResource("Mat_EyeBlack")
+mesh = SubResource("Mesh_CrabPupil")
+
+[node name="EyeStalkR" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.055, 0.08, 0.08)
+material_override = SubResource("Mat_EyeWhite")
+mesh = SubResource("Mesh_CrabEye")
+
+[node name="PupilR" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.055, 0.09, 0.115)
+material_override = SubResource("Mat_EyeBlack")
+mesh = SubResource("Mesh_CrabPupil")
+
+[node name="ClawL" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -0.15, 0.02, 0.11)
+material_override = SubResource("Mat_CrabRed")
+mesh = SubResource("Mesh_CrabClaw")
+
+[node name="ClawR" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 0.15, 0.02, 0.11)
+material_override = SubResource("Mat_CrabRed")
+mesh = SubResource("Mesh_CrabClaw")
+
+[node name="LegL1" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -0.15, -0.02, -0.02)
+material_override = SubResource("Mat_CrabRed")
+mesh = SubResource("Mesh_CrabLeg")
+
+[node name="LegR1" type="MeshInstance3D" parent="Characters/RedCrab"]
+transform = Transform3D(0.965926, 0, -0.258819, 0, 1, 0, 0.258819, 0, 0.965926, 0.15, -0.02, -0.02)
+material_override = SubResource("Mat_CrabRed")
+mesh = SubResource("Mesh_CrabLeg")
+
+[node name="Seagull" type="Node3D" parent="Characters"]
+transform = Transform3D(0.866025, 0.173648, 0.469846, 0, 0.939693, -0.34202, -0.5, 0.296198, 0.813798, -2.1, 1.85, 2.2)
+
+[node name="Body" type="MeshInstance3D" parent="Characters/Seagull"]
+transform = Transform3D(1, 0, 0, 0, 0.866025, -0.5, 0, 0.5, 0.866025, 0, 0, 0)
+material_override = SubResource("Mat_SeagullWhite")
+mesh = SubResource("Mesh_SeagullBody")
+
+[node name="Beak" type="MeshInstance3D" parent="Characters/Seagull"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.05, 0.25)
+material_override = SubResource("Mat_SeagullBeak")
+mesh = SubResource("Mesh_SeagullBeak")
+
+[node name="WingL" type="MeshInstance3D" parent="Characters/Seagull"]
+transform = Transform3D(0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 0, 0, 1, -0.32, 0.06, -0.02)
+material_override = SubResource("Mat_SeagullGrey")
+mesh = SubResource("Mesh_SeagullWing")
+
+[node name="WingTipL" type="MeshInstance3D" parent="Characters/Seagull/WingL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30, 0.02, 0)
+material_override = SubResource("Mat_SeagullBlack")
+mesh = SubResource("Mesh_SeagullWingTip")
+
+[node name="WingR" type="MeshInstance3D" parent="Characters/Seagull"]
+transform = Transform3D(0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 0, 0, 1, 0.32, 0.06, -0.02)
+material_override = SubResource("Mat_SeagullGrey")
+mesh = SubResource("Mesh_SeagullWing")
+
+[node name="WingTipR" type="MeshInstance3D" parent="Characters/Seagull/WingR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.30, 0.02, 0)
+material_override = SubResource("Mat_SeagullBlack")
+mesh = SubResource("Mesh_SeagullWingTip")
+
+[node name="FishUndersea" type="Node3D" parent="Characters"]
+
+[node name="Fish1" type="MeshInstance3D" parent="Characters/FishUndersea"]
+transform = Transform3D(0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.939693, -0.7, -0.18, 1.8)
+material_override = SubResource("Mat_FishSilver")
+mesh = SubResource("Mesh_FishBody")
+
+[node name="Tail1" type="MeshInstance3D" parent="Characters/FishUndersea/Fish1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.16)
+material_override = SubResource("Mat_FishSilver")
+mesh = SubResource("Mesh_FishTail")
+
+[node name="Fish2" type="MeshInstance3D" parent="Characters/FishUndersea"]
+transform = Transform3D(0.766044, 0, -0.642788, 0, 1, 0, 0.642788, 0, 0.766044, -2.1, -0.20, 3.2)
+material_override = SubResource("Mat_FishSilver")
+mesh = SubResource("Mesh_FishBody")
+
+[node name="Tail2" type="MeshInstance3D" parent="Characters/FishUndersea/Fish2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.16)
+material_override = SubResource("Mat_FishSilver")
+mesh = SubResource("Mesh_FishTail")
+
+[node name="BeachedFish" type="MeshInstance3D" parent="Characters/FishUndersea"]
+transform = Transform3D(0.866025, 0, -0.5, -0.25, 0.866025, -0.433013, 0.433013, 0.5, 0.75, -0.85, 0.03, 0.10)
+material_override = SubResource("Mat_FishSilver")
+mesh = SubResource("Mesh_FishBody")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HeaderBadge" type="PanelContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 16.0
+offset_right = 300.0
+offset_bottom = 74.0
+grow_horizontal = 2
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/HUD/HeaderBadge"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="CanvasLayer/HUD/HeaderBadge/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 18
+text = "⚓ I Just Wanted to Fish"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="CanvasLayer/HUD/HeaderBadge/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 0.9)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 11
+text = "Low-Poly Cel-Shaded Shoreline • [Drag/Arrows] Orbit • [Wheel/W/S] Zoom • [R] Reset • [Esc] Deck"
+horizontal_alignment = 1
+
+[node name="ReturnBtn" type="Button" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -160.0
+offset_top = 16.0
+offset_right = -18.0
+offset_bottom = 54.0
+grow_horizontal = 0
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 13
+text = "⛵ Return to Deck"
