@@ -10,7 +10,7 @@ signal boss_resolved(caught: bool, boss_data: Dictionary)
 
 # Track elements
 @onready var track_area: Control = $CenterContainer/Panel/VBox/HBox/TrackArea
-@onready var reel_bar: Panel = $CenterContainer/Panel/VBox/HBox/TrackArea/ReelBar
+@onready var reel_bar: Control = $CenterContainer/Panel/VBox/HBox/TrackArea/ReelBar
 @onready var fish_marker: TextureRect = $CenterContainer/Panel/VBox/HBox/TrackArea/FishMarker
 @onready var tension_bar: ProgressBar = $CenterContainer/Panel/VBox/HBox/TensionBar
 @onready var status_label: Label = $CenterContainer/Panel/VBox/StatusLabel

@@ -1,32 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/boss_minigame.gd" id="1_boss"]
 [ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" path="res://web/assets/kraken.png" id="3_kraken"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
-bg_color = Color(0.04, 0.04, 0.06, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.4, 0.35, 0.25, 0.8)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.2, 0.85, 0.45, 0.6)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.4, 1.0, 0.6, 0.95)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+[ext_resource type="Texture2D" path="res://web/assets/minigame/mini-game-ui.png" id="4_track_tex"]
+[ext_resource type="Texture2D" path="res://web/assets/minigame/player-box.png" id="5_bar_tex"]
+[ext_resource type="Texture2D" path="res://web/assets/minigame/strike.png" id="6_strike_tex"]
 
 [node name="BossMinigame" type="Control"]
 layout_mode = 3
@@ -45,7 +24,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.01, 0.01, 0.75)
+color = Color(0.02, 0.01, 0.01, 0.82)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -56,30 +35,38 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(480, 530)
+custom_minimum_size = Vector2(480, 540)
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="CenterContainer/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 alignment = 1
+
+[node name="StrikeBanner" type="TextureRect" parent="CenterContainer/Panel/VBox"]
+custom_minimum_size = Vector2(260, 68)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("6_strike_tex")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="BossRarity" type="Label" parent="CenterContainer/Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.2, 0.25, 1)
-theme_override_font_sizes/font_size = 13
-text = "⚡ TITAN BOSS ENCOUNTER ⚡"
+theme_override_colors/font_color = Color(1.0, 0.25, 0.25, 1)
+theme_override_font_sizes/font_size = 12
+text = "TITAN BOSS HOOKED"
 horizontal_alignment = 1
 
 [node name="BossTitle" type="Label" parent="CenterContainer/Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.9, 0.4, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1.0, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 18
 text = "ABYSSAL KRAKEN"
 horizontal_alignment = 1
 
 [node name="BossIcon" type="TextureRect" parent="CenterContainer/Panel/VBox"]
-custom_minimum_size = Vector2(90, 80)
+custom_minimum_size = Vector2(72, 64)
 layout_mode = 2
 size_flags_horizontal = 4
 texture = ExtResource("3_kraken")
@@ -96,35 +83,49 @@ horizontal_alignment = 1
 
 [node name="HBox" type="HBoxContainer" parent="CenterContainer/Panel/VBox"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 22
 alignment = 1
 
-[node name="TrackArea" type="Panel" parent="CenterContainer/Panel/VBox/HBox"]
-custom_minimum_size = Vector2(54, 240)
+[node name="TrackArea" type="Control" parent="CenterContainer/Panel/VBox/HBox"]
+custom_minimum_size = Vector2(74, 250)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_track")
 
-[node name="ReelBar" type="Panel" parent="CenterContainer/Panel/VBox/HBox/TrackArea"]
+[node name="TrackBG" type="TextureRect" parent="CenterContainer/Panel/VBox/HBox/TrackArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_track_tex")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ReelBar" type="NinePatchRect" parent="CenterContainer/Panel/VBox/HBox/TrackArea"]
 layout_mode = 0
-offset_left = 3.0
+offset_left = 6.0
 offset_top = 100.0
-offset_right = 51.0
-offset_bottom = 162.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
+offset_right = 68.0
+offset_bottom = 164.0
+texture = ExtResource("5_bar_tex")
+patch_margin_left = 6
+patch_margin_top = 6
+patch_margin_right = 6
+patch_margin_bottom = 6
 
 [node name="FishMarker" type="TextureRect" parent="CenterContainer/Panel/VBox/HBox/TrackArea"]
-custom_minimum_size = Vector2(34, 34)
+custom_minimum_size = Vector2(36, 36)
 layout_mode = 0
-offset_left = 10.0
+offset_left = 18.0
 offset_top = 110.0
-offset_right = 44.0
-offset_bottom = 144.0
+offset_right = 54.0
+offset_bottom = 146.0
 texture = ExtResource("3_kraken")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="TensionBar" type="ProgressBar" parent="CenterContainer/Panel/VBox/HBox"]
-custom_minimum_size = Vector2(26, 240)
+custom_minimum_size = Vector2(28, 250)
 layout_mode = 2
 fill_mode = 3
 show_percentage = false
@@ -132,6 +133,6 @@ show_percentage = false
 [node name="StatusLabel" type="Label" parent="CenterContainer/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 13
-text = "HOLD [SPACE] OR [LEFT CLICK] TO REEL!"
+theme_override_font_sizes/font_size = 12
+text = "HOLD [SPACE] OR [CLICK] TO REEL!"
 horizontal_alignment = 1

@@ -1,184 +1,320 @@
-[gd_scene load_steps=11 format=3 uid="uid://coverworldmap1"]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/overworld.gd" id="1_overworld"]
-[ext_resource type="PackedScene" uid="uid://cboatplayer1" path="res://scenes/ship.tscn" id="2_ship"]
-[ext_resource type="PackedScene" uid="uid://cdockarea1" path="res://scenes/dock_area.tscn" id="3_dock"]
-[ext_resource type="PackedScene" uid="uid://cstationhub1" path="res://scenes/station_hub.tscn" id="4_hub"]
-[ext_resource type="Shader" path="res://shaders/water.gdshader" id="5_water_shader"]
-[ext_resource type="Script" path="res://scripts/fish_spawner.gd" id="6_spawner"]
-[ext_resource type="Theme" uid="uid://cmaritimewood1" path="res://themes/maritime_wood_theme.tres" id="7_theme"]
-[ext_resource type="PackedScene" uid="uid://ccatchtoast1" path="res://scenes/catch_toast.tscn" id="8_toast"]
-[ext_resource type="PackedScene" path="res://scenes/boss_minigame.tscn" id="9_boss"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
-shader = ExtResource("5_water_shader")
-shader_parameter/deep_color = Color(0.03, 0.12, 0.20, 0.95)
-shader_parameter/shallow_color = Color(0.08, 0.28, 0.38, 0.85)
-shader_parameter/foam_color = Color(0.65, 0.88, 0.95, 0.50)
-shader_parameter/highlight_color = Color(0.35, 0.75, 0.88, 0.30)
-shader_parameter/wave_speed = 1.2
-shader_parameter/wave_frequency = 16.0
-shader_parameter/wave_amplitude = 0.015
-shader_parameter/caustic_intensity = 0.45
+[ext_resource type="Texture2D" path="res://assets/scale_the_depths/Hub_BG_Sky.png" id="2_sky_tex"]
+[ext_resource type="Texture2D" path="res://assets/scale_the_depths/Hub_BG Water.png" id="3_back_wave_tex"]
+[ext_resource type="Texture2D" path="res://assets/scale_the_depths/Hub_Front Wave.png" id="4_fore_wave_tex"]
+[ext_resource type="Texture2D" path="res://web/assets/finding_sobron/sprites/forest/forest-1.png" id="5_forest_tex"]
+[ext_resource type="Texture2D" path="res://web/assets/finding_sobron/sprites/house/house.png" id="6_house_tex"]
+[ext_resource type="Script" path="res://scripts/vessel_deck.gd" id="7_vessel"]
+[ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="8_theme"]
+[ext_resource type="PackedScene" path="res://scenes/catch_toast.tscn" id="9_toast"]
+[ext_resource type="PackedScene" path="res://scenes/station_hub.tscn" id="10_hub"]
+[ext_resource type="PackedScene" path="res://scenes/boss_minigame.tscn" id="11_boss"]
+[ext_resource type="PackedScene" path="res://scenes/travel_map.tscn" id="12_map"]
 
 [node name="Overworld" type="Node2D"]
 script = ExtResource("1_overworld")
 
-[node name="WaterSurface" type="ColorRect" parent="."]
-material = SubResource("ShaderMaterial_water")
-offset_left = -3200.0
-offset_top = -2400.0
-offset_right = 3200.0
-offset_bottom = 2400.0
-mouse_filter = 2
+[node name="SkyRect" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 440.0
+color = Color(0.22, 0.74, 0.97, 1)
 
-[node name="FishSpawner" type="Node2D" parent="."]
-script = ExtResource("6_spawner")
+[node name="SkyTile" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.55)
+offset_right = 1280.0
+offset_bottom = 437.0
+texture = ExtResource("2_sky_tex")
+stretch_mode = 1
 
-[node name="Ship" parent="." instance=ExtResource("2_ship")]
-position = Vector2(0, 0)
+[node name="DistantForest" type="TextureRect" parent="."]
+modulate = Color(0.85, 0.95, 1, 0.65)
+offset_left = 30.0
+offset_top = 220.0
+offset_right = 380.0
+offset_bottom = 450.0
+texture = ExtResource("5_forest_tex")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Docks" type="Node2D" parent="."]
+[node name="DistantVillage" type="TextureRect" parent="."]
+modulate = Color(0.9, 0.95, 1, 0.7)
+offset_left = 940.0
+offset_top = 290.0
+offset_right = 1180.0
+offset_bottom = 440.0
+texture = ExtResource("6_house_tex")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="RiverHarbor" parent="Docks" instance=ExtResource("3_dock")]
-position = Vector2(0, -90)
-dock_id = "river_harbor"
-dock_name = "Riverwood Harbor"
-dock_type = "harbor"
-biome = "River"
-level_required = 1
-description = "The bustling inland river port. Trade fish, upgrade rods and hulls."
+[node name="BackWave" type="TextureRect" parent="."]
+offset_top = 396.0
+offset_right = 1280.0
+offset_bottom = 469.0
+texture = ExtResource("3_back_wave_tex")
+stretch_mode = 1
 
-[node name="RiverFishingSpot" parent="Docks" instance=ExtResource("3_dock")]
-position = Vector2(380, 160)
-dock_id = "river_ripples"
-dock_name = "Whispering Shallows"
-dock_type = "fishing_spot"
-biome = "River"
-level_required = 1
-description = "Calm waters teeming with Salmon and Cod."
+[node name="UnderwaterDepth" type="ColorRect" parent="."]
+offset_top = 440.0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.027, 0.231, 0.361, 1)
 
-[node name="VolcanicPort" parent="Docks" instance=ExtResource("3_dock")]
-position = Vector2(1200, 680)
-dock_id = "volcanic_port"
-dock_name = "Magma Outpost"
-dock_type = "harbor"
-biome = "Volcanic"
-level_required = 50
-description = "Boiling sulfur springs. High-tier lava fish and magma forge."
+[node name="UnderwaterFish" type="Node2D" parent="."]
 
-[node name="OceanAtoll" parent="Docks" instance=ExtResource("3_dock")]
-position = Vector2(-1200, 680)
-dock_id = "ocean_atoll"
-dock_name = "Coral Atoll Sanctuary"
-dock_type = "harbor"
-biome = "Ocean"
-level_required = 100
-description = "Deep sea shelf. Rare pelagic fish, Pet Sanctuary, and Charm Vault."
+[node name="AmbientParticles" type="CPUParticles2D" parent="."]
+position = Vector2(640, 200)
+amount = 24
+lifetime = 4.0
+emission_shape = 3
+emission_rect_extents = Vector2(640, 200)
+direction = Vector2(-1, 0.4)
+spread = 25.0
+gravity = Vector2(0, 4)
+initial_velocity_min = 12.0
+initial_velocity_max = 28.0
+scale_amount_min = 2.0
+scale_amount_max = 4.0
+color = Color(1, 1, 0.85, 0.4)
 
-[node name="SubspacePortal" parent="Docks" instance=ExtResource("3_dock")]
-position = Vector2(2000, -1400)
-dock_id = "subspace_portal"
-dock_name = "Subspace 0x00 Anomalous Rift"
-dock_type = "portal"
-biome = "Subspace 0x00"
-level_required = 1
-description = "A swirling quantum rift pulsing with binary glitches. Dev secret realm."
+[node name="SplashParticles" type="CPUParticles2D" parent="."]
+position = Vector2(288, 436)
+emitting = false
+amount = 18
+lifetime = 0.6
+one_shot = true
+explosiveness = 0.8
+direction = Vector2(0, -1)
+spread = 50.0
+gravity = Vector2(0, 280)
+initial_velocity_min = 80.0
+initial_velocity_max = 140.0
+scale_amount_min = 2.5
+scale_amount_max = 5.0
+color = Color(0.85, 0.95, 1, 0.85)
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
+[node name="Vessel" type="Node2D" parent="."]
+position = Vector2(640, 424)
+script = ExtResource("7_vessel")
 
-[node name="SailingHUD" type="Control" parent="CanvasLayer"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme = ExtResource("7_theme")
+[node name="Player" type="Node2D" parent="Vessel"]
+position = Vector2(0, -6)
 
-[node name="TopLeft" type="PanelContainer" parent="CanvasLayer/SailingHUD"]
-layout_mode = 0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 290.0
-offset_bottom = 95.0
-
-[node name="VBox" type="VBoxContainer" parent="CanvasLayer/SailingHUD/TopLeft"]
-layout_mode = 2
-
-[node name="BiomeLabel" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 14
-text = "Waters: River Biome"
-
-[node name="SpeedLabel" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.94, 0.98, 1)
-theme_override_font_sizes/font_size = 12
-text = "Speed: 0 knots"
-
-[node name="ControlsTip" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.65, 0.55, 1)
-theme_override_font_sizes/font_size = 11
-text = "[W/A/S/D] Steer Ship | [Space] Anchor"
-
-[node name="TopRight" type="PanelContainer" parent="CanvasLayer/SailingHUD"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -340.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 80.0
-grow_horizontal = 0
-
-[node name="HBox" type="HBoxContainer" parent="CanvasLayer/SailingHUD/TopRight"]
-layout_mode = 2
-theme_override_constants/separation = 16
-alignment = 1
-
-[node name="CashLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight/HBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 18
-text = "$ 150"
-
-[node name="LevelLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight/HBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "Lv. 1 (0/30 XP)"
-
-[node name="BottomBar" type="HBoxContainer" parent="CanvasLayer/SailingHUD"]
-layout_mode = 1
+[node name="PromptBubble" type="PanelContainer" parent="Vessel/Player"]
+visible = false
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -110.0
-offset_top = -65.0
-offset_right = 110.0
-offset_bottom = -20.0
+offset_left = -80.0
+offset_top = -100.0
+offset_right = 80.0
+offset_bottom = -72.0
 grow_horizontal = 2
 grow_vertical = 0
+theme = ExtResource("8_theme")
+
+[node name="PromptLabel" type="Label" parent="Vessel/Player/PromptBubble"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "[E] Enter Station"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ForeWave" type="TextureRect" parent="."]
+offset_top = 432.0
+offset_right = 1280.0
+offset_bottom = 490.0
+texture = ExtResource("4_fore_wave_tex")
+stretch_mode = 1
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="TopHUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 70.0
+grow_horizontal = 2
+mouse_filter = 2
+theme = ExtResource("8_theme")
+
+[node name="LeftPill" type="PanelContainer" parent="CanvasLayer/TopHUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 16.0
+offset_right = 320.0
+offset_bottom = 60.0
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/LeftPill"]
+layout_mode = 2
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="QuickFishBtn" type="Button" parent="CanvasLayer/SailingHUD/BottomBar"]
+[node name="BiomeLabel" type="Label" parent="CanvasLayer/TopHUD/LeftPill/HBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+text = "Riverwood Shallows"
+
+[node name="ChartBtn" type="Button" parent="CanvasLayer/TopHUD/LeftPill/HBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "🧭 Chart"
+
+[node name="RightPills" type="HBoxContainer" parent="CanvasLayer/TopHUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -580.0
+offset_top = 16.0
+offset_right = -20.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_constants/separation = 12
+alignment = 2
+
+[node name="CashPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills"]
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/CashPill"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CashLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/CashPill/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 15
+text = "$ 150"
+
+[node name="LevelPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills"]
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/LevelPill"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LevelLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/LevelPill/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lv. 1"
+
+[node name="XPBar" type="ProgressBar" parent="CanvasLayer/TopHUD/RightPills/LevelPill/HBox"]
+custom_minimum_size = Vector2(80, 12)
+layout_mode = 2
+size_flags_vertical = 4
+show_percentage = false
+
+[node name="TokensPill" type="PanelContainer" parent="CanvasLayer/TopHUD/RightPills"]
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/TopHUD/RightPills/TokensPill"]
+layout_mode = 2
+
+[node name="TokensLabel" type="Label" parent="CanvasLayer/TopHUD/RightPills/TokensPill/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "🪙 0  💎 0"
+
+[node name="BottomDock" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -84.0
+grow_horizontal = 2
+grow_vertical = 0
+theme = ExtResource("8_theme")
+
+[node name="Center" type="HBoxContainer" parent="CanvasLayer/BottomDock"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -440.0
+offset_top = -34.0
+offset_right = 440.0
+offset_bottom = 34.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="LeftBox" type="HBoxContainer" parent="CanvasLayer/BottomDock/Center"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MarketBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox"]
+custom_minimum_size = Vector2(90, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "💰 Market"
+
+[node name="TackleBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox"]
+custom_minimum_size = Vector2(90, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "🧰 Tackle"
+
+[node name="CenterBox" type="MarginContainer" parent="CanvasLayer/BottomDock/Center"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_right = 6
+
+[node name="HeroCastBtn" type="Button" parent="CanvasLayer/BottomDock/Center/CenterBox"]
+custom_minimum_size = Vector2(250, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 0.9, 1)
 theme_override_font_sizes/font_size = 14
-text = "🎣 Fish from Ship [Space]"
+text = "🎣 CAST LINE [SPACE]"
 
-[node name="CatchToast" parent="CanvasLayer" instance=ExtResource("8_toast")]
+[node name="RightBox" type="HBoxContainer" parent="CanvasLayer/BottomDock/Center"]
+layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="StationHub" parent="CanvasLayer" instance=ExtResource("4_hub")]
+[node name="ShipyardBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox"]
+custom_minimum_size = Vector2(90, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "🚢 Shipyard"
+
+[node name="PetsBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox"]
+custom_minimum_size = Vector2(90, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "🐾 Pets"
+
+[node name="MapBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox"]
+custom_minimum_size = Vector2(85, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "🧭 Chart"
+
+[node name="CatchToast" parent="CanvasLayer" instance=ExtResource("9_toast")]
+
+[node name="StationHub" parent="CanvasLayer" instance=ExtResource("10_hub")]
 visible = false
 
-[node name="BossMinigame" parent="CanvasLayer" instance=ExtResource("9_boss")]
+[node name="BossMinigame" parent="CanvasLayer" instance=ExtResource("11_boss")]
 visible = false
 
-[connection signal="pressed" from="CanvasLayer/SailingHUD/BottomBar/QuickFishBtn" to="." method="_on_quick_fish_pressed"]
+[node name="TravelMapModal" parent="CanvasLayer" instance=ExtResource("12_map")]
+visible = false
+
+[connection signal="pressed" from="CanvasLayer/TopHUD/LeftPill/HBox/ChartBtn" to="." method="_open_travel_map"]
+[connection signal="pressed" from="CanvasLayer/BottomDock/Center/LeftBox/MarketBtn" to="." method="_on_dock_btn_pressed" binds= ["market"]]
+[connection signal="pressed" from="CanvasLayer/BottomDock/Center/LeftBox/TackleBtn" to="." method="_on_dock_btn_pressed" binds= ["tackle"]]
+[connection signal="pressed" from="CanvasLayer/BottomDock/Center/CenterBox/HeroCastBtn" to="." method="_on_cast_pressed"]
+[connection signal="pressed" from="CanvasLayer/BottomDock/Center/RightBox/ShipyardBtn" to="." method="_on_dock_btn_pressed" binds= ["shipyard"]]
+[connection signal="pressed" from="CanvasLayer/BottomDock/Center/RightBox/PetsBtn" to="." method="_on_dock_btn_pressed" binds= ["pets"]]
+[connection signal="pressed" from="CanvasLayer/BottomDock/Center/RightBox/MapBtn" to="." method="_open_travel_map"]
