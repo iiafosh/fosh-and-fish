@@ -1,33 +1,32 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/shop_modal.gd" id="1_shop"]
 [ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_embed"]
-bg_color = Color(0.06, 0.08, 0.11, 0.98)
-border_width_left = 4
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.12, 0.85, 0.35, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-shadow_color = Color(0, 0, 0, 0.85)
-shadow_size = 20
+bg_color = Color(0.067, 0.071, 0.078, 0.98)
+border_width_left = 5
+border_color = Color(0.137, 0.647, 0.353, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.7)
+shadow_size = 18
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_nav"]
-bg_color = Color(0.22, 0.32, 0.85, 0.95)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.4, 0.55, 1.0, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_blurple"]
+bg_color = Color(0.345, 0.396, 0.949, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_slate"]
+bg_color = Color(0.169, 0.176, 0.192, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="ShopModal" type="Control"]
 layout_mode = 3
@@ -102,78 +101,91 @@ layout_mode = 2
 [node name="ViewHub" type="VBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="DirectoryLabel" type="Label" parent="Panel/Margin/VBox/ViewHub"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(0.88, 0.9, 0.95, 1)
 theme_override_font_sizes/font_size = 13
-text = "Welcome to the Shop! Select a department below:
-
-• /shop rods      - Upgrade your rod for higher catch & treasure
-• /shop bait      - Purchase specialty baits & magnetic lures
-• /shop upgrades  - Permanent character progression perks
-• /shop boats     - Commission vessels with stacking -CD & +Fish
-• /shop boosts    - Deploy automated net worker expeditions
-• /shop special   - Exotic fish trade & legendary blessings
-• /shop league    - High-tier enhancements purchased with hooks"
+text = "🎣 /shop rods - Shop for different rods.
+🪱 /shop bait - Purchase bait for various buffs.
+⬆️ /shop upgrades - Purchase various permanent upgrades to your character.
+⛵ /shop boats - Buy a new boat!
+🔥 /shop boosts - Shop for temporary buffs.
+🐟 /shop special - Purchase permanent upgrades using exotic fish.
+🪝 /shop league - Purchase special upgrades with currency from league rankings."
 
 [node name="Spacer" type="Control" parent="Panel/Margin/VBox/ViewHub"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MatrixGrid" type="GridContainer" parent="Panel/Margin/VBox/ViewHub"]
+[node name="Row1" type="HBoxContainer" parent="Panel/Margin/VBox/ViewHub"]
 layout_mode = 2
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-columns = 4
+theme_override_constants/separation = 10
 
-[node name="RodsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="RodsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row1"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "🎣 Rods"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "🎣"
 
-[node name="BaitBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="BaitBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row1"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "🪱 Bait"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "🪱"
 
-[node name="UpgradesBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="UpgradesBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row1"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "⬆️ Upgrades"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "⬆️"
 
-[node name="BoatsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="BoatsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row1"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "⛵ Boats"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "⛵"
 
-[node name="BoostsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="Row2" type="HBoxContainer" parent="Panel/Margin/VBox/ViewHub"]
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "🔥 Boosts"
+theme_override_constants/separation = 10
 
-[node name="SpecialBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="BoostsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row2"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "🐟 Special"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "🔥"
 
-[node name="LeagueBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="SpecialBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row2"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
-text = "🪝 League"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "🐟"
 
-[node name="ReturnBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
-custom_minimum_size = Vector2(110, 44)
+[node name="LeagueBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row2"]
+custom_minimum_size = Vector2(76, 42)
 layout_mode = 2
-text = "↩ Return"
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
+theme_override_font_sizes/font_size = 18
+text = "🪝"
+
+[node name="Row3" type="HBoxContainer" parent="Panel/Margin/VBox/ViewHub"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ReturnBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/Row3"]
+custom_minimum_size = Vector2(85, 36)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_slate")
+theme_override_font_sizes/font_size = 12
+text = "Return"
 
 [node name="ViewRods" type="VBoxContainer" parent="Panel/Margin/VBox"]
 visible = false

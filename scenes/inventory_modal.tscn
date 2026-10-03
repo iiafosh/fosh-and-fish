@@ -1,33 +1,39 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/inventory_modal.gd" id="1_inv"]
 [ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_embed"]
-bg_color = Color(0.06, 0.08, 0.11, 0.98)
-border_width_left = 4
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.12, 0.85, 0.35, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-shadow_color = Color(0, 0, 0, 0.85)
-shadow_size = 20
+bg_color = Color(0.067, 0.071, 0.078, 0.98)
+border_width_left = 5
+border_color = Color(0.137, 0.647, 0.353, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.7)
+shadow_size = 18
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_nav"]
-bg_color = Color(0.24, 0.35, 0.9, 0.95)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.4, 0.55, 1.0, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_blurple"]
+bg_color = Color(0.345, 0.396, 0.949, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_slate"]
+bg_color = Color(0.169, 0.176, 0.192, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_green"]
+bg_color = Color(0.141, 0.502, 0.275, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="InventoryModal" type="Control"]
 layout_mode = 3
@@ -168,6 +174,7 @@ text = "Fish Value: $32,886"
 [node name="SellAllBtn" type="Button" parent="Panel/Margin/VBox/FishSection/ValueRow"]
 custom_minimum_size = Vector2(130, 28)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_green")
 theme_override_font_sizes/font_size = 11
 text = "💰 Sell All Fish"
 
@@ -236,24 +243,25 @@ alignment = 1
 [node name="FishBtn" type="Button" parent="Panel/Margin/VBox/NavRow"]
 custom_minimum_size = Vector2(85, 38)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
 text = "Fish"
 
 [node name="ShopBtn" type="Button" parent="Panel/Margin/VBox/NavRow"]
 custom_minimum_size = Vector2(85, 38)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_blurple")
 text = "Shop"
 
 [node name="PetsBtn" type="Button" parent="Panel/Margin/VBox/NavRow"]
 custom_minimum_size = Vector2(85, 38)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_slate")
 text = "Social"
 
 [node name="MenuBtn" type="Button" parent="Panel/Margin/VBox/NavRow"]
 custom_minimum_size = Vector2(85, 38)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_slate")
 text = "Menu"
 
 [connection signal="pressed" from="Panel/Margin/VBox/Header/CloseXBtn" to="." method="close_modal"]

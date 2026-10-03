@@ -53,16 +53,13 @@ func _draw() -> void:
 		_:
 			_draw_skiff(t, deck_y)
 
-	# --- 3. LAYER 3: DECK STATIONS & INTERACTION PLAQUES ---
-	_draw_stations(deck_y)
-
-	# --- 4. LAYER 4: DEDICATED PIXEL FISHERMAN ---
+	# --- 3. LAYER 3: DEDICATED PIXEL FISHERMAN ---
 	_draw_fisherman(t, deck_y)
 
-	# --- 5. LAYER 5: COMPANION PET IN THE WAKE ---
+	# --- 4. LAYER 4: COMPANION PET IN THE WAKE ---
 	_draw_companion_pet(t)
 
-	# --- 6. LAYER 6: FRONT BRASS GUARD RAILING ---
+	# --- 5. LAYER 5: SUBTLE FRONT BRASS GUARD RAILING ---
 	_draw_guard_railing(deck_y)
 
 # ==============================================================================
@@ -138,6 +135,21 @@ func _draw_rowboat(_t: float, deck_y: float) -> void:
 
 # --- TIER 3: MOTOR TRAWLER (FISHING BOAT) ---
 func _draw_fishing_boat(t: float, deck_y: float) -> void:
+	if tex_boat_sprite:
+		var draw_w = 480.0
+		var draw_h = 196.0
+		var boat_rect = Rect2(-draw_w * 0.5, deck_y - 77.0, draw_w, draw_h)
+		draw_texture_rect(tex_boat_sprite, boat_rect, false)
+
+		# Diesel Exhaust Stack & Animated Smoke Puffs at aft cabin
+		for s in range(3):
+			var s_t = fmod(t * 3.5 + s * 1.1, 3.0)
+			var s_pos = Vector2(-75 - s_t * 5.0, deck_y - 65 - s_t * 14.0)
+			var s_rad = 3.5 + s_t * 3.0
+			var s_alpha = max(0.0, 0.60 - s_t * 0.20)
+			draw_circle(s_pos, s_rad, Color(0.85, 0.88, 0.95, s_alpha))
+		return
+
 	var w = 540.0
 
 	# Heavy navy blue commercial hull with crimson waterline
@@ -513,10 +525,15 @@ func _draw_companion_pet(t: float) -> void:
 # ==============================================================================
 func _draw_guard_railing(deck_y: float) -> void:
 	var b = GameManager.get_deck_bounds()
-	draw_line(Vector2(b.x, deck_y - 20), Vector2(b.y, deck_y - 20), Color("#d97706"), 3.5)
-	var step = 42
-	for rx in range(int(b.x + 10), int(b.y - 10), step):
-		draw_line(Vector2(rx, deck_y - 20), Vector2(rx, deck_y), Color("#92400e"), 2.5)
+	var rail_y = deck_y - 12.0
+	# Subtle top brass/timber rail
+	draw_line(Vector2(b.x + 8.0, rail_y), Vector2(b.y - 8.0, rail_y), Color("#ca8a04", 0.85), 2.0)
+	draw_line(Vector2(b.x + 8.0, rail_y + 1.0), Vector2(b.y - 8.0, rail_y + 1.0), Color("#78350f", 0.7), 1.5)
+	# Upright timber posts with brass caps
+	var step = 48
+	for rx in range(int(b.x + 16), int(b.y - 16), step):
+		draw_line(Vector2(rx, rail_y), Vector2(rx, deck_y), Color("#451a03", 0.85), 1.8)
+		draw_circle(Vector2(rx, rail_y), 1.8, Color("#facc15", 0.95))
 
 func _draw_stations(deck_y: float) -> void:
 	var bounds = GameManager.get_deck_bounds()

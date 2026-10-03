@@ -56,8 +56,34 @@ var active_station: Dictionary = {}
 # Textures
 var fish_textures: Dictionary = {}
 
+# Sprite metadata: target on-screen width (px) and whether the source art faces right.
+# Source sprites have wildly different resolutions, so we size by width, not by scale.
+const FISH_SPRITES = {
+	"Sardine":  {"path": "res://web/assets/sardine.png",            "width": 30.0,  "faces_right": false},
+	"Anchovy":  {"path": "res://web/assets/Fish_Anchovy.png",       "width": 34.0,  "faces_right": false},
+	"Mackerel": {"path": "res://web/assets/mackerel.png",           "width": 44.0,  "faces_right": false},
+	"Cod":      {"path": "res://web/assets/Fish_Cod.png",           "width": 62.0,  "faces_right": true},
+	"Tuna":     {"path": "res://web/assets/Fish_Bluefin Tuna.png",  "width": 92.0,  "faces_right": true},
+	"Turtle":   {"path": "res://web/assets/turtle.png",             "width": 48.0,  "faces_right": false},
+	"Sunfish":  {"path": "res://web/assets/sun fish.png",           "width": 64.0,  "faces_right": true},
+	"Shark":    {"path": "res://web/assets/shark.png",              "width": 130.0, "faces_right": false}
+}
+const BIOME_FISH_POOLS = {
+	"River":         ["Sardine", "Anchovy", "Mackerel", "Cod"],
+	"Volcanic":      ["Mackerel", "Cod", "Tuna", "Sardine"],
+	"Ocean":         ["Tuna", "Turtle", "Sunfish", "Mackerel", "Cod", "Shark"],
+	"Subspace 0x00": ["Shark", "Sunfish", "Tuna", "Anchovy"]
+}
+
 # Swimming fish underwater
 var underwater_fishes: Array[Dictionary] = []
+var bubbles: Array[Dictionary] = []
+var under_color: Color = Color("#073b5c")
+var fx_layer: Node2D = null
+
+# Bobber / bite feedback
+var bobber_pos: Vector2 = Vector2.ZERO
+var cast_total_time: float = 1.0
 
 # Weather & Storm state
 var storm_lightning_timer: float = 0.0
@@ -66,6 +92,18 @@ var lightning_flash_alpha: float = 0.0
 func _ready() -> void:
 	# Load Fish Textures
 	_load_fish_textures()
+
+	# Render layers: Overworld._draw() would paint *under* its own child ColorRects,
+	# so underwater life draws on the UnderwaterFish node (above the depth rect, below the hull)
+	# and weather/fishing-line FX draw on a top-most FXLayer (above the front wave).
+	fish_container.draw.connect(_draw_underwater)
+	fx_layer = Node2D.new()
+	fx_layer.name = "FXLayer"
+	add_child(fx_layer)
+	move_child(fx_layer, $CanvasLayer.get_index())
+	fx_layer.draw.connect(_draw_fx)
+	for i in range(26):
+		bubbles.append(_new_bubble(true))
 
 	# Connect Game Manager Signals
 	GameManager.stats_changed.connect(_update_hud)
@@ -101,6 +139,30 @@ func _ready() -> void:
 	if btn_map and not btn_map.pressed.is_connected(_open_travel_map):
 		btn_map.pressed.connect(_open_travel_map)
 
+	# Hero Cast Button Gold Glow Styling
+	if hero_cast_btn:
+		var cast_sb = StyleBoxFlat.new()
+		cast_sb.bg_color = Color("#3b1803")
+		cast_sb.border_width_left = 2
+		cast_sb.border_width_top = 2
+		cast_sb.border_width_right = 2
+		cast_sb.border_width_bottom = 2
+		cast_sb.border_color = Color("#f59e0b")
+		cast_sb.corner_radius_top_left = 10
+		cast_sb.corner_radius_top_right = 10
+		cast_sb.corner_radius_bottom_right = 10
+		cast_sb.corner_radius_bottom_left = 10
+		cast_sb.shadow_color = Color(0.96, 0.62, 0.07, 0.40)
+		cast_sb.shadow_size = 8
+		hero_cast_btn.add_theme_stylebox_override("normal", cast_sb)
+
+		var cast_sb_hover = cast_sb.duplicate() as StyleBoxFlat
+		cast_sb_hover.bg_color = Color("#78350f")
+		cast_sb_hover.border_color = Color("#fde047")
+		cast_sb_hover.shadow_color = Color(1.0, 0.88, 0.28, 0.55)
+		cast_sb_hover.shadow_size = 12
+		hero_cast_btn.add_theme_stylebox_override("hover", cast_sb_hover)
+
 	# Setup initial underwater fish
 	_spawn_underwater_fish()
 
@@ -113,52 +175,49 @@ func _ready() -> void:
 		travel_map.visible = false
 
 func _load_fish_textures() -> void:
-	var paths = {
-		"Cod": "res://web/assets/Fish_Cod.png",
-		"Tuna": "res://web/assets/Fish_Bluefin Tuna.png",
-		"Anchovy": "res://web/assets/Fish_Anchovy.png",
-		"Turtle": "res://web/assets/turtle.png",
-		"Dolphin": "res://web/assets/dolphin.png",
-		"Kraken": "res://web/assets/kraken.png"
-	}
-	for k in paths.keys():
-		if ResourceLoader.exists(paths[k]):
-			fish_textures[k] = load(paths[k])
+	for k in FISH_SPRITES.keys():
+		var p = FISH_SPRITES[k]["path"]
+		if ResourceLoader.exists(p):
+			fish_textures[k] = load(p)
 
 func _spawn_underwater_fish() -> void:
 	underwater_fishes.clear()
-	for i in range(12):
-		var f_type = "Cod"
-		var r = randf()
-		if r < 0.25:
-			f_type = "Anchovy"
-		elif r < 0.50:
-			f_type = "Cod"
-		elif r < 0.75:
-			f_type = "Tuna"
-		elif r < 0.90:
-			f_type = "Turtle"
-		else:
-			f_type = "Dolphin"
-
-		var fish_data = {
+	var pool: Array = BIOME_FISH_POOLS.get(GameManager.current_biome, BIOME_FISH_POOLS["River"])
+	for i in range(14):
+		var f_type: String = pool[randi() % pool.size()]
+		# Sharks are rare visitors
+		if f_type == "Shark" and randf() < 0.6:
+			f_type = pool[0]
+		# Depth 0 = near surface (bright, small), 1 = deep (dim, larger parallax)
+		var depth = randf()
+		underwater_fishes.append({
 			"type": f_type,
-			"pos": Vector2(randf_range(50, 1230), randf_range(470, 680)),
-			"speed": randf_range(45.0, 95.0),
+			"pos": Vector2(randf_range(-40, 1320), lerpf(478.0, 640.0, depth)),
+			"speed": randf_range(28.0, 70.0) * (1.25 if f_type in ["Tuna", "Shark"] else 1.0),
 			"dir": 1.0 if randf() > 0.5 else -1.0,
-			"wag_offset": randf() * 10.0,
-			"depth_scale": randf_range(0.35, 0.65),
-			"alpha": randf_range(0.40, 0.80)
-		}
-		underwater_fishes.append(fish_data)
+			"wag_offset": randf() * TAU,
+			"size": randf_range(0.85, 1.15) * lerpf(0.85, 1.1, depth),
+			"alpha": lerpf(0.95, 0.55, depth),
+			"bob": randf() * TAU
+		})
+
+func _new_bubble(random_y: bool) -> Dictionary:
+	return {
+		"pos": Vector2(randf_range(0, 1280), randf_range(470, 720) if random_y else randf_range(700, 740)),
+		"speed": randf_range(18.0, 42.0),
+		"r": randf_range(1.2, 3.2),
+		"phase": randf() * TAU
+	}
 
 func _process(delta: float) -> void:
 	sim_time += delta
 
 	# 1. Ship Buoyancy Heave & Roll
-	var heave = sin(sim_time * 1.8) * 4.5
+	# Deck sits at y≈398 so the hull (deck..deck+54) rides above the front wave crest (~440)
+	# instead of being hidden underneath it.
+	var heave = sin(sim_time * 1.8) * 4.0
 	var pitch = sin(sim_time * 1.8 + 0.4) * 0.016
-	vessel_node.position = Vector2(640.0, 424.0 + heave)
+	vessel_node.position = Vector2(640.0, 398.0 + heave)
 	vessel_node.rotation = pitch
 
 	# 2. Parallax Wave Scroll & Bobbing
@@ -229,15 +288,25 @@ func _process(delta: float) -> void:
 	# 7. Update Underwater Fish Positions
 	for f in underwater_fishes:
 		f["pos"].x += f["speed"] * f["dir"] * delta
-		if f["pos"].x > 1320:
-			f["pos"].x = -40
-			f["dir"] = 1.0
-		elif f["pos"].x < -50:
-			f["pos"].x = 1310
-			f["dir"] = -1.0
+		if f["dir"] > 0.0 and f["pos"].x > 1360:
+			f["pos"].x = -80
+		elif f["dir"] < 0.0 and f["pos"].x < -80:
+			f["pos"].x = 1360
+
+	# 8. Rising bubbles
+	for b in bubbles:
+		b["pos"].y -= b["speed"] * delta
+		b["pos"].x += sin(sim_time * 2.0 + b["phase"]) * 8.0 * delta
+		if b["pos"].y < 462.0:
+			var nb = _new_bubble(false)
+			b["pos"] = nb["pos"]
+			b["speed"] = nb["speed"]
+			b["r"] = nb["r"]
 
 	vessel_node.queue_redraw()
-	queue_redraw()
+	fish_container.queue_redraw()
+	if fx_layer:
+		fx_layer.queue_redraw()
 
 func _get_current_stations(bounds: Vector2) -> Array:
 	return [
@@ -372,6 +441,7 @@ func _on_cast_pressed() -> void:
 	# Start Cooldown
 	is_cooling_down = true
 	cooldown_timer = GameManager.get_fishing_cooldown()
+	cast_total_time = cooldown_timer
 
 func _on_fish_caught(f_name: String, count: int, xp_gained: int, rarity: String, quality_data: Dictionary = {}) -> void:
 	if catch_toast and not boss_minigame.visible:
@@ -415,15 +485,15 @@ func _get_weather_display() -> String:
 
 func _update_hud() -> void:
 	hud_biome_label.text = "%s  •  %s" % [GameManager.current_biome, _get_weather_display()]
-	hud_cash_label.text = "$ %d" % GameManager.cash
-	hud_level_label.text = "Lv. %d" % GameManager.level
+	hud_cash_label.text = "$ " + _fmt(GameManager.cash)
+	hud_level_label.text = "Lv. %s" % _fmt(GameManager.level)
 	hud_xp_bar.max_value = GameManager.xp_needed
 	hud_xp_bar.value = GameManager.xp
 
 	var bait_name = GameManager.current_bait
 	var bait_ct = GameManager.bait_stock.get(bait_name, 0)
-	var bait_badge = "🪱 %s (%d)" % [bait_name, bait_ct] if bait_name != "None" else "🪝 No Bait"
-	hud_tokens_label.text = "🪙 %d  💎 %d  |  %s" % [GameManager.gold_fish, GameManager.diamond_fish, bait_badge]
+	var bait_badge = "🪱 %s (%s)" % [bait_name, _fmt(bait_ct)] if bait_name != "None" else "🪝 No Bait"
+	hud_tokens_label.text = "🪙 %s  💎 %s  |  %s" % [_fmt(GameManager.gold_fish), _fmt(GameManager.diamond_fish), bait_badge]
 
 func _update_biome_atmosphere() -> void:
 	var biome = GameManager.current_biome
@@ -461,6 +531,7 @@ func _update_biome_atmosphere() -> void:
 		sky_col = sky_col.lerp(Color(0.8, 0.85, 0.9), 0.35)
 
 	sky_rect.color = sky_col
+	under_color = under_col
 	underwater_depth.color = under_col
 	if ambient_particles:
 		ambient_particles.color = ambient_col
@@ -480,39 +551,152 @@ func travel_to_biome(target_biome: String) -> void:
 	if catch_toast:
 		catch_toast.show_catch("Voyage Arrived", 1, 50, "VOYAGE", {"tag": "VOYAGE", "mult": 1.0, "color": Color(0.4, 0.9, 1.0)}, " Welcome to " + target_biome)
 
-# --- Drawing the Underwater Scenery & Weather Overlays ---
-func _draw() -> void:
-	# Draw Underwater Swimming Fish (Screen Space)
-	for f in underwater_fishes:
-		var tex = fish_textures.get(f["type"], fish_textures.get("Cod"))
-		if tex:
-			var sz = Vector2(tex.get_width(), tex.get_height()) * f["depth_scale"]
-			var wag_rot = sin(sim_time * 7.0 + f["wag_offset"]) * 0.10 * f["dir"]
-			draw_set_transform(f["pos"], wag_rot, Vector2(f["dir"], 1.0))
-			draw_texture_rect(tex, Rect2(-sz.x * 0.5, -sz.y * 0.5, sz.x, sz.y), false, Color(0.6, 0.85, 1.0, f["alpha"]))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+# --- Underwater layer (drawn on UnderwaterFish node: above depth rect, below hull & front wave) ---
+func _draw_underwater() -> void:
+	var c: CanvasItem = fish_container
+	var top_col = under_color
+	var bot_col = under_color.darkened(0.78)
 
-	# Weather Visual Overlays
+	# 1. Depth gradient (replaces the flat navy rectangle)
+	var band_h = 14.0
+	var y = 440.0
+	while y < 720.0:
+		var k = clampf((y - 440.0) / 280.0, 0.0, 1.0)
+		c.draw_rect(Rect2(0, y, 1280, band_h + 1.0), top_col.lerp(bot_col, k * k * 0.6 + k * 0.4))
+		y += band_h
+
+	# 2. Swaying god rays from the surface
+	for i in range(6):
+		var base_x = fmod(i * 233.0 + 90.0, 1380.0) - 50.0
+		var sway = sin(sim_time * 0.35 + i * 1.7) * 26.0
+		var w_top = 34.0 + float(i % 3) * 14.0
+		var ray = PackedVector2Array([
+			Vector2(base_x + sway, 470),
+			Vector2(base_x + sway + w_top, 470),
+			Vector2(base_x + sway * 2.2 + w_top + 120.0, 700),
+			Vector2(base_x + sway * 2.2 + 60.0, 700)
+		])
+		var a = 0.045 + 0.025 * sin(sim_time * 0.9 + i)
+		c.draw_colored_polygon(ray, Color(0.75, 0.95, 1.0, a))
+
+	# 3. Fish (back to front by depth)
+	for f in underwater_fishes:
+		var tex: Texture2D = fish_textures.get(f["type"])
+		if tex == null:
+			continue
+		var meta: Dictionary = FISH_SPRITES[f["type"]]
+		var draw_w: float = meta["width"] * f["size"]
+		var draw_h: float = draw_w * float(tex.get_height()) / float(tex.get_width())
+		# Flip so the fish always faces its swim direction
+		var flip = f["dir"] if meta["faces_right"] else -f["dir"]
+		var wag = sin(sim_time * 6.0 + f["wag_offset"]) * 0.06
+		var bob = sin(sim_time * 1.4 + f["bob"]) * 3.0
+		var tint = Color(0.78, 0.92, 1.0, f["alpha"]).lerp(top_col.lightened(0.4), 0.12)
+		tint.a = f["alpha"]
+		c.draw_set_transform(f["pos"] + Vector2(0, bob), wag, Vector2(flip, 1.0))
+		c.draw_texture_rect(tex, Rect2(-draw_w * 0.5, -draw_h * 0.5, draw_w, draw_h), false, tint)
+	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# 4. Seabed silhouette + kelp on both sides
+	var bed = PackedVector2Array([Vector2(0, 720)])
+	for i in range(0, 1281, 64):
+		bed.append(Vector2(i, 692.0 + sin(i * 0.013) * 9.0 + sin(i * 0.051) * 4.0))
+	bed.append(Vector2(1280, 720))
+	c.draw_colored_polygon(bed, bot_col.lerp(Color(0.35, 0.3, 0.2), 0.25))
+	for k_i in range(9):
+		var kx = [40.0, 78.0, 130.0, 200.0, 1070.0, 1118.0, 1160.0, 1210.0, 1250.0][k_i]
+		var kh = 70.0 + float((k_i * 37) % 60)
+		var pts = PackedVector2Array()
+		for s in range(9):
+			var sy = 700.0 - kh * (float(s) / 8.0)
+			var sx = kx + sin(sim_time * 1.3 + k_i + s * 0.55) * (float(s) * 1.6)
+			pts.append(Vector2(sx, sy))
+		c.draw_polyline(pts, Color(0.12, 0.45, 0.3, 0.85), 4.0, true)
+
+	# 5. Bubbles
+	for b in bubbles:
+		c.draw_arc(b["pos"], b["r"], 0.0, TAU, 10, Color(0.85, 0.97, 1.0, 0.55), 1.0, true)
+
+# --- Top FX layer (above front wave): fishing line, bobber, weather ---
+func _draw_fx() -> void:
+	var c: CanvasItem = fx_layer
+
+	# 1. Fishing line & bobber while the line is in the water
+	if is_cooling_down:
+		var facing = player_facing
+		var tip_local = Vector2(player_deck_x + facing * 62.0, -96.0)
+		var tip = vessel_node.transform * tip_local
+		var surface_y = (fore_wave.position.y if fore_wave else 432.0) + 14.0
+		var cast_x = tip.x + facing * 96.0
+		# Reel in over the final 20% of the cooldown
+		var progress = clampf(cooldown_timer / max(0.01, cast_total_time), 0.0, 1.0)
+		var reel = clampf((0.2 - progress) / 0.2, 0.0, 1.0)
+		var bob_y = surface_y + sin(sim_time * 3.2) * 2.5 - reel * 30.0
+		bobber_pos = Vector2(lerpf(cast_x, tip.x + facing * 20.0, reel), bob_y)
+
+		# Sagging line (quadratic bezier)
+		var ctrl = Vector2((tip.x + bobber_pos.x) * 0.5, max(tip.y, bobber_pos.y) + 10.0 - reel * 18.0)
+		var line_pts = PackedVector2Array()
+		for i in range(13):
+			var t = float(i) / 12.0
+			line_pts.append(tip.lerp(ctrl, t).lerp(ctrl.lerp(bobber_pos, t), t))
+		c.draw_polyline(line_pts, Color(0.95, 0.97, 1.0, 0.85), 1.2, true)
+
+		# Expanding ripple rings (flattened circles)
+		if reel < 0.5:
+			for r_i in range(2):
+				var rt = fmod(sim_time * 0.9 + r_i * 0.5, 1.0)
+				c.draw_set_transform(bobber_pos + Vector2(0, 3), 0.0, Vector2(1.0, 0.32))
+				c.draw_arc(Vector2.ZERO, 6.0 + rt * 22.0, 0.0, TAU, 24, Color(1, 1, 1, 0.55 * (1.0 - rt)), 1.4, true)
+			c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+		# Bobber
+		c.draw_circle(bobber_pos, 5.0, Color("#ef4444"))
+		c.draw_circle(bobber_pos + Vector2(0, 2.5), 3.2, Color("#f8fafc"))
+		c.draw_line(bobber_pos - Vector2(0, 5), bobber_pos - Vector2(0, 9), Color("#1e293b"), 1.5)
+
+	# 2. Weather overlays
 	if GameManager.current_weather == "Rain" or GameManager.current_weather == "Storm":
-		# Diagonal rain streaks
-		var streak_count = 55 if GameManager.current_weather == "Rain" else 95
+		var streak_count = 70 if GameManager.current_weather == "Rain" else 120
 		for r in range(streak_count):
 			var rx = fmod(r * 47.0 - sim_time * 280.0, 1340.0)
-			var ry = fmod(r * 31.0 + sim_time * 650.0, 480.0)
-			draw_line(Vector2(rx, ry), Vector2(rx - 8.0, ry + 22.0), Color(0.75, 0.88, 1.0, 0.45), 1.2)
-
+			if rx < 0.0:
+				rx += 1340.0
+			var ry = fmod(r * 31.0 + sim_time * 650.0, 470.0)
+			c.draw_line(Vector2(rx, ry), Vector2(rx - 8.0, ry + 20.0), Color(0.78, 0.9, 1.0, 0.35), 1.2)
 	elif GameManager.current_weather == "Fog":
-		# Soft rolling misty fog layers
-		for fy in range(350, 450, 25):
-			var f_drift = sin(sim_time * 0.8 + fy * 0.1) * 40.0
-			draw_rect(Rect2(f_drift - 50, fy, 1380, 22), Color(0.85, 0.92, 1.0, 0.12))
+		for fy in range(300, 470, 24):
+			var f_drift = sin(sim_time * 0.6 + fy * 0.1) * 50.0
+			c.draw_rect(Rect2(f_drift - 60, fy, 1400, 26), Color(0.88, 0.93, 1.0, 0.09))
 
-	# Storm Lightning Screen Flash
-	if lightning_flash_alpha > 0.01:
-		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 1.0, 1.0, lightning_flash_alpha))
-
-	# If Subspace 0x00: draw cyber matrix grid scanlines in sky
+	# 3. Subspace scanlines in the sky
 	if GameManager.current_biome == "Subspace 0x00":
-		for y in range(0, 420, 24):
-			var scan_alpha = (sin(sim_time * 3.0 + y * 0.05) + 1.0) * 0.12
-			draw_line(Vector2(0, y), Vector2(1280, y), Color(0.0, 1.0, 0.9, scan_alpha), 1.0)
+		for sy in range(0, 420, 24):
+			var scan_alpha = (sin(sim_time * 3.0 + sy * 0.05) + 1.0) * 0.10
+			c.draw_line(Vector2(0, sy), Vector2(1280, sy), Color(0.0, 1.0, 0.9, scan_alpha), 1.0)
+
+	# 4. Storm lightning flash
+	if lightning_flash_alpha > 0.01:
+		c.draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 1.0, 1.0, lightning_flash_alpha * 0.8))
+
+# --- Number formatting helpers ---
+func _fmt(val: int) -> String:
+	var s = str(abs(val))
+	var res = ""
+	var count = 0
+	for i in range(s.length() - 1, -1, -1):
+		res = s[i] + res
+		count += 1
+		if count % 3 == 0 and i != 0:
+			res = "," + res
+	return ("-" if val < 0 else "") + res
+
+func _fmt_short(val: int) -> String:
+	var v = float(val)
+	if v >= 1e12:
+		return "%.2fT" % (v / 1e12)
+	if v >= 1e9:
+		return "%.2fB" % (v / 1e9)
+	if v >= 1e6:
+		return "%.2fM" % (v / 1e6)
+	return _fmt(val)

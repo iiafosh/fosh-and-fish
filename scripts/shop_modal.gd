@@ -20,15 +20,15 @@ signal close_requested
 @onready var balance_label: Label = $Panel/Margin/VBox/Header/BalanceLabel
 @onready var close_btn: Button = $Panel/Margin/VBox/Header/CloseXBtn
 
-# Hub 2x4 Matrix Buttons
-@onready var btn_hub_rods: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/RodsBtn
-@onready var btn_hub_bait: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/BaitBtn
-@onready var btn_hub_upgrades: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/UpgradesBtn
-@onready var btn_hub_boats: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/BoatsBtn
-@onready var btn_hub_boosts: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/BoostsBtn
-@onready var btn_hub_special: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/SpecialBtn
-@onready var btn_hub_league: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/LeagueBtn
-@onready var btn_hub_return: Button = $Panel/Margin/VBox/ViewHub/MatrixGrid/ReturnBtn
+# Hub Discord Action Rows
+@onready var btn_hub_rods: Button = $Panel/Margin/VBox/ViewHub/Row1/RodsBtn
+@onready var btn_hub_bait: Button = $Panel/Margin/VBox/ViewHub/Row1/BaitBtn
+@onready var btn_hub_upgrades: Button = $Panel/Margin/VBox/ViewHub/Row1/UpgradesBtn
+@onready var btn_hub_boats: Button = $Panel/Margin/VBox/ViewHub/Row1/BoatsBtn
+@onready var btn_hub_boosts: Button = $Panel/Margin/VBox/ViewHub/Row2/BoostsBtn
+@onready var btn_hub_special: Button = $Panel/Margin/VBox/ViewHub/Row2/SpecialBtn
+@onready var btn_hub_league: Button = $Panel/Margin/VBox/ViewHub/Row2/LeagueBtn
+@onready var btn_hub_return: Button = $Panel/Margin/VBox/ViewHub/Row3/ReturnBtn
 
 # Lists & Dynamic Containers
 @onready var rods_list_container: VBoxContainer = $Panel/Margin/VBox/ViewRods/Scroll/RodsList
@@ -243,7 +243,7 @@ func _populate_boats() -> void:
 		var req_lvl = b_data.get("req_level", 0)
 		var lvl_met = (GameManager.level >= req_lvl)
 
-		var sub_desc = "%s (-0.25s CD, +1 fish per cast permanent)" % b_data.get("desc", "")
+		var sub_desc = "⚡ -0.25s CD • 🐟 +1 Fish • %s" % b_data.get("desc", "")
 		var card = _create_shop_card("Tier %d: %s" % [b_data["tier"], b_name], sub_desc)
 
 		var action_btn = Button.new()
@@ -251,23 +251,24 @@ func _populate_boats() -> void:
 		action_btn.add_theme_font_size_override("font_size", 11)
 
 		if is_active:
-			action_btn.text = "FLAGSHIP"
+			action_btn.text = "⭐ Active Flagship"
 			action_btn.disabled = true
 			_style_button_green(action_btn)
 		elif is_owned:
-			action_btn.text = "⚓ Deploy Hull"
+			action_btn.text = "⚓ Set Hull"
 			_style_button_green(action_btn)
 			action_btn.pressed.connect(func():
 				AudioManager.play_strike()
 				GameManager.select_boat(b_name)
 			)
 		elif not lvl_met:
-			action_btn.text = "🔒 Unlock Lv. %d" % req_lvl
+			action_btn.text = "🔒 Lv. %d" % req_lvl
 			action_btn.disabled = true
+			_style_button_slate(action_btn)
 		else:
 			action_btn.text = "$%s" % _format_number(b_data["cost"])
 			action_btn.disabled = (GameManager.cash < b_data["cost"])
-			_style_button_purple(action_btn)
+			_style_button_blue(action_btn)
 			action_btn.pressed.connect(func():
 				AudioManager.play_strike()
 				GameManager.buy_boat(b_name)
@@ -561,44 +562,38 @@ func _create_shop_card(title: String, desc: String) -> HBoxContainer:
 
 func _style_button_green(btn: Button) -> void:
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.12, 0.65, 0.28, 0.95)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(0.2, 0.9, 0.4, 1.0)
-	sb.corner_radius_top_left = 6
-	sb.corner_radius_top_right = 6
-	sb.corner_radius_bottom_right = 6
-	sb.corner_radius_bottom_left = 6
+	sb.bg_color = Color("#248046") # Discord Green
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_right = 4
+	sb.corner_radius_bottom_left = 4
 	btn.add_theme_stylebox_override("normal", sb)
 
 func _style_button_blue(btn: Button) -> void:
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.22, 0.35, 0.85, 0.95)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(0.4, 0.55, 1.0, 1.0)
-	sb.corner_radius_top_left = 6
-	sb.corner_radius_top_right = 6
-	sb.corner_radius_bottom_right = 6
-	sb.corner_radius_bottom_left = 6
+	sb.bg_color = Color("#5865F2") # Discord Blurple
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_right = 4
+	sb.corner_radius_bottom_left = 4
+	btn.add_theme_stylebox_override("normal", sb)
+
+func _style_button_slate(btn: Button) -> void:
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color("#2b2d31") # Discord Slate
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_right = 4
+	sb.corner_radius_bottom_left = 4
 	btn.add_theme_stylebox_override("normal", sb)
 
 func _style_button_purple(btn: Button) -> void:
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.48, 0.22, 0.78, 0.95)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(0.7, 0.45, 1.0, 1.0)
-	sb.corner_radius_top_left = 6
-	sb.corner_radius_top_right = 6
-	sb.corner_radius_bottom_right = 6
-	sb.corner_radius_bottom_left = 6
+	sb.bg_color = Color("#5865F2") # Discord Blurple
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_right = 4
+	sb.corner_radius_bottom_left = 4
 	btn.add_theme_stylebox_override("normal", sb)
 
 func _format_number(val: int) -> String:

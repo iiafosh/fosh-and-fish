@@ -98,7 +98,7 @@ scale_amount_max = 5.0
 color = Color(0.85, 0.95, 1, 0.85)
 
 [node name="Vessel" type="Node2D" parent="." unique_id=806197601]
-position = Vector2(640, 424)
+position = Vector2(640, 402)
 script = ExtResource("7_vessel")
 
 [node name="Player" type="Node2D" parent="Vessel" unique_id=1411395332]
@@ -112,9 +112,9 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -80.0
-offset_top = -100.0
+offset_top = -135.0
 offset_right = 80.0
-offset_bottom = -72.0
+offset_bottom = -107.0
 grow_horizontal = 2
 grow_vertical = 0
 theme = ExtResource("8_theme")
@@ -274,7 +274,7 @@ theme_override_constants/margin_left = 6
 theme_override_constants/margin_right = 6
 
 [node name="HeroCastBtn" type="Button" parent="CanvasLayer/BottomDock/Center/CenterBox" unique_id=792666427]
-custom_minimum_size = Vector2(250, 52)
+custom_minimum_size = Vector2(250, 56)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 0.9, 1)
