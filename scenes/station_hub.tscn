@@ -1,20 +1,21 @@
-[gd_scene load_steps=3 format=3 uid="uid://cstationhub1"]
+[gd_scene load_steps=4 format=3 uid="uid://cstationhub1"]
 
 [ext_resource type="Script" path="res://scripts/station_hub.gd" id="1_hub"]
+[ext_resource type="Theme" uid="uid://cmaritimewood1" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.063, 0.141, 0.165, 0.98)
+bg_color = Color(0.086, 0.051, 0.027, 0.96)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
-border_color = Color(0.137, 0.294, 0.322, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-shadow_color = Color(0, 0, 0, 0.6)
-shadow_size = 16
+border_color = Color(0.85, 0.58, 0.28, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0, 0, 0, 0.75)
+shadow_size = 20
 
 [node name="StationHub" type="Control"]
 layout_mode = 3
@@ -23,6 +24,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_hub")
 
 [node name="DimOverlay" type="ColorRect" parent="."]
@@ -32,7 +34,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.04, 0.1, 0.12, 0.75)
+color = Color(0.04, 0.02, 0.01, 0.65)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -143,6 +145,10 @@ text = "🚢 Shipyard & Hulls"
 [node name="FishingBtn" type="Button" parent="Panel/TabButtons"]
 layout_mode = 2
 text = "🌊 Pier Angling"
+
+[node name="PetsBtn" type="Button" parent="Panel/TabButtons"]
+layout_mode = 2
+text = "🐾 Sanctuary & Pets"
 
 [node name="Content" type="Control" parent="Panel"]
 layout_mode = 2
@@ -288,10 +294,55 @@ size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 18
 text = "🎣 CAST LINE"
 
+[node name="PetsPanel" type="VBoxContainer" parent="Panel/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="Panel/Content/PetsPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1.0, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+text = "🐾 Companion Pet Sanctuary & Mascot Wardrobe. Pets grant passive fishing perks."
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Content/PetsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Content/PetsPanel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="MascotsHeader" type="Label" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "Mascot Wardrobe (Rimuru Tempest):"
+
+[node name="MascotsContainer" type="VBoxContainer" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PetsHeader" type="Label" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+text = "Unlocked Companion Pets (Earned via level milestones):"
+
+[node name="PetsContainer" type="VBoxContainer" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
 [connection signal="pressed" from="Panel/Header/CloseBtn" to="." method="_on_close_btn_pressed"]
 [connection signal="pressed" from="Panel/TabButtons/MarketBtn" to="." method="_on_market_btn_pressed"]
 [connection signal="pressed" from="Panel/TabButtons/TackleBtn" to="." method="_on_tackle_btn_pressed"]
 [connection signal="pressed" from="Panel/TabButtons/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
 [connection signal="pressed" from="Panel/TabButtons/FishingBtn" to="." method="_on_fishing_btn_pressed"]
+[connection signal="pressed" from="Panel/TabButtons/PetsBtn" to="." method="_on_pets_btn_pressed"]
 [connection signal="pressed" from="Panel/Content/MarketPanel/SellHeader/SellAllBtn" to="." method="_on_sell_all_btn_pressed"]
 [connection signal="pressed" from="Panel/Content/FishingPanel/Center/CastBtn" to="." method="_on_cast_btn_pressed"]

@@ -4,10 +4,10 @@ extends Node2D
 @onready var station_hub: Control = $CanvasLayer/StationHub
 @onready var hud_biome_label: Label = $CanvasLayer/SailingHUD/TopLeft/VBox/BiomeLabel
 @onready var hud_speed_label: Label = $CanvasLayer/SailingHUD/TopLeft/VBox/SpeedLabel
-@onready var hud_cash_label: Label = $CanvasLayer/SailingHUD/TopRight/CashLabel
-@onready var hud_level_label: Label = $CanvasLayer/SailingHUD/TopRight/LevelLabel
+@onready var hud_cash_label: Label = $CanvasLayer/SailingHUD/TopRight/HBox/CashLabel
+@onready var hud_level_label: Label = $CanvasLayer/SailingHUD/TopRight/HBox/LevelLabel
 @onready var quick_fish_btn: Button = $CanvasLayer/SailingHUD/BottomBar/QuickFishBtn
-@onready var loot_popup_label: Label = $CanvasLayer/SailingHUD/Center/LootPopup
+@onready var catch_toast: Control = $CanvasLayer/CatchToast
 
 var water_time: float = 0.0
 
@@ -59,11 +59,8 @@ func _on_quick_fish_pressed() -> void:
 	station_hub.open_dock(dock_data)
 
 func _on_fish_caught(f_name: String, count: int, xp_gained: int, _rarity: String) -> void:
-	loot_popup_label.text = "+%dx %s! (+%d XP)" % [count, f_name, xp_gained]
-	loot_popup_label.visible = true
-	var tween = create_tween()
-	loot_popup_label.modulate.a = 1.0
-	tween.tween_property(loot_popup_label, "modulate:a", 0.0, 2.5)
+	if catch_toast:
+		catch_toast.show_catch(f_name, count, xp_gained, _rarity)
 
 func _draw() -> void:
 	# Draw Sector Tints & Islands over the Water Shader

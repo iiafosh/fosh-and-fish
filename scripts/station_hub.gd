@@ -19,12 +19,16 @@ var cooldown_timer: float = 0.0
 @onready var tab_tackle_btn: Button = $Panel/TabButtons/TackleBtn
 @onready var tab_shipyard_btn: Button = $Panel/TabButtons/ShipyardBtn
 @onready var tab_fishing_btn: Button = $Panel/TabButtons/FishingBtn
+@onready var tab_pets_btn: Button = $Panel/TabButtons/PetsBtn
 
 # Content Panels
 @onready var market_panel: VBoxContainer = $Panel/Content/MarketPanel
 @onready var tackle_panel: VBoxContainer = $Panel/Content/TacklePanel
 @onready var shipyard_panel: VBoxContainer = $Panel/Content/ShipyardPanel
 @onready var fishing_panel: VBoxContainer = $Panel/Content/FishingPanel
+@onready var pets_panel: VBoxContainer = $Panel/Content/PetsPanel
+@onready var mascots_container: VBoxContainer = $Panel/Content/PetsPanel/Scroll/VBox/MascotsContainer
+@onready var pets_container: VBoxContainer = $Panel/Content/PetsPanel/Scroll/VBox/PetsContainer
 
 # Market Nodes
 @onready var fish_grid: GridContainer = $Panel/Content/MarketPanel/Scroll/FishGrid
@@ -85,12 +89,14 @@ func open_dock(dock_data: Dictionary) -> void:
 		tab_market_btn.visible = false
 		tab_tackle_btn.visible = false
 		tab_shipyard_btn.visible = false
+		tab_pets_btn.visible = false
 		tab_fishing_btn.visible = true
 		_on_fishing_btn_pressed()
 	else:
 		tab_market_btn.visible = true
 		tab_tackle_btn.visible = true
 		tab_shipyard_btn.visible = true
+		tab_pets_btn.visible = true
 		tab_fishing_btn.visible = true
 		_on_market_btn_pressed()
 
@@ -107,6 +113,7 @@ func refresh_all() -> void:
 	refresh_tackle()
 	refresh_shipyard()
 	refresh_fishing_view()
+	refresh_pets_and_mascots()
 
 func refresh_header() -> void:
 	cash_label.text = "$ " + str(GameManager.cash)
@@ -325,8 +332,84 @@ func _on_fishing_btn_pressed() -> void:
 	market_panel.visible = false
 	tackle_panel.visible = false
 	shipyard_panel.visible = false
+	pets_panel.visible = false
 	fishing_panel.visible = true
 	refresh_fishing_view()
+
+func _on_pets_btn_pressed() -> void:
+	market_panel.visible = false
+	tackle_panel.visible = false
+	shipyard_panel.visible = false
+	fishing_panel.visible = false
+	pets_panel.visible = true
+	refresh_pets_and_mascots()
+
+func refresh_pets_and_mascots() -> void:
+	if not mascots_container or not pets_container:
+		return
+
+	# 1. Clear containers
+	for child in mascots_container.get_children():
+		child.queue_free()
+	for child in pets_container.get_children():
+		child.queue_free()
+
+	# 2. Render Mascots
+	for m_key in GameManager.mascots.keys():
+		var m_data = GameManager.mascots[m_key]
+		var hbox = HBoxContainer.new()
+		
+		var icon_lbl = Label.new()
+		icon_lbl.text = m_data["icon"]
+		hbox.add_child(icon_lbl)
+		
+		var name_lbl = Label.new()
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.text = "%s - %s" % [m_data["name"], m_data["desc"]]
+		hbox.add_child(name_lbl)
+		
+		var btn = Button.new()
+		if GameManager.current_mascot == m_key:
+			btn.text = "Active Form"
+			btn.disabled = true
+		else:
+			btn.text = "Switch Form"
+			btn.pressed.connect(func():
+				GameManager.current_mascot = m_key
+				refresh_pets_and_mascots()
+			)
+		hbox.add_child(btn)
+		mascots_container.add_child(hbox)
+
+	# 3. Render Pets
+	for p_name in GameManager.pets_database.keys():
+		var p_data = GameManager.pets_database[p_name]
+		var hbox = HBoxContainer.new()
+		
+		var icon_lbl = Label.new()
+		icon_lbl.text = p_data["icon"]
+		hbox.add_child(icon_lbl)
+		
+		var info_lbl = Label.new()
+		info_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info_lbl.text = "%s (Lv. %d Milestone) - %s" % [p_name, p_data["req_level"], p_data["desc"]]
+		hbox.add_child(info_lbl)
+		
+		var btn = Button.new()
+		if GameManager.level < p_data["req_level"]:
+			btn.text = "Locked (Lv. %d)" % p_data["req_level"]
+			btn.disabled = true
+		elif GameManager.equipped_pet == p_name:
+			btn.text = "Equipped"
+			btn.disabled = true
+		else:
+			btn.text = "Equip Companion"
+			btn.pressed.connect(func():
+				GameManager.equipped_pet = p_name
+				refresh_pets_and_mascots()
+			)
+		hbox.add_child(btn)
+		pets_container.add_child(hbox)
 
 # --- Fishing Reel Action ---
 func _on_cast_btn_pressed() -> void:

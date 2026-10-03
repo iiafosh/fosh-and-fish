@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://ccatchtoast1"]
+
+[ext_resource type="Script" path="res://scripts/catch_toast.gd" id="1_toast"]
+[ext_resource type="Theme" uid="uid://cmaritimewood1" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://web/assets/Fish_Cod.png" id="3_tex"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rarity"]
+bg_color = Color(0.12, 0.08, 0.04, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.6, 0.3, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="CatchToast" type="Control"]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 20.0
+offset_right = 160.0
+offset_bottom = 90.0
+grow_horizontal = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_toast")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="FishIcon" type="TextureRect" parent="Panel/Margin/HBox"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("3_tex")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="RarityBadge" type="Label" parent="Panel/Margin/HBox/VBox"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_rarity")
+text = " UNCOMMON "
+
+[node name="TitleLabel" type="Label" parent="Panel/Margin/HBox/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "+4x Cod!"
+
+[node name="RewardsLabel" type="Label" parent="Panel/Margin/HBox/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "+$40 | +20 XP"

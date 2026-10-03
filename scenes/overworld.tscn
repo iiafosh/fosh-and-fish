@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://coverworldmap1"]
+[gd_scene load_steps=10 format=3 uid="uid://coverworldmap1"]
 
 [ext_resource type="Script" path="res://scripts/overworld.gd" id="1_overworld"]
 [ext_resource type="PackedScene" uid="uid://cboatplayer1" path="res://scenes/ship.tscn" id="2_ship"]
@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://cstationhub1" path="res://scenes/station_hub.tscn" id="4_hub"]
 [ext_resource type="Shader" path="res://shaders/water.gdshader" id="5_water_shader"]
 [ext_resource type="Script" path="res://scripts/fish_spawner.gd" id="6_spawner"]
+[ext_resource type="Theme" uid="uid://cmaritimewood1" path="res://themes/maritime_wood_theme.tres" id="7_theme"]
+[ext_resource type="PackedScene" uid="uid://ccatchtoast1" path="res://scenes/catch_toast.tscn" id="8_toast"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
 shader = ExtResource("5_water_shader")
@@ -83,96 +85,63 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("7_theme")
 
 [node name="TopLeft" type="PanelContainer" parent="CanvasLayer/SailingHUD"]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 20.0
-offset_right = 280.0
-offset_bottom = 90.0
+offset_right = 290.0
+offset_bottom = 95.0
 
 [node name="VBox" type="VBoxContainer" parent="CanvasLayer/SailingHUD/TopLeft"]
 layout_mode = 2
 
 [node name="BiomeLabel" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.9, 1, 1)
+theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
 theme_override_font_sizes/font_size = 14
 text = "Waters: River Biome"
 
 [node name="SpeedLabel" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.9, 0.95, 1)
+theme_override_colors/font_color = Color(0.9, 0.94, 0.98, 1)
 theme_override_font_sizes/font_size = 12
 text = "Speed: 0 knots"
 
 [node name="ControlsTip" type="Label" parent="CanvasLayer/SailingHUD/TopLeft/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.7, 0.75, 1)
+theme_override_colors/font_color = Color(0.7, 0.65, 0.55, 1)
 theme_override_font_sizes/font_size = 11
 text = "[W/A/S/D] Steer Ship | [Space] Anchor"
 
-[node name="TopRight" type="HBoxContainer" parent="CanvasLayer/SailingHUD"]
+[node name="TopRight" type="PanelContainer" parent="CanvasLayer/SailingHUD"]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -320.0
+offset_left = -340.0
 offset_top = 20.0
 offset_right = -20.0
-offset_bottom = 60.0
+offset_bottom = 80.0
 grow_horizontal = 0
-theme_override_constants/separation = 15
-alignment = 2
 
-[node name="CashLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight"]
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/SailingHUD/TopRight"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="CashLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
 theme_override_font_sizes/font_size = 18
 text = "$ 150"
 
-[node name="LevelLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight"]
+[node name="LevelLabel" type="Label" parent="CanvasLayer/SailingHUD/TopRight/HBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Lv. 1 (0/30 XP)"
-
-[node name="Center" type="Control" parent="CanvasLayer/SailingHUD"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="LootPopup" type="Label" parent="CanvasLayer/SailingHUD/Center"]
-visible = false
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -160.0
-offset_top = -80.0
-offset_right = 160.0
-offset_bottom = -50.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 18
-text = "+4x Cod! (+20 XP)"
-horizontal_alignment = 1
 
 [node name="BottomBar" type="HBoxContainer" parent="CanvasLayer/SailingHUD"]
 layout_mode = 1
@@ -182,7 +151,7 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -110.0
-offset_top = -60.0
+offset_top = -65.0
 offset_right = 110.0
 offset_bottom = -20.0
 grow_horizontal = 2
@@ -191,7 +160,10 @@ alignment = 1
 
 [node name="QuickFishBtn" type="Button" parent="CanvasLayer/SailingHUD/BottomBar"]
 layout_mode = 2
-text = "🎣 Fish from Ship"
+theme_override_font_sizes/font_size = 14
+text = "🎣 Fish from Ship [Space]"
+
+[node name="CatchToast" parent="CanvasLayer" instance=ExtResource("8_toast")]
 
 [node name="StationHub" parent="CanvasLayer" instance=ExtResource("4_hub")]
 visible = false
