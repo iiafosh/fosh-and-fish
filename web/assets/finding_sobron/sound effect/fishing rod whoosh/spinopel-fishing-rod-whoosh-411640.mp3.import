@@ -3,12 +3,12 @@
 importer="mp3"
 type="AudioStreamMP3"
 uid="uid://c4fdldc1ynn5i"
-path="res://.godot/imported/spinopel-fishing-rod-whoosh-411640.mp3-c2e461e746b02701313935e5a83f3bb6.mp3str"
+path="res://.godot/imported/spinopel-fishing-rod-whoosh-411640.mp3-7a2bac456e6879267137e56e552fdb1c.mp3str"
 
 [deps]
 
-source_file="res://assets/sound effect/fishing rod whoosh/spinopel-fishing-rod-whoosh-411640.mp3"
-dest_files=["res://.godot/imported/spinopel-fishing-rod-whoosh-411640.mp3-c2e461e746b02701313935e5a83f3bb6.mp3str"]
+source_file="res://web/assets/finding_sobron/sound effect/fishing rod whoosh/spinopel-fishing-rod-whoosh-411640.mp3"
+dest_files=["res://.godot/imported/spinopel-fishing-rod-whoosh-411640.mp3-7a2bac456e6879267137e56e552fdb1c.mp3str"]
 
 [params]
 

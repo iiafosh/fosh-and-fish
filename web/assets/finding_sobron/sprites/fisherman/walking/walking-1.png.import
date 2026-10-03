@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cyj6mxo0rolju"
-path="res://.godot/imported/walking-1.png-74292cacea0da67f9448110e5a337cc6.ctex"
+path="res://.godot/imported/walking-1.png-7b5a8144f6208e5ccd2bc8e91bc553a2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fisherman/walking/walking-1.png"
-dest_files=["res://.godot/imported/walking-1.png-74292cacea0da67f9448110e5a337cc6.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fisherman/walking/walking-1.png"
+dest_files=["res://.godot/imported/walking-1.png-7b5a8144f6208e5ccd2bc8e91bc553a2.ctex"]
 
 [params]
 

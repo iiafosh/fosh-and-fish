@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dig3wxrcnn84t"
-path="res://.godot/imported/fishing-rod.png-5a580af40422211812667618e5dddad6.ctex"
+path="res://.godot/imported/fishing-rod.png-4bbc2851686b9df2bf1295b13e645ceb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fishing rod/fishing-rod.png"
-dest_files=["res://.godot/imported/fishing-rod.png-5a580af40422211812667618e5dddad6.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fishing rod/fishing-rod.png"
+dest_files=["res://.godot/imported/fishing-rod.png-4bbc2851686b9df2bf1295b13e645ceb.ctex"]
 
 [params]
 

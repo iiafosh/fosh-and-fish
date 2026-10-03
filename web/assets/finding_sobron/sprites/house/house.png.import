@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://yywxtyqfoguu"
-path="res://.godot/imported/house.png-88fb875e7c7ee570e0189dc9c0d852cc.ctex"
+path="res://.godot/imported/house.png-507589a75ad6f49cc481ca4f54a4ca34.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/house/house.png"
-dest_files=["res://.godot/imported/house.png-88fb875e7c7ee570e0189dc9c0d852cc.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/house/house.png"
+dest_files=["res://.godot/imported/house.png-507589a75ad6f49cc481ca4f54a4ca34.ctex"]
 
 [params]
 

@@ -8,6 +8,7 @@ extends Node2D
 @onready var hud_level_label: Label = $CanvasLayer/SailingHUD/TopRight/HBox/LevelLabel
 @onready var quick_fish_btn: Button = $CanvasLayer/SailingHUD/BottomBar/QuickFishBtn
 @onready var catch_toast: Control = $CanvasLayer/CatchToast
+@onready var boss_minigame: Control = $CanvasLayer/BossMinigame
 
 var water_time: float = 0.0
 
@@ -15,6 +16,9 @@ func _ready() -> void:
 	station_hub.station_closed.connect(_on_station_closed)
 	GameManager.stats_changed.connect(_update_hud)
 	GameManager.fish_caught.connect(_on_fish_caught)
+	GameManager.boss_hooked.connect(_on_boss_hooked)
+	if boss_minigame:
+		boss_minigame.boss_resolved.connect(_on_boss_resolved)
 	_update_hud()
 
 func _process(delta: float) -> void:
@@ -28,7 +32,9 @@ func _process(delta: float) -> void:
 		
 		# Detect Biome by World Position
 		var ship_pos = ship.global_position
-		if ship_pos.x > 800 and ship_pos.y > 400:
+		if ship_pos.distance_to(Vector2(2000, -1400)) < 650.0:
+			GameManager.current_biome = "Subspace 0x00"
+		elif ship_pos.x > 800 and ship_pos.y > 400:
 			GameManager.current_biome = "Volcanic"
 		elif ship_pos.x < -800 and ship_pos.y > 400:
 			GameManager.current_biome = "Ocean"
@@ -36,6 +42,11 @@ func _process(delta: float) -> void:
 			GameManager.current_biome = "River"
 		
 		hud_biome_label.text = "Waters: %s Biome" % GameManager.current_biome
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F and not station_hub.visible and not boss_minigame.visible:
+			_on_quick_fish_pressed()
 
 func _update_hud() -> void:
 	hud_cash_label.text = "$ %d" % GameManager.cash
@@ -45,11 +56,25 @@ func _on_station_closed() -> void:
 	if ship:
 		ship.can_control = true
 
+func _on_boss_hooked(boss_data: Dictionary) -> void:
+	if station_hub.visible:
+		station_hub.close_dock()
+	if ship:
+		ship.can_control = false
+	boss_minigame.start_encounter(boss_data)
+
+func _on_boss_resolved(caught: bool, boss_data: Dictionary) -> void:
+	if ship:
+		ship.can_control = true
+	if caught and catch_toast:
+		catch_toast.show_catch(boss_data["name"], boss_data.get("count", 1), boss_data.get("xp", 5000), "TITAN BOSS", " 💎 +1 Diamond Fish!")
+
 func _on_quick_fish_pressed() -> void:
+	AudioManager.play_click()
 	# Open a floating open-water fishing spot UI
 	var dock_data = {
 		"id": "open_water",
-		"name": "Open Water Drift",
+		"name": "Open Water Drift (%s)" % GameManager.current_biome,
 		"type": "fishing_spot",
 		"biome": GameManager.current_biome,
 		"level_required": 1,
@@ -59,7 +84,7 @@ func _on_quick_fish_pressed() -> void:
 	station_hub.open_dock(dock_data)
 
 func _on_fish_caught(f_name: String, count: int, xp_gained: int, _rarity: String) -> void:
-	if catch_toast:
+	if catch_toast and not boss_minigame.visible:
 		catch_toast.show_catch(f_name, count, xp_gained, _rarity)
 
 func _draw() -> void:
@@ -69,6 +94,12 @@ func _draw() -> void:
 	
 	# 2. Ocean Sector (South-West)
 	draw_rect(Rect2(-2400, 300, 1800, 1500), Color(0.02, 0.08, 0.25, 0.40))
+
+	# 3. Subspace 0x00 Anomaly Sector (North-East Rift)
+	draw_rect(Rect2(1400, -2000, 1200, 1200), Color(0.04, 0.0, 0.12, 0.45))
+	var pulse = sin(water_time * 2.5) * 12.0
+	draw_arc(Vector2(2000, -1400), 160 + pulse, 0, TAU, 32, Color(0.0, 1.0, 0.8, 0.45), 3.5)
+	draw_arc(Vector2(2000, -1400), 90 - pulse * 0.5, 0, TAU, 24, Color(0.8, 0.1, 1.0, 0.45), 2.5)
 
 	# --- Draw Islands ---
 	# Riverwood Home Island (near 0, -150)

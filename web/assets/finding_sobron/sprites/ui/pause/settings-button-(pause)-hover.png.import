@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ca5ce3w6l1xcl"
-path="res://.godot/imported/settings-button-(pause)-hover.png-0a9338ef6d16f850107738742b04f192.ctex"
+path="res://.godot/imported/settings-button-(pause)-hover.png-6af10f796bb8da7a69d433173e7de028.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/pause/settings-button-(pause)-hover.png"
-dest_files=["res://.godot/imported/settings-button-(pause)-hover.png-0a9338ef6d16f850107738742b04f192.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/pause/settings-button-(pause)-hover.png"
+dest_files=["res://.godot/imported/settings-button-(pause)-hover.png-6af10f796bb8da7a69d433173e7de028.ctex"]
 
 [params]
 

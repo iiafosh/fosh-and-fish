@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdpk2ng6f6fax"
-path="res://.godot/imported/score-card.png-c72d8ddc71d0859e02d2ebd60f47578f.ctex"
+path="res://.godot/imported/score-card.png-37cf00e017d5c046081f0280689f0a24.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/gameplay hud/score-card.png"
-dest_files=["res://.godot/imported/score-card.png-c72d8ddc71d0859e02d2ebd60f47578f.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/gameplay hud/score-card.png"
+dest_files=["res://.godot/imported/score-card.png-37cf00e017d5c046081f0280689f0a24.ctex"]
 
 [params]
 

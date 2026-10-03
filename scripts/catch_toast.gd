@@ -23,6 +23,11 @@ func show_catch(fish_name: String, count: int, xp_gained: int, rarity: String, e
 	
 	rewards_label.text = "+$%d | +%d XP%s" % [price_estimate, xp_gained, exotic_text]
 	
+	if rarity == "TITAN BOSS":
+		AudioManager.play_strike()
+	else:
+		AudioManager.play_success()
+	
 	# Color code rarity badge
 	match rarity:
 		"Common":

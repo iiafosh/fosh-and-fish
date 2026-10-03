@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://by0otnon3ipcr"
-path="res://.godot/imported/engine-start.wav-79edc22e15f15c993e921ede90a43080.sample"
+path="res://.godot/imported/engine-start.wav-13c5845ae199c8b8bad547d645ea2acb.sample"
 
 [deps]
 
-source_file="res://assets/sound effect/engine/engine-start.wav"
-dest_files=["res://.godot/imported/engine-start.wav-79edc22e15f15c993e921ede90a43080.sample"]
+source_file="res://web/assets/finding_sobron/sound effect/engine/engine-start.wav"
+dest_files=["res://.godot/imported/engine-start.wav-13c5845ae199c8b8bad547d645ea2acb.sample"]
 
 [params]
 

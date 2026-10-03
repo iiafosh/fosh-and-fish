@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c360c326a2ce1"
-path="res://.godot/imported/fish-icon.png-be8c242afa04ca369d37819a10b3d3fc.ctex"
+path="res://.godot/imported/fish-icon.png-b96a8f3fed3f31140780e1c2d5c144e9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/mini game bar/fish-icon.png"
-dest_files=["res://.godot/imported/fish-icon.png-be8c242afa04ca369d37819a10b3d3fc.ctex"]
+source_file="res://web/assets/minigame/fish-icon.png"
+dest_files=["res://.godot/imported/fish-icon.png-b96a8f3fed3f31140780e1c2d5c144e9.ctex"]
 
 [params]
 

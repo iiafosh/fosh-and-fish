@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b4ia8q7kcfljb"
-path="res://.godot/imported/fishing-mode.png-faebefd75e94259f8f80e6f686c3c825.ctex"
+path="res://.godot/imported/fishing-mode.png-b72be87385eb14d4325378ebf95e5e95.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fisherman/fishing mode/fishing-mode.png"
-dest_files=["res://.godot/imported/fishing-mode.png-faebefd75e94259f8f80e6f686c3c825.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fisherman/fishing mode/fishing-mode.png"
+dest_files=["res://.godot/imported/fishing-mode.png-b72be87385eb14d4325378ebf95e5e95.ctex"]
 
 [params]
 

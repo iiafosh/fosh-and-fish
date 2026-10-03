@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://duxh5m74jfpki"
-path="res://.godot/imported/credit.png-365aa76c27435c19253969a205c686cb.ctex"
+path="res://.godot/imported/credit.png-e3476ecbde85db510922dcbb925b473a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/credits/credit.png"
-dest_files=["res://.godot/imported/credit.png-365aa76c27435c19253969a205c686cb.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/credits/credit.png"
+dest_files=["res://.godot/imported/credit.png-e3476ecbde85db510922dcbb925b473a.ctex"]
 
 [params]
 

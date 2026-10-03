@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://btqv57q7a5bg3"
-path="res://.godot/imported/driving-mode.png-c22199997db82e2274d8630783d8e8e8.ctex"
+path="res://.godot/imported/driving-mode.png-a2a2b6f06b59c3909f7796768c08351e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fisherman/driving mode/driving-mode.png"
-dest_files=["res://.godot/imported/driving-mode.png-c22199997db82e2274d8630783d8e8e8.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fisherman/driving mode/driving-mode.png"
+dest_files=["res://.godot/imported/driving-mode.png-a2a2b6f06b59c3909f7796768c08351e.ctex"]
 
 [params]
 

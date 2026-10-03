@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ex7vdgu467ih"
-path="res://.godot/imported/game-title.png-ed6eca01e0b5489f7d9b4ff2abc9f8aa.ctex"
+path="res://.godot/imported/game-title.png-f4375628dcde18d6bdabd9765f393bd4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/main menu background/game-title.png"
-dest_files=["res://.godot/imported/game-title.png-ed6eca01e0b5489f7d9b4ff2abc9f8aa.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/main menu background/game-title.png"
+dest_files=["res://.godot/imported/game-title.png-f4375628dcde18d6bdabd9765f393bd4.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://od3gklxkbsdm"
-path="res://.godot/imported/forest-2.png-fff77bad4eed54a3c0e20c4fd9b81d16.ctex"
+path="res://.godot/imported/forest-2.png-d06539e4470355bf52e1d72b777e474c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/forest/forest-2.png"
-dest_files=["res://.godot/imported/forest-2.png-fff77bad4eed54a3c0e20c4fd9b81d16.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/forest/forest-2.png"
+dest_files=["res://.godot/imported/forest-2.png-d06539e4470355bf52e1d72b777e474c.ctex"]
 
 [params]
 

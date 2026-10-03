@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://8u6173gd0lf2"
-path="res://.godot/imported/ok-button-hover.png-139569520956c6782cc47dc1db16b9bf.ctex"
+path="res://.godot/imported/ok-button-hover.png-204175c854766352a40e624b30475ea0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/fishing success/ok-button-hover.png"
-dest_files=["res://.godot/imported/ok-button-hover.png-139569520956c6782cc47dc1db16b9bf.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/fishing success/ok-button-hover.png"
+dest_files=["res://.godot/imported/ok-button-hover.png-204175c854766352a40e624b30475ea0.ctex"]
 
 [params]
 

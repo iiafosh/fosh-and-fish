@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://cqjbo8n5q3mjg"
-path="res://.godot/imported/strike-warning.wav-aab75ee6fd4ef4c04eeeb91ea088ea64.sample"
+path="res://.godot/imported/strike-warning.wav-7428693759706734531bdcd753755c28.sample"
 
 [deps]
 
-source_file="res://assets/sound effect/strike/strike-warning.wav"
-dest_files=["res://.godot/imported/strike-warning.wav-aab75ee6fd4ef4c04eeeb91ea088ea64.sample"]
+source_file="res://web/assets/finding_sobron/sound effect/strike/strike-warning.wav"
+dest_files=["res://.godot/imported/strike-warning.wav-7428693759706734531bdcd753755c28.sample"]
 
 [params]
 

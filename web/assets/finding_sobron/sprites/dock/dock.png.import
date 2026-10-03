@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bv5dhwv12gojv"
-path="res://.godot/imported/dock.png-27ce3d0093479df4eed7426137adae43.ctex"
+path="res://.godot/imported/dock.png-116228db1579e1008b07556a1f0b301b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/dock/dock.png"
-dest_files=["res://.godot/imported/dock.png-27ce3d0093479df4eed7426137adae43.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/dock/dock.png"
+dest_files=["res://.godot/imported/dock.png-116228db1579e1008b07556a1f0b301b.ctex"]
 
 [params]
 

@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://vqx6im33ctb8"
-path="res://.godot/imported/Gbboot-ALpM.ttf-c28ee3f5129559a2b21a2b8f00c7e182.fontdata"
+path="res://.godot/imported/Gbboot-ALpM.ttf-88e48c8e6f87e5ed676a9cdb7bcce2ef.fontdata"
 
 [deps]
 
-source_file="res://assets/font/Gbboot-ALpM.ttf"
-dest_files=["res://.godot/imported/Gbboot-ALpM.ttf-c28ee3f5129559a2b21a2b8f00c7e182.fontdata"]
+source_file="res://web/assets/finding_sobron/font/Gbboot-ALpM.ttf"
+dest_files=["res://.godot/imported/Gbboot-ALpM.ttf-88e48c8e6f87e5ed676a9cdb7bcce2ef.fontdata"]
 
 [params]
 

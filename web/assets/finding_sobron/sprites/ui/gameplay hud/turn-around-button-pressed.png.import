@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://doqnxspbt5jh1"
-path="res://.godot/imported/turn-around-button-pressed.png-c16a26de4c796ef52c5d4951100c8c3a.ctex"
+path="res://.godot/imported/turn-around-button-pressed.png-98c5725dd4fe8647a9800ec234e7a344.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/gameplay hud/turn-around-button-pressed.png"
-dest_files=["res://.godot/imported/turn-around-button-pressed.png-c16a26de4c796ef52c5d4951100c8c3a.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/gameplay hud/turn-around-button-pressed.png"
+dest_files=["res://.godot/imported/turn-around-button-pressed.png-98c5725dd4fe8647a9800ec234e7a344.ctex"]
 
 [params]
 

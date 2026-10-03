@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://coverworldmap1"]
+[gd_scene load_steps=11 format=3 uid="uid://coverworldmap1"]
 
 [ext_resource type="Script" path="res://scripts/overworld.gd" id="1_overworld"]
 [ext_resource type="PackedScene" uid="uid://cboatplayer1" path="res://scenes/ship.tscn" id="2_ship"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/fish_spawner.gd" id="6_spawner"]
 [ext_resource type="Theme" uid="uid://cmaritimewood1" path="res://themes/maritime_wood_theme.tres" id="7_theme"]
 [ext_resource type="PackedScene" uid="uid://ccatchtoast1" path="res://scenes/catch_toast.tscn" id="8_toast"]
+[ext_resource type="PackedScene" path="res://scenes/boss_minigame.tscn" id="9_boss"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
 shader = ExtResource("5_water_shader")
@@ -74,6 +75,15 @@ dock_type = "harbor"
 biome = "Ocean"
 level_required = 100
 description = "Deep sea shelf. Rare pelagic fish, Pet Sanctuary, and Charm Vault."
+
+[node name="SubspacePortal" parent="Docks" instance=ExtResource("3_dock")]
+position = Vector2(2000, -1400)
+dock_id = "subspace_portal"
+dock_name = "Subspace 0x00 Anomalous Rift"
+dock_type = "portal"
+biome = "Subspace 0x00"
+level_required = 1
+description = "A swirling quantum rift pulsing with binary glitches. Dev secret realm."
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -166,6 +176,9 @@ text = "🎣 Fish from Ship [Space]"
 [node name="CatchToast" parent="CanvasLayer" instance=ExtResource("8_toast")]
 
 [node name="StationHub" parent="CanvasLayer" instance=ExtResource("4_hub")]
+visible = false
+
+[node name="BossMinigame" parent="CanvasLayer" instance=ExtResource("9_boss")]
 visible = false
 
 [connection signal="pressed" from="CanvasLayer/SailingHUD/BottomBar/QuickFishBtn" to="." method="_on_quick_fish_pressed"]

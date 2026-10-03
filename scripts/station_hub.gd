@@ -85,14 +85,22 @@ func open_dock(dock_data: Dictionary) -> void:
 
 	# Show appropriate tabs based on dock type
 	var dtype = dock_data.get("type", "harbor")
-	if dtype == "fishing_spot":
+	if dtype in ["fishing_spot", "portal"]:
 		tab_market_btn.visible = false
 		tab_tackle_btn.visible = false
 		tab_shipyard_btn.visible = false
 		tab_pets_btn.visible = false
 		tab_fishing_btn.visible = true
 		_on_fishing_btn_pressed()
+
+		# Easter egg check for subspace portal
+		if dock_data.get("id") == "subspace_portal":
+			if GameManager.unlock_secret_rod():
+				subtitle_label.text = "👾 ANOMALY CRACKED: Unlocked '0xDEADBEEF Dev Glitch Rod'!\n" + subtitle_label.text
+				subtitle_label.modulate = Color(0.0, 1.0, 0.9)
+				AudioManager.play_strike()
 	else:
+		subtitle_label.modulate = Color(0.85, 0.8, 0.7)
 		tab_market_btn.visible = true
 		tab_tackle_btn.visible = true
 		tab_shipyard_btn.visible = true
@@ -188,7 +196,9 @@ func refresh_tackle() -> void:
 			var equip_btn = Button.new()
 			equip_btn.text = "Equip"
 			equip_btn.pressed.connect(func(): 
+				AudioManager.play_click()
 				GameManager.current_rod = r_name
+				GameManager.save_game()
 				refresh_tackle()
 				refresh_fishing_view()
 			)
@@ -199,10 +209,12 @@ func refresh_tackle() -> void:
 			buy_btn.disabled = GameManager.cash < r_data["cost"]
 			buy_btn.pressed.connect(func():
 				if GameManager.cash >= r_data["cost"]:
+					AudioManager.play_click()
 					GameManager.cash -= r_data["cost"]
 					GameManager.owned_rods.append(r_name)
 					GameManager.current_rod = r_name
 					GameManager.stats_changed.emit()
+					GameManager.save_game()
 					refresh_tackle()
 					refresh_fishing_view()
 			)
@@ -231,9 +243,11 @@ func refresh_tackle() -> void:
 			buy_btn.pressed.connect(func():
 				var total_cost = b_data["cost"] * 5
 				if GameManager.cash >= total_cost:
+					AudioManager.play_click()
 					GameManager.cash -= total_cost
 					GameManager.bait_stock[b_name] = GameManager.bait_stock.get(b_name, 0) + 5
 					GameManager.stats_changed.emit()
+					GameManager.save_game()
 					refresh_tackle()
 					refresh_fishing_view()
 			)
@@ -249,7 +263,9 @@ func refresh_tackle() -> void:
 			eq_btn.text = "Select"
 			eq_btn.disabled = (b_name != "None" and count <= 0)
 			eq_btn.pressed.connect(func():
+				AudioManager.play_click()
 				GameManager.current_bait = b_name
+				GameManager.save_game()
 				refresh_tackle()
 				refresh_fishing_view()
 			)
@@ -281,7 +297,9 @@ func refresh_shipyard() -> void:
 			var eq_btn = Button.new()
 			eq_btn.text = "Deploy"
 			eq_btn.pressed.connect(func():
+				AudioManager.play_click()
 				GameManager.current_boat = b_name
+				GameManager.save_game()
 				refresh_shipyard()
 				refresh_fishing_view()
 			)
@@ -292,10 +310,12 @@ func refresh_shipyard() -> void:
 			buy_btn.disabled = GameManager.cash < b_data["cost"]
 			buy_btn.pressed.connect(func():
 				if GameManager.cash >= b_data["cost"]:
+					AudioManager.play_click()
 					GameManager.cash -= b_data["cost"]
 					GameManager.owned_boats.append(b_name)
 					GameManager.current_boat = b_name
 					GameManager.stats_changed.emit()
+					GameManager.save_game()
 					refresh_shipyard()
 					refresh_fishing_view()
 			)
@@ -311,24 +331,28 @@ func refresh_fishing_view() -> void:
 
 # --- Tab Switching ---
 func _on_market_btn_pressed() -> void:
+	AudioManager.play_click()
 	market_panel.visible = true
 	tackle_panel.visible = false
 	shipyard_panel.visible = false
 	fishing_panel.visible = false
 
 func _on_tackle_btn_pressed() -> void:
+	AudioManager.play_click()
 	market_panel.visible = false
 	tackle_panel.visible = true
 	shipyard_panel.visible = false
 	fishing_panel.visible = false
 
 func _on_shipyard_btn_pressed() -> void:
+	AudioManager.play_click()
 	market_panel.visible = false
 	tackle_panel.visible = false
 	shipyard_panel.visible = true
 	fishing_panel.visible = false
 
 func _on_fishing_btn_pressed() -> void:
+	AudioManager.play_click()
 	market_panel.visible = false
 	tackle_panel.visible = false
 	shipyard_panel.visible = false
@@ -337,6 +361,7 @@ func _on_fishing_btn_pressed() -> void:
 	refresh_fishing_view()
 
 func _on_pets_btn_pressed() -> void:
+	AudioManager.play_click()
 	market_panel.visible = false
 	tackle_panel.visible = false
 	shipyard_panel.visible = false
@@ -375,7 +400,9 @@ func refresh_pets_and_mascots() -> void:
 		else:
 			btn.text = "Switch Form"
 			btn.pressed.connect(func():
+				AudioManager.play_click()
 				GameManager.current_mascot = m_key
+				GameManager.save_game()
 				refresh_pets_and_mascots()
 			)
 		hbox.add_child(btn)
@@ -405,7 +432,9 @@ func refresh_pets_and_mascots() -> void:
 		else:
 			btn.text = "Equip Companion"
 			btn.pressed.connect(func():
+				AudioManager.play_click()
 				GameManager.equipped_pet = p_name
+				GameManager.save_game()
 				refresh_pets_and_mascots()
 			)
 		hbox.add_child(btn)
@@ -416,8 +445,13 @@ func _on_cast_btn_pressed() -> void:
 	if is_cooling_down:
 		return
 	
+	AudioManager.play_cast()
 	var dock_biome = current_dock_data.get("biome", "River")
 	var result = GameManager.roll_catch(dock_biome)
+	
+	if result.get("is_boss", false):
+		close_dock()
+		return
 	
 	catch_banner.text = "🎉 Reeled in %dx %s (+%d XP)!%s" % [
 		result["count"], result["name"], result["xp"], result["exotic"]
@@ -431,6 +465,7 @@ func _on_cast_btn_pressed() -> void:
 	refresh_fishing_view()
 
 func _on_sell_all_btn_pressed() -> void:
+	AudioManager.play_click()
 	var total = GameManager.sell_all_fish()
 	if total > 0:
 		catch_banner.text = "💰 Sold your catch for $%d!" % total
@@ -439,4 +474,5 @@ func _on_sell_all_btn_pressed() -> void:
 	refresh_header()
 
 func _on_close_btn_pressed() -> void:
+	AudioManager.play_click()
 	close_dock()

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://o0wff5gc47qd"
-path="res://.godot/imported/start-button-hover.png-db6c6fd4a6851009202eb4eec457d7d6.ctex"
+path="res://.godot/imported/start-button-hover.png-6d61719927581dd88564ef568d19c7dd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/main menu button/start-button-hover.png"
-dest_files=["res://.godot/imported/start-button-hover.png-db6c6fd4a6851009202eb4eec457d7d6.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/main menu button/start-button-hover.png"
+dest_files=["res://.godot/imported/start-button-hover.png-6d61719927581dd88564ef568d19c7dd.ctex"]
 
 [params]
 

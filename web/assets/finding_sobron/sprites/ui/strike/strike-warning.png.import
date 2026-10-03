@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://erf4r1vghhib"
-path="res://.godot/imported/strike-warning.png-50962617ae306537fffe690d465a28f2.ctex"
+path="res://.godot/imported/strike-warning.png-b6443a403007dd7bf010fbf21c6152ba.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/strike/strike-warning.png"
-dest_files=["res://.godot/imported/strike-warning.png-50962617ae306537fffe690d465a28f2.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/strike/strike-warning.png"
+dest_files=["res://.godot/imported/strike-warning.png-b6443a403007dd7bf010fbf21c6152ba.ctex"]
 
 [params]
 

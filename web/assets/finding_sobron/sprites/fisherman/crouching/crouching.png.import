@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dl88fyxrxhgm1"
-path="res://.godot/imported/crouching.png-d1be2066953455e9adb2da65e875f3fd.ctex"
+path="res://.godot/imported/crouching.png-90c329b5123abdad96d57c61bfb7c8e3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fisherman/crouching/crouching.png"
-dest_files=["res://.godot/imported/crouching.png-d1be2066953455e9adb2da65e875f3fd.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fisherman/crouching/crouching.png"
+dest_files=["res://.godot/imported/crouching.png-90c329b5123abdad96d57c61bfb7c8e3.ctex"]
 
 [params]
 

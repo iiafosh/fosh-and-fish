@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://cu5qimxioq86w"
-path="res://.godot/imported/engine-idle.wav-784d7dda848d940a5d04830e7828913b.sample"
+path="res://.godot/imported/engine-idle.wav-cf464dc55da3ce3ffd7c4f2d777af280.sample"
 
 [deps]
 
-source_file="res://assets/sound effect/engine/engine-idle.wav"
-dest_files=["res://.godot/imported/engine-idle.wav-784d7dda848d940a5d04830e7828913b.sample"]
+source_file="res://web/assets/finding_sobron/sound effect/engine/engine-idle.wav"
+dest_files=["res://.godot/imported/engine-idle.wav-cf464dc55da3ce3ffd7c4f2d777af280.sample"]
 
 [params]
 

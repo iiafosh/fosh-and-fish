@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cgg2jh0gcaw0w"
-path="res://.godot/imported/boat.png-4456eaa330caf4b1596ca7f5dc6e91c6.ctex"
+path="res://.godot/imported/boat.png-069abeef10f60b466656e932463a2376.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/boat/boat.png"
-dest_files=["res://.godot/imported/boat.png-4456eaa330caf4b1596ca7f5dc6e91c6.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/boat/boat.png"
+dest_files=["res://.godot/imported/boat.png-069abeef10f60b466656e932463a2376.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dv2m10xnuaj6e"
-path="res://.godot/imported/idle-4.png-5d7ba44c8ed1054e1e76563c0262dbda.ctex"
+path="res://.godot/imported/idle-4.png-791518639b60f2ea50f8544223b10f95.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fisherman/idle/idle-4.png"
-dest_files=["res://.godot/imported/idle-4.png-5d7ba44c8ed1054e1e76563c0262dbda.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fisherman/idle/idle-4.png"
+dest_files=["res://.godot/imported/idle-4.png-791518639b60f2ea50f8544223b10f95.ctex"]
 
 [params]
 

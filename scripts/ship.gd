@@ -123,6 +123,41 @@ func _draw() -> void:
 	draw_circle(Vector2(0, 8), 4.5, Color("#fcd34d")) # cap
 	draw_circle(Vector2(0, 9), 3.0, Color("#1e293b")) # raincoat
 
+	# Rimuru Mascot companion on the deck!
+	if GameManager.current_mascot == "rimuru_slime":
+		var bounce_offset = sin(Time.get_ticks_msec() * 0.006) * 1.5
+		var slime_pos = Vector2(-5, 6 + bounce_offset)
+		draw_circle(slime_pos, 3.8, Color(0.2, 0.7, 1.0, 0.95))
+		draw_circle(slime_pos + Vector2(1, -1), 1.2, Color(1, 1, 1, 0.8))
+		draw_circle(slime_pos + Vector2(-1.2, 0), 0.6, Color(0, 0, 0))
+		draw_circle(slime_pos + Vector2(1.2, 0), 0.6, Color(0, 0, 0))
+	elif GameManager.current_mascot == "rimuru_human":
+		var rimuru_pos = Vector2(-5, 7)
+		draw_circle(rimuru_pos + Vector2(0, -3), 3.5, Color(0.35, 0.65, 0.95))
+		draw_circle(rimuru_pos, 3.0, Color(0.12, 0.12, 0.18))
+		draw_circle(rimuru_pos + Vector2(0, 2), 1.5, Color(0.9, 0.75, 0.2))
+
+	# Equipped Companion Pet swimming alongside
+	if GameManager.equipped_pet != "None":
+		var pet_wobble = sin(Time.get_ticks_msec() * 0.005) * 3.0
+		var pet_pos = Vector2(19, 2 + pet_wobble)
+		match GameManager.equipped_pet:
+			"Axo-9":
+				draw_circle(pet_pos, 4.5, Color(1.0, 0.4, 0.7, 0.9))
+				draw_circle(pet_pos + Vector2(-2, -2), 1.5, Color(0.2, 1.0, 0.8))
+				draw_circle(pet_pos + Vector2(-2, 2), 1.5, Color(0.2, 1.0, 0.8))
+			"Otto-Flux":
+				draw_circle(pet_pos, 5.0, Color(0.4, 0.8, 1.0, 0.9))
+				draw_circle(pet_pos + Vector2(2, 0), 2.5, Color(0.9, 0.9, 1.0))
+			"Chrono-Jelly":
+				draw_circle(pet_pos, 5.5, Color(0.8, 0.3, 1.0, 0.8))
+				draw_line(pet_pos, pet_pos + Vector2(0, 7), Color(0.6, 0.2, 0.9, 0.6), 1.5)
+				draw_line(pet_pos + Vector2(-2, 0), pet_pos + Vector2(-3, 6), Color(0.6, 0.2, 0.9, 0.6), 1.0)
+				draw_line(pet_pos + Vector2(2, 0), pet_pos + Vector2(3, 6), Color(0.6, 0.2, 0.9, 0.6), 1.0)
+			"Aethelgard":
+				draw_circle(pet_pos, 6.5, Color(1.0, 0.8, 0.1, 0.95))
+				draw_circle(pet_pos, 3.0, Color(1.0, 0.3, 0.1))
+
 	# Fishing Rod extending from the stern
 	draw_line(Vector2(5, 12), Vector2(16, 26), Color("#713f12"), 2.0)
 	draw_line(Vector2(16, 26), Vector2(18, 34), Color("#e2e8f0"), 1.0) # line

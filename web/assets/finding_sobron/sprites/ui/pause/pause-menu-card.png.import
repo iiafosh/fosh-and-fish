@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cavs563qdubed"
-path="res://.godot/imported/pause-menu-card.png-1c6c9e6e8753a59156200f6c8e2e7315.ctex"
+path="res://.godot/imported/pause-menu-card.png-76f2b6b373deb99ff86095f7bd127b3e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/pause/pause-menu-card.png"
-dest_files=["res://.godot/imported/pause-menu-card.png-1c6c9e6e8753a59156200f6c8e2e7315.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/pause/pause-menu-card.png"
+dest_files=["res://.godot/imported/pause-menu-card.png-76f2b6b373deb99ff86095f7bd127b3e.ctex"]
 
 [params]
 

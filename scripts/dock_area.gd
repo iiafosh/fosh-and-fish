@@ -17,6 +17,10 @@ func _ready() -> void:
 	if label:
 		label.text = dock_name
 
+func _process(_delta: float) -> void:
+	if dock_type == "portal":
+		queue_redraw()
+
 func get_dock_data() -> Dictionary:
 	return {
 		"id": dock_id,
@@ -62,3 +66,10 @@ func _draw() -> void:
 		# Red/White floating Buoy
 		draw_circle(Vector2.ZERO, 6.0, Color("#ef4444"))
 		draw_circle(Vector2(0, -2), 3.0, Color("#ffffff"))
+	elif dock_type == "portal":
+		# Pulsing Anomaly Rift
+		var pulse = sin(Time.get_ticks_msec() * 0.005) * 5.0
+		draw_arc(Vector2.ZERO, 45.0 + pulse, 0, TAU, 32, Color(0.0, 1.0, 0.8, 0.7), 2.5)
+		draw_arc(Vector2.ZERO, 28.0 - pulse * 0.5, 0, TAU, 24, Color(0.8, 0.2, 1.0, 0.8), 2.0)
+		draw_circle(Vector2.ZERO, 16.0, Color(0.0, 0.8, 0.9, 0.85))
+		draw_circle(Vector2.ZERO, 7.0, Color(1.0, 1.0, 1.0, 1.0))

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cyr02g80dyvxq"
-path="res://.godot/imported/fishing-success-card.png-1465f8887602f8efb1ee1cc29fab74b3.ctex"
+path="res://.godot/imported/fishing-success-card.png-63fb0cd9b70dd6e0d018f56a681cabc4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/fishing success/fishing-success-card.png"
-dest_files=["res://.godot/imported/fishing-success-card.png-1465f8887602f8efb1ee1cc29fab74b3.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/ui/fishing success/fishing-success-card.png"
+dest_files=["res://.godot/imported/fishing-success-card.png-63fb0cd9b70dd6e0d018f56a681cabc4.ctex"]
 
 [params]
 

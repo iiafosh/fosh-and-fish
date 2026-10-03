@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cckb0vx85b82m"
-path="res://.godot/imported/player-box.png-2e75add122b3be3bfa9ff92b12f7634c.ctex"
+path="res://.godot/imported/player-box.png-b9883ea2dce8d55b8280d35f43f3ccdc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/mini game bar/player-box.png"
-dest_files=["res://.godot/imported/player-box.png-2e75add122b3be3bfa9ff92b12f7634c.ctex"]
+source_file="res://web/assets/minigame/player-box.png"
+dest_files=["res://.godot/imported/player-box.png-b9883ea2dce8d55b8280d35f43f3ccdc.ctex"]
 
 [params]
 

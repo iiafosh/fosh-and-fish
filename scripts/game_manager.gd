@@ -8,6 +8,9 @@ signal dock_available(dock_data: Dictionary)
 signal dock_cleared
 signal open_station_requested(dock_data: Dictionary)
 signal close_station_requested
+signal boss_hooked(boss_data: Dictionary)
+
+const SAVE_PATH = "user://savegame.json"
 
 # --- Player State ---
 var cash: int = 150
@@ -121,6 +124,85 @@ func _ready() -> void:
 	# Initialize empty inventory
 	for f in fish_database.keys():
 		inventory[f] = 0
+	load_game()
+
+func save_game() -> void:
+	var save_data = {
+		"cash": cash,
+		"level": level,
+		"xp": xp,
+		"xp_needed": xp_needed,
+		"gold_fish": gold_fish,
+		"emerald_fish": emerald_fish,
+		"lava_fish": lava_fish,
+		"diamond_fish": diamond_fish,
+		"current_rod": current_rod,
+		"owned_rods": owned_rods,
+		"current_boat": current_boat,
+		"owned_boats": owned_boats,
+		"current_bait": current_bait,
+		"bait_stock": bait_stock,
+		"inventory": inventory,
+		"upgrades": upgrades,
+		"current_mascot": current_mascot,
+		"equipped_pet": equipped_pet,
+		"owned_pets": owned_pets
+	}
+	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file:
+		var json_str = JSON.stringify(save_data)
+		file.store_string(json_str)
+		file.close()
+
+func load_game() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if not file:
+		return
+	var json_str = file.get_as_text()
+	file.close()
+	var json = JSON.new()
+	var parse_err = json.parse(json_str)
+	if parse_err != OK:
+		return
+	var data = json.get_data()
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	cash = data.get("cash", cash)
+	level = data.get("level", level)
+	xp = data.get("xp", xp)
+	xp_needed = data.get("xp_needed", xp_needed)
+	gold_fish = data.get("gold_fish", gold_fish)
+	emerald_fish = data.get("emerald_fish", emerald_fish)
+	lava_fish = data.get("lava_fish", lava_fish)
+	diamond_fish = data.get("diamond_fish", diamond_fish)
+	current_rod = data.get("current_rod", current_rod)
+	if data.has("owned_rods"):
+		owned_rods.clear()
+		for r in data["owned_rods"]:
+			owned_rods.append(str(r))
+	current_boat = data.get("current_boat", current_boat)
+	if data.has("owned_boats"):
+		owned_boats.clear()
+		for b in data["owned_boats"]:
+			owned_boats.append(str(b))
+	current_bait = data.get("current_bait", current_bait)
+	if data.has("bait_stock"):
+		for k in data["bait_stock"].keys():
+			bait_stock[k] = int(data["bait_stock"][k])
+	if data.has("inventory"):
+		for k in data["inventory"].keys():
+			inventory[k] = int(data["inventory"][k])
+	if data.has("upgrades"):
+		for k in data["upgrades"].keys():
+			upgrades[k] = int(data["upgrades"][k])
+	current_mascot = data.get("current_mascot", current_mascot)
+	equipped_pet = data.get("equipped_pet", equipped_pet)
+	if data.has("owned_pets"):
+		owned_pets.clear()
+		for p in data["owned_pets"]:
+			owned_pets.append(str(p))
 
 # --- Getters & Formulas ---
 func get_sell_multiplier() -> float:
@@ -159,6 +241,7 @@ func get_boat_speed() -> float:
 func add_cash(amount: int) -> void:
 	cash += amount
 	stats_changed.emit()
+	save_game()
 
 func add_xp(amount: int) -> void:
 	xp += amount
@@ -167,6 +250,7 @@ func add_xp(amount: int) -> void:
 		level += 1
 		xp_needed = int(xp_needed * 1.45 + 15)
 	stats_changed.emit()
+	save_game()
 
 func sell_fish(fish_name: String) -> int:
 	if not inventory.has(fish_name) or inventory[fish_name] <= 0:
@@ -177,6 +261,7 @@ func sell_fish(fish_name: String) -> int:
 	inventory[fish_name] = 0
 	add_cash(total)
 	inventory_changed.emit()
+	save_game()
 	return total
 
 func sell_all_fish() -> int:
@@ -190,6 +275,7 @@ func sell_all_fish() -> int:
 			inventory[f] = 0
 	add_cash(total_earned)
 	inventory_changed.emit()
+	save_game()
 	return total_earned
 
 # --- Fishing Simulation ---
@@ -303,11 +389,48 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 		xp_mult *= (1.0 + pets_database[equipped_pet].get("xp_boost", 0.0))
 
 	var total_xp = int(base_count * xp_unit * xp_mult)
-	add_xp(total_xp)
-
-	inventory_changed.emit()
 	var rarity = fish_database[selected_fish]["rarity"]
+	var is_boss_fish = fish_database[selected_fish].get("is_boss", false)
+
+	# Titan Boss Check
+	if is_boss_fish:
+		if equipped_pet == "Aethelgard":
+			# Aethelgard instant taming perk!
+			inventory[selected_fish] = inventory.get(selected_fish, 0) + base_count
+			diamond_fish += 1
+			add_xp(total_xp)
+			inventory_changed.emit()
+			fish_caught.emit(selected_fish, base_count, total_xp, rarity)
+			save_game()
+			return {
+				"name": selected_fish,
+				"count": base_count,
+				"xp": total_xp,
+				"rarity": rarity,
+				"color": fish_database[selected_fish]["color"],
+				"exotic": exotic_msg + pet_bonus_msg + " [🐉 Aethelgard Tamed Titan!]",
+				"is_boss": false
+			}
+		else:
+			# Boss hooked! Will trigger BossMinigame
+			var boss_data = {
+				"name": selected_fish,
+				"count": base_count,
+				"xp": total_xp,
+				"rarity": rarity,
+				"color": fish_database[selected_fish]["color"],
+				"exotic": exotic_msg + pet_bonus_msg,
+				"is_boss": true
+			}
+			boss_hooked.emit(boss_data)
+			return boss_data
+
+	# Standard chill instant catch
+	inventory[selected_fish] = inventory.get(selected_fish, 0) + base_count
+	add_xp(total_xp)
+	inventory_changed.emit()
 	fish_caught.emit(selected_fish, base_count, total_xp, rarity)
+	save_game()
 
 	return {
 		"name": selected_fish,
@@ -316,5 +439,28 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 		"rarity": rarity,
 		"color": fish_database[selected_fish]["color"],
 		"exotic": exotic_msg + pet_bonus_msg,
-		"is_boss": fish_database[selected_fish].get("is_boss", false)
+		"is_boss": false
 	}
+
+func award_boss_catch(result: Dictionary) -> void:
+	var f_name = result["name"]
+	var count = result.get("count", 1)
+	var xp_amount = result.get("xp", 5000)
+	inventory[f_name] = inventory.get(f_name, 0) + count
+	diamond_fish += 1
+	emerald_fish += 1
+	add_xp(xp_amount)
+	inventory_changed.emit()
+	var rarity = fish_database[f_name]["rarity"]
+	fish_caught.emit(f_name, count, xp_amount, rarity)
+	save_game()
+
+func unlock_secret_rod() -> bool:
+	var r_name = "0xDEADBEEF Dev Glitch Rod"
+	if r_name not in owned_rods:
+		owned_rods.append(r_name)
+		current_rod = r_name
+		stats_changed.emit()
+		save_game()
+		return true
+	return false

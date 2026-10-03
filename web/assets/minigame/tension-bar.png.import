@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://1sc0tcuqtefd"
-path="res://.godot/imported/tension-bar.png-524937dc591de842a2d0c998aa66194b.ctex"
+path="res://.godot/imported/tension-bar.png-0463a0261abc0d0b43e7f6284b18b751.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/ui/mini game bar/tension-bar.png"
-dest_files=["res://.godot/imported/tension-bar.png-524937dc591de842a2d0c998aa66194b.ctex"]
+source_file="res://web/assets/minigame/tension-bar.png"
+dest_files=["res://.godot/imported/tension-bar.png-0463a0261abc0d0b43e7f6284b18b751.ctex"]
 
 [params]
 

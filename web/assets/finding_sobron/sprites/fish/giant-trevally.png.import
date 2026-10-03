@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpds2g5matuc7"
-path="res://.godot/imported/giant-trevally.png-e83de2fbe0add74374f05ad41b52fe85.ctex"
+path="res://.godot/imported/giant-trevally.png-15d528e70cfd47eae6c56fe42dd398e9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fish/giant-trevally.png"
-dest_files=["res://.godot/imported/giant-trevally.png-e83de2fbe0add74374f05ad41b52fe85.ctex"]
+source_file="res://web/assets/finding_sobron/sprites/fish/giant-trevally.png"
+dest_files=["res://.godot/imported/giant-trevally.png-15d528e70cfd47eae6c56fe42dd398e9.ctex"]
 
 [params]
 
