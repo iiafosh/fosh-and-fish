@@ -1,0 +1,31 @@
+# Changelog
+
+## 0.1 beta — first public test
+
+**Game**
+- Full Virtual Fisher progression: 20 fish, 21 rods, 17 boats, 8 baits, 7 biomes (River → Abyss),
+  the real 25,000-level XP table, per-rod catch odds and fish-quality rules from the wiki.
+- Chests (Common → Artifact, Super), Gold / Emerald / Lava / Diamond fish, 8 charms, 5 pets.
+- Shop, special and league upgrades; Fish / Treasure boosts and Workers; daily reward, daily quests,
+  league quest and weekly Hooks.
+- Prestige with Azure Fish and the prestige shop, including the community P1–P160 buy-order chart.
+
+**Look & feel**
+- Top-down Blender-rendered biomes with see-through water, shoreline foam and caustics.
+- Animated fisher holding your equipped rod; boats change as you upgrade.
+- Swimming fish, whales and manta rays, flapping seagulls, beach crabs.
+- A Bait & Tackle fish shop on the island — tap it to shop.
+- Cozy parchment UI, "Next goal" hint, catch card, keyboard shortcuts, sounds and water ambience.
+
+**Platforms**
+- Windows desktop build, web build (works on phones, installable with *Add to Home Screen*).
+
+**New in this beta**
+- In-game **Guide** (press **G**) covering every system.
+- In-game **Feedback** form that opens a pre-filled GitHub issue.
+
+**Known limitations**
+- Prestige requirements after P0, per-level upgrade prices and chest weights are estimates
+  (the sources don't publish them) — balance feedback welcome.
+- No cloud saves yet; desktop and web saves are separate.
+- No Android/iOS app package yet — use the web version on phones.

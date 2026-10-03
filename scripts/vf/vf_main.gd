@@ -5,6 +5,8 @@ extends Control
 ## tools/blender/render_assets.py).
 
 const ART := "res://assets/vf/"
+const VERSION := "0.1 beta"
+const FEEDBACK_URL := "https://github.com/iiafosh/vfish.fosh/issues/new"
 const C_BG := Color("#e9dcc4")
 const C_PANEL := Color("#fbf5e8")
 const C_PANEL2 := Color("#f1e6d0")
@@ -74,6 +76,9 @@ func _ready() -> void:
 	_refresh()
 	_apply_biome()
 	_card_intro()
+	_build_version_label()
+	if VF.stats.trips == 0 and VF.level == 1 and VF.prestige == 0 and not _capturing():
+		_open_panel("guide", "Basics")
 	_check_capture()
 
 func _process(delta: float) -> void:
@@ -106,6 +111,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				if not overlay.visible: _do_sell()
 			KEY_ESCAPE:
 				_close_panel()
+			KEY_G:
+				if overlay.visible and _panel_kind == "guide": _close_panel()
+				else: _open_panel("guide")
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
 				var kinds := ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats"]
 				var k: String = kinds[event.keycode - KEY_1]
@@ -449,9 +457,9 @@ func _build_dock() -> void:
 	var right := _group(1.0, Control.GROW_DIRECTION_BEGIN)
 	var i := 1
 	for nav in [["inventory", "Hold"], ["shop", "Shop"], ["biomes", "Map"], ["charms", "Charms"], ["pets", "Pets"],
-			["boosts", "Boosts"], ["quests", "Quests"], ["prestige", "Prestige"], ["stats", "Buffs"]]:
+			["boosts", "Boosts"], ["quests", "Quests"], ["prestige", "Prestige"], ["stats", "Buffs"], ["guide", "Guide"]]:
 		var b := _nav_button(nav[0], nav[1])
-		b.tooltip_text = "%s  [%d]" % [nav[1], i]
+		b.tooltip_text = ("%s  [%d]" % [nav[1], i]) if i <= 9 else "%s  [G]" % nav[1]
 		right.add_child(b)
 		i += 1
 
@@ -478,6 +486,8 @@ func _nav_button(kind: String, text: String) -> Button:
 	match kind:
 		"charms": b.icon = icon_for("charm", "quality")
 		"pets": b.icon = icon_for("pet", "Puffer")
+		"quests": b.icon = icon_for("ui", "daily")
+		"guide": b.icon = icon_for("ui", "quests")
 		_: b.icon = icon_for("ui", kind)
 	b.add_theme_constant_override("icon_max_width", 30)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -793,6 +803,7 @@ const PANEL_TABS := {
 	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League"],
 	"prestige": ["Prestige", "Shop", "Guide"],
 	"quests": ["Quests", "Daily"],
+	"guide": VFGuide.TAB_ORDER,
 }
 
 func _open_panel(kind: String, tab: String = "") -> void:
@@ -809,7 +820,7 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Inventory", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -827,6 +838,7 @@ func _render_panel() -> void:
 		"quests": _panel_quests()
 		"prestige": _panel_prestige()
 		"stats": _panel_stats()
+		"guide": _panel_guide()
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1252,13 +1264,119 @@ func _check_capture() -> void:
 		await get_tree().create_timer(0.9).timeout
 	await get_tree().create_timer(0.3).timeout
 	await _shot(dir + "/main.png")
-	for p in [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""]]:
+	var shots := [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Feedback"]]
+	if "--all-panels" in OS.get_cmdline_user_args():
+		shots = []
+		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:
+			for t in PANEL_TABS.get(k, [""]):
+				shots.append([k, t])
+	for p in shots:
 		_open_panel(p[0], p[1])
 		await get_tree().create_timer(0.4).timeout
-		await _shot(dir + "/panel_%s.png" % p[0])
+		await _shot(dir + "/panel_%s%s.png" % [p[0], ("_" + p[1].to_lower().replace(" / ", "_")) if p[1] != "" else ""])
 	get_tree().quit()
 
 func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 
+
+# ================================================================== guide
+func _capturing() -> bool:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--capture="): return true
+	return false
+
+func _build_version_label() -> void:
+	var v := lbl("Virtual Fisher %s" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
+	v.anchor_left = 1.0
+	v.anchor_right = 1.0
+	v.anchor_top = 1.0
+	v.anchor_bottom = 1.0
+	v.offset_left = -200
+	v.offset_right = -16
+	v.offset_top = -102
+	v.offset_bottom = -86
+	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(v)
+	move_child(v, overlay.get_index())
+
+func _panel_guide() -> void:
+	if _panel_tab == "Feedback":
+		_panel_feedback()
+		return
+	for entry in VFGuide.TABS.get(_panel_tab, []):
+		var ic: Array = entry[1]
+		var c := _card(icon_for(ic[0], ic[1]), entry[0], entry[2], null, false, 52)
+		_add_to(panel_body, c)
+	if _panel_tab == "Basics":
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_END
+		var go := btn("Start fishing!", Color("#3fae6a"), 16, 180)
+		go.pressed.connect(_close_panel)
+		row.add_child(go)
+		panel_body.add_child(row)
+
+var _fb_kind := "Idea"
+var _fb_text: TextEdit
+
+func _panel_feedback() -> void:
+	var intro := lbl("Thanks for playing the %s! Tell us what you liked, what broke, or what you want next. Your message opens as a GitHub issue (free account needed) with your game version and platform filled in — no personal data." % VERSION, 14, C_MUTED)
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel_body.add_child(intro)
+	var kinds := HBoxContainer.new()
+	kinds.add_theme_constant_override("separation", 6)
+	for k in ["Bug", "Idea", "Balance", "Art / UI", "Other"]:
+		var b := btn(k, accent().darkened(0.2) if k == _fb_kind else C_NEUTRAL, 14, 90)
+		b.pressed.connect(func():
+			_fb_kind = k
+			var keep := _fb_text.text if _fb_text else ""
+			_render_panel()
+			_fb_text.text = keep)
+		kinds.add_child(b)
+	panel_body.add_child(kinds)
+	_fb_text = TextEdit.new()
+	_fb_text.placeholder_text = "What happened / what would you like? (For bugs: what did you do, what did you expect?)"
+	_fb_text.custom_minimum_size = Vector2(0, 180)
+	_fb_text.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	_fb_text.add_theme_stylebox_override("normal", sbox(Color("#fffaf0"), 10, 1, Color("#dccaa8"), 10))
+	_fb_text.add_theme_stylebox_override("focus", sbox(Color("#fffaf0"), 10, 2, Color("#c9a86a"), 10))
+	_fb_text.add_theme_color_override("font_color", C_TEXT)
+	_fb_text.add_theme_color_override("font_placeholder_color", C_MUTED)
+	panel_body.add_child(_fb_text)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.alignment = BoxContainer.ALIGNMENT_END
+	var copy := btn("Copy report", C_NEUTRAL, 14, 140)
+	copy.tooltip_text = "Copy the report to paste it anywhere (Discord, itch.io comments…)"
+	copy.pressed.connect(func():
+		DisplayServer.clipboard_set(_feedback_body())
+		_toast("Report copied to clipboard", "quest"))
+	row.add_child(copy)
+	var send := btn("Send feedback", Color("#3fae6a"), 15, 170)
+	send.pressed.connect(_send_feedback)
+	row.add_child(send)
+	panel_body.add_child(row)
+
+func _feedback_body() -> String:
+	var lines := [
+		(_fb_text.text.strip_edges() if _fb_text else ""),
+		"",
+		"---",
+		"Version: %s" % VERSION,
+		"Platform: %s" % OS.get_name(),
+		"Progress: level %d, prestige %d, biome %s, rod %s, boats %d, trips %d" % [VF.level, VF.prestige, VF.biome, VF.rod, VF.boats_owned, VF.stats.trips],
+	]
+	return "\n".join(lines)
+
+func _send_feedback() -> void:
+	var text := _fb_text.text.strip_edges() if _fb_text else ""
+	if text.length() < 5:
+		_toast("Write a few words first", "warn")
+		return
+	var title := "[%s] %s" % [_fb_kind, text.split("\n")[0].left(60)]
+	var url := "%s?labels=%s&title=%s&body=%s" % [FEEDBACK_URL, ("feedback," + _fb_kind.to_lower().replace(" / ", "-")).uri_encode(),
+		title.uri_encode(), _feedback_body().uri_encode()]
+	OS.shell_open(url)
+	_toast("Opening GitHub to send your feedback…", "quest")

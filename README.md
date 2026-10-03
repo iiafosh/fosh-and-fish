@@ -7,7 +7,14 @@ on each of the 17 boats, and fish that swim under the surface in-game with caust
 Free third-party assets (Quaternius, Kenney, OpenGameArt, Poly by Google, Fredoka) are listed with
 their licenses in [CREDITS.md](CREDITS.md); fetch the raw packs with `python tools/fetch_assets.py`.
 
-## Play
+## Play the 0.1 beta
+
+- **Windows:** download `VirtualFisher-0.1-beta-windows.zip` from the [Releases](https://github.com/iiafosh/vfish.fosh/releases), unzip, run `VirtualFisher.exe`.
+- **Browser / phone:** upload `VirtualFisher-0.1-beta-web.zip` to itch.io (HTML game) or serve `build/web/`.
+- **How to play:** [GUIDE.md](GUIDE.md) or press **G** in-game.  **Feedback:** Guide → Feedback in-game, or [open an issue](https://github.com/iiafosh/vfish.fosh/issues/new/choose).
+- What's in it: [CHANGELOG.md](CHANGELOG.md)
+
+## Play from source
 
 ```bash
 launch_game.bat
