@@ -23,6 +23,7 @@ import vf_models as M  # noqa: E402
 import vf_boats as B  # noqa: E402
 import vf_props as P  # noqa: E402
 import vf_biomes as BI  # noqa: E402
+import vf_topdown as TD  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(ROOT, "assets", "vf")
@@ -105,7 +106,6 @@ def do_rods(only):
 
 
 def do_boats(only, man):
-    boats = man.setdefault("boats", {})
     for name in B.BOAT_ORDER:
         if not want(name, only):
             continue
@@ -113,28 +113,6 @@ def do_boats(only, man):
         icon_scene(size=320, rot=(72, 0, 32), light=(50, 10, 60))
         parts, _deck = B.build_boat(name)
         render_icon(parts, os.path.join(OUT, "boats", slug(name) + ".png"), outline=0.05, size=320)
-        # hero sprite: side view with the fisherman on deck, used on the main screen
-        K.clear_scene()
-        K.FOG["color"] = None
-        K.setup_render(900, 600, samples=32)
-        K.setup_world("#6a6a78", 1.0)
-        K.sun((55, 8, 50), 1.0)
-        cam = K.make_camera((76, 0, 14))
-        parts, deck = B.build_boat(name)
-        fisher, tip = M.build_fisherman(scale=B.FISHER_SCALE.get(name, 1.0))
-        for f in fisher:
-            f.location += Vector(deck)
-        tip = Vector(tip) + Vector(deck)
-        allp = parts + fisher
-        K.outline_all(allp, 0.05)
-        K.frame_ortho(cam, allp, 1.08)
-        path = os.path.join(OUT, "boats_hero", slug(name) + ".png")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        K.render(path)
-        W, H = 900, 600
-        tx, ty = K.project(cam, tip)
-        wx, wy = K.project(cam, (0, 0, 0))
-        boats[name] = {"rod_tip": [tx / W, ty / H], "waterline": wy / H, "center_x": wx / W}
 
 
 def do_props(cat, only):
@@ -158,6 +136,34 @@ def do_biomes(only, man):
         bm[name] = info
 
 
+def do_scenes(only, man):
+    sm = man.setdefault("scenes", {})
+    for name in TD.BIOMES:
+        if not want(name, only):
+            continue
+        d = os.path.join(OUT, "scenes")
+        os.makedirs(d, exist_ok=True)
+        sm[name] = TD.render_scene(name, os.path.join(d, slug(name) + ".png"), os.path.join(d, slug(name) + "_mask.png"))
+
+
+def do_boats_top(only, man):
+    bt = man.setdefault("boats_top", {})
+    for name in B.BOAT_ORDER:
+        if not want(name, only):
+            continue
+        d = os.path.join(OUT, "boats_top")
+        os.makedirs(d, exist_ok=True)
+        bt[name] = TD.render_boat_top(name, os.path.join(d, slug(name) + ".png"))
+
+
+def do_fish_top(only):
+    d = os.path.join(OUT, "fish_top")
+    os.makedirs(d, exist_ok=True)
+    for name, spec in M.FISH_SPECS.items():
+        if want(name, only):
+            TD.render_fish_top(name, spec, os.path.join(d, slug(name) + ".png"))
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     only = []
@@ -165,7 +171,7 @@ def main():
         i = argv.index("--only")
         only = [s.strip() for s in argv[i + 1].split(",")]
         argv = argv[:i] + argv[i + 2:]
-    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "biomes"]
+    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top"]
     man = load_manifest()
     for c in cats:
         print("== rendering", c)
@@ -181,6 +187,12 @@ def main():
             do_boats(only, man)
         elif c == "biomes":
             do_biomes(only, man)
+        elif c == "scenes":
+            do_scenes(only, man)
+        elif c == "boats_top":
+            do_boats_top(only, man)
+        elif c == "fish_top":
+            do_fish_top(only)
         elif c in P.PROPS:
             do_props(c, only)
         save_manifest(man)

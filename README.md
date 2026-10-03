@@ -1,7 +1,9 @@
 # 🐟 Virtual Fisher (Godot 4 + Blender)
 
 A desktop fishing game built on the real **Virtual Fisher** Discord bot mechanics, with all art
-rendered procedurally in **Blender** (cel-shaded, outlined, low-poly).
+rendered procedurally in **Blender**: high-angle biome scenes with see-through water (one shared
+height function drives the terrain mesh and the water's depth colour/foam), a straw-hat fisherman
+on each of the 17 boats, and fish that swim under the surface in-game with caustics on top.
 
 ## Play
 
@@ -40,9 +42,10 @@ requirements after P0) are marked `DERIVED` in `scripts/vf/vf_data.gd`.
 | `scripts/vf/vf_data.gd` | All game data + sources |
 | `scripts/vf/vf_game.gd` | Simulation (autoload `VF`): casting, chests, pets, prestige, save |
 | `scripts/vf/vf_main.gd` | UI: stage, catch card, dock, panels |
-| `shaders/vf_foreground_water.gdshader` | Animated water in front of the boat |
+| `scripts/vf/vf_stage.gd` | Top-down stage: scene, swimming fish, boat, line, bobber, ripples |
+| `shaders/vf_caustics.gdshader` | Caustics masked to the water (uses `scenes/*_mask.png`) |
 | `tools/blender/` | Procedural art pipeline (models, materials, biome scenes) |
-| `assets/vf/` | Rendered sprites + `manifest.json` (rod-tip / waterline / horizon anchors) |
+| `assets/vf/` | Rendered sprites, `scenes/` + masks, `boats_top/`, `fish_top/`, and `manifest.json` anchors |
 | `tests/vf_sim_test.gd` | Headless mechanics & balance checks |
 | `legacy/` | Previous Godot prototype (ignored by Godot via `.gdignore`) |
 
@@ -51,7 +54,7 @@ requirements after P0) are marked `DERIVED` in `scripts/vf/vf_data.gd`.
 ```bash
 D:/Blender/blender-4.2.3-windows-x64/blender.exe -b --factory-startup --python tools/blender/render_assets.py
 ```
-Pass categories (`fish exotics pets rods boats baits chests charms ui biomes`) and/or
+Pass categories (`fish exotics pets rods boats baits chests charms ui scenes boats_top fish_top`) and/or
 `--only "Name,Other"` to render a subset.
 
 ## Tests & screenshots

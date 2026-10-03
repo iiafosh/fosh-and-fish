@@ -5,29 +5,23 @@ extends Control
 ## tools/blender/render_assets.py).
 
 const ART := "res://assets/vf/"
-const C_BG := Color("#151925")
-const C_PANEL := Color("#1e2433")
-const C_PANEL2 := Color("#262d40")
-const C_TEXT := Color("#eef1f8")
-const C_MUTED := Color("#97a0b8")
-const C_GOOD := Color("#4ade80")
-const C_GOLD := Color("#f5c542")
-const C_BAD := Color("#f87171")
+const C_BG := Color("#e9dcc4")
+const C_PANEL := Color("#fbf5e8")
+const C_PANEL2 := Color("#f1e6d0")
+const C_TEXT := Color("#3b2c20")
+const C_MUTED := Color("#8c7660")
+const C_GOOD := Color("#2f9e6a")
+const C_GOLD := Color("#c9861a")
+const C_BAD := Color("#d0473a")
+const C_NEUTRAL := Color("#ecdfc5")
+const C_SHADOW := Color(0.24, 0.16, 0.08, 0.22)
 
 var manifest := {}
 var _tex_cache := {}
 
 # stage
-var stage: Control
-var backdrop: TextureRect
-var boat_rect: TextureRect
-var water: ColorRect
-var line: Line2D
-var bobber: Control
+var stage
 var fx_layer: Control
-var _boat_name := ""
-var _bobber_target := Vector2.ZERO
-var _casting := false
 
 # hud
 var lvl_label: Label
@@ -69,7 +63,6 @@ func _ready() -> void:
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
-	get_viewport().size_changed.connect(_layout_stage)
 	_refresh()
 	_apply_biome()
 	_card_intro()
@@ -84,7 +77,6 @@ func _process(delta: float) -> void:
 	var left: float = VF.cooldown_left()
 	fish_fill.anchor_right = 1.0 - (left / cd if cd > 0.0 else 0.0)
 	fish_btn.text = "FISH" if left <= 0.0 else "%.1fs" % left
-	_animate_stage(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 
@@ -131,11 +123,15 @@ func icon_for(kind: String, name: String) -> Texture2D:
 		"charm": return tex("charms/%s.png" % name)
 		"chest": return tex("chests/%s.png" % name)
 		"ui": return tex("ui/%s.png" % name)
-		"biome": return tex("biomes/%s.png" % VFData.slug(name))
+		"biome": return tex("scenes/%s.png" % VFData.slug(name))
 	return null
 
-func sbox(bg: Color, radius := 12, border := 0, border_col := Color.TRANSPARENT, pad := 10) -> StyleBoxFlat:
+func sbox(bg: Color, radius := 12, border := 0, border_col := Color.TRANSPARENT, pad := 10, shadow := 0) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
+	if shadow > 0:
+		s.shadow_size = shadow
+		s.shadow_color = C_SHADOW
+		s.shadow_offset = Vector2(0, shadow * 0.5)
 	s.bg_color = bg
 	s.set_corner_radius_all(radius)
 	s.set_border_width_all(border)
@@ -163,19 +159,20 @@ func icon(t: Texture2D, size := 40) -> TextureRect:
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return r
 
-func btn(text: String, color := Color("#3b82f6"), size := 15, min_w := 0) -> Button:
+func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", size)
-	b.add_theme_color_override("font_color", Color.WHITE)
-	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_pressed_color", Color.WHITE)
-	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.45))
-	b.add_theme_stylebox_override("normal", sbox(color, 10, 0, Color.TRANSPARENT, 8))
+	var fc := C_TEXT if color.get_luminance() > 0.55 else Color.WHITE
+	b.add_theme_color_override("font_color", fc)
+	b.add_theme_color_override("font_hover_color", fc)
+	b.add_theme_color_override("font_pressed_color", fc)
+	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.4))
+	b.add_theme_stylebox_override("normal", sbox(color, 10, 0, Color.TRANSPARENT, 8, 2))
 	b.add_theme_stylebox_override("hover", sbox(color.lightened(0.15), 10, 0, Color.TRANSPARENT, 8))
 	b.add_theme_stylebox_override("pressed", sbox(color.darkened(0.2), 10, 0, Color.TRANSPARENT, 8))
-	b.add_theme_stylebox_override("disabled", sbox(Color("#3a4152"), 10, 0, Color.TRANSPARENT, 8))
+	b.add_theme_stylebox_override("disabled", sbox(Color("#ddd0b6"), 10, 0, Color.TRANSPARENT, 8))
 	if min_w > 0: b.custom_minimum_size.x = min_w
 	b.pressed.connect(func(): AudioManager.play_click())
 	return b
@@ -189,6 +186,13 @@ func money_str(n: float) -> String:
 # ================================================================== build
 func _build() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	var th := Theme.new()
+	var font := SystemFont.new()
+	font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
+	font.font_weight = 600
+	th.default_font = font
+	th.set_color("font_color", "Label", C_TEXT)
+	theme = th
 	var bg := ColorRect.new()
 	bg.color = C_BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -200,42 +204,8 @@ func _build() -> void:
 	_build_overlay()
 
 func _build_stage() -> void:
-	stage = Control.new()
-	stage.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage = load("res://scripts/vf/vf_stage.gd").new()
 	add_child(stage)
-	backdrop = TextureRect.new()
-	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stage.add_child(backdrop)
-	line = Line2D.new()
-	line.width = 2.0
-	line.default_color = Color(1, 1, 1, 0.85)
-	line.antialiased = true
-	boat_rect = TextureRect.new()
-	boat_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	boat_rect.stretch_mode = TextureRect.STRETCH_SCALE
-	stage.add_child(boat_rect)
-	stage.add_child(line)
-	bobber = Control.new()
-	var bob_img := ColorRect.new()
-	bob_img.color = Color("#ff4b3e")
-	bob_img.size = Vector2(12, 12)
-	bob_img.position = Vector2(-6, -6)
-	var bob_top := ColorRect.new()
-	bob_top.color = Color.WHITE
-	bob_top.size = Vector2(12, 5)
-	bob_top.position = Vector2(-6, -6)
-	bobber.add_child(bob_img)
-	bobber.add_child(bob_top)
-	stage.add_child(bobber)
-	water = ColorRect.new()
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://shaders/vf_foreground_water.gdshader")
-	water.material = mat
-	water.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.add_child(water)
 	fx_layer = Control.new()
 	fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -243,7 +213,7 @@ func _build_stage() -> void:
 
 func _build_hud() -> void:
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", sbox(Color(0.08, 0.09, 0.14, 0.82), 14, 0, Color.TRANSPARENT, 8))
+	bar.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.95), 16, 0, Color.TRANSPARENT, 8, 8))
 	bar.position = Vector2(12, 10)
 	add_child(bar)
 	var row := HBoxContainer.new()
@@ -251,7 +221,7 @@ func _build_hud() -> void:
 	bar.add_child(row)
 	# level badge
 	var badge := PanelContainer.new()
-	badge.add_theme_stylebox_override("panel", sbox(Color("#3b82f6"), 10, 0, Color.TRANSPARENT, 6))
+	badge.add_theme_stylebox_override("panel", sbox(Color("#2f8f9e"), 10, 0, Color.TRANSPARENT, 6))
 	lvl_label = lbl("Lv 1", 17)
 	badge.add_child(lvl_label)
 	row.add_child(badge)
@@ -261,7 +231,7 @@ func _build_hud() -> void:
 	xp_bar = ProgressBar.new()
 	xp_bar.show_percentage = false
 	xp_bar.custom_minimum_size = Vector2(170, 10)
-	xp_bar.add_theme_stylebox_override("background", sbox(Color("#2a3145"), 5, 0, Color.TRANSPARENT, 0))
+	xp_bar.add_theme_stylebox_override("background", sbox(C_NEUTRAL, 5, 0, Color.TRANSPARENT, 0))
 	xp_bar.add_theme_stylebox_override("fill", sbox(C_GOOD, 5, 0, Color.TRANSPARENT, 0))
 	xpbox.add_child(xp_label)
 	xpbox.add_child(xp_bar)
@@ -274,7 +244,7 @@ func _build_hud() -> void:
 	row.add_child(prestige_label)
 	biome_label = lbl("River", 15, Color.WHITE)
 	var bp := PanelContainer.new()
-	bp.add_theme_stylebox_override("panel", sbox(Color(0, 0, 0, 0.35), 8, 0, Color.TRANSPARENT, 5))
+	bp.add_theme_stylebox_override("panel", sbox(C_NEUTRAL, 8, 0, Color.TRANSPARENT, 5))
 	bp.add_child(biome_label)
 	row.add_child(bp)
 
@@ -292,7 +262,7 @@ func _hud_stat(t: Texture2D, key: String) -> Control:
 
 func _build_card() -> void:
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", sbox(Color("#2b2d31", 0.95), 8, 0, Color.TRANSPARENT, 0))
+	card.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.96), 12, 0, Color.TRANSPARENT, 0, 8))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
 	card.offset_left = -372
@@ -330,7 +300,7 @@ func _build_card() -> void:
 
 func _build_dock() -> void:
 	var dock := PanelContainer.new()
-	dock.add_theme_stylebox_override("panel", sbox(Color(0.08, 0.09, 0.14, 0.88), 16, 0, Color.TRANSPARENT, 10))
+	dock.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.95), 18, 0, Color.TRANSPARENT, 10, 10))
 	dock.anchor_top = 1.0
 	dock.anchor_bottom = 1.0
 	dock.anchor_left = 0.5
@@ -358,18 +328,18 @@ func _build_dock() -> void:
 	bottom.add_theme_constant_override("separation", 8)
 	v.add_child(bottom)
 	# fish button with cooldown fill
-	fish_btn = btn("FISH", Color("#16a34a"), 22, 170)
+	fish_btn = btn("FISH", Color("#3fae6a"), 22, 170)
 	fish_btn.custom_minimum_size.y = 58
 	fish_btn.clip_contents = true
 	fish_fill = ColorRect.new()
-	fish_fill.color = Color(1, 1, 1, 0.16)
+	fish_fill.color = Color(1, 1, 1, 0.22)
 	fish_fill.anchor_bottom = 1.0
 	fish_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fish_btn.add_child(fish_fill)
 	fish_btn.pressed.connect(_do_cast)
 	fish_btn.tooltip_text = "Space / F"
 	bottom.add_child(fish_btn)
-	sell_btn = btn("SELL $0", Color("#d97706"), 17, 150)
+	sell_btn = btn("SELL $0", Color("#e07a3a"), 17, 150)
 	sell_btn.pressed.connect(_do_sell)
 	sell_btn.tooltip_text = "S"
 	bottom.add_child(sell_btn)
@@ -381,7 +351,7 @@ func _build_dock() -> void:
 		bottom.add_child(_nav_button(nav[0], nav[1]))
 
 func _chip(key: String) -> Button:
-	var b := btn("", Color("#2a3145"), 14)
+	var b := btn("", C_NEUTRAL, 14)
 	b.custom_minimum_size = Vector2(190, 44)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.expand_icon = false
@@ -398,7 +368,7 @@ func _on_chip(key: String) -> void:
 		"pet": _open_panel("pets")
 
 func _nav_button(kind: String, text: String) -> Button:
-	var b := btn(text, Color("#2a3145"), 12, 0)
+	var b := btn(text, C_NEUTRAL, 12, 0)
 	b.icon = icon_for("ui", "charms" if kind == "charms" else kind) if kind != "charms" and kind != "pets" and kind != "inventory" else null
 	match kind:
 		"charms": b.icon = icon_for("charm", "quality")
@@ -417,12 +387,12 @@ func _build_overlay() -> void:
 	overlay.visible = false
 	add_child(overlay)
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.55)
+	dim.color = Color(0.15, 0.1, 0.05, 0.35)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _close_panel())
 	overlay.add_child(dim)
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", sbox(C_PANEL, 18, 2, Color("#39415a"), 16))
+	p.add_theme_stylebox_override("panel", sbox(C_PANEL, 20, 2, Color("#d9c6a5"), 16, 16))
 	p.anchor_left = 0.5
 	p.anchor_right = 0.5
 	p.anchor_top = 0.5
@@ -439,7 +409,7 @@ func _build_overlay() -> void:
 	panel_title = lbl("", 24)
 	panel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(panel_title)
-	var close := btn("✕", Color("#3a4152"), 16, 40)
+	var close := btn("✕", Color("#e2d4b8"), 16, 40)
 	close.pressed.connect(_close_panel)
 	head.add_child(close)
 	v.add_child(head)
@@ -457,55 +427,9 @@ func _build_overlay() -> void:
 
 # ================================================================== stage
 func _apply_biome() -> void:
-	backdrop.texture = icon_for("biome", VF.biome)
-	var info: Dictionary = manifest.get("biomes", {}).get(VF.biome, {})
-	var mat: ShaderMaterial = water.material
-	mat.set_shader_parameter("near_col", Color(info.get("water_near", "#1f7f9e")))
-	mat.set_shader_parameter("far_col", Color(info.get("water_far", "#7fc6dc")))
-	mat.set_shader_parameter("foam_col", Color(info.get("accent", "#e6fbff")).lerp(Color.WHITE, 0.3))
+	stage.set_biome(VF.biome)
+	stage.set_boat(VF.current_boat() if VF.current_boat() != "" else "Rowboat")
 	card_accent.color = accent()
-	_layout_stage()
-
-func _layout_stage() -> void:
-	if not is_inside_tree(): return
-	var sz := get_viewport_rect().size
-	var boat: String = VF.current_boat()
-	var key := boat if boat != "" else "Rowboat"
-	if key != _boat_name:
-		_boat_name = key
-		boat_rect.texture = tex("boats_hero/%s.png" % VFData.slug(key))
-		boat_rect.modulate = Color(1, 1, 1, 1) if boat != "" else Color(1, 1, 1, 1)
-	var info: Dictionary = manifest.get("boats", {}).get(key, {"rod_tip": [0.9, 0.1], "waterline": 0.8, "center_x": 0.5})
-	var water_y := sz.y * 0.70
-	var h := sz.y * 0.42
-	var w := h * 1.5
-	var cx := sz.x * 0.34
-	boat_rect.size = Vector2(w, h)
-	boat_rect.position = Vector2(cx - w * float(info.center_x), water_y - h * float(info.waterline))
-	boat_rect.pivot_offset = Vector2(w * float(info.center_x), h * float(info.waterline))
-	water.position = Vector2(0, water_y - sz.y * 0.035)
-	water.size = Vector2(sz.x, sz.y - water_y + sz.y * 0.035)
-	(water.material as ShaderMaterial).set_shader_parameter("edge", 0.035 * sz.y / water.size.y * 1.6)
-	_bobber_target = Vector2(boat_rect.position.x + w * float(info.rod_tip[0]) + 70, water_y + 14)
-	if not _casting:
-		bobber.position = _bobber_target
-
-var _t := 0.0
-func _animate_stage(delta: float) -> void:
-	_t += delta
-	var bob := sin(_t * 1.6) * 4.0
-	var tilt := sin(_t * 1.1) * 0.012
-	var info: Dictionary = manifest.get("boats", {}).get(_boat_name, {"rod_tip": [0.9, 0.1], "waterline": 0.8, "center_x": 0.5})
-	boat_rect.rotation = tilt
-	var base_y := get_viewport_rect().size.y * 0.70 - boat_rect.size.y * float(info.waterline)
-	boat_rect.position.y = base_y + bob
-	# rod tip in screen space (respecting the boat's tilt)
-	var local := Vector2(boat_rect.size.x * float(info.rod_tip[0]), boat_rect.size.y * float(info.rod_tip[1]))
-	var tip := boat_rect.position + boat_rect.pivot_offset + (local - boat_rect.pivot_offset).rotated(tilt)
-	if not _casting:
-		bobber.position = _bobber_target + Vector2(0, sin(_t * 2.3) * 2.5)
-	var mid := (tip + bobber.position) * 0.5 + Vector2(0, 26)
-	line.points = PackedVector2Array([tip, tip.lerp(mid, 0.5) + Vector2(0, 6), mid, mid.lerp(bobber.position, 0.5) + Vector2(0, 4), bobber.position])
 
 # ================================================================ actions
 func _do_cast() -> void:
@@ -516,16 +440,10 @@ func _do_cast() -> void:
 		_toast(why, "warn")
 		return
 	AudioManager.play_cast()
-	_casting = true
-	var from := bobber.position
-	var to := _bobber_target + Vector2(randf_range(-30, 50), randf_range(-4, 10))
-	var tw := create_tween()
-	tw.tween_method(func(t: float):
-		bobber.position = from.lerp(to, t) + Vector2(0, -sin(t * PI) * 90.0), 0.0, 1.0, 0.32)
-	tw.tween_callback(func():
-		_casting = false
-		_bobber_target = to
-		_splash(to)
+	VF._last_cast_ms = Time.get_ticks_msec()   # lock the cooldown during the throw
+	stage.cast(func():
+		AudioManager.play_splash()
+		VF._last_cast_ms = -100000
 		VF.cast())
 
 func _do_sell() -> void:
@@ -534,31 +452,23 @@ func _do_sell() -> void:
 		AudioManager.play_success()
 		_float_text("+%s" % money_str(earned), sell_btn.get_global_rect().get_center() + Vector2(0, -40), C_GOLD)
 
-func _splash(at: Vector2) -> void:
-	AudioManager.play_splash()
-	for i in 8:
-		var d := ColorRect.new()
-		d.color = Color(1, 1, 1, 0.9)
-		d.size = Vector2(5, 5)
-		d.position = at
-		fx_layer.add_child(d)
-		var dir := Vector2(randf_range(-1, 1), randf_range(-1.6, -0.6)).normalized() * randf_range(25, 55)
-		var tw := d.create_tween()
-		tw.set_parallel(true)
-		tw.tween_property(d, "position", at + dir, 0.4).set_ease(Tween.EASE_OUT)
-		tw.tween_property(d, "modulate:a", 0.0, 0.45)
-		tw.chain().tween_callback(d.queue_free)
-
 func _on_trip(res: Dictionary) -> void:
 	_show_catch(res)
+	var best := ""
+	for f in res.fish:
+		if best == "" or VFData.FISH[f].price > VFData.FISH[best].price: best = f
+	if best != "": stage.show_bite(best)
 	var i := 0
+	var from: Vector2 = stage.bobber_screen()
 	for f in res.fish:
 		var ic := icon(icon_for("fish", f), 54)
-		ic.position = bobber.position - Vector2(27, 27)
+		ic.position = from - Vector2(27, 27)
 		fx_layer.add_child(ic)
 		var target := Vector2(get_viewport_rect().size.x - 300, 140 + i * 30)
 		var tw := ic.create_tween()
-		tw.tween_interval(i * 0.06)
+		ic.modulate.a = 0.0
+		tw.tween_interval(0.35 + i * 0.06)
+		tw.tween_property(ic, "modulate:a", 1.0, 0.05)
 		tw.tween_property(ic, "position", ic.position + Vector2(randf_range(-20, 20), -70), 0.25).set_ease(Tween.EASE_OUT)
 		tw.tween_property(ic, "position", target, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.parallel().tween_property(ic, "modulate:a", 0.0, 0.45)
@@ -599,7 +509,7 @@ func _toast(text: String, kind: String) -> void:
 		"prestige": Color("#1d4ed8"), "buy": Color("#15803d")}
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", sbox(colors.get(kind, Color("#334155")), 10, 0, Color.TRANSPARENT, 8))
-	p.add_child(lbl(text, 15))
+	p.add_child(lbl(text, 15, Color.WHITE))
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast_box.add_child(p)
 	var tw := p.create_tween()
@@ -659,7 +569,7 @@ func _show_catch(res: Dictionary) -> void:
 	if res.pet != "":
 		var row := HBoxContainer.new()
 		row.add_child(icon(icon_for("pet", res.pet), 40))
-		row.add_child(lbl("You found a %s!" % res.pet, 15, Color("#f472b6")))
+		row.add_child(lbl("You found a %s!" % res.pet, 15, Color("#c0367a")))
 		card_body.add_child(row)
 	if res.bait_used != "":
 		card_body.add_child(lbl("%s left: %s" % [res.bait_used, VF.commas(int(VF.bait_stock.get(res.bait_used, 0)))], 12, C_MUTED))
@@ -679,7 +589,7 @@ func _refresh() -> void:
 	hooks_label.text = str(VF.hooks)
 	prestige_label.text = "P%d" % VF.prestige
 	biome_label.text = VF.biome
-	biome_label.add_theme_color_override("font_color", accent().lightened(0.3))
+	biome_label.add_theme_color_override("font_color", accent().darkened(0.25))
 	sell_btn.text = "SELL %s" % money_str(VF.inventory_value())
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
@@ -701,8 +611,7 @@ func _refresh() -> void:
 	else:
 		pet_chip.icon = null
 		pet_chip.text = "No pet yet"
-	if backdrop.texture != icon_for("biome", VF.biome) or _boat_name != (VF.current_boat() if VF.current_boat() != "" else "Rowboat"):
-		_apply_biome()
+	_apply_biome()
 	_refresh_boosts()
 	if overlay.visible:
 		_render_panel()
@@ -750,7 +659,7 @@ func _render_panel() -> void:
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
-			var b := btn(t, accent().darkened(0.2) if t == _panel_tab else Color("#2a3145"), 14, 96)
+			var b := btn(t, accent().darkened(0.2) if t == _panel_tab else C_NEUTRAL, 14, 96)
 			b.pressed.connect(func(): _panel_tab = t; _render_panel())
 			panel_tabs.add_child(b)
 	panel_tabs.visible = PANEL_TABS.has(_panel_kind)
@@ -814,7 +723,7 @@ func _panel_inventory() -> void:
 	var l := lbl("Hold value: %s   (sell multiplier ×%.2f)" % [money_str(total), VF.sell_mult()], 16)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(l)
-	head.add_child(_act("Sell all", Color("#d97706"), func(): _do_sell(); return "", total > 0))
+	head.add_child(_act("Sell all", Color("#e07a3a"), func(): _do_sell(); return "", total > 0))
 	panel_body.add_child(head)
 	var g := _grid(3)
 	for f in VFData.FISH_ORDER:
@@ -835,14 +744,14 @@ func _panel_shop() -> void:
 					(" • +%d%% TQ" % int(d.tq * 100)) if d.tq > 0 else "", ", ".join(d.biomes) if d.biomes.size() < 7 else "All biomes"]
 				var right: Control
 				if r in VF.owned_rods:
-					right = _act("Equipped" if VF.rod == r else "Equip", C_GOOD if VF.rod == r else Color("#3b82f6"),
+					right = _act("Equipped" if VF.rod == r else "Equip", C_GOOD if VF.rod == r else Color("#2f8f9e"),
 						func(): VF.select_rod(r); return "", VF.rod != r)
 				elif r == "Supporter Rod":
 					right = lbl("Prestige 5", 14, C_MUTED)
 				elif VF.level < d.level:
 					right = lbl("Level %d" % d.level, 14, C_MUTED)
 				else:
-					right = _act("Buy %s" % money_str(d.cost), Color("#16a34a"), func(): return VF.buy_rod(r), VF.money >= d.cost)
+					right = _act("Buy %s" % money_str(d.cost), Color("#3fae6a"), func(): return VF.buy_rod(r), VF.money >= d.cost)
 				_add_to(g, _card(icon_for("rod", r), r, desc, right, VF.level < d.level and not (r in VF.owned_rods)))
 		"Bait":
 			var g := _grid(2)
@@ -855,11 +764,11 @@ func _panel_shop() -> void:
 				else:
 					var hb := HBoxContainer.new()
 					for amt in [10, 100]:
-						var a := _act("+%d  %s" % [amt, money_str(d.cost * amt)], Color("#16a34a"), func(): return VF.buy_bait(b, amt), VF.money >= d.cost * amt)
+						var a := _act("+%d  %s" % [amt, money_str(d.cost * amt)], Color("#3fae6a"), func(): return VF.buy_bait(b, amt), VF.money >= d.cost * amt)
 						a.custom_minimum_size.x = 0
 						hb.add_child(a)
 					box.add_child(hb)
-					var eq := _act("Using" if VF.bait == b else "Use", C_GOOD if VF.bait == b else Color("#3b82f6"),
+					var eq := _act("Using" if VF.bait == b else "Use", C_GOOD if VF.bait == b else Color("#2f8f9e"),
 						func(): VF.select_bait(b); return "", VF.bait != b and int(VF.bait_stock.get(b, 0)) > 0)
 					box.add_child(eq)
 				_add_to(g, _card(icon_for("bait", b), "%s  (×%s)" % [b, VF.fmt(VF.bait_stock.get(b, 0))], "%s\n%s" % [d.desc, _bait_fx(d)], box, locked))
@@ -873,7 +782,7 @@ func _panel_shop() -> void:
 				if i < VF.boats_owned: right = lbl("✓ Owned", 15, C_GOOD)
 				elif i == VF.boats_owned:
 					right = lbl("Level %d" % d.level, 14, C_MUTED) if VF.level < d.level else \
-						_act("Buy %s" % money_str(d.cost), Color("#16a34a"), func(): return VF.buy_boat(), VF.money >= d.cost)
+						_act("Buy %s" % money_str(d.cost), Color("#3fae6a"), func(): return VF.buy_boat(), VF.money >= d.cost)
 				else: right = lbl(money_str(d.cost), 14, C_MUTED)
 				_add_to(g, _card(icon_for("boat", b), b, "Tier %d • Level %d" % [i + 1, d.level], right, i > VF.boats_owned, 80))
 		"Upgrades":
@@ -881,7 +790,7 @@ func _panel_shop() -> void:
 			for id in VFData.UPGRADE_ORDER:
 				var d: Dictionary = VFData.UPGRADES[id]
 				var c: int = VF.upgrade_cost(id)
-				var right: Control = lbl("MAX", 15, C_GOLD) if c < 0 else _act(money_str(c), Color("#16a34a"), func(): return VF.buy_upgrade(id), VF.money >= c)
+				var right: Control = lbl("MAX", 15, C_GOLD) if c < 0 else _act(money_str(c), Color("#3fae6a"), func(): return VF.buy_upgrade(id), VF.money >= c)
 				_add_to(g, _card(null, "%s  %d/%d" % [d.name, VF.up(id), d.max], d.desc, right))
 		"Special":
 			if VF.level < 50:
@@ -894,7 +803,7 @@ func _panel_shop() -> void:
 				if VF.level < d.level: right = lbl("Level %d" % d.level, 14, C_MUTED)
 				elif c < 0: right = lbl("MAX", 15, C_GOLD)
 				else:
-					right = _act("%d %s" % [c, VFData.EXOTICS[d.cur].name.split(" ")[0]], Color("#16a34a"), func(): return VF.buy_special(id), VF.exotics[d.cur] >= c)
+					right = _act("%d %s" % [c, VFData.EXOTICS[d.cur].name.split(" ")[0]], Color("#3fae6a"), func(): return VF.buy_special(id), VF.exotics[d.cur] >= c)
 				_add_to(g, _card(icon_for("exotic", d.cur), "%s  %d/%d" % [d.name, VF.sp(id), d.max], d.desc, right, VF.level < d.level, 48))
 		"League":
 			panel_body.add_child(lbl("Hooks come from the daily league quest (+10) and weekly trip milestones (+10 per 500 trips, max 100/week). League upgrades never reset.", 13, C_MUTED))
@@ -902,7 +811,7 @@ func _panel_shop() -> void:
 			for id in VFData.LEAGUE_ORDER:
 				var d: Dictionary = VFData.LEAGUE[id]
 				var c: int = VF.league_cost(id)
-				var right: Control = lbl("MAX", 15, C_GOLD) if c < 0 else _act("%d Hooks" % c, Color("#16a34a"), func(): return VF.buy_league(id), VF.hooks >= c)
+				var right: Control = lbl("MAX", 15, C_GOLD) if c < 0 else _act("%d Hooks" % c, Color("#3fae6a"), func(): return VF.buy_league(id), VF.hooks >= c)
 				_add_to(g, _card(icon_for("ui", "hooks"), "%s  %d/%d" % [d.name, VF.lg(id), d.costs.size()], d.desc, right, false, 44))
 
 func _bait_fx(d: Dictionary) -> String:
@@ -931,7 +840,7 @@ func _panel_biomes() -> void:
 		h.add_child(thumb)
 		var v := VBoxContainer.new()
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(lbl("%s  •  Level %d" % [b, d.level], 18, d.accent.lightened(0.3)))
+		v.add_child(lbl("%s  •  Level %d" % [b, d.level], 18, d.accent.darkened(0.3)))
 		v.add_child(lbl("+%.1fs cooldown • %s%% fish catch rate" % [d.cd_add, str(d.catch_rate * 100.0)], 13, C_MUTED))
 		var fr := HBoxContainer.new()
 		for f in d.fish:
@@ -944,7 +853,7 @@ func _panel_biomes() -> void:
 		var right: Control
 		if VF.biome == b: right = lbl("You are here", 14, C_GOOD)
 		elif locked: right = lbl("Level %d" % d.level, 14, C_MUTED)
-		else: right = _act("Travel", Color("#3b82f6"), func(): return VF.select_biome(b))
+		else: right = _act("Travel", Color("#2f8f9e"), func(): return VF.select_biome(b))
 		right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(right)
 		if locked: p.modulate = Color(1, 1, 1, 0.5)
@@ -964,7 +873,7 @@ func _panel_charms() -> void:
 		bar.custom_minimum_size = Vector2(120, 10)
 		bar.max_value = t + 1 if t < cap else 1
 		bar.value = into if t < cap else 1
-		bar.add_theme_stylebox_override("background", sbox(Color("#1a1f2c"), 5, 0, Color.TRANSPARENT, 0))
+		bar.add_theme_stylebox_override("background", sbox(Color("#e4d6bb"), 5, 0, Color.TRANSPARENT, 0))
 		bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 5, 0, Color.TRANSPARENT, 0))
 		var box := VBoxContainer.new()
 		box.add_child(lbl("Tier %d / %d" % [t, cap], 14, C_GOLD))
@@ -984,7 +893,7 @@ func _panel_pets() -> void:
 		var buffs := []
 		for k in VFData.PETS[p].buffs:
 			buffs.append("+%.1f%% %s" % [VF.pet_stat(k, p) * 100.0, {"catch": "Fish Catch", "quality": "Fish Quality", "xp": "XP", "tc": "Treasure Chance", "tq": "Treasure Quality"}[k]])
-		var right := _act("Equipped" if VF.pet == p else "Equip", C_GOOD if VF.pet == p else Color("#3b82f6"), func(): VF.select_pet(p); return "", VF.pet != p)
+		var right := _act("Equipped" if VF.pet == p else "Equip", C_GOOD if VF.pet == p else Color("#2f8f9e"), func(): VF.select_pet(p); return "", VF.pet != p)
 		_add_to(g, _card(icon_for("pet", p), "%s  •  Lv %d   (%s / %s XP)" % [p, d.level, VF.fmt(d.xp), VF.fmt(VF._pet_xp_needed(d.level))],
 			VFData.PETS[p].desc + "\n" + "  ".join(buffs), right))
 
@@ -997,7 +906,7 @@ func _panel_boosts() -> void:
 	var g := _grid(2)
 	for id in VFData.BOOST_ORDER:
 		var d: Dictionary = VFData.BOOSTS[id]
-		var right := _act("%d %s" % [d.cost, VFData.EXOTICS[d.cur].name.split(" ")[0]], Color("#16a34a"), func(): return VF.buy_boost(id),
+		var right := _act("%d %s" % [d.cost, VFData.EXOTICS[d.cur].name.split(" ")[0]], Color("#3fae6a"), func(): return VF.buy_boost(id),
 			VF.level >= 10 and VF.exotics[d.cur] >= d.cost)
 		var active := "  (active %s)" % _clock(VF.boost_left(d.kind)) if VF.is_boost_active(d.kind) else ""
 		_add_to(g, _card(icon_for("exotic", d.cur), "%s %dm%s" % [d.name, d.secs / 60, active], info[d.kind], right, false, 48))
@@ -1007,7 +916,7 @@ func _panel_boosts() -> void:
 func _panel_quests() -> void:
 	if _panel_tab == "Daily":
 		var ready: float = VF.daily_ready_in()
-		var right := _act("Claim" if ready <= 0 else _clock(ready / 60.0) + "h", Color("#16a34a"), func():
+		var right := _act("Claim" if ready <= 0 else _clock(ready / 60.0) + "h", Color("#3fae6a"), func():
 			var r: Dictionary = VF.claim_daily()
 			if r.has("error"): return r.error
 			_toast("Daily claimed! Streak %d" % r.streak, "quest")
@@ -1040,8 +949,8 @@ func _req_row(name: String, have: float, need: float, money := false) -> Control
 	bar.custom_minimum_size.y = 14
 	bar.max_value = 1.0
 	bar.value = clampf(have / need, 0.0, 1.0) if need > 0 else 1.0
-	bar.add_theme_stylebox_override("background", sbox(Color("#1a1f2c"), 6, 0, Color.TRANSPARENT, 0))
-	bar.add_theme_stylebox_override("fill", sbox(C_GOOD if ok else Color("#3b82f6"), 6, 0, Color.TRANSPARENT, 0))
+	bar.add_theme_stylebox_override("background", sbox(Color("#e4d6bb"), 6, 0, Color.TRANSPARENT, 0))
+	bar.add_theme_stylebox_override("fill", sbox(C_GOOD if ok else Color("#2f8f9e"), 6, 0, Color.TRANSPARENT, 0))
 	h.add_child(bar)
 	var f := money_str(have) + " / " + money_str(need) if money else VF.commas(int(have)) + " / " + VF.commas(int(need))
 	var r := lbl(f, 14, C_MUTED)

@@ -13,6 +13,7 @@ from mathutils import Euler, Matrix, Vector
 
 OUTLINE = (0.07, 0.06, 0.10)
 FOG = {"color": None, "start": 30.0, "end": 140.0, "amount": 0.0}
+SOFT = [False]   # global soft-shading switch for the top-down scenes
 
 
 # ----------------------------------------------------------------- colours
@@ -138,7 +139,7 @@ def sun(rot=(50, 0, 35), strength=1.0, color="#ffffff"):
 _mat_cache = {}
 
 
-def toon(color, shade=0.62, spec=0.0, emit=0.0, rim=0.10, vcol=None, flat_glow=False, alpha=1.0, key=None):
+def toon(color, shade=0.62, spec=0.0, emit=0.0, rim=0.10, vcol=None, flat_glow=False, alpha=1.0, key=None, soft=False):
     """Cel material: (diffuse -> 3-step ramp) * colour, emitted.
 
     color: hex or linear tuple. vcol: name of a colour attribute to use
@@ -146,7 +147,9 @@ def toon(color, shade=0.62, spec=0.0, emit=0.0, rim=0.10, vcol=None, flat_glow=F
     emit: extra self-illumination (0 = lit only, 1 = fully glowing).
     """
     c = hexc(color) if isinstance(color, str) else color
-    k = key or (c, shade, spec, emit, rim, vcol, flat_glow, alpha, FOG["color"], FOG["amount"])
+    soft = soft or SOFT[0]
+    k = key or (c, shade, spec, emit, rim, vcol, flat_glow, alpha, FOG["color"], FOG["amount"], soft)
+    if key: k = (key, soft)
     if k in _mat_cache:
         return _mat_cache[k]
     m = bpy.data.materials.new("toon")
@@ -170,9 +173,13 @@ def toon(color, shade=0.62, spec=0.0, emit=0.0, rim=0.10, vcol=None, flat_glow=F
         s2r = nt.nodes.new("ShaderNodeShaderToRGB")
         nt.links.new(dif.outputs[0], s2r.inputs[0])
         ramp = nt.nodes.new("ShaderNodeValToRGB")
-        ramp.color_ramp.interpolation = "CONSTANT"
         g = lambda v: "#%02x%02x%02x" % ((int(v * 255),) * 3)
-        _ramp_stops(ramp.color_ramp, [(0.0, g(shade ** 0.45 * 0.92)), (0.33, g(0.87)), (0.62, g(1.0))])
+        if soft:
+            ramp.color_ramp.interpolation = "EASE"
+            _ramp_stops(ramp.color_ramp, [(0.15, g(0.58)), (0.45, g(0.86)), (0.8, g(1.0))])
+        else:
+            ramp.color_ramp.interpolation = "CONSTANT"
+            _ramp_stops(ramp.color_ramp, [(0.0, g(shade ** 0.45 * 0.92)), (0.33, g(0.87)), (0.62, g(1.0))])
         bw = nt.nodes.new("ShaderNodeRGBToBW")
         nt.links.new(s2r.outputs[0], bw.inputs[0])
         nt.links.new(bw.outputs[0], ramp.inputs[0])

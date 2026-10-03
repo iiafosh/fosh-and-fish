@@ -422,7 +422,7 @@ def _axolotl(spec):
 
 
 # ============================================================ fisherman
-def build_fisherman(scale=1.0, shirt="#e8553b", pants="#2f4a7a", hat="#f2c14e", skin="#f2c6a0"):
+def build_fisherman(scale=1.0, shirt="#e8553b", pants="#2f4a7a", hat="#f2c14e", skin="#f2c6a0", straw=False):
     """Standing angler facing +X holding a rod over the side. Returns (parts, rod_tip)."""
     s = scale
     parts = []
@@ -442,8 +442,15 @@ def build_fisherman(scale=1.0, shirt="#e8553b", pants="#2f4a7a", hat="#f2c14e", 
         e = sphere(loc=(0.18 * s, side * 0.08 * s, 1.67 * s), scale=0.03 * s, mat=toon("#1a1420", rim=0))
         e["no_outline"] = True
         parts.append(e)
-    parts.append(cyl(loc=(0.02 * s, 0, 1.8 * s), r=0.2 * s, depth=0.16 * s, mat=toon(hat)))
-    parts.append(cyl(loc=(0.02 * s, 0, 1.73 * s), r=0.32 * s, depth=0.03 * s, mat=toon(hat), verts=32))
+    if straw:
+        parts.append(cone(loc=(0.02 * s, 0, 1.86 * s), r1=0.62 * s, r2=0.03 * s, depth=0.34 * s, mat=toon("#e3c27e"), verts=40))
+        parts.append(torus(loc=(0.02 * s, 0, 1.93 * s), R=0.27 * s, r=0.025 * s, mat=toon("#2f8f8a"), seg=32, mseg=8))
+        parts.append(sphere(loc=(0.02 * s, 0, 2.03 * s), scale=0.05 * s, mat=toon("#c9a35c")))
+    else:
+        parts.append(cyl(loc=(0.02 * s, 0, 1.8 * s), r=0.2 * s, depth=0.16 * s, mat=toon(hat)))
+        parts.append(cyl(loc=(0.02 * s, 0, 1.73 * s), r=0.32 * s, depth=0.03 * s, mat=toon(hat), verts=32))
+    if straw:
+        parts.append(cube(loc=(-0.24 * s, 0, 1.0 * s), scale=(0.18 * s, 0.38 * s, 0.5 * s), mat=toon("#c9a35c"), bevel=0.04 * s))
     parts.append(cyl(loc=(0.02 * s, 0, 1.79 * s), r=0.205 * s, depth=0.05 * s, mat=toon("#b5462f")))
     # arms reaching forward to the rod grip
     grip = Vector((0.45 * s, 0.0, 1.05 * s))
