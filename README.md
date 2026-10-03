@@ -1,5 +1,8 @@
 # 🐟 Virtual Fisher (Godot 4 + Blender)
 
+**Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
+
+
 A desktop fishing game built on the real **Virtual Fisher** Discord bot mechanics, with all art
 rendered procedurally in **Blender**: high-angle biome scenes with see-through water (one shared
 height function drives the terrain mesh and the water's depth colour/foam), a straw-hat fisherman

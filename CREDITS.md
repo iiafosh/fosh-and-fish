@@ -1,5 +1,8 @@
 # Credits & third-party assets
 
+**Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
+
+
 Everything not listed here (game code, procedural Blender art, shaders) is original to this project.
 Raw source packs are fetched with `python tools/fetch_assets.py` into `scratch/downloads/` (git-ignored);
 only the files the game uses are copied into `assets/third_party/` or baked into renders under `assets/vf/`.

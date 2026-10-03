@@ -2,6 +2,10 @@
 
 ## 0.1 beta — first public test
 
+**Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
+
+Play in the browser: https://iiafosh.github.io/vfish.fosh/
+
 **Game**
 - Full Virtual Fisher progression: 20 fish, 21 rods, 17 boats, 8 baits, 7 biomes (River → Abyss),
   the real 25,000-level XP table, per-rod catch odds and fish-quality rules from the wiki.

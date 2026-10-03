@@ -655,7 +655,7 @@ func _card_intro() -> void:
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
 	for t in ["Tap the water, press FISH or Space to cast.", "Sell your catch, then visit the merchant on the island for rods, bait and boats.",
-			"Reach level 250 with 440/440 charms and $5B to prestige."]:
+			"Reach level 250 with 440/440 charms and $5B to prestige.", "Made by afosh — Guide (G) → Credits."]:
 		var l := lbl("• " + t, 14, C_MUTED)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 320
@@ -1264,7 +1264,7 @@ func _check_capture() -> void:
 		await get_tree().create_timer(0.9).timeout
 	await get_tree().create_timer(0.3).timeout
 	await _shot(dir + "/main.png")
-	var shots := [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Feedback"]]
+	var shots := [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
 		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:
@@ -1288,12 +1288,12 @@ func _capturing() -> bool:
 	return false
 
 func _build_version_label() -> void:
-	var v := lbl("Virtual Fisher %s" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
+	var v := lbl("Virtual Fisher %s · by afosh" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
 	v.anchor_left = 1.0
 	v.anchor_right = 1.0
 	v.anchor_top = 1.0
 	v.anchor_bottom = 1.0
-	v.offset_left = -200
+	v.offset_left = -360
 	v.offset_right = -16
 	v.offset_top = -102
 	v.offset_bottom = -86
@@ -1305,6 +1305,9 @@ func _build_version_label() -> void:
 func _panel_guide() -> void:
 	if _panel_tab == "Feedback":
 		_panel_feedback()
+		return
+	if _panel_tab == "Credits":
+		_panel_credits()
 		return
 	for entry in VFGuide.TABS.get(_panel_tab, []):
 		var ic: Array = entry[1]
@@ -1380,3 +1383,35 @@ func _send_feedback() -> void:
 		title.uri_encode(), _feedback_body().uri_encode()]
 	OS.shell_open(url)
 	_toast("Opening GitHub to send your feedback…", "quest")
+
+func _panel_credits() -> void:
+	var head := VBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	var t := lbl("Virtual Fisher", 34, C_TEXT)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(t)
+	var by := lbl("Made by %s" % VFGuide.AUTHOR, 24, Color("#2f8f9e"))
+	by.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(by)
+	var ver := lbl("Version %s" % VERSION, 13, C_MUTED)
+	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(ver)
+	panel_body.add_child(head)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	for s in VFGuide.SOCIALS:
+		var url: String = s[1]
+		var b := btn("%s  ↗" % s[0], Color("#0a66c2") if s[0] == "LinkedIn" else Color("#24292f"), 16, 170)
+		b.tooltip_text = url
+		b.pressed.connect(func(): OS.shell_open(url))
+		row.add_child(b)
+	panel_body.add_child(row)
+	var thanks := lbl("Thanks for testing! Follow afosh for updates, and send ideas or bugs from the Feedback tab.", 14, C_TEXT)
+	thanks.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	thanks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel_body.add_child(thanks)
+	var assets := lbl(VFGuide.ASSET_CREDITS, 12, C_MUTED)
+	assets.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	assets.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel_body.add_child(assets)

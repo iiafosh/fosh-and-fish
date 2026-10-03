@@ -1,5 +1,8 @@
 # Virtual Fisher — Player Guide (v0.1 beta)
 
+**Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
+
+
 A cozy fishing game based on the **Virtual Fisher** Discord bot. Cast, catch, sell, upgrade,
 travel through 7 biomes and prestige for permanent power.
 
