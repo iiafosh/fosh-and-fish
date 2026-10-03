@@ -252,32 +252,32 @@
   <canvas id="game-canvas"></canvas>
 
   <!-- Top Sailing & Deck HUD (Enlarged & Prominent) -->
-  <div id="deck-hud" class="fixed inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+  <div id="deck-hud" class="fixed inset-0 pointer-events-none flex flex-col justify-between p-2 sm:p-4">
     
     <!-- Top Bar: Explorer Passport, Nautical Telemetry, and Treasury Vault -->
-    <div class="flex items-start justify-between w-full gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
+    <div class="flex items-start justify-between w-full gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
       
       <!-- Left: Explorer Passport (Mascot Avatar, Level, XP Bar & Boat) -->
-      <div class="hud-pill p-2 sm:p-3 pointer-events-auto flex items-center gap-3 cursor-pointer hover:border-cyan-400 transition" onclick="openModal('mascot')" title="Mascot Wardrobe (Rimuru Tempest)">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 border border-cyan-500/60 flex items-center justify-center text-2xl shadow-inner relative overflow-hidden" id="hud-mascot-avatar">
+      <div class="hud-pill px-3 py-2 pointer-events-auto flex items-center gap-2.5 cursor-pointer hover:border-amber-400 transition shadow-lg" onclick="openModal('mascot')" title="Mascot Wardrobe (Rimuru Tempest)">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-stone-900 border border-amber-600/60 flex items-center justify-center text-xl sm:text-2xl shadow-inner relative overflow-hidden" id="hud-mascot-avatar">
           <span id="hud-mascot-icon">🌀</span>
         </div>
         <div class="text-left">
-          <div class="flex items-center gap-2">
-            <span class="text-xs sm:text-sm font-black text-white" id="hud-mascot-name">Rimuru Tempest</span>
-            <span class="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/50 font-black" id="hud-level">Lv. 1</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs sm:text-sm font-black text-amber-100" id="hud-mascot-name">Rimuru Tempest</span>
+            <span class="text-[9px] bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-600/60 font-black" id="hud-level">Lv. 1</span>
           </div>
           <!-- XP Progress Tube -->
-          <div class="w-28 sm:w-32 mt-1">
-            <div class="flex justify-between text-[9px] text-cyan-200/80 font-bold mb-0.5">
+          <div class="w-24 sm:w-28 mt-0.5">
+            <div class="flex justify-between text-[8px] text-amber-200/80 font-bold mb-0.5">
               <span>EXP</span>
               <span id="hud-xp">0/30 XP</span>
             </div>
-            <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-cyan-900/60">
-              <div id="hud-xp-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+            <div class="w-full bg-stone-950 h-1.5 rounded-full overflow-hidden border border-amber-900/60">
+              <div id="hud-xp-bar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
             </div>
           </div>
-          <div class="text-[10px] text-amber-300/90 font-bold mt-1 flex items-center gap-1">
+          <div class="text-[9px] text-amber-300/90 font-bold mt-0.5 flex items-center gap-1">
             <span>⛵</span>
             <span id="hud-boat-name">Standard Skiff</span>
           </div>
@@ -285,44 +285,44 @@
       </div>
 
       <!-- Center: Nautical Telemetry & Voyage Map Compass -->
-      <div class="hud-pill px-4 sm:px-5 py-2 sm:py-2.5 pointer-events-auto flex items-center gap-3 cursor-pointer hover:border-amber-400 transition shadow-lg" onclick="openModal('helm')" title="Chart Voyage Across 7 Waters [E] / [M]">
-        <div class="text-3xl sm:text-4xl" id="hud-biome-icon">🏞️</div>
+      <div class="hud-pill px-4 py-2 pointer-events-auto flex items-center gap-2.5 cursor-pointer hover:border-amber-400 transition shadow-lg" onclick="openModal('helm')" title="Chart Voyage Across 7 Waters [E] / [M]">
+        <div class="text-2xl sm:text-3xl" id="hud-biome-icon">🏞️</div>
         <div class="text-left">
           <div class="flex items-center gap-2">
             <span class="text-xs sm:text-sm text-amber-300 font-black uppercase tracking-wider" id="hud-biome">Willow River Basin</span>
             <span class="text-[9px] bg-amber-950/90 text-amber-300 px-1.5 py-0.5 rounded border border-amber-600/60 font-black">CHART [E]</span>
           </div>
-          <div class="text-[10px] text-cyan-300/90 font-mono font-bold flex items-center gap-2">
+          <div class="text-[9px] text-amber-200/90 font-mono font-bold flex items-center gap-2">
             <span id="hud-sector-depth">Sector 1 • 5m Depth</span>
-            <span class="text-slate-500">•</span>
-            <span id="hud-active-bait" class="text-emerald-300">🪱 Bait: None</span>
+            <span class="text-amber-600">•</span>
+            <span id="hud-active-bait" class="text-emerald-400">🪱 Bait: None</span>
           </div>
         </div>
       </div>
 
       <!-- Right: Treasury Vault (Cash, Crafting Materials & Tokens) -->
-      <div class="hud-pill px-3.5 sm:px-4 py-2 sm:py-2.5 pointer-events-auto flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
+      <div class="hud-pill px-3 py-2 pointer-events-auto flex items-center gap-2.5 sm:gap-3 flex-wrap justify-end shadow-lg">
         <!-- Gold Cash -->
-        <div class="flex items-center gap-2" title="Gold Cash Treasury">
-          <img src="assets/UI_Money.png" class="h-5 sm:h-6 object-contain" alt="Cash">
-          <span class="text-base sm:text-xl font-black text-amber-300 tracking-wider" id="hud-cash">150</span>
+        <div class="flex items-center gap-1.5" title="Gold Cash Treasury">
+          <img src="assets/UI_Money.png" class="h-5 sm:h-5 object-contain" alt="Cash">
+          <span class="text-base sm:text-lg font-black text-amber-300 tracking-wider" id="hud-cash">150</span>
         </div>
 
         <!-- Crafting Materials -->
-        <div class="flex items-center gap-2.5 sm:gap-3 border-l border-slate-700/80 pl-2.5 sm:pl-3 text-xs font-black">
+        <div class="flex items-center gap-2 border-l border-amber-800/60 pl-2.5 text-xs font-black">
           <span title="Fish Bait Strips (Filleted at Butchery)" class="text-pink-300 hover:scale-110 transition-transform">🥩 <span id="hud-strips">0</span></span>
-          <span title="Salvage Scrap (Crafting at Forge)" class="text-slate-300 hover:scale-110 transition-transform">⚙️ <span id="hud-scrap">0</span></span>
+          <span title="Salvage Scrap (Crafting at Forge)" class="text-stone-300 hover:scale-110 transition-transform">⚙️ <span id="hud-scrap">0</span></span>
           <span title="Rare Gold Fish (Exchange Token)" class="text-amber-300 hover:scale-110 transition-transform">🪙 <span id="hud-gold">0</span></span>
           <span title="Exotic Emerald Fish (Titan Token)" class="text-emerald-400 hover:scale-110 transition-transform">💎 <span id="hud-emerald">0</span></span>
         </div>
 
         <!-- Active Charm & Pet Mini Badges -->
-        <div class="flex items-center gap-1.5 border-l border-slate-700/80 pl-2.5 text-xs font-bold">
-          <button onclick="openModal('pets')" class="px-2 py-1 rounded bg-slate-900 border border-pink-500/40 hover:border-pink-400 text-pink-300 transition flex items-center gap-1" title="Companion Pet Sanctuary [P]">
+        <div class="flex items-center gap-1.5 border-l border-amber-800/60 pl-2.5 text-xs font-bold">
+          <button onclick="openModal('pets')" class="px-2 py-1 rounded-lg bg-stone-900 border border-pink-500/40 hover:border-pink-400 text-pink-300 transition flex items-center gap-1" title="Companion Pet Sanctuary [P]">
             <span id="hud-pet-icon">🦎</span>
             <span class="text-[10px] hidden sm:inline" id="hud-pet-name">Axo-9</span>
           </button>
-          <button onclick="openModal('forge')" class="px-2 py-1 rounded bg-slate-900 border border-purple-500/40 hover:border-purple-400 text-purple-300 transition flex items-center gap-1" title="Equipped Charm (Forge)">
+          <button onclick="openModal('forge')" class="px-2 py-1 rounded-lg bg-stone-900 border border-purple-500/40 hover:border-purple-400 text-purple-300 transition flex items-center gap-1" title="Equipped Charm (Forge)">
             <span id="hud-active-charm">🧿 No Charm</span>
           </button>
         </div>
@@ -343,97 +343,98 @@
       </div>
     </div>
 
-    <!-- Redesigned Bottom Floating Cyber-Maritime Command Dock -->
-    <div class="w-full flex flex-col items-center pointer-events-none mb-1 sm:mb-2 px-2">
+    <!-- Redesigned Warm Maritime Command Dock (Jev Decision: hero_cast_with_subdock) -->
+    <div class="w-full flex flex-col items-center pointer-events-none mb-1 sm:mb-2 px-2 space-y-1.5">
       
-      <div class="floating-dock pointer-events-auto flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-2xl shadow-2xl flex-wrap justify-center border border-cyan-500/30">
+      <!-- Upper Tier: Tactical Action Bar -->
+      <div class="floating-dock pointer-events-auto flex items-center gap-2 sm:gap-3 px-3 py-1.5 sm:py-2 rounded-2xl shadow-2xl justify-center">
         
         <!-- Equipped Rod Indicator & Upgrade Link -->
-        <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-cyan-800/60 hover:border-cyan-400 cursor-pointer transition" onclick="goToStation('shop')" title="Harbor Shipyard: Upgrade Rods & Vessels">
-          <span class="text-cyan-400 text-xl" id="hotbar-rod-icon">🎣</span>
+        <div class="flex items-center gap-2 bg-[#1b1007]/90 px-3 py-1.5 rounded-xl border border-amber-700/50 hover:border-amber-400 cursor-pointer transition shadow-inner" onclick="goToStation('shop')" title="Harbor Shop: Upgrade Rods & Vessels">
+          <span class="text-amber-400 text-lg sm:text-xl" id="hotbar-rod-icon">🎣</span>
           <div class="text-left">
-            <div class="text-[8px] text-cyan-400 font-black uppercase tracking-wider">ROD</div>
-            <div class="text-xs font-black text-white" id="hotbar-rod">Plastic Rod</div>
+            <div class="text-[8px] text-amber-400/90 font-black uppercase tracking-wider">ROD</div>
+            <div class="text-xs font-black text-amber-100" id="hotbar-rod">Plastic Rod</div>
           </div>
         </div>
 
         <!-- Master Hero "CAST HOOK" Action Button -->
-        <button id="reel-cast-btn" onclick="castLine()" class="cast-hero-btn px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-black uppercase flex items-center gap-2.5 cursor-pointer shadow-xl transition-all">
+        <button id="reel-cast-btn" onclick="castLine()" class="cast-hero-btn px-6 sm:px-9 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-black uppercase flex items-center gap-2.5 cursor-pointer shadow-xl transition-all">
           <span class="text-lg">🎣</span>
           <span class="tracking-wide">CAST HOOK</span>
           <span class="text-[9px] bg-amber-950/90 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/50 font-black tracking-wider">[SPACE]</span>
         </button>
 
         <!-- Autonomous Angler Chill Toggle Button [Z] -->
-        <button id="auto-fish-btn" onclick="toggleAutoFish()" class="px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition border border-slate-700 bg-slate-900/90 hover:border-cyan-400" title="Toggle Chill Auto-Fish [Z]">
+        <button id="auto-fish-btn" onclick="toggleAutoFish()" class="px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition border border-amber-800/60 bg-[#1b1007]/90 hover:border-amber-400 shadow-inner" title="Toggle Chill Auto-Fish [Z]">
           <span class="text-lg" id="auto-fish-icon">🤖</span>
           <div class="text-left">
-            <div class="text-[8px] text-slate-400 font-black uppercase tracking-wider">AUTO-ANGLER [Z]</div>
-            <div class="text-xs font-black text-slate-300 flex items-center gap-1.5" id="auto-fish-status">
-              <span class="w-2 h-2 rounded-full bg-slate-500 inline-block" id="auto-fish-led"></span>
+            <div class="text-[8px] text-amber-400/80 font-black uppercase tracking-wider">AUTO-ANGLER [Z]</div>
+            <div class="text-xs font-black text-stone-300 flex items-center gap-1.5" id="auto-fish-status">
+              <span class="w-2 h-2 rounded-full bg-stone-500 inline-block" id="auto-fish-led"></span>
               <span>OFF</span>
             </div>
           </div>
         </button>
 
-        <!-- Station Manager Quick Nav Tiles (Walks Rimuru to Manager + Opens Station) -->
-        <div class="flex items-center gap-1 sm:gap-1.5 border-l border-slate-800 pl-2 sm:pl-3 flex-wrap">
-          <button class="dock-btn group" onclick="goToStation('fishing')" title="Stern Pier: Fish off the stern rail">
-            <span class="text-base group-hover:scale-125 transition-transform">🎣</span>
-            <span class="dock-label text-cyan-300">Pier</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('dex')" title="Fillet Bench: Chef Finbar butchery">
-            <span class="text-base group-hover:scale-125 transition-transform">🔪</span>
-            <span class="dock-label text-pink-300">Fillet</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('helm')" title="Voyage Helm: Navigator Zephyr sea chart">
-            <span class="text-base group-hover:scale-125 transition-transform">🧭</span>
-            <span class="dock-label text-emerald-300">Helm</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('forge')" title="The Forge: Blacksmith Vulcan charms & baits">
-            <span class="text-base group-hover:scale-125 transition-transform">⚙️</span>
-            <span class="dock-label text-purple-300">Forge</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('market')" title="Cargo Market: Merchant Barnaby sell haul">
-            <span class="text-base group-hover:scale-125 transition-transform">💰</span>
-            <span class="dock-label text-yellow-300">Market</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('shop')" title="Harbor Shop: Old Salty hulls & rods">
-            <span class="text-base group-hover:scale-125 transition-transform">🛒</span>
-            <span class="dock-label text-cyan-300">Shop</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('pets')" title="Pet Sanctuary: Companion Altar & Sovereign">
-            <span class="text-base group-hover:scale-125 transition-transform">🐾</span>
-            <span class="dock-label text-pink-300">Pets</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('radio')" title="Ship Radio: Cipher transponder & secret biomes">
-            <span class="text-base group-hover:scale-125 transition-transform">📻</span>
-            <span class="dock-label text-emerald-300">Radio</span>
-          </button>
-          <button class="dock-btn group" onclick="goToStation('journal')" title="Field Bestiary: Holographic species catalog">
-            <span class="text-base group-hover:scale-125 transition-transform">📖</span>
-            <span class="dock-label text-cyan-300">Bestiary</span>
-          </button>
-        </div>
+      </div>
 
+      <!-- Lower Tier: Station Manager Quick Dock -->
+      <div class="floating-dock pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-xl shadow-lg border border-amber-700/40">
+        <button class="dock-btn group" onclick="goToStation('fishing')" title="Stern Pier: Fish off the stern rail">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">🎣</span>
+          <span class="dock-label text-amber-200">Pier</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('dex')" title="Fillet Bench: Chef Finbar butchery">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">🔪</span>
+          <span class="dock-label text-pink-300">Fillet</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('helm')" title="Voyage Helm: Navigator Zephyr sea chart">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">🧭</span>
+          <span class="dock-label text-emerald-300">Helm</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('forge')" title="The Forge: Blacksmith Vulcan charms & baits">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">⚙️</span>
+          <span class="dock-label text-purple-300">Forge</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('market')" title="Cargo Market: Merchant Barnaby sell haul">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">💰</span>
+          <span class="dock-label text-yellow-300">Market</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('shop')" title="Harbor Shop: Old Salty hulls & rods">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">🛒</span>
+          <span class="dock-label text-amber-300">Shop</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('pets')" title="Pet Sanctuary: Companion Altar & Sovereign">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">🐾</span>
+          <span class="dock-label text-pink-300">Pets</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('radio')" title="Ship Radio: Cipher transponder & secret biomes">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">📻</span>
+          <span class="dock-label text-emerald-300">Radio</span>
+        </button>
+        <button class="dock-btn group" onclick="goToStation('journal')" title="Field Bestiary: Holographic species catalog">
+          <span class="text-sm sm:text-base group-hover:scale-125 transition-transform">📖</span>
+          <span class="dock-label text-cyan-300">Bestiary</span>
+        </button>
       </div>
 
     </div>
 
   </div>
 
-  <!-- Sliding Catch Card -->
-  <div id="catchcard" class="fixed top-20 left-8 z-40 transform -translate-x-[150%] opacity-0 pointer-events-none flex items-center gap-4 wood-panel p-4 shadow-2xl border-3 border-amber-400 max-w-md">
-    <div class="w-16 h-16 bg-[#120904] border-2 border-amber-500 rounded flex items-center justify-center p-1.5">
+  <!-- Centered Floating Catch Toast Notification (Jev Decision: sleek_center_toast) -->
+  <div id="catchcard" class="fixed top-12 left-1/2 -translate-x-1/2 z-50 transform -translate-y-16 scale-95 opacity-0 pointer-events-none flex items-center gap-3.5 wood-panel px-5 py-2.5 shadow-2xl border-2 border-amber-400 rounded-2xl transition-all duration-300">
+    <div class="w-12 h-12 bg-[#120904] border border-amber-500/80 rounded-xl flex items-center justify-center p-1.5 shadow-inner">
       <img id="catchcard-icon" src="assets/Fish_Cod.png" class="max-h-full max-w-full object-contain" alt="Fish">
     </div>
-    <div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-black px-2 py-0.5 rounded text-black bg-amber-400" id="catchcard-rarity">EXOTIC</span>
-        <span class="text-xs text-amber-200/90 font-bold" id="catchcard-weight">14.2 kg</span>
+    <div class="text-left">
+      <div class="flex items-center gap-2 mb-0.5">
+        <span class="text-[10px] font-black px-1.5 py-0.5 rounded text-black bg-amber-400 tracking-wider uppercase" id="catchcard-rarity">EXOTIC</span>
+        <span class="text-xs text-amber-200/90 font-mono font-bold" id="catchcard-weight">14.2 kg</span>
       </div>
-      <div class="text-lg font-black text-amber-100" id="catchcard-name">Golden Fish</div>
-      <div class="text-xs sm:text-sm text-amber-300 font-black" id="catchcard-rewards">+$120 | +45 XP</div>
+      <div class="text-base font-black text-amber-100 tracking-wide" id="catchcard-name">Golden Fish</div>
+      <div class="text-xs text-amber-300 font-black" id="catchcard-rewards">+$120 | +45 XP</div>
     </div>
   </div>
 
@@ -485,21 +486,21 @@
     </div>
   </div>
 
-  <!-- Main Modal Station Windows -->
-  <div id="station-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50 hidden">
-    <div class="wood-panel w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col rounded-lg">
+  <!-- Main Modal Station Windows (Jev Decision: warm_drawer_window) -->
+  <div id="station-modal" class="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-50 hidden transition-opacity duration-300">
+    <div class="wood-panel w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl border-2 border-amber-600/70 shadow-2xl">
       
       <!-- Modal Header -->
-      <div class="bg-[#1b0e06] border-b-2 border-amber-800/80 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3.5">
-          <span class="text-4xl" id="modal-icon">🎣</span>
+      <div class="bg-gradient-to-r from-[#1c0d05] via-[#241308] to-[#1c0d05] border-b border-amber-700/60 px-5 sm:px-6 py-3.5 flex items-center justify-between shadow-md">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl sm:text-4xl" id="modal-icon">🎣</span>
           <div>
-            <h2 class="text-lg sm:text-xl font-black text-amber-200" id="modal-title">Fishing Rail</h2>
-            <p class="text-xs sm:text-sm text-amber-300/80" id="modal-subtitle">Cast your line into the depths.</p>
+            <h2 class="text-base sm:text-lg font-black text-amber-100 tracking-wide" id="modal-title">Fishing Rail</h2>
+            <p class="text-xs text-amber-300/80" id="modal-subtitle">Cast your line into the depths.</p>
           </div>
         </div>
-        <button onclick="closeModal()" class="brass-btn-red px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer rounded">
-          <img src="assets/Shop Exit Button.png" class="w-4 h-4 object-contain" alt="Close">
+        <button onclick="closeModal()" class="brass-btn-red px-3.5 py-1.5 text-xs font-black flex items-center gap-1.5 cursor-pointer rounded-xl transition hover:scale-105 active:scale-95 shadow-md">
+          <img src="assets/Shop Exit Button.png" class="w-3.5 h-3.5 object-contain" alt="Close">
           <span>CLOSE [ESC]</span>
         </button>
       </div>
@@ -1878,13 +1879,13 @@
       const spriteFile = `assets/${data.sprite === 'cod' ? 'Fish_Cod.png' : data.sprite === 'tuna' ? 'Fish_Bluefin Tuna.png' : data.sprite + '.png'}`;
       document.getElementById('catchcard-icon').src = spriteFile;
 
-      card.classList.remove('opacity-0', '-translate-x-[150%]');
-      card.classList.add('opacity-100', 'translate-x-0');
+      card.classList.remove('opacity-0', '-translate-y-16', 'scale-95');
+      card.classList.add('opacity-100', 'translate-y-0', 'scale-100');
 
       setTimeout(() => {
-        card.classList.remove('opacity-100', 'translate-x-0');
-        card.classList.add('opacity-0', '-translate-x-[150%]');
-      }, 3500);
+        card.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+        card.classList.add('opacity-0', '-translate-y-16', 'scale-95');
+      }, 2400);
     }
 
     // --- 9. UNDERWATER BIOME FISH & ECOSYSTEM ENGINE ---

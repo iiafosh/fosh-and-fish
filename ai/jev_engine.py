@@ -314,19 +314,52 @@ class JevDecisionEngine:
         
         # Local Jev System One Fallback for Design Decisions
         scored_options = {}
+        criteria_words = set(w.strip(".,;:!?()[]").lower() for w in criteria.split() if len(w) > 3)
+        
+        positive_keywords = [
+            "chill", "smooth", "satisfying", "virtual fisher", "balanced", "rewarding",
+            "cozy", "clean", "warm", "tactile", "dopamine", "intuitive", "compact",
+            "non-obtrusive", "toast", "drawer", "responsive", "polish", "delightful"
+        ]
+        negative_keywords = [
+            "tedious", "cramped", "repetitive", "grind", "forced", "clutter",
+            "heavy", "terrible", "frustrating", "broken", "unfitting", "blocking",
+            "ugly", "arcade-like", "overwhelming", "generic"
+        ]
+        negation_prefixes = ["not ", "never ", "breaks ", "lacks ", "terrible for ", "ruins "]
+
         for opt_key, opt_desc in options.items():
             base_score = 70.0
             desc_lower = opt_desc.lower()
-            if any(w in desc_lower for w in ["chill", "smooth", "satisfying", "virtual fisher", "balanced", "rewarding"]):
-                base_score += 15.0
-            if any(w in desc_lower for w in ["tedious", "cramped", "repetitive", "grind", "forced"]):
-                base_score -= 20.0
-            if any(w in desc_lower for w in ["boss", "secret", "easter egg", "milestone", "overpowered"]):
-                base_score += 10.0
-            scored_options[opt_key] = base_score + random.uniform(-2.0, 4.0)
+            
+            # Semantic alignment with explicit criteria
+            desc_words = set(w.strip(".,;:!?()[]").lower() for w in opt_desc.split())
+            overlap = criteria_words.intersection(desc_words)
+            base_score += len(overlap) * 3.5
+
+            # Positive traits (verifying they aren't negated like "not chill" or "breaks chill")
+            for pos in positive_keywords:
+                if pos in desc_lower:
+                    is_negated = any(f"{neg}{pos}" in desc_lower for neg in negation_prefixes)
+                    if is_negated:
+                        base_score -= 14.0
+                    else:
+                        base_score += 7.0
+
+            # Negative traits
+            for neg in negative_keywords:
+                if neg in desc_lower:
+                    base_score -= 12.0
+
+            # Contextual bonuses (secret, easter egg, boss, sovereign perks)
+            if any(w in desc_lower for w in ["boss", "secret", "easter egg", "milestone", "overpowered", "rimuru"]):
+                base_score += 6.0
+
+            # Clamp between 30 and 99
+            scored_options[opt_key] = max(30.0, min(99.0, base_score + random.uniform(-1.0, 2.0)))
 
         best_opt = max(scored_options, key=scored_options.get)
-        latency = (time.time() - start_time) * 1000.0 + random.uniform(1.5, 4.5)
+        latency = (time.time() - start_time) * 1000.0 + random.uniform(1.2, 3.5)
         
         return {
             "topic": topic,
