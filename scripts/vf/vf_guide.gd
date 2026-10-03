@@ -46,11 +46,11 @@ const TABS := {
 	],
 	"Controls": [
 		["Desktop", ["ui", "settings"],
-		"Space / F or click the water — cast\nS — sell everything\n1–9 — open Hold, Shop, Map, Charms, Pets, Boosts, Quests, Prestige, Buffs\nEsc — close a panel"],
+		"Space / F or click the water — cast\nS — sell everything\n1–9 — open Hold, Shop, Map, Charms, Pets, Boosts, Quests, Prestige, Buffs\nG — guide · O — settings (music, sound, fullscreen)\nEsc — close a panel"],
 		["Phone & tablet", ["ui", "settings"],
 		"Tap the water to cast, tap the fish shop to buy. On the web version use your browser's \"Add to Home Screen\" to play full-screen in landscape."],
 		["Saving", ["ui", "daily"],
-		"The game saves automatically every 20 seconds and when you close it. Desktop and web keep separate saves."],
+		"The game saves automatically every 20 seconds and when you close it. Desktop and web keep separate saves. Settings (O) has the music/sound switches and Reset save."],
 	],
 }
 const TAB_ORDER := ["Basics", "Gear", "Progress", "Prestige", "Controls", "Credits", "Feedback"]

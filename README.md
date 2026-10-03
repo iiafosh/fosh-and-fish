@@ -1,5 +1,7 @@
 # 🐟 Virtual Fisher (Godot 4 + Blender)
 
+![Virtual Fisher](assets/brand/cover_1280x720.png)
+
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 
 

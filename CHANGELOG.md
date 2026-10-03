@@ -1,5 +1,7 @@
 # Changelog
 
+![Virtual Fisher](https://raw.githubusercontent.com/iiafosh/vfish.fosh/master/assets/brand/cover_1280x720.png)
+
 ## 0.1 beta — first public test
 
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
@@ -27,6 +29,9 @@ Play in the browser: https://iiafosh.github.io/vfish.fosh/
 **New in this beta**
 - In-game **Guide** (press **G**) covering every system.
 - In-game **Feedback** form that opens a pre-filled GitHub issue.
+- **Settings** (gear button or **O**): music and sound on/off + volume, fullscreen, reset save.
+- Game icon, loading screen and cover art.
+- Fishing cooldown now starts when you cast, not when the fish lands.
 
 **Known limitations**
 - Prestige requirements after P0, per-level upgrade prices and chest weights are estimates

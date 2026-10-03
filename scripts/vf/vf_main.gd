@@ -111,6 +111,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				if not overlay.visible: _do_sell()
 			KEY_ESCAPE:
 				_close_panel()
+			KEY_O:
+				if overlay.visible and _panel_kind == "settings": _close_panel()
+				else: _open_panel("settings")
 			KEY_G:
 				if overlay.visible and _panel_kind == "guide": _close_panel()
 				else: _open_panel("guide")
@@ -457,9 +460,9 @@ func _build_dock() -> void:
 	var right := _group(1.0, Control.GROW_DIRECTION_BEGIN)
 	var i := 1
 	for nav in [["inventory", "Hold"], ["shop", "Shop"], ["biomes", "Map"], ["charms", "Charms"], ["pets", "Pets"],
-			["boosts", "Boosts"], ["quests", "Quests"], ["prestige", "Prestige"], ["stats", "Buffs"], ["guide", "Guide"]]:
+			["boosts", "Boosts"], ["quests", "Quests"], ["prestige", "Prestige"], ["stats", "Buffs"], ["guide", "Guide"], ["settings", "Settings"]]:
 		var b := _nav_button(nav[0], nav[1])
-		b.tooltip_text = ("%s  [%d]" % [nav[1], i]) if i <= 9 else "%s  [G]" % nav[1]
+		b.tooltip_text = ("%s  [%d]" % [nav[1], i]) if i <= 9 else ("%s  [G]" % nav[1] if nav[0] == "guide" else "%s  [O]" % nav[1])
 		right.add_child(b)
 		i += 1
 
@@ -563,11 +566,13 @@ func _do_cast() -> void:
 		_toast(why, "warn")
 		return
 	AudioManager.play_cast()
-	VF._last_cast_ms = Time.get_ticks_msec()   # lock the cooldown during the throw
+	var cast_start := Time.get_ticks_msec()
+	VF._last_cast_ms = cast_start              # cooldown starts the moment you cast
 	stage.cast(func():
 		AudioManager.play_splash()
 		VF._last_cast_ms = -100000
-		VF.cast())
+		VF.cast()
+		VF._last_cast_ms = cast_start)         # keep counting from the cast, not the catch
 
 func _do_sell() -> void:
 	var earned: int = VF.sell_all()
@@ -820,7 +825,7 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Inventory", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -839,6 +844,7 @@ func _render_panel() -> void:
 		"prestige": _panel_prestige()
 		"stats": _panel_stats()
 		"guide": _panel_guide()
+		"settings": _panel_settings()
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1208,21 +1214,6 @@ func _panel_stats() -> void:
 		v.add_child(pc)
 		p.add_child(v)
 		_add_to(og, p)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_END
-	var reset := btn("Reset save…", C_NEUTRAL, 12, 120)
-	reset.tooltip_text = "Erase all progress (asks to confirm)"
-	reset.pressed.connect(func():
-		if reset.text == "Click again to erase everything":
-			VF.reset_save()
-			get_tree().reload_current_scene()
-		else:
-			reset.text = "Click again to erase everything"
-			reset.add_theme_color_override("font_color", C_BAD)
-			get_tree().create_timer(3.0).timeout.connect(func():
-				if is_instance_valid(reset): reset.text = "Reset save…"))
-	row.add_child(reset)
-	panel_body.add_child(row)
 
 # ============================================================ capture mode
 ## godot --path . -- --capture=DIR [--demo=BIOME] : plays a few casts, saves
@@ -1263,8 +1254,16 @@ func _check_capture() -> void:
 		_do_cast()
 		await get_tree().create_timer(0.9).timeout
 	await get_tree().create_timer(0.3).timeout
+	if "--clean" in OS.get_cmdline_user_args():
+		for c in get_children():
+			if c is CanvasItem and c != stage and c != fx_layer and not (c is ColorRect):
+				c.visible = false
+		await get_tree().create_timer(1.2).timeout
+		await _shot(dir + "/clean.png")
+		get_tree().quit()
+		return
 	await _shot(dir + "/main.png")
-	var shots := [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"]]
+	var shots := [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
 		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:
@@ -1415,3 +1414,66 @@ func _panel_credits() -> void:
 	assets.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	assets.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel_body.add_child(assets)
+
+# =============================================================== settings
+func _setting_row(title: String, sub: String, on: bool, on_key: String, vol: float = -1.0, vol_key: String = "") -> void:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 12))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 14)
+	p.add_child(h)
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(lbl(title, 18))
+	v.add_child(lbl(sub, 13, C_MUTED))
+	h.add_child(v)
+	if vol >= 0.0:
+		var sl := HSlider.new()
+		sl.min_value = 0.0
+		sl.max_value = 1.0
+		sl.step = 0.05
+		sl.value = vol
+		sl.custom_minimum_size = Vector2(220, 28)
+		sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sl.editable = on
+		sl.add_theme_stylebox_override("slider", sbox(Color("#e4d6bb"), 6, 0, Color.TRANSPARENT, 4))
+		sl.add_theme_stylebox_override("grabber_area", sbox(Color("#2f8f9e"), 6, 0, Color.TRANSPARENT, 4))
+		sl.add_theme_stylebox_override("grabber_area_highlight", sbox(Color("#3aa5b5"), 6, 0, Color.TRANSPARENT, 4))
+		sl.value_changed.connect(func(x): AudioManager.set_option(vol_key, x))
+		sl.drag_ended.connect(func(_c): AudioManager.play_click())
+		h.add_child(sl)
+	var t := btn("ON" if on else "OFF", C_GOOD if on else Color("#9a8a74"), 15, 86)
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	t.pressed.connect(func():
+		AudioManager.set_option(on_key, not on)
+		_render_panel())
+	h.add_child(t)
+	panel_body.add_child(p)
+
+func _panel_settings() -> void:
+	var A = AudioManager
+	_setting_row("Music & ambience", "Calm water sounds in the background", A.music_on, "music_on", A.music_volume, "music_volume")
+	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
+	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
+		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
+	var keys := lbl("Shortcuts: Space/F cast · S sell · 1-9 menus · G guide · O settings · Esc close", 13, C_MUTED)
+	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel_body.add_child(keys)
+	var info := lbl("Virtual Fisher %s · made by afosh · your progress saves automatically" % VERSION, 12, C_MUTED)
+	panel_body.add_child(info)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	var reset := btn("Reset save…", C_NEUTRAL, 12, 120)
+	reset.tooltip_text = "Erase all progress (asks to confirm)"
+	reset.pressed.connect(func():
+		if reset.text == "Click again to erase everything":
+			VF.reset_save()
+			get_tree().reload_current_scene()
+		else:
+			reset.text = "Click again to erase everything"
+			reset.add_theme_color_override("font_color", C_BAD)
+			get_tree().create_timer(3.0).timeout.connect(func():
+				if is_instance_valid(reset): reset.text = "Reset save…"))
+	row.add_child(reset)
+	panel_body.add_child(row)
+
