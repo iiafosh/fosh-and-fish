@@ -24,6 +24,7 @@ import vf_boats as B  # noqa: E402
 import vf_props as P  # noqa: E402
 import vf_biomes as BI  # noqa: E402
 import vf_topdown as TD  # noqa: E402
+import vf_critters as CR  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(ROOT, "assets", "vf")
@@ -164,6 +165,25 @@ def do_fish_top(only):
             TD.render_fish_top(name, spec, os.path.join(d, slug(name) + ".png"))
 
 
+def do_critters(only, man):
+    d = os.path.join(OUT, "swim")
+    os.makedirs(d, exist_ok=True)
+    for key in CR.SWIMMERS:
+        if want(key, only):
+            CR.render_swimmer(key, os.path.join(d, slug(key) + ".png"))
+    man["swim"] = {"frames": CR.FRAMES, "cell": CR.CELL, "species": [k for k in CR.SWIMMERS]}
+    d = os.path.join(OUT, "critters")
+    os.makedirs(d, exist_ok=True)
+    if want("gull", only):
+        CR.render_static("gull", os.path.join(d, "gull.png"), 160)
+    if want("crab", only):
+        CR.render_static("crab", os.path.join(d, "crab.png"), 96, rot_z=0)
+
+
+def do_fisher(man):
+    man["fisher"] = CR.render_fisher(os.path.join(OUT, "fisher"))
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     only = []
@@ -171,7 +191,7 @@ def main():
         i = argv.index("--only")
         only = [s.strip() for s in argv[i + 1].split(",")]
         argv = argv[:i] + argv[i + 2:]
-    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top"]
+    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top", "critters", "fisher"]
     man = load_manifest()
     for c in cats:
         print("== rendering", c)
@@ -193,6 +213,10 @@ def main():
             do_boats_top(only, man)
         elif c == "fish_top":
             do_fish_top(only)
+        elif c == "critters":
+            do_critters(only, man)
+        elif c == "fisher":
+            do_fisher(man)
         elif c in P.PROPS:
             do_props(c, only)
         save_manifest(man)

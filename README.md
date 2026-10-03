@@ -4,6 +4,8 @@ A desktop fishing game built on the real **Virtual Fisher** Discord bot mechanic
 rendered procedurally in **Blender**: high-angle biome scenes with see-through water (one shared
 height function drives the terrain mesh and the water's depth colour/foam), a straw-hat fisherman
 on each of the 17 boats, and fish that swim under the surface in-game with caustics on top.
+Free third-party assets (Quaternius, Kenney, OpenGameArt, Poly by Google, Fredoka) are listed with
+their licenses in [CREDITS.md](CREDITS.md); fetch the raw packs with `python tools/fetch_assets.py`.
 
 ## Play
 
@@ -44,7 +46,8 @@ requirements after P0) are marked `DERIVED` in `scripts/vf/vf_data.gd`.
 | `scripts/vf/vf_main.gd` | UI: stage, catch card, dock, panels |
 | `scripts/vf/vf_stage.gd` | Top-down stage: scene, swimming fish, boat, line, bobber, ripples |
 | `shaders/vf_caustics.gdshader` | Caustics masked to the water (uses `scenes/*_mask.png`) |
-| `tools/blender/` | Procedural art pipeline (models, materials, biome scenes) |
+| `tools/blender/` | Art pipeline: procedural models, top-down scenes (`vf_topdown.py`), vendor models (`vf_vendor.py`), animated sheets (`vf_critters.py`) |
+| `assets/third_party/` | Kenney UI/particles, CC0 sounds, Fredoka font (see CREDITS.md) |
 | `assets/vf/` | Rendered sprites, `scenes/` + masks, `boats_top/`, `fish_top/`, and `manifest.json` anchors |
 | `tests/vf_sim_test.gd` | Headless mechanics & balance checks |
 | `legacy/` | Previous Godot prototype (ignored by Godot via `.gdignore`) |
@@ -54,7 +57,7 @@ requirements after P0) are marked `DERIVED` in `scripts/vf/vf_data.gd`.
 ```bash
 D:/Blender/blender-4.2.3-windows-x64/blender.exe -b --factory-startup --python tools/blender/render_assets.py
 ```
-Pass categories (`fish exotics pets rods boats baits chests charms ui scenes boats_top fish_top`) and/or
+Pass categories (`fish exotics pets rods boats baits chests charms ui scenes boats_top fish_top critters fisher`) and/or
 `--only "Name,Other"` to render a subset.
 
 ## Tests & screenshots

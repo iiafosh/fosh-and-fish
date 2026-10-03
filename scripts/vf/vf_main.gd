@@ -140,6 +140,15 @@ func sbox(bg: Color, radius := 12, border := 0, border_col := Color.TRANSPARENT,
 	s.anti_aliasing = true
 	return s
 
+const UI := "res://assets/third_party/kenney_ui/"
+
+func tbox(name: String, margin := 20.0, pad := 14.0) -> StyleBoxTexture:
+	var t := StyleBoxTexture.new()
+	t.texture = load(UI + name + ".png")
+	t.set_texture_margin_all(margin)
+	t.set_content_margin_all(pad)
+	return t
+
 func lbl(text: String, size := 15, color := C_TEXT, outline := 0) -> Label:
 	var l := Label.new()
 	l.text = text
@@ -169,9 +178,19 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 	b.add_theme_color_override("font_hover_color", fc)
 	b.add_theme_color_override("font_pressed_color", fc)
 	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.4))
-	b.add_theme_stylebox_override("normal", sbox(color, 10, 0, Color.TRANSPARENT, 8, 2))
-	b.add_theme_stylebox_override("hover", sbox(color.lightened(0.15), 10, 0, Color.TRANSPARENT, 8))
-	b.add_theme_stylebox_override("pressed", sbox(color.darkened(0.2), 10, 0, Color.TRANSPARENT, 8))
+	if color == C_NEUTRAL:
+		var n := tbox("button_brown", 12, 8)
+		var h := tbox("button_brown", 12, 8)
+		h.modulate_color = Color(1.06, 1.04, 0.98)
+		var pr := tbox("button_brown", 12, 8)
+		pr.modulate_color = Color(0.9, 0.86, 0.8)
+		b.add_theme_stylebox_override("normal", n)
+		b.add_theme_stylebox_override("hover", h)
+		b.add_theme_stylebox_override("pressed", pr)
+	else:
+		b.add_theme_stylebox_override("normal", sbox(color, 10, 2, color.darkened(0.3), 8, 2))
+		b.add_theme_stylebox_override("hover", sbox(color.lightened(0.15), 10, 2, color.darkened(0.3), 8))
+		b.add_theme_stylebox_override("pressed", sbox(color.darkened(0.2), 10, 2, color.darkened(0.3), 8))
 	b.add_theme_stylebox_override("disabled", sbox(Color("#ddd0b6"), 10, 0, Color.TRANSPARENT, 8))
 	if min_w > 0: b.custom_minimum_size.x = min_w
 	b.pressed.connect(func(): AudioManager.play_click())
@@ -187,10 +206,11 @@ func money_str(n: float) -> String:
 func _build() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var th := Theme.new()
-	var font := SystemFont.new()
-	font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
-	font.font_weight = 600
-	th.default_font = font
+	var font: Font = load("res://assets/third_party/fonts/Fredoka.ttf")
+	var fv := FontVariation.new()
+	fv.base_font = font
+	fv.variation_opentype = {"wght": 560}
+	th.default_font = fv
 	th.set_color("font_color", "Label", C_TEXT)
 	theme = th
 	var bg := ColorRect.new()
@@ -213,7 +233,7 @@ func _build_stage() -> void:
 
 func _build_hud() -> void:
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.95), 16, 0, Color.TRANSPARENT, 8, 8))
+	bar.add_theme_stylebox_override("panel", tbox("panel_brown", 22, 12))
 	bar.position = Vector2(12, 10)
 	add_child(bar)
 	var row := HBoxContainer.new()
@@ -262,7 +282,7 @@ func _hud_stat(t: Texture2D, key: String) -> Control:
 
 func _build_card() -> void:
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.96), 12, 0, Color.TRANSPARENT, 0, 8))
+	card.add_theme_stylebox_override("panel", tbox("panel_brown", 22, 6))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
 	card.offset_left = -372
@@ -300,7 +320,7 @@ func _build_card() -> void:
 
 func _build_dock() -> void:
 	var dock := PanelContainer.new()
-	dock.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.95), 18, 0, Color.TRANSPARENT, 10, 10))
+	dock.add_theme_stylebox_override("panel", tbox("panel_brown", 22, 16))
 	dock.anchor_top = 1.0
 	dock.anchor_bottom = 1.0
 	dock.anchor_left = 0.5
@@ -392,7 +412,7 @@ func _build_overlay() -> void:
 	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _close_panel())
 	overlay.add_child(dim)
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", sbox(C_PANEL, 20, 2, Color("#d9c6a5"), 16, 16))
+	p.add_theme_stylebox_override("panel", tbox("panel_brown_corners_a", 36, 26))
 	p.anchor_left = 0.5
 	p.anchor_right = 0.5
 	p.anchor_top = 0.5
@@ -406,9 +426,17 @@ func _build_overlay() -> void:
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
 	var head := HBoxContainer.new()
-	panel_title = lbl("", 24)
-	panel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(panel_title)
+	var ban := PanelContainer.new()
+	ban.add_theme_stylebox_override("panel", tbox("banner_hanging", 40, 0))
+	ban.custom_minimum_size = Vector2(320, 56)
+	panel_title = lbl("", 24, Color.WHITE, 6)
+	panel_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ban.add_child(panel_title)
+	head.add_child(ban)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(spacer)
 	var close := btn("✕", Color("#e2d4b8"), 16, 40)
 	close.pressed.connect(_close_panel)
 	head.add_child(close)
@@ -476,11 +504,14 @@ func _on_trip(res: Dictionary) -> void:
 		i += 1
 	if not res.chest.is_empty():
 		AudioManager.play_strike()
+		stage.burst("sparkle", stage._bobber)
 	if res.pet != "":
 		AudioManager.play_success()
+		stage.burst("magic", stage._bobber)
 
 func _on_level_up(new_level: int, reward: int) -> void:
-	AudioManager.play_success()
+	AudioManager.play_levelup()
+	stage.burst("confetti", stage.boat.position + stage.boat.pivot_offset)
 	var banner := lbl("LEVEL UP!  %d" % new_level, 40, C_GOLD, 8)
 	banner.position = Vector2(get_viewport_rect().size.x * 0.36 - 160, get_viewport_rect().size.y * 0.22)
 	fx_layer.add_child(banner)

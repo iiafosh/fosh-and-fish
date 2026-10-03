@@ -281,13 +281,17 @@ def add_outline(ob, thickness=0.03, color=OUTLINE):
     if ob.type != "MESH":
         return
     mats = ob.data.materials
-    mats.append(outline_mat(color))
+    om = outline_mat(color)
+    idx = next((i for i, m in enumerate(mats) if m == om), -1)
+    if idx < 0:
+        mats.append(om)
+        idx = len(mats) - 1
     mod = ob.modifiers.new("outline", "SOLIDIFY")
     mod.thickness = -thickness
     mod.offset = -1.0
     mod.use_flip_normals = True
-    mod.use_even_offset = True
-    mod.material_offset = len(mats) - 1
+    mod.use_even_offset = bool(ob.get("outline_even", True))
+    mod.material_offset = idx
     mod.use_rim = False
 
 

@@ -14,6 +14,7 @@ from mathutils import Vector
 import vf_kit as K
 import vf_models as M
 import vf_boats as B
+import vf_vendor as V
 from vf_biomes import palm, pine, mushroom, crystal
 from vf_kit import cone, cube, cyl, hexc, ico, sphere, toon, torus, tube
 
@@ -315,28 +316,48 @@ def scatter(P, rnd, n, zmin, zmax, fn, avoid=()):
     return out
 
 
+def kn(name, s, folder=None, tint=None):
+    """Kenney model placer for scatter(): fn(p, rnd) -> [obj]."""
+    def f(p, r):
+        names = name if isinstance(name, (list, tuple)) else [name]
+        o = V.place(r.choice(names), p, s * r.uniform(0.85, 1.2), folder=folder or V.NATURE, tint=tint, rnd=r)
+        return [o]
+    return f
+
+
 def build_scene(name, P):
     rnd = random.Random(7 + len(name))
     avoid = [(BOAT_SPOT[0], BOAT_SPOT[1], 7.0), (BOBBER_SPOT[0], BOBBER_SPOT[1], 3.0)]
     parts = [terrain(P, rnd)]
+    WC = V.WATERCRAFT
+    land_rocks = ["rock_largeA", "rock_largeB", "rock_largeD", "rock_smallA", "rock_smallC", "rock_smallFlatA"]
+    if name in ("River", "Ocean", "Volcanic", "Alien", "Abyss"):
+        parts += scatter(P, rnd, 3, -2.0, -0.9, lambda p, r: [V.place(r.choice(["buoy", "buoy-flag"]), (p[0], p[1], -0.25), 1.1, folder=WC, rnd=r)], avoid)
     if name in ("River", "Ocean"):
         cols = ["#ffb3c7", "#c9a3ff", "#ffd27a", "#7fd6ff", "#ff8a7a"]
         if name == "Ocean":
             parts += scatter(P, rnd, 14, -3.6, -0.6, lambda p, r: coral(p, r.uniform(1.1, 1.8), cols, r), avoid)
-            parts += scatter(P, rnd, 12, 0.25, 3.0, lambda p, r: palm(p, r.uniform(0.9, 1.3)))
+            parts += scatter(P, rnd, 14, 0.25, 3.0, kn(["tree_palmTall", "tree_palmBend", "tree_palmDetailedTall", "tree_palmShort"], 2.8))
+            parts += scatter(P, rnd, 14, 0.2, 3.0, kn(["plant_bushSmall", "flower_yellowB", "flower_redB", "grass_large"], 2.0))
+            parts += scatter(P, rnd, 2, -3.5, -2.0, lambda p, r: [V.place("chest", (p[0], p[1], p[2] + 0.1), 1.3, folder=V.GLB, rnd=r)], avoid)
         else:
-            parts += scatter(P, rnd, 30, 0.3, 3.0, lambda p, r: pine(p, r.uniform(0.9, 1.4)))
+            parts += scatter(P, rnd, 22, 0.35, 3.0, kn(["tree_pineRoundA", "tree_pineRoundC", "tree_pineTallA_detailed", "tree_default", "tree_oak"], 2.6))
+            parts += scatter(P, rnd, 18, 0.25, 3.0, kn(["plant_bush", "plant_bushDetailed", "plant_bushLarge"], 2.0))
+            parts += scatter(P, rnd, 26, 0.2, 3.0, kn(["flower_redA", "flower_yellowA", "flower_purpleB", "grass_large", "grass_leafsLarge"], 2.2))
             parts += scatter(P, rnd, 10, -0.4, 0.1, lambda p, r: weed(p, 1.2, "#5a9a4a"), avoid)
-            parts += scatter(P, rnd, 8, -1.2, -0.1, lambda p, r: lily((p[0], p[1]), r.uniform(0.8, 1.3)), avoid)
+            parts += scatter(P, rnd, 10, -1.4, -0.2, lambda p, r: [V.place(r.choice(["lily_large", "lily_small"]), (p[0], p[1], 0.02), 2.4, rnd=r)], avoid)
+            parts += scatter(P, rnd, 8, 0.2, 3.0, kn(["log", "stump_round", "mushroom_redGroup"], 2.0))
         parts += scatter(P, rnd, 12, -2.5, -0.3, lambda p, r: weed(p, r.uniform(0.8, 1.3), "#4fae5a"), avoid)
-        parts += scatter(P, rnd, 10, -P["deep"], 0.6, lambda p, r: rock(p, r.uniform(0.5, 1.4)), avoid)
+        parts += scatter(P, rnd, 10, -P["deep"], 0.6, kn(land_rocks, 2.2), avoid)
         sx = 9.0
         sy = P["shore"] + 3.5 * math.sin(0.11 * sx + 1.0) + 2.2 * math.sin(0.27 * sx + 2.3)
         parts += dock(sx, sy + 1.5, 9.0)
+        moored = V.place("boat-row-small", (sx + 2.6, sy - 4.5, -0.15), 2.2, rot_z=math.radians(80), folder=WC)
+        parts.append(moored)
         if name == "Ocean":
             parts += hut(sx - 0.2, sy + 4.5, H(sx, sy + 4.5, P))
     elif name == "Volcanic":
-        parts += scatter(P, rnd, 18, -P["deep"], 2.5, lambda p, r: rock(p, r.uniform(0.6, 1.8), "#3a2c2c"), avoid)
+        parts += scatter(P, rnd, 18, -P["deep"], 2.5, kn(["rock_tallA", "rock_tallC", "rock_largeC", "rock_largeE"], 2.4, tint="#3a2c2c"), avoid)
         for _ in range(10):
             def vent(p, r):
                 v = cyl(loc=(p[0], p[1], p[2] + 0.1), r=0.35, depth=0.3, mat=toon(P["glow"], flat_glow=True), verts=10)
@@ -348,21 +369,24 @@ def build_scene(name, P):
     elif name == "Sky":
         parts += scatter(P, rnd, 40, -P["deep"], -1.0, lambda p, r: [ico(loc=(p[0], p[1], p[2] + 0.5), scale=r.uniform(0.8, 2.0),
                                                                           sub=2, mat=toon("#ffffff"), smooth=True)], avoid)
-        parts += scatter(P, rnd, 14, 0.3, 3.0, lambda p, r: pine(p, r.uniform(0.8, 1.2), col="#3f9a5a"))
+        parts += scatter(P, rnd, 14, 0.3, 3.0, kn(["tree_fat", "tree_plateau", "tree_detailed"], 2.6))
+        parts += scatter(P, rnd, 16, 0.2, 3.0, kn(["flower_purpleA", "flower_yellowC", "grass_leafsLarge"], 2.0))
         parts += scatter(P, rnd, 6, 0.6, 3.0, lambda p, r: rock(p, r.uniform(0.4, 0.9), "#d8d0e8"))
     elif name == "Space":
         parts += scatter(P, rnd, 26, -P["deep"], -0.6, lambda p, r: [crystal(p, r.uniform(1.0, 2.6), r.choice(["#c9b3ff", "#7dd6ff", "#ff9cf0"]))], avoid)
-        parts += scatter(P, rnd, 18, 0.2, 3.0, lambda p, r: rock(p, r.uniform(0.6, 1.6), "#7a6a8a"))
+        parts += scatter(P, rnd, 18, 0.2, 3.0, kn(land_rocks, 2.2, tint="#7a6a8a"))
         parts += scatter(P, rnd, 60, -P["deep"], -0.5, lambda p, r: [ico(loc=p, scale=0.08, sub=1, mat=toon("#ffffff", flat_glow=True))])
     elif name == "Alien":
         cols = ["#7dffcf", "#c77dff", "#5ff2ff", "#b8ff6a"]
         parts += scatter(P, rnd, 10, -3.5, -0.6, lambda p, r: coral(p, r.uniform(0.8, 1.3), cols, r), avoid)
         parts += scatter(P, rnd, 12, 0.3, 3.0, lambda p, r: mushroom(p, r.uniform(0.6, 1.0), cap=r.choice(["#c77dff", "#7dff9a"])))
+        parts += scatter(P, rnd, 10, 0.2, 3.0, kn(["mushroom_tanTall", "mushroom_redTall"], 2.6, tint="#b07dff"))
         parts += scatter(P, rnd, 14, 0.4, 3.0, lambda p, r: [crystal(p, r.uniform(1.0, 2.2), r.choice(cols))])
     elif name == "Abyss":
         cols = ["#5ff2ff", "#c77dff", "#9fffd0"]
         parts += scatter(P, rnd, 16, -P["deep"], -1.0, lambda p, r: weed(p, r.uniform(1.2, 2.2), r.choice(cols)), avoid)
-        parts += scatter(P, rnd, 10, -P["deep"], -1.0, lambda p, r: rock(p, r.uniform(0.8, 1.8), "#2a3450"), avoid)
+        parts += scatter(P, rnd, 10, -P["deep"], -1.0, kn(land_rocks, 2.4, tint="#2a3450"), avoid)
+        parts += scatter(P, rnd, 2, -P["deep"], -2.0, lambda p, r: [V.place("chest", (p[0], p[1], p[2] + 0.1), 1.4, folder=V.GLB, rnd=r)], avoid)
         parts += scatter(P, rnd, 8, 0.2, 3.0, lambda p, r: [cyl(loc=(p[0], p[1], p[2] + 1.2), r=0.45, depth=2.6, verts=8,
                                                                  mat=toon("#3a4466"), smooth=False)])
         parts += scatter(P, rnd, 50, -P["deep"], -0.5, lambda p, r: [ico(loc=(p[0], p[1], p[2] + 0.3), scale=0.1, sub=1,
@@ -373,6 +397,7 @@ def build_scene(name, P):
 def render_scene(name, path, mask_path):
     P = BIOMES[name]
     K.clear_scene()
+    V.clear_library()
     K.SOFT[0] = True
     K.FOG.update({"color": None, "amount": 0.0})
     K.setup_render(W, 1080, samples=48, transparent=False)
@@ -445,20 +470,17 @@ def render_boat_top(name, path):
     s.data.angle = math.radians(7)
     cam = K.make_camera(CAM_ROT, ortho=True)
     parts, deck = B.build_boat(name)
-    fisher, tip = M.build_fisherman(scale=B.FISHER_SCALE.get(name, 1.0), straw=True)
-    for f in fisher:
-        f.location += Vector(deck)
-    tip = Vector(tip) + Vector(deck)
-    allp = clip_below(parts + fisher)
+    allp = clip_below(parts)
     K.outline_all(allp, 0.035)
     K.frame_ortho(cam, allp, 1.06)
     K.render(path)
     W2 = 640
     cx, cy, scale, aspect = cam["frame"]
-    t = K.project(cam, tip)
+    d = K.project(cam, deck)
     o = K.project(cam, (0, 0, 0))
     K.SOFT[0] = False
-    return {"rod_tip": [t[0] / W2, t[1] / W2], "origin": [o[0] / W2, o[1] / W2], "unit_px": round(W2 / scale, 3)}
+    return {"deck": [d[0] / W2, d[1] / W2], "origin": [o[0] / W2, o[1] / W2], "unit_px": round(W2 / scale, 3),
+            "fisher_scale": B.FISHER_SCALE.get(name, 1.0)}
 
 
 def render_fish_top(name, spec, path):
