@@ -22,6 +22,8 @@ Every cast catches several fish at once. After a cast there's a short **cooldown
 filling on the FISH button). The **catch card** (top right) shows what you caught, the XP you got
 and any chest or pet you found.
 
+**Starter goals:** the ★ goal under your level gives a reward every time you finish one (money, bait, a chest…). Tap it to jump to what it needs. New players also get a pointer that shows the first steps.
+
 **First 10 minutes:** fish until you have **$500**, sell, buy the **Improved Rod**, then buy the
 first levels of **Better Fish** and **Salesman** (Shop → Upgrades) and a few **Worms**.
 The **Next:** bar under your level always shows the next rod or boat to save for — tap it.

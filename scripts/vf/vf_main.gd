@@ -72,13 +72,13 @@ func _ready() -> void:
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
+	VF.goal_done.connect(_on_goal_done)
 	stage.merchant_clicked.connect(func(): _open_panel("shop", "Rods"))
 	_refresh()
 	_apply_biome()
 	_card_intro()
 	_build_version_label()
-	if VF.stats.trips == 0 and VF.level == 1 and VF.prestige == 0 and not _capturing():
-		_open_panel("guide", "Basics")
+	_build_coach()
 	_check_capture()
 
 func _process(delta: float) -> void:
@@ -92,6 +92,7 @@ func _process(delta: float) -> void:
 	fish_btn.text = "FISH" if left <= 0.0 else "%.1fs" % left
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
+	_process_coach(delta)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -576,12 +577,24 @@ func _do_cast() -> void:
 
 func _do_sell() -> void:
 	var earned: int = VF.sell_all()
+	if earned > 0 and VF.tutorial == 1:
+		_coach_next(2)
 	if earned > 0:
 		AudioManager.play_success()
 		_float_text("+%s" % money_str(earned), sell_btn.get_global_rect().get_center() + Vector2(0, -40), C_GOLD)
 
 func _on_trip(res: Dictionary) -> void:
 	_show_catch(res)
+	for f in res.get("new_species", []):
+		_banner("New fish discovered!", "%s  ·  %d / %d in your collection" % [f, VF.discovered.size(), VFData.FISH_ORDER.size()],
+			icon_for("fish", f), Color("#2f8f9e"))
+		stage.burst("sparkle", stage._bobber)
+	if int(res.get("lucky", 0)) > 0:
+		_float_text("Lucky splash!  +%s" % money_str(res.lucky), stage.bobber_screen() + Vector2(0, -70), C_GOLD)
+		stage.burst("sparkle", stage._bobber)
+		AudioManager.play_strike()
+	if VF.tutorial == 0:
+		_coach_next(1)
 	var best := ""
 	for f in res.fish:
 		if best == "" or VFData.FISH[f].price > VFData.FISH[best].price: best = f
@@ -659,8 +672,7 @@ func _card_intro() -> void:
 	_show_card()
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
-	for t in ["Tap the water, press FISH or Space to cast.", "Sell your catch, then visit the merchant on the island for rods, bait and boats.",
-			"Reach level 250 with 440/440 charms and $5B to prestige.", "Made by afosh — Guide (G) → Credits."]:
+	for t in ["Follow the arrow — or press G for the guide.", "Finish the goals under your level for rewards.", "Made by afosh."]:
 		var l := lbl("• " + t, 14, C_MUTED)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 320
@@ -754,6 +766,15 @@ func _refresh() -> void:
 ## The cheapest useful purchase you can't afford yet (next rod or boat),
 ## mirroring the Prestige 0 Guide's buying order.
 func _refresh_goal() -> void:
+	var sg: Dictionary = VF.current_goal()
+	if not sg.is_empty():
+		goal_box.visible = true
+		_goal = {"starter": true, "goal": sg}
+		var prog: int = mini(VF.goal_progress(sg), int(sg.goal))
+		goal_label.text = "★ %s   %s/%s\n    Reward: %s" % [sg.text, VF.commas(prog), VF.commas(sg.goal), VF.goal_reward_text(sg.reward)]
+		goal_bar.max_value = sg.goal
+		goal_bar.value = prog
+		return
 	var best := {}
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
@@ -776,8 +797,17 @@ func _refresh_goal() -> void:
 	goal_bar.value = minf(have, best.cost)
 
 func _open_goal() -> void:
-	if not _goal.is_empty():
-		_open_panel(_goal.panel[0], _goal.panel[1])
+	if _goal.is_empty(): return
+	if _goal.get("starter", false):
+		match String(_goal.goal.stat):
+			"rods": _open_panel("shop", "Rods")
+			"boats": _open_panel("shop", "Boats")
+			"bait_casts": _open_panel("shop", "Bait")
+			"species": _open_panel("inventory")
+			"sells": _do_sell()
+			_: _open_panel("guide", "Basics")
+		return
+	_open_panel(_goal.panel[0], _goal.panel[1])
 
 func _refresh_boosts() -> void:
 	var names := []
@@ -812,12 +842,16 @@ const PANEL_TABS := {
 }
 
 func _open_panel(kind: String, tab: String = "") -> void:
+	if VF.tutorial == 2 and kind == "shop":
+		_coach_next(3)
 	_panel_kind = kind
 	_panel_tab = tab if tab != "" else (PANEL_TABS[kind][0] if PANEL_TABS.has(kind) else "")
 	overlay.visible = true
 	_render_panel()
 
 func _close_panel() -> void:
+	if VF.tutorial == 3 and _panel_kind == "shop":
+		_coach_next(4)
 	overlay.visible = false
 	_panel_kind = ""
 
@@ -905,6 +939,15 @@ func _panel_inventory() -> void:
 			"%s each • %s total" % [money_str(VFData.FISH[f].price * VF.sell_mult()), money_str(n * VFData.FISH[f].price * VF.sell_mult())], null, false, 56))
 	if g.get_child_count() == 0:
 		panel_body.add_child(lbl("Your hold is empty. Go fish!", 16, C_MUTED))
+	panel_body.add_child(lbl("Fish collection  %d / %d" % [VF.discovered.size(), VFData.FISH_ORDER.size()], 18))
+	var dex := _grid(10)
+	for f in VFData.FISH_ORDER:
+		var known: bool = VF.discovered.has(f)
+		var ic := icon(icon_for("fish", f), 52)
+		ic.modulate = Color.WHITE if known else Color(0.1, 0.12, 0.18, 0.55)
+		ic.tooltip_text = ("%s — caught %s" % [f, VF.commas(int(VF.discovered[f]))]) if known else "??? (not discovered yet)"
+		ic.mouse_filter = Control.MOUSE_FILTER_STOP
+		dex.add_child(ic)
 
 func _panel_shop() -> void:
 	match _panel_tab:
@@ -1226,6 +1269,33 @@ func _check_capture() -> void:
 		if a.begins_with("--demo="): demo = a.substr(7)
 	if dir == "": return
 	VF.autosave = false
+	if "--onboarding" in OS.get_cmdline_user_args():
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 0
+		VF.changed.emit()
+		_coach_show()
+		await get_tree().create_timer(1.0).timeout
+		await _shot(dir + "/on0_cast.png")
+		for i in 6:
+			VF._last_cast_ms = -100000
+			_do_cast()
+			await get_tree().create_timer(0.7).timeout
+		await get_tree().create_timer(0.6).timeout
+		await _shot(dir + "/on1_sell.png")
+		_do_sell()
+		await get_tree().create_timer(2.6).timeout
+		await _shot(dir + "/on2_merchant.png")
+		stage.merchant_clicked.emit()
+		await get_tree().create_timer(0.6).timeout
+		await _shot(dir + "/on3_shop.png")
+		_close_panel()
+		await get_tree().create_timer(0.8).timeout
+		await _shot(dir + "/on4_goals.png")
+		_open_panel("inventory")
+		await get_tree().create_timer(0.5).timeout
+		await _shot(dir + "/on5_collection.png")
+		get_tree().quit()
+		return
 	if demo != "":
 		var lv: int = VFData.BIOMES[demo].level
 		VF.level = maxi(lv, 120)
@@ -1477,3 +1547,135 @@ func _panel_settings() -> void:
 	row.add_child(reset)
 	panel_body.add_child(row)
 
+
+# ============================================================== onboarding
+var _banner_queue: Array = []
+var _banner_busy := false
+
+func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
+	_banner_queue.append([title, sub, tex, color])
+	if not _banner_busy: _next_banner()
+
+func _next_banner() -> void:
+	if _banner_queue.is_empty():
+		_banner_busy = false
+		return
+	_banner_busy = true
+	var b: Array = _banner_queue.pop_front()
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.97), 18, 3, b[3], 14, 10))
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 14)
+	if b[2]: h.add_child(icon(b[2], 72))
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_child(lbl(b[0], 24, b[3].darkened(0.15)))
+	v.add_child(lbl(b[1], 15, C_TEXT))
+	h.add_child(v)
+	p.add_child(h)
+	fx_layer.add_child(p)
+	await get_tree().process_frame
+	var vw := get_viewport_rect().size.x
+	p.position = Vector2((vw - p.size.x) * 0.5, -p.size.y - 10)
+	AudioManager.play_success()
+	var tw := p.create_tween()
+	tw.tween_property(p, "position:y", 96.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(2.2)
+	tw.tween_property(p, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(p.queue_free)
+	tw.tween_callback(_next_banner)
+
+func _on_goal_done(text: String, reward: String, chest: Dictionary) -> void:
+	_banner("Goal complete!", "%s  →  %s" % [text, reward], icon_for("ui", "xp"), Color("#c9861a"))
+	stage.burst("confetti", stage.boat.position + stage.boat.pivot_offset)
+	if not chest.is_empty():
+		_show_catch({"count": 0, "fish": {}, "xp": 0, "chest": chest, "pet": "", "bait_used": "", "new_species": []})
+		card_title.text = "🎁 Goal reward!"
+
+# ---- tutorial coach: a bouncing pointer + speech bubble that waits for you
+var _coach: Control
+var _coach_bubble: PanelContainer
+var _coach_label: Label
+var _coach_t := 0.0
+
+const COACH_TEXT := {
+	0: "Tap the water to cast your line!",
+	1: "Nice catch! Your fish are in the hold.\nTap SELL to turn them into money.",
+	2: "Now visit the fish shop to spend it —\ntap the merchant on the island.",
+	3: "Better rods catch more and rarer fish.\nSave $500 for the Improved Rod, then come back!",
+	4: "Your goals live here — finish them for rewards.\nPress G any time for the full guide. Happy fishing!",
+}
+
+func _build_coach() -> void:
+	_coach = Control.new()
+	_coach.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_coach.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coach.draw.connect(_draw_coach)
+	add_child(_coach)
+	_coach_bubble = PanelContainer.new()
+	_coach_bubble.add_theme_stylebox_override("panel", sbox(Color("#fffaf0"), 16, 3, Color("#2f8f9e"), 14, 10))
+	_coach_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coach_label = lbl("", 17)
+	_coach_bubble.add_child(_coach_label)
+	_coach.add_child(_coach_bubble)
+	_coach.visible = false
+	if _capturing() and not ("--onboarding" in OS.get_cmdline_user_args()): VF.tutorial = maxi(VF.tutorial, 99)
+	_coach_show()
+
+func _coach_next(step: int) -> void:
+	VF.tutorial = step
+	VF.save_game()
+	_coach_show()
+	if step == 4:
+		get_tree().create_timer(7.0).timeout.connect(func():
+			if VF.tutorial == 4: _coach_next(99))
+
+func _coach_show() -> void:
+	if _coach == null: return
+	_coach.visible = COACH_TEXT.has(VF.tutorial)
+	if _coach.visible:
+		_coach_label.text = COACH_TEXT[VF.tutorial]
+		move_child(_coach, get_child_count() - 1)
+
+func _coach_target() -> Vector2:
+	match VF.tutorial:
+		0: return stage.bobber_screen()
+		1: return sell_btn.get_global_rect().get_center() + Vector2(0, -sell_btn.size.y * 0.5)
+		2:
+			if stage.merchant: return stage.to_screen(stage.merchant.position + stage.merchant.size * Vector2(0.5, 0.15))
+		3: return overlay.get_global_rect().get_center() + Vector2(0, -240)
+		4: return goal_box.get_global_rect().get_center() + Vector2(0, goal_box.size.y * 0.5)
+	return get_viewport_rect().size * 0.5
+
+func _process_coach(delta: float) -> void:
+	if _coach == null or not COACH_TEXT.has(VF.tutorial): return
+	_coach.visible = not overlay.visible or VF.tutorial == 3
+	if not _coach.visible: return
+	_coach_t += delta
+	var tgt := _coach_target()
+	var vs := get_viewport_rect().size
+	var bs := _coach_bubble.size
+	var below := VF.tutorial in [2, 4]
+	var bp := tgt + (Vector2(-bs.x * 0.5, 46) if below else Vector2(-bs.x * 0.5, -bs.y - 58))
+	if VF.tutorial == 3: bp = tgt + Vector2(-bs.x * 0.5, -bs.y * 0.5)
+	bp.x = clampf(bp.x, 12, vs.x - bs.x - 12)
+	bp.y = clampf(bp.y, 12, vs.y - bs.y - 12)
+	_coach_bubble.position = bp
+	_coach.queue_redraw()
+
+func _draw_coach() -> void:
+	if VF.tutorial == 3: return
+	var tgt := _coach_target()
+	var bob := sin(_coach_t * 5.0) * 7.0
+	var below := VF.tutorial in [2, 4]
+	var dir := -1.0 if below else 1.0          # arrow points down at the target unless the bubble is below
+	var tip := tgt + Vector2(0, -12 * dir + bob * dir)
+	var base := tip + Vector2(0, -34 * dir)
+	var pts := PackedVector2Array([tip, base + Vector2(-20, 0), base + Vector2(20, 0)])
+	_coach.draw_colored_polygon(PackedVector2Array([tip + Vector2(2, 3), base + Vector2(-18, 3), base + Vector2(22, 3)]), Color(0, 0, 0, 0.25))
+	_coach.draw_colored_polygon(pts, Color("#ffcf3f"))
+	_coach.draw_polyline(PackedVector2Array([tip, base + Vector2(-20, 0), base + Vector2(20, 0), tip]), Color("#3b2c20"), 3.0, true)
+	if VF.tutorial == 0:
+		var r := 26.0 + fmod(_coach_t * 30.0, 30.0)
+		_coach.draw_arc(tgt, r, 0, TAU, 40, Color(1, 1, 1, 1.0 - (r - 26.0) / 30.0), 3.0, true)

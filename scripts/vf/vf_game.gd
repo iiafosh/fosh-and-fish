@@ -6,6 +6,7 @@ signal changed
 signal trip_done(result: Dictionary)
 signal leveled_up(new_level: int, money_reward: int)
 signal toast(text: String, kind: String)
+signal goal_done(text: String, reward: String, chest: Dictionary)
 
 const SAVE_PATH := "user://vf_save.json"
 const SAVE_VERSION := 1
@@ -41,7 +42,10 @@ var trips_without_pet := 0
 var boosts := {"fish": 0.0, "treasure": 0.0, "worker": 0.0}   # unix expiry
 var personal_boosters := 0
 var personal_until := 0.0
-var stats := {"trips": 0, "fish": 0, "chests": 0, "charms": 0, "money_earned": 0}
+var stats := {"trips": 0, "fish": 0, "chests": 0, "charms": 0, "money_earned": 0, "sells": 0, "bait_casts": 0}
+var discovered := {}                      # species -> total ever caught (fishdex)
+var goals_done := 0                       # STARTER_GOALS completed (in order)
+var tutorial := 0                         # onboarding step (UI)
 var quest_day := ""
 var quest_progress := {}
 var quest_claimed := {}
@@ -316,7 +320,7 @@ func cast() -> Dictionary:
 	_last_cast_ms = Time.get_ticks_msec()
 	_roll_quest_day()
 	var res := {"ok": true, "fish": {}, "count": 0, "xp": 0, "chest": {}, "pet": "", "bait_used": "",
-		"levels": 0, "duplicated": false}
+		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0}
 	var used_bait := has_bait()
 	var n := _fish_count()
 	var caught := _distribute(n)
@@ -324,6 +328,9 @@ func cast() -> Dictionary:
 	for f in caught:
 		inventory[f] = int(inventory.get(f, 0)) + caught[f]
 		xp_gain += caught[f] * VFData.FISH[f].xp
+		if not discovered.has(f):
+			res.new_species.append(f)
+		discovered[f] = int(discovered.get(f, 0)) + caught[f]
 	xp_gain *= xp_mult()
 	res.fish = caught
 	res.count = n
@@ -335,12 +342,19 @@ func cast() -> Dictionary:
 	elif lg("super_crates") > 0 and rng.randf() < treasure_quality() * lg("super_crates") / 4000.0:
 		res.chest = _open_chest("super")
 		_quest_add("chests", 1)
+	elif level < 10 and stats.trips >= 3 and rng.randf() < 1.0 / 30.0:
+		res.chest = _open_chest("common")      # early taste of treasure before chests unlock
+	# lucky moments in the early game: a bonus purse every so often
+	if level < 25 and stats.trips >= 2 and rng.randf() < 1.0 / 18.0:
+		res.lucky = int(maxf(25.0, levelup_money(level) * 1.5))
+		money += res.lucky
 	# pet
 	res.pet = _roll_pet()
 	_pet_xp_tick()
 	# bait consumption
 	if used_bait:
 		res.bait_used = bait
+		stats.bait_casts = int(stats.get("bait_casts", 0)) + 1
 		if rng.randf() >= 0.05 * up("bait_efficiency"):
 			bait_stock[bait] = int(bait_stock[bait]) - 1
 			if int(bait_stock[bait]) <= 0:
@@ -355,6 +369,7 @@ func cast() -> Dictionary:
 	_quest_add("trips", 1)
 	_week_trip()
 	trip_done.emit(res)
+	check_goals()
 	changed.emit()
 	return res
 
@@ -543,6 +558,9 @@ func sell_all() -> int:
 	inventory.clear()
 	money += earned
 	stats.money_earned += earned
+	if earned > 0:
+		stats.sells = int(stats.get("sells", 0)) + 1
+		check_goals()
 	changed.emit()
 	return earned
 
@@ -567,6 +585,7 @@ func buy_boat() -> String:
 	boats_owned += 1
 	toast.emit("Bought the %s! (-0.25s cooldown, +1 fish)" % b, "buy")
 	changed.emit()
+	check_goals()
 	return ""
 
 func buy_rod(r: String) -> String:
@@ -579,6 +598,7 @@ func buy_rod(r: String) -> String:
 	rod = r
 	toast.emit("Bought the %s!" % r, "buy")
 	changed.emit()
+	check_goals()
 	return ""
 
 func select_rod(r: String) -> void:
@@ -814,6 +834,7 @@ func to_dict() -> Dictionary:
 		"quest_day": quest_day, "quest_progress": quest_progress, "quest_claimed": quest_claimed,
 		"week_key": week_key, "week_trips": week_trips, "week_hooks": week_hooks,
 		"daily_last": daily_last, "daily_streak": daily_streak,
+		"discovered": discovered, "goals_done": goals_done, "tutorial": tutorial,
 	}
 
 var autosave := true
@@ -844,6 +865,16 @@ func _apply(d: Dictionary) -> void:
 	stats = _ints(d.stats); quest_day = d.quest_day; quest_progress = _ints(d.quest_progress)
 	quest_claimed = d.quest_claimed; week_key = d.week_key; week_trips = int(d.week_trips)
 	week_hooks = int(d.week_hooks); daily_last = float(d.daily_last); daily_streak = int(d.daily_streak)
+	discovered = _ints(d.get("discovered", {}))
+	tutorial = int(d.get("tutorial", 0))
+	if d.has("goals_done"):
+		goals_done = int(d.goals_done)
+	else:
+		# saves from before starter goals: veterans skip them
+		goals_done = VFData.STARTER_GOALS.size() if (level >= 10 or prestige > 0) else 0
+		if goals_done > 0: tutorial = 99
+	for k in ["sells", "bait_casts"]:
+		if not stats.has(k): stats[k] = 0
 
 func _ints(src: Dictionary) -> Dictionary:
 	var out := {}
@@ -875,3 +906,45 @@ static func commas(n: int) -> String:
 	return ("-" if n < 0 else "") + s + out
 
 
+
+
+# ----------------------------------------------------------- starter goals
+func current_goal() -> Dictionary:
+	if goals_done >= VFData.STARTER_GOALS.size(): return {}
+	return VFData.STARTER_GOALS[goals_done]
+
+func goal_progress(gdef: Dictionary) -> int:
+	match gdef.stat:
+		"fish": return int(stats.fish)
+		"sells": return int(stats.get("sells", 0))
+		"rods": return owned_rods.size()
+		"bait_casts": return int(stats.get("bait_casts", 0))
+		"species": return discovered.size()
+		"level": return level
+		"boats": return boats_owned
+	return 0
+
+func goal_reward_text(r: Dictionary) -> String:
+	var bits := []
+	if r.has("money"): bits.append("$" + fmt(r.money))
+	if r.has("bait"): bits.append("%d %s" % [r.bait[1], r.bait[0]])
+	if r.has("chest"): bits.append("%s chest" % String(r.chest).capitalize())
+	if r.has("gold"): bits.append("%d Gold Fish" % r.gold)
+	if r.has("emerald"): bits.append("%d Emerald Fish" % r.emerald)
+	return ", ".join(bits)
+
+func check_goals() -> void:
+	while goals_done < VFData.STARTER_GOALS.size():
+		var gdef: Dictionary = VFData.STARTER_GOALS[goals_done]
+		if goal_progress(gdef) < int(gdef.goal): return
+		goals_done += 1
+		var r: Dictionary = gdef.reward
+		var chest := {}
+		if r.has("money"): money += int(r.money)
+		if r.has("bait"): bait_stock[r.bait[0]] = int(bait_stock.get(r.bait[0], 0)) + int(r.bait[1])
+		if r.has("gold"): exotics.gold += int(r.gold)
+		if r.has("emerald"): exotics.emerald += int(r.emerald)
+		if r.has("chest"): chest = _open_chest(r.chest)
+		if bait == "" and r.has("bait"): bait = r.bait[0]
+		goal_done.emit(gdef.text, goal_reward_text(r), chest)
+		changed.emit()

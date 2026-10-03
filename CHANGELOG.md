@@ -32,6 +32,7 @@ Play in the browser: https://iiafosh.github.io/vfish.fosh/
 - **Settings** (gear button or **O**): music and sound on/off + volume, fullscreen, reset save.
 - Game icon, loading screen and cover art.
 - Fishing cooldown now starts when you cast, not when the fish lands.
+- **Better start:** step-by-step tutorial pointer, 10 starter goals with rewards, "New fish discovered!" banners and a fish collection (x/20), lucky bonus splashes and early treasure before level 10.
 
 **Known limitations**
 - Prestige requirements after P0, per-level upgrade prices and chest weights are estimates

@@ -396,3 +396,20 @@ static func curve_cost(total: float, max_lvl: int, lvl: int, ratio: float = 1.45
 
 static func slug(name: String) -> String:
 	return name.to_lower().replace(" ", "_").replace(".", "")
+
+
+## Beginner goals shown one at a time under the HUD. Not part of the bot —
+## they give new players a short-term target and speed up the first levels.
+## stat: fish | sells | rods | bait_casts | species | level | boats
+const STARTER_GOALS := [
+	{"id": "first_fish", "text": "Catch your first fish", "stat": "fish", "goal": 1, "reward": {"money": 20}},
+	{"id": "sell", "text": "Sell your catch", "stat": "sells", "goal": 1, "reward": {"bait": ["Worms", 25]}},
+	{"id": "fish50", "text": "Catch 50 fish", "stat": "fish", "goal": 50, "reward": {"money": 100}},
+	{"id": "improved", "text": "Buy the Improved Rod at the shop", "stat": "rods", "goal": 2, "reward": {"money": 150}},
+	{"id": "bait", "text": "Fish with bait 10 times", "stat": "bait_casts", "goal": 10, "reward": {"money": 150}},
+	{"id": "species", "text": "Discover all 5 River fish", "stat": "species", "goal": 5, "reward": {"money": 400}},
+	{"id": "lv5", "text": "Reach level 5", "stat": "level", "goal": 5, "reward": {"chest": "rare"}},
+	{"id": "steel", "text": "Buy the Steel Rod", "stat": "rods", "goal": 3, "reward": {"money": 1200}},
+	{"id": "boat", "text": "Buy your first boat (Rowboat)", "stat": "boats", "goal": 1, "reward": {"money": 1500}},
+	{"id": "lv10", "text": "Reach level 10 — chests & boosts unlock", "stat": "level", "goal": 10, "reward": {"chest": "epic", "gold": 12, "emerald": 6}},
+]
