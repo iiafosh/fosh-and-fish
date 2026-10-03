@@ -1337,6 +1337,8 @@ func _check_capture() -> void:
 		VF.pet = "Puffer"
 		VF.upgrades = {"better_fish": 14, "salesman": 14, "more_chests": 7, "artifact_specialist": 7, "experienced": 2}
 		for id in VFData.CHARM_ORDER: VF.charms[id] = 20
+		for f in VFData.FISH_ORDER: VF.discovered[f] = 1      # a veteran: no discovery banners
+		VF.goals_done = VFData.STARTER_GOALS.size()
 		VF.changed.emit()
 	await get_tree().create_timer(0.6).timeout
 	for i in 3:
