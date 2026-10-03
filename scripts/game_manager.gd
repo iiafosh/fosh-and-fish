@@ -99,22 +99,31 @@ var inventory: Dictionary = {
 	"Squid": 1
 }
 
-# Shop Upgrades (level: int)
+# Shop Upgrades (level: int) - Virtual Fisher Complete 9 Upgrades
 var upgrades: Dictionary = {
-	"better_fish": 5,        # Master Angler (+5% quality per lvl)
-	"salesman": 5,           # Master Merchant (+5% sell price per lvl)
-	"more_chests": 5,        # Treasure Hunter (+5% treasure chance per lvl)
-	"experienced": 5,        # Seasoned Sailor (+10% XP gain per lvl)
-	"worker_motivation": 2,  # Increases Fish Catch from workers (+10%/lvl)
-	"better_chests": 1       # Increases Treasure Quality (+10%/lvl)
+	"better_fish": 5,        # Master Angler (+5% quality per lvl, max 21)
+	"salesman": 5,           # Master Merchant (+5% sell price per lvl, max 20)
+	"bait_efficiency": 2,    # Lowers chance of consuming bait (+5%/lvl, max 9)
+	"more_chests": 5,        # Treasure Hunter (+5% treasure chance per lvl, max 11)
+	"worker_motivation": 2,  # Increases Fish Catch from workers (+10%/lvl, max 12)
+	"artifact_specialist": 1,# Improves Treasure rewards (+0.1/lvl, max 7)
+	"experienced": 5,        # Seasoned Sailor (+10% XP gain per lvl, max 5)
+	"better_chests": 1,      # Increases Treasure Quality (+10%/lvl, max 5)
+	"better_dailies": 1      # Increases Daily Rewards items (+10%/lvl, max 10)
 }
 
-# Special Upgrades (Exotic Fish)
+# Special Upgrades (Exotic Fish) - Virtual Fisher Complete 10 Upgrades
 var special_upgrades: Dictionary = {
-	"fish_ovens": 2,         # +5% Sell Price (Cost: Lava Fish)
-	"statistician": 2,       # +2% All Multipliers (Cost: Gold Fish)
-	"duplicator": 1,         # +2% Fish Duplication (Cost: Emerald Fish)
-	"boost_booster": 0       # +50% TQ, +40% FQ, +10% Worker Speed (Cost: Diamond Fish)
+	"fish_ovens": 2,         # +5% Sell Price (Cost: Lava Fish, max 20, lvl 50)
+	"bait_lover": 1,         # +15% Bait Effectiveness (Cost: Diamond Fish, max 4, lvl 100)
+	"aquatic_expert": 1,     # +5% Fish Catch (Cost: Diamond Fish, max 4, lvl 100)
+	"worker_extender": 0,    # +10% Worker Boost Length (Cost: Diamond Fish, max 4, lvl 100)
+	"ultimate_salesman": 0,  # +15% Sell Price (Cost: Diamond Fish, max 4, lvl 100)
+	"highly_experienced": 0, # +15% XP Gain (Cost: Diamond Fish, max 4, lvl 100)
+	"boost_booster": 0,      # Boost Enhancements (Cost: Diamond Fish, max 4, lvl 100)
+	"statistician": 2,       # +2% All Multipliers (Cost: Gold Fish, max 10, lvl 250)
+	"duplicator": 1,         # +2% Fish Duplication (Cost: Emerald Fish, max 10, lvl 500)
+	"charmer": 0             # +2.5% Charms Found (Cost: Lava Fish, max 10, lvl 500)
 }
 
 # League Upgrades (Hooks)
@@ -199,25 +208,25 @@ var rods_database: Dictionary = {
 	"0xDEADBEEF Dev Glitch Rod": {"cost": 0, "min_fish": 20, "max_fish": 40, "cd_penalty": -1.2, "treasure_chance": 0.25, "treasure_quality": 0.25, "biomes": ["River", "Volcanic", "Ocean", "Subspace 0x00"], "desc": "Secret Easter Egg relic pulsing with binary code."}
 }
 
-# Complete 18-Tier Permanent Boat Progression from Virtual Fisher
+# Complete 17-Tier Permanent Boat Progression from Virtual Fisher
 var boats_database: Dictionary = {
-	"Rowboat": {"tier": 1, "cost": 5000, "req_level": 0, "speed": 220.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Rowboat", "deck_bounds": Vector2(-170, 170), "desc": "-0.25s CD, +1 fish per cast."},
-	"Fishing Boat": {"tier": 2, "cost": 25000, "req_level": 0, "speed": 260.0, "cd_bonus": 0.50, "fish_bonus": 2, "visual_style": "Fishing Boat", "deck_bounds": Vector2(-210, 220), "desc": "Motorized coastal workhorse."},
-	"Speedboat": {"tier": 3, "cost": 100000, "req_level": 0, "speed": 340.0, "cd_bonus": 0.75, "fish_bonus": 3, "visual_style": "Speedboat", "deck_bounds": Vector2(-230, 230), "desc": "High-speed aerodynamic racer."},
-	"Pontoon": {"tier": 4, "cost": 250000, "req_level": 0, "speed": 240.0, "cd_bonus": 1.00, "fish_bonus": 4, "visual_style": "Rowboat", "deck_bounds": Vector2(-220, 220), "desc": "Twin-hull river platform."},
-	"Sailboat": {"tier": 5, "cost": 1000000, "req_level": 0, "speed": 280.0, "cd_bonus": 1.25, "fish_bonus": 5, "visual_style": "Rowboat", "deck_bounds": Vector2(-240, 240), "desc": "Traditional cutter under sail."},
-	"Yacht": {"tier": 6, "cost": 20000000, "req_level": 50, "speed": 400.0, "cd_bonus": 1.50, "fish_bonus": 6, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-260, 260), "desc": "Spacious sea-going cruiser."},
-	"Luxury Yacht": {"tier": 7, "cost": 100000000, "req_level": 50, "speed": 480.0, "cd_bonus": 1.75, "fish_bonus": 7, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-280, 280), "desc": "Tri-deck luxury sovereign flagship."},
-	"Cruise Ship": {"tier": 8, "cost": 500000000, "req_level": 100, "speed": 360.0, "cd_bonus": 2.00, "fish_bonus": 8, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-300, 300), "desc": "Massive ocean-going liner."},
-	"Gold Boat": {"tier": 9, "cost": 2500000000, "req_level": 250, "speed": 500.0, "cd_bonus": 2.25, "fish_bonus": 9, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-280, 280), "desc": "Solid gold plated pleasure craft."},
-	"Sky Cruiser": {"tier": 10, "cost": 10000000000, "req_level": 250, "speed": 550.0, "cd_bonus": 2.50, "fish_bonus": 10, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-280, 280), "desc": "Aero-skiff navigating high clouds."},
-	"Satellite": {"tier": 11, "cost": 50000000000, "req_level": 500, "speed": 600.0, "cd_bonus": 2.75, "fish_bonus": 11, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-270, 270), "desc": "Orbital sensory station."},
-	"Space Shuttle": {"tier": 12, "cost": 250000000000, "req_level": 500, "speed": 680.0, "cd_bonus": 3.00, "fish_bonus": 12, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-280, 280), "desc": "Rocket-propelled spaceplane."},
-	"Cruiser": {"tier": 13, "cost": 1000000000000, "req_level": 500, "speed": 720.0, "cd_bonus": 3.25, "fish_bonus": 13, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-290, 290), "desc": "Deep void battle cruiser."},
-	"Alien Raft": {"tier": 14, "cost": 2500000000000, "req_level": 1000, "speed": 750.0, "cd_bonus": 3.50, "fish_bonus": 14, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-280, 280), "desc": "Hover platform woven from alien tech."},
-	"Alien Submarine": {"tier": 15, "cost": 5000000000000, "req_level": 1000, "speed": 780.0, "cd_bonus": 3.75, "fish_bonus": 15, "visual_style": "Abyssal Submersible", "deck_bounds": Vector2(-270, 270), "desc": "Extraterrestrial submersible vessel."},
-	"Dark Explorer": {"tier": 16, "cost": 50000000000000, "req_level": 2500, "speed": 820.0, "cd_bonus": 4.00, "fish_bonus": 16, "visual_style": "Abyssal Submersible", "deck_bounds": Vector2(-280, 280), "desc": "Obsidian hull braving dark pressure."},
-	"Abyssal Surveyor": {"tier": 17, "cost": 500000000000000, "req_level": 2500, "speed": 900.0, "cd_bonus": 4.25, "fish_bonus": 17, "visual_style": "Abyssal Submersible", "deck_bounds": Vector2(-290, 290), "desc": "The ultimate oceanic research bathyscaphe."}
+	"Rowboat": {"tier": 1, "cost": 5000, "req_level": 1, "speed": 220.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Rowboat", "deck_bounds": Vector2(-170, 170), "desc": "Classic timber dory with twin rowing oars."},
+	"Fishing Boat": {"tier": 2, "cost": 25000, "req_level": 1, "speed": 250.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Fishing Boat", "deck_bounds": Vector2(-210, 210), "desc": "Motorized coastal workhorse with diesel stack & wheelhouse."},
+	"Speedboat": {"tier": 3, "cost": 100000, "req_level": 1, "speed": 340.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Speedboat", "deck_bounds": Vector2(-220, 220), "desc": "High-speed aerodynamic racer with twin chrome V8 outboards."},
+	"Pontoon": {"tier": 4, "cost": 250000, "req_level": 1, "speed": 240.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Pontoon", "deck_bounds": Vector2(-230, 230), "desc": "Twin aluminum float tubes with sun bimini canopy."},
+	"Sailboat": {"tier": 5, "cost": 1000000, "req_level": 1, "speed": 280.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Sailboat", "deck_bounds": Vector2(-240, 240), "desc": "Traditional cutter under towering canvas sails."},
+	"Yacht": {"tier": 6, "cost": 20000000, "req_level": 1, "speed": 390.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Yacht", "deck_bounds": Vector2(-260, 260), "desc": "Sleek fiberglass motor cruiser with raised flybridge helm."},
+	"Luxury Yacht": {"tier": 7, "cost": 100000000, "req_level": 50, "speed": 450.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-280, 280), "desc": "Tri-deck pearl-white sovereign yacht with golden salon."},
+	"Cruise Ship": {"tier": 8, "cost": 500000000, "req_level": 100, "speed": 360.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Cruise Ship", "deck_bounds": Vector2(-300, 300), "desc": "Colossal multi-deck ocean liner with twin red funnels."},
+	"Gold Boat": {"tier": 9, "cost": 2500000000, "req_level": 250, "speed": 500.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Gold Boat", "deck_bounds": Vector2(-280, 280), "desc": "Opulent vessel forged in solid gleaming gold with ruby crest."},
+	"Sky Cruiser": {"tier": 10, "cost": 10000000000, "req_level": 250, "speed": 550.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Sky Cruiser", "deck_bounds": Vector2(-280, 280), "desc": "Anti-gravity repulsor skiff gliding through cloud altitudes."},
+	"Satellite": {"tier": 11, "cost": 50000000000, "req_level": 500, "speed": 600.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Satellite", "deck_bounds": Vector2(-270, 270), "desc": "Orbital sensory station with solar panel array wings."},
+	"Space Shuttle": {"tier": 12, "cost": 250000000000, "req_level": 500, "speed": 680.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Space Shuttle", "deck_bounds": Vector2(-290, 290), "desc": "Delta-wing orbiter with rocket bell booster engines."},
+	"Cruiser": {"tier": 13, "cost": 1000000000000, "req_level": 500, "speed": 720.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Cruiser", "deck_bounds": Vector2(-300, 300), "desc": "Armored deep void dreadnought with cyan ion drive."},
+	"Alien Raft": {"tier": 14, "cost": 2500000000000, "req_level": 1000, "speed": 750.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Alien Raft", "deck_bounds": Vector2(-280, 280), "desc": "Bio-metallic floating raft humming with extraterrestrial energy."},
+	"Alien Submarine": {"tier": 15, "cost": 5000000000000, "req_level": 1000, "speed": 780.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Alien Submarine", "deck_bounds": Vector2(-290, 290), "desc": "Alien cephalopod submersible with bioluminescent tentacles."},
+	"Dark Explorer": {"tier": 16, "cost": 50000000000000, "req_level": 2500, "speed": 840.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Dark Explorer", "deck_bounds": Vector2(-300, 300), "desc": "Obsidian hull infused with hyper-density void dampeners."},
+	"Abyssal Surveyor": {"tier": 17, "cost": 500000000000000, "req_level": 2500, "speed": 920.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Abyssal Surveyor", "deck_bounds": Vector2(-310, 310), "desc": "The ultimate oceanic research bathyscaphe with deep floodlights."}
 }
 
 # Complete 8 Baits from the Virtual Fisher Encyclopedia
@@ -408,21 +417,28 @@ func get_inventory_total_value() -> int:
 	return total
 
 func get_sell_multiplier() -> float:
-	return 1.0 + (upgrades["salesman"] * 0.05)
+	var stat_mult = 1.0 + (special_upgrades.get("statistician", 0) * 0.02)
+	var sell_bonus = (upgrades.get("salesman", 0) * 0.05) + (special_upgrades.get("fish_ovens", 0) * 0.05) + (special_upgrades.get("ultimate_salesman", 0) * 0.15)
+	return (1.0 + sell_bonus) * stat_mult
 
 func get_fish_quality_multiplier() -> float:
+	var stat_mult = 1.0 + (special_upgrades.get("statistician", 0) * 0.02)
+	var bait_eff = 1.0 + (special_upgrades.get("bait_lover", 0) * 0.15) + (league_upgrades.get("bait_helper", 0) * 0.10)
 	var bait_mult = 1.0
 	if baits_database.has(current_bait):
-		bait_mult = baits_database[current_bait]["quality_mult"]
+		bait_mult = 1.0 + (baits_database[current_bait]["quality_mult"] - 1.0) * bait_eff
 	var weather_mult = 1.5 if current_weather == "Fog" else 1.0
-	return (1.0 + (upgrades["better_fish"] * 0.05)) * bait_mult * weather_mult
+	return (1.0 + (upgrades.get("better_fish", 0) * 0.05)) * bait_mult * weather_mult * stat_mult
 
 func get_xp_multiplier() -> float:
+	var stat_mult = 1.0 + (special_upgrades.get("statistician", 0) * 0.02)
+	var bait_eff = 1.0 + (special_upgrades.get("bait_lover", 0) * 0.15) + (league_upgrades.get("bait_helper", 0) * 0.10)
 	var bait_mult = 1.0
 	if baits_database.has(current_bait):
-		bait_mult = baits_database[current_bait]["xp_mult"]
+		bait_mult = 1.0 + (baits_database[current_bait]["xp_mult"] - 1.0) * bait_eff
 	var weather_xp = 1.25 if current_weather == "Storm" else 1.0
-	return (1.0 + (upgrades["experienced"] * 0.10)) * bait_mult * weather_xp
+	var xp_bonus = (upgrades.get("experienced", 0) * 0.10) + (special_upgrades.get("highly_experienced", 0) * 0.15)
+	return (1.0 + xp_bonus) * bait_mult * weather_xp * stat_mult
 
 func get_fishing_cooldown() -> float:
 	var base_cd = 3.5
@@ -460,11 +476,14 @@ func get_deck_bounds() -> Vector2:
 func get_upgrade_max(perk_name: String) -> int:
 	match perk_name:
 		"better_fish": return 21
-		"salesman": return 18
+		"salesman": return 20
+		"bait_efficiency": return 9
 		"more_chests": return 11
-		"experienced": return 5
 		"worker_motivation": return 12
+		"artifact_specialist": return 7
+		"experienced": return 5
 		"better_chests": return 5
+		"better_dailies": return 10
 		_: return 10
 
 func get_upgrade_cost(perk_name: String) -> int:
@@ -472,10 +491,13 @@ func get_upgrade_cost(perk_name: String) -> int:
 	match perk_name:
 		"better_fish": return int(250 * pow(1.65, rank))
 		"salesman": return int(150 * pow(1.65, rank))
+		"bait_efficiency": return int(350 * pow(1.85, rank))
 		"more_chests": return int(350 * pow(1.75, rank))
+		"worker_motivation": return int(500 * pow(1.80, rank))
+		"artifact_specialist": return int(800 * pow(1.95, rank))
 		"experienced": return int(1000 * pow(2.0, rank))
-		"worker_motivation": return int(500 * pow(1.8, rank))
 		"better_chests": return int(2000 * pow(2.2, rank))
+		"better_dailies": return int(300 * pow(1.70, rank))
 		_: return int(200 * pow(1.75, rank))
 
 func buy_perk_upgrade(perk_name: String) -> bool:
@@ -496,23 +518,34 @@ func buy_perk_upgrade(perk_name: String) -> bool:
 func get_special_upgrade_cost(id: String) -> int:
 	var rank = special_upgrades.get(id, 0)
 	match id:
-		"fish_ovens": return 10 + rank * 10
+		"fish_ovens": return 10 + rank * 12
 		"statistician": return 40 + rank * 40
 		"duplicator": return 45 + rank * 45
-		"boost_booster": return 5 + rank * 5
-		_: return 20
+		"charmer": return 30 + rank * 35
+		"bait_lover", "aquatic_expert", "worker_extender", "ultimate_salesman", "highly_experienced", "boost_booster":
+			return 15 + rank * 25
+		_: return 20 + rank * 20
 
 func get_special_upgrade_currency(id: String) -> String:
 	match id:
-		"fish_ovens": return "lava"
+		"fish_ovens", "charmer": return "lava"
 		"statistician": return "gold"
 		"duplicator": return "emerald"
-		"boost_booster": return "diamond"
+		"bait_lover", "aquatic_expert", "worker_extender", "ultimate_salesman", "highly_experienced", "boost_booster":
+			return "diamond"
 		_: return "gold"
+
+func get_special_upgrade_max(id: String) -> int:
+	match id:
+		"fish_ovens": return 20
+		"statistician", "duplicator", "charmer": return 10
+		"bait_lover", "aquatic_expert", "worker_extender", "ultimate_salesman", "highly_experienced", "boost_booster":
+			return 4
+		_: return 5
 
 func buy_special_upgrade(id: String) -> bool:
 	var rank = special_upgrades.get(id, 0)
-	var max_rank = 4 if id == "boost_booster" else (20 if id == "fish_ovens" else 10)
+	var max_rank = get_special_upgrade_max(id)
 	if rank >= max_rank:
 		return false
 	var cost = get_special_upgrade_cost(id)
@@ -752,12 +785,15 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 	var rod = rods_database.get(current_rod, rods_database["Plastic Rod"])
 	var bait = baits_database.get(current_bait, baits_database["None"])
 
+	# Bait Consumption (Bait Efficiency upgrade gives 5% chance per level to not consume bait)
 	if current_bait != "None":
-		if bait_stock.get(current_bait, 0) > 0:
-			bait_stock[current_bait] -= 1
-		else:
-			current_bait = "None"
-			stats_changed.emit()
+		var bait_eff_chance = upgrades.get("bait_efficiency", 0) * 0.05
+		if randf() >= bait_eff_chance:
+			if bait_stock.get(current_bait, 0) > 0:
+				bait_stock[current_bait] -= 1
+			else:
+				current_bait = "None"
+				stats_changed.emit()
 
 	var eligible_fish: Array[String] = []
 	for f_name in fish_database.keys():
@@ -813,23 +849,29 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 		else:
 			selected_fish = "ERR_404_NULL_EEL"
 
-	# Calculate quantity caught (Virtual Fisher formula: CNT += boats)
-	var base_count = randi_range(rod["min_fish"], rod["max_fish"])
-	base_count += bait["bonus_fish"]
-	base_count += owned_boats.size() # Cumulative permanent boats!
+	# Calculate quantity caught (Virtual Fisher formula: CNT += boats, Aquatic Expert buff)
+	var raw_count = randi_range(rod["min_fish"], rod["max_fish"]) + bait["bonus_fish"] + owned_boats.size()
 	if current_weather == "Rain":
-		base_count += 1
+		raw_count += 1
+	var aquatic_mult = 1.0 + (special_upgrades.get("aquatic_expert", 0) * 0.05)
+	var base_count = max(1, int(raw_count * aquatic_mult))
 
-	base_count = max(1, base_count)
+	# Duplicator Special Upgrade Roll (+2% chance per level to double catch)
+	var dup_msg = ""
+	var dup_chance = special_upgrades.get("duplicator", 0) * 0.02
+	if randf() < dup_chance:
+		base_count *= 2
+		dup_msg = " [DUPLICATED! x2]"
+
 	var quality = roll_fish_quality()
 
-	var exotic_msg = ""
+	var exotic_msg = dup_msg
 	if randf() < 0.08:
 		gold_fish += 1
-		exotic_msg = " +1 🪙 Gold Fish!"
+		exotic_msg += " +1 🪙 Gold Fish!"
 	if randf() < 0.03:
 		emerald_fish += 1
-		exotic_msg = " +1 🟢 Emerald Fish!"
+		exotic_msg += " +1 🟢 Emerald Fish!"
 
 	var xp_unit = fish_database[selected_fish]["xp"]
 	var xp_mult = get_xp_multiplier() * quality["xp_mult"]

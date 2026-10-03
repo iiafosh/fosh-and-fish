@@ -348,12 +348,15 @@ func _populate_upgrades() -> void:
 		c.queue_free()
 
 	var upgrade_defs = [
-		{"id": "better_fish", "name": "Better Fish (Master Angler)", "desc": "+5% Fish Quality per level"},
-		{"id": "salesman", "name": "Salesman (Master Merchant)", "desc": "+5% Fish Sell Price per level"},
-		{"id": "more_chests", "name": "More Chests (Treasure Hunter)", "desc": "+5% Treasure Chest Chance per level"},
-		{"id": "experienced", "name": "Experienced (Seasoned Sailor)", "desc": "+10% Fishing XP Gain per level"},
-		{"id": "worker_motivation", "name": "Worker Motivation", "desc": "+10% Fish Catch from Workers per level"},
-		{"id": "better_chests", "name": "Better Chests", "desc": "+10% Treasure Quality per level"}
+		{"id": "better_fish", "name": "Better Fish (Master Angler)", "desc": "+5% Fish Quality per level (Max 21)"},
+		{"id": "salesman", "name": "Salesman (Master Merchant)", "desc": "+5% Fish Sell Price per level (Max 20)"},
+		{"id": "bait_efficiency", "name": "Bait Efficiency", "desc": "+5% Chance not to consume bait on cast (Max 9)"},
+		{"id": "more_chests", "name": "More Chests (Treasure Hunter)", "desc": "+5% Treasure Chest Chance per level (Max 11)"},
+		{"id": "worker_motivation", "name": "Worker Motivation", "desc": "+10% Fish Catch from Workers per level (Max 12)"},
+		{"id": "artifact_specialist", "name": "Artifact Specialist", "desc": "+0.1 Treasure rewards quality bonus (Max 7)"},
+		{"id": "experienced", "name": "Experienced (Seasoned Sailor)", "desc": "+10% Fishing XP Gain per level (Max 5)"},
+		{"id": "better_chests", "name": "Better Chests", "desc": "+10% Treasure Quality per level (Max 5)"},
+		{"id": "better_dailies", "name": "Better Dailies", "desc": "+10% Daily Reward Items per level (Max 10)"}
 	]
 
 	for u in upgrade_defs:
@@ -444,16 +447,24 @@ func _populate_special() -> void:
 		c.queue_free()
 
 	var specials = [
-		{"id": "fish_ovens", "name": "Fish Ovens", "desc": "+5% Fish Sell Price permanently.", "max": 20},
-		{"id": "statistician", "name": "Statistician", "desc": "+2% across All Multipliers.", "max": 10},
-		{"id": "duplicator", "name": "Duplicator", "desc": "+2% chance to duplicate fish catches.", "max": 10},
-		{"id": "boost_booster", "name": "Boost Booster", "desc": "+50% Treasure Quality, +40% Fish Quality, +10% Worker Speed.", "max": 4}
+		{"id": "fish_ovens", "name": "Fish Ovens", "desc": "+5% Fish Sell Price permanently (Cost: Lava Fish).", "req": 50},
+		{"id": "bait_lover", "name": "Bait Lover", "desc": "+15% Effectiveness of all active baits (Cost: Diamond Fish).", "req": 100},
+		{"id": "aquatic_expert", "name": "Aquatic Expert", "desc": "+5% Total Fish Catch per cast (Cost: Diamond Fish).", "req": 100},
+		{"id": "worker_extender", "name": "Worker Extender", "desc": "+10% Duration on all Worker Net Boosts (Cost: Diamond Fish).", "req": 100},
+		{"id": "ultimate_salesman", "name": "Ultimate Salesman", "desc": "+15% Fish Sell Price (Cost: Diamond Fish).", "req": 100},
+		{"id": "highly_experienced", "name": "Highly Experienced", "desc": "+15% XP Gain across all catches (Cost: Diamond Fish).", "req": 100},
+		{"id": "boost_booster", "name": "Boost Booster", "desc": "+50% TQ, +40% FQ, +10% Worker Speed during boosts (Cost: Diamond Fish).", "req": 100},
+		{"id": "statistician", "name": "Statistician", "desc": "+2% across All Multipliers globally (Cost: Gold Fish).", "req": 250},
+		{"id": "duplicator", "name": "Duplicator", "desc": "+2% Chance to duplicate total fish catch (Cost: Emerald Fish).", "req": 500},
+		{"id": "charmer", "name": "Charmer", "desc": "+2.5% Charms found during fishing trips (Cost: Lava Fish).", "req": 500}
 	]
 
 	for s in specials:
 		var s_id = s["id"]
+		var req_lvl = s.get("req", 50)
+		var lvl_met = (GameManager.level >= req_lvl)
 		var rank = GameManager.special_upgrades.get(s_id, 0)
-		var max_rank = s["max"]
+		var max_rank = GameManager.get_special_upgrade_max(s_id)
 		var cost = GameManager.get_special_upgrade_cost(s_id)
 		var curr_name = GameManager.get_special_upgrade_currency(s_id)
 		var curr_icon = "🪙"
@@ -476,7 +487,11 @@ func _populate_special() -> void:
 		action_btn.custom_minimum_size = Vector2(130, 36)
 		action_btn.add_theme_font_size_override("font_size", 11)
 
-		if rank >= max_rank:
+		if not lvl_met:
+			action_btn.text = "🔒 Lv. %d" % req_lvl
+			action_btn.disabled = true
+			_style_button_slate(action_btn)
+		elif rank >= max_rank:
 			action_btn.text = "MAX RANK"
 			action_btn.disabled = true
 			_style_button_green(action_btn)

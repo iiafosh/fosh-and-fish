@@ -174,6 +174,38 @@ func _ready() -> void:
 	if travel_map:
 		travel_map.visible = false
 
+	_check_cli_capture()
+
+func _check_cli_capture() -> void:
+	var args = OS.get_cmdline_args()
+	for a in args:
+		if a.begins_with("--capture-deck"):
+			var parts = a.split("=")
+			var boat_name = parts[1] if parts.size() > 1 else "Luxury Yacht"
+			if GameManager.boats_database.has(boat_name):
+				GameManager.current_boat = boat_name
+			GameManager.upgrades["more_chests"] = 5
+			GameManager.upgrades["salesman"] = 5
+			GameManager.upgrades["experienced"] = 5
+			GameManager.upgrades["worker_motivation"] = 5
+			GameManager.special_upgrades["fish_ovens"] = 3
+			GameManager.worker_unlocked = true
+			_update_hud()
+
+			get_tree().create_timer(0.6).timeout.connect(func():
+				var vp = get_viewport()
+				if vp:
+					var tex = vp.get_texture()
+					if tex:
+						var img = tex.get_image()
+						if img:
+							var out_path = "C:/Users/user/.gemini/antigravity/brain/6e0b9e30-bb2d-4fba-b300-f31fbe670511/screenshot_virtual_fisher_deck.png"
+							img.save_png(out_path)
+							print("Captured deck showcase to: ", out_path)
+				get_tree().quit()
+			)
+			break
+
 func _load_fish_textures() -> void:
 	for k in FISH_SPRITES.keys():
 		var p = FISH_SPRITES[k]["path"]
@@ -369,12 +401,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_E:
 			if not active_station.is_empty():
 				_open_station_from_deck(active_station)
-		elif event.keycode == KEY_V:
-			_open_cozy_3d()
-
-func _open_cozy_3d() -> void:
-	AudioManager.play_click()
-	get_tree().change_scene_to_file("res://scenes/cozy_fishing_3d.tscn")
 
 func _open_station_from_deck(station_info: Dictionary) -> void:
 	AudioManager.play_click()
