@@ -292,7 +292,7 @@ func _populate_bait() -> void:
 		var card = _create_shop_card(title, b_data.get("desc", ""))
 
 		var btn_box = HBoxContainer.new()
-		btn_box.theme_override_constants.separation = 6
+		btn_box.add_theme_constant_override("separation", 6)
 
 		# Equip button
 		var equip_btn = Button.new()
@@ -536,12 +536,12 @@ func _populate_league() -> void:
 func _create_shop_card(title: String, desc: String) -> HBoxContainer:
 	var hbox = HBoxContainer.new()
 	hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.theme_override_constants.separation = 12
+	hbox.add_theme_constant_override("separation", 12)
 
 	var vbox = VBoxContainer.new()
 	vbox.name = "Info"
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.theme_override_constants.separation = 2
+	vbox.add_theme_constant_override("separation", 2)
 
 	var t_lbl = Label.new()
 	t_lbl.text = title

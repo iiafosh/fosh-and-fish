@@ -1,6 +1,6 @@
 extends Control
 
-@onready var overworld = get_node("/root/Overworld")
+@onready var overworld = get_tree().root.find_child("Overworld", true, false)
 
 @onready var btn_river: Button = $CenterContainer/Panel/VBox/CardsGrid/RiverCard/VBox/SailBtn
 @onready var btn_volcanic: Button = $CenterContainer/Panel/VBox/CardsGrid/VolcanicCard/VBox/SailBtn
