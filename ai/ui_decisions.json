@@ -1,0 +1,86 @@
+[
+  {
+    "topic": "Top HUD Bar Layout Style",
+    "selected_option": "minimal_corners",
+    "description": "Minimal corner-only approach: level+XP in top-left corner, cash+resources in top-right corner, biome name centered above the ship - maximum canvas visibility, Virtual Fisher style chill and clean",
+    "confidence_score": "strong",
+    "score_value": 84.6,
+    "all_scores": {
+      "pill_clusters": 68.6,
+      "unified_slim_bar": 72.3,
+      "minimal_corners": 84.6
+    },
+    "mode": "Local Jev System One Core",
+    "latency_ms": 4.26
+  },
+  {
+    "topic": "Bottom Action Bar / Command Dock Design",
+    "selected_option": "centered_cast_only",
+    "description": "Clean centered Cast Hook button with minimal rod info; station icons appear only on hover or as a slide-up radial menu - chill, smooth, uncluttered Virtual Fisher feel",
+    "confidence_score": "optimal",
+    "score_value": 87.7,
+    "all_scores": {
+      "current_dock": 52.0,
+      "centered_cast_only": 87.7,
+      "split_bottom": 86.6
+    },
+    "mode": "Local Jev System One Core",
+    "latency_ms": 1.93
+  },
+  {
+    "topic": "Station Modal Panel Design (Shop, Forge, Market, etc.)",
+    "selected_option": "bottom_drawer",
+    "description": "Bottom drawer panel that slides up covering 60% of screen - keeps top HUD and sky visible, mobile-friendly swipe-to-dismiss, satisfying smooth animation",
+    "confidence_score": "optimal",
+    "score_value": 86.2,
+    "all_scores": {
+      "full_overlay": 73.5,
+      "side_panel_slide": 86.1,
+      "bottom_drawer": 86.2
+    },
+    "mode": "Local Jev System One Core",
+    "latency_ms": 2.26
+  },
+  {
+    "topic": "UI Color Palette & Visual Theme",
+    "selected_option": "warm_maritime_wood",
+    "description": "Warm wood browns, cream parchment, burnt sienna and forest green - cozy, rustic, feels like a real fishing cottage, satisfying and chill like Stardew",
+    "confidence_score": "optimal",
+    "score_value": 86.7,
+    "all_scores": {
+      "cyber_neon_blue": 69.2,
+      "warm_maritime_wood": 86.7,
+      "hybrid_warm_glow": 84.0
+    },
+    "mode": "Local Jev System One Core",
+    "latency_ms": 4.19
+  },
+  {
+    "topic": "Fish Catch Notification Card Style",
+    "selected_option": "toast_popup_center",
+    "description": "Center-top toast notification with fish name/emoji and gold earned that fades after 2s - minimal, chill, fast, satisfying dopamine hit",
+    "confidence_score": "optimal",
+    "score_value": 85.9,
+    "all_scores": {
+      "slide_in_card": 74.0,
+      "toast_popup_center": 85.9,
+      "expanding_bubble": 83.9
+    },
+    "mode": "Local Jev System One Core",
+    "latency_ms": 1.85
+  },
+  {
+    "topic": "Button & Interactive Element Visual Style",
+    "selected_option": "soft_rounded_minimal",
+    "description": "Soft rounded buttons with gentle gradients, smooth hover transitions, and subtle scale-up on hover - modern indie game feel, balanced and polished",
+    "confidence_score": "optimal",
+    "score_value": 87.2,
+    "all_scores": {
+      "gradient_3d_buttons": 69.9,
+      "flat_pixel_buttons": 83.5,
+      "soft_rounded_minimal": 87.2
+    },
+    "mode": "Local Jev System One Core",
+    "latency_ms": 1.79
+  }
+]
