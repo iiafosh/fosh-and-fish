@@ -70,6 +70,7 @@ func _ready() -> void:
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
+	stage.merchant_clicked.connect(func(): _open_panel("shop", "Rods"))
 	_refresh()
 	_apply_biome()
 	_card_intro()
@@ -86,13 +87,16 @@ func _process(delta: float) -> void:
 	fish_btn.text = "FISH" if left <= 0.0 else "%.1fs" % left
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
-	_admin_banner_tick(delta)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		VF.save_game()
 
 func _unhandled_input(event: InputEvent) -> void:
+	# tap / click anywhere on the scene to cast (mobile friendly)
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
+		_do_cast()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_SPACE, KEY_F:
@@ -107,9 +111,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				var k: String = kinds[event.keycode - KEY_1]
 				if overlay.visible and _panel_kind == k: _close_panel()
 				else: _open_panel(k)
-			KEY_F1:
-				if overlay.visible and _panel_kind == "admin": _close_panel()
-				else: _open_panel("admin")
 
 # ================================================================ helpers
 func _load_manifest() -> void:
@@ -643,7 +644,7 @@ func _card_intro() -> void:
 	_show_card()
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
-	for t in ["Press FISH (or Space) to cast.", "Sell your catch, buy rods, boats and upgrades.",
+	for t in ["Tap the water, press FISH or Space to cast.", "Sell your catch, then visit the merchant on the island for rods, bait and boats.",
 			"Reach level 250 with 440/440 charms and $5B to prestige."]:
 		var l := lbl("• " + t, 14, C_MUTED)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -808,7 +809,7 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Inventory", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "admin": "Admin Abuse"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -826,7 +827,6 @@ func _render_panel() -> void:
 		"quests": _panel_quests()
 		"prestige": _panel_prestige()
 		"stats": _panel_stats()
-		"admin": _panel_admin()
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1221,9 +1221,6 @@ func _check_capture() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--capture="): dir = a.substr(10)
 		if a.begins_with("--demo="): demo = a.substr(7)
-		if a == "--admin":
-			VF.admin_luck = 25.0
-			VF.admin_no_cooldown = true
 	if dir == "": return
 	VF.autosave = false
 	if demo != "":
@@ -1255,7 +1252,7 @@ func _check_capture() -> void:
 		await get_tree().create_timer(0.9).timeout
 	await get_tree().create_timer(0.3).timeout
 	await _shot(dir + "/main.png")
-	for p in [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["admin", ""]]:
+	for p in [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""]]:
 		_open_panel(p[0], p[1])
 		await get_tree().create_timer(0.4).timeout
 		await _shot(dir + "/panel_%s.png" % p[0])
@@ -1265,87 +1262,3 @@ func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 
-# ================================================================== admin
-var _abuse_label: Label
-var _abuse_t := 0.0
-
-func _admin_banner_tick(delta: float) -> void:
-	var on: bool = VF.admin_luck > 1.0 or VF.admin_no_cooldown
-	if on and _abuse_label == null:
-		_abuse_label = lbl("", 30, Color.WHITE, 10)
-		_abuse_label.anchor_left = 0.5
-		_abuse_label.anchor_right = 0.5
-		_abuse_label.offset_left = -400
-		_abuse_label.offset_right = 400
-		_abuse_label.anchor_top = 1.0
-		_abuse_label.anchor_bottom = 1.0
-		_abuse_label.offset_top = -140
-		_abuse_label.offset_bottom = -100
-		_abuse_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_abuse_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_abuse_label)
-		move_child(_abuse_label, overlay.get_index())
-	if _abuse_label == null: return
-	_abuse_label.visible = on
-	if not on: return
-	_abuse_t += delta
-	_abuse_label.text = "⚡ ADMIN ABUSE EVENT ⚡  luck ×%s%s" % [VF.fmt(VF.admin_luck), "  •  no cooldown" if VF.admin_no_cooldown else ""]
-	_abuse_label.add_theme_color_override("font_color", Color.from_hsv(fmod(_abuse_t * 0.25, 1.0), 0.7, 1.0))
-	_abuse_label.scale = Vector2.ONE * (1.0 + sin(_abuse_t * 4.0) * 0.03)
-	_abuse_label.pivot_offset = Vector2(400, 20)
-	if fmod(_abuse_t, 2.5) < delta:
-		stage.burst("confetti", stage.boat.position + stage.boat.pivot_offset)
-
-func _admin_row(title: String, buttons: Array) -> void:
-	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 10))
-	var v := VBoxContainer.new()
-	v.add_child(lbl(title, 16))
-	var flow := HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 6)
-	flow.add_theme_constant_override("v_separation", 6)
-	for b in buttons:
-		var bt := btn(b[0], b[2] if b.size() > 2 else Color("#7c3aed"), 14)
-		var cb: Callable = b[1]
-		bt.pressed.connect(func():
-			cb.call()
-			AudioManager.play_success()
-			_refresh())
-		flow.add_child(bt)
-	v.add_child(flow)
-	p.add_child(v)
-	panel_body.add_child(p)
-
-func _panel_admin() -> void:
-	panel_body.add_child(lbl("Developer cheats for testing (F1). Luck multiplies fish count, quality, treasure chance and pet chance (squared). Luck/cooldown toggles reset on restart.", 13, C_MUTED))
-	_admin_row("Event", [
-		["Luck ×1", func(): VF.admin_luck = 1.0, Color("#6b7280")],
-		["Luck ×5", func(): VF.admin_luck = 5.0],
-		["Luck ×25", func(): VF.admin_luck = 25.0],
-		["Luck ×100", func(): VF.admin_luck = 100.0, Color("#db2777")],
-		["No cooldown: %s" % ("ON" if VF.admin_no_cooldown else "OFF"), func(): VF.admin_no_cooldown = not VF.admin_no_cooldown, Color("#0f766e")],
-		["All boosts 1h", func(): VF.admin_boosts(), Color("#0f766e")]])
-	_admin_row("Money & XP", [
-		["+$1M", func(): VF.admin_money(1_000_000)], ["+$1B", func(): VF.admin_money(1_000_000_000)],
-		["+$1T", func(): VF.admin_money(1_000_000_000_000)], ["+$1Q", func(): VF.admin_money(1_000_000_000_000_000)],
-		["+10 levels", func(): VF.admin_levels(10)], ["+100 levels", func(): VF.admin_levels(100)],
-		["+1000 levels", func(): VF.admin_levels(1000)]])
-	_admin_row("Unlocks", [
-		["All rods, boats & 9999 bait", func(): VF.admin_unlock_gear()],
-		["Max all upgrades", func(): VF.admin_max_upgrades()],
-		["Max charms", func(): VF.admin_max_charms()],
-		["All pets (max level)", func(): VF.admin_all_pets()],
-		["+500 exotic fish & hooks", func(): VF.admin_exotics(500)]])
-	var chest_btns := []
-	for c in VFData.CHESTS:
-		var id: String = c.id
-		chest_btns.append([c.name + " chest", func():
-			var r: Dictionary = VF.admin_chest(id)
-			_show_catch({"count": 0, "fish": {}, "xp": 0, "chest": r, "pet": "", "bait_used": ""})
-			stage.burst("sparkle", stage._bobber), Color("#b45309")])
-	chest_btns.append(["Super chest", func():
-		var r: Dictionary = VF.admin_chest("super")
-		_show_catch({"count": 0, "fish": {}, "xp": 0, "chest": r, "pet": "", "bait_used": ""})
-		stage.burst("sparkle", stage._bobber), Color("#db2777")])
-	_admin_row("Spawn chests", chest_btns)
-	_admin_row("Prestige", [["Prestige now (+1 Azure)", func(): VF.admin_prestige_now(), Color("#1d4ed8")]])

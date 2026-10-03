@@ -175,7 +175,8 @@ def render_fisher(out_dir):
     bpy.data.objects.remove(box)
     for o in objs:
         if o.type == "MESH" and not o.hide_render:
-            K.add_outline(o, 0.022 / max(o.matrix_world.to_scale()))
+            o["outline_even"] = False          # even-offset spikes on skinned, deforming meshes
+            K.add_outline(o, 0.018 / max(o.matrix_world.to_scale()))
     W = FISHER_CELL
     for key, (act_name, n) in ANIMS.items():
         act = V.set_action(arm, act_name)
@@ -286,3 +287,99 @@ def render_gull(out_path, n=8, size=160):
     K.add_outline(gull, 0.03)
     V.render_sheet(out_path, flap, n, size, cam, [gull], 1.05)
     K.SOFT[0] = False
+
+
+# --------------------------------------------------------------- merchant
+MERCHANT_CELL = 384
+MERCHANT_ANIMS = {"idle": ("Idle_Neutral", 8), "wave": ("Wave", 10)}
+
+
+def _stall():
+    """Market stall around the origin, counter facing -Y (toward the camera)."""
+    from vf_kit import cube, cyl
+    import vf_models as M
+    t = lambda c: toon(c, soft=True)
+    parts = [cube(loc=(0, -0.35, 0.45), scale=(2.6, 0.7, 0.9), mat=t("#a8723f"), bevel=0.04),
+             cube(loc=(0, -0.35, 0.93), scale=(2.75, 0.85, 0.08), mat=t("#c48a52"), bevel=0.02)]
+    for x in (-1.3, 1.3):
+        for y in (-0.75, 0.75):
+            parts.append(cyl(loc=(x, y, 1.15), r=0.06, depth=2.3, mat=t("#7a5232"), verts=10))
+    for i in range(7):
+        x = -1.5 + i * 0.5
+        parts.append(cube(loc=(x, 0.45, 2.3), scale=(0.5, 1.0, 0.07), rot=(-22, 0, 0),
+                          mat=t("#e0533e" if i % 2 == 0 else "#f6efe2")))
+    for x, c in ((-0.8, "#6f8fa8"), (0.0, "#ffb02e"), (0.8, "#c86b5a")):
+        crate = cube(loc=(x, -0.5, 1.1), scale=(0.62, 0.45, 0.22), mat=t("#c9a36a"), bevel=0.02)
+        parts.append(crate)
+        for k in range(3):
+            f = M.build_fish(dict(top=c, belly="#eef3f6", fin=c, L=0.22, H=0.09, W=0.06))
+            for o in f:
+                o.location += Vector((x - 0.15 + k * 0.15, -0.5, 1.25))
+            parts += f
+    parts.append(cyl(loc=(1.75, 0.3, 0.45), r=0.38, depth=0.9, mat=t("#9a6a3c"), verts=16))
+    parts.append(cube(loc=(-1.8, -0.4, 0.3), scale=(0.6, 0.6, 0.6), mat=t("#b07a4a"), bevel=0.03))
+    parts.append(cube(loc=(-1.75, -1.2, 0.7), scale=(0.08, 0.08, 1.4), mat=t("#7a5232")))
+    parts.append(cube(loc=(-1.75, -1.25, 1.3), scale=(0.9, 0.08, 0.5), mat=t("#f2e3c0"), bevel=0.03))
+    parts.append(cube(loc=(-1.75, -1.3, 1.3), scale=(0.62, 0.02, 0.16), mat=t("#c0392b")))
+    return parts
+
+
+def render_merchant(out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+    cam = _setup(MERCHANT_CELL, TD.CAM_ROT)
+    stall = _stall()
+    meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "character.glb"))
+    root = V.group_root(roots, "merchant")
+    root.location = (1.75, -1.35, 0)                  # in front of the stall, facing the camera (-Y)
+    for m in meshes:
+        for mt in m.data.materials:
+            name = mt.name.split(".")[0]
+            V.toonify(mt, tint={"Grey": "#2f8f8a", "White": "#f6efe2", "Orange": "#5a3a24"}.get(name))
+    V.set_action(arm, MERCHANT_ANIMS["idle"][0])
+    sc = bpy.context.scene
+    sc.frame_set(1)
+    bpy.context.view_layer.update()
+    head = arm.matrix_world @ arm.pose.bones["Head"].tail
+    cap = [cyl(loc=head + Vector((0, 0, -0.03)), r=0.2, depth=0.14, mat=toon("#c0392b", soft=True)),
+           cyl(loc=head + Vector((0, -0.12, -0.08)), r=0.17, depth=0.03, scale=(1.0, 1.4, 1.0), mat=toon("#c0392b", soft=True))]
+    for c in cap:
+        mw = c.matrix_world.copy()
+        c.parent = arm
+        c.parent_type = "BONE"
+        c.parent_bone = "Head"
+        bpy.context.view_layer.update()
+        c.matrix_world = mw
+    everything = stall + meshes + cap
+    lo, hi = V.world_bbox([o for o in everything if o.type == "MESH"])
+    bpy.ops.mesh.primitive_cube_add(size=1.0)
+    box = bpy.context.active_object
+    box.location = (lo + hi) / 2
+    box.scale = (hi - lo) * 1.05
+    bpy.context.view_layer.update()
+    K.frame_ortho(cam, [box], 1.04)
+    bpy.data.objects.remove(box)
+    for o in everything:
+        if o.type == "MESH":
+            o["outline_even"] = False
+            K.add_outline(o, 0.025 / max(o.matrix_world.to_scale()))
+    info = {}
+    import tempfile
+    for key, (act_name, n) in MERCHANT_ANIMS.items():
+        act = V.set_action(arm, act_name)
+        fr = act.frame_range
+        tmp = tempfile.mkdtemp()
+        paths = []
+        for i in range(n):
+            sc.frame_set(int(fr[0] + (fr[1] - fr[0]) * i / n))
+            pth = os.path.join(tmp, "f%02d.png" % i)
+            K.render(pth)
+            paths.append(pth)
+        V._stitch(paths, os.path.join(out_dir, key + ".png"), MERCHANT_CELL)
+        info[key] = {"frames": n}
+    g = K.project(cam, (0, 0, 0))
+    _, _, scale, _ = cam["frame"]
+    info["anchor"] = [round(g[0] / MERCHANT_CELL, 4), round(g[1] / MERCHANT_CELL, 4)]
+    info["unit_px"] = round(MERCHANT_CELL / scale, 3)
+    info["cell"] = MERCHANT_CELL
+    K.SOFT[0] = False
+    return info

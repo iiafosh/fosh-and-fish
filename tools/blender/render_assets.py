@@ -185,6 +185,10 @@ def do_fisher(man):
     man["fisher"] = CR.render_fisher(os.path.join(OUT, "fisher"))
 
 
+def do_merchant(man):
+    man["merchant"] = CR.render_merchant(os.path.join(OUT, "merchant"))
+
+
 def do_rods_hand(only, man):
     d = os.path.join(OUT, "rods_hand")
     os.makedirs(d, exist_ok=True)
@@ -201,7 +205,7 @@ def main():
         i = argv.index("--only")
         only = [s.strip() for s in argv[i + 1].split(",")]
         argv = argv[:i] + argv[i + 2:]
-    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top", "critters", "fisher", "rods_hand"]
+    cats = argv or ["fish", "exotics", "pets", "rods", "baits", "chests", "charms", "ui", "boats", "scenes", "boats_top", "fish_top", "critters", "fisher", "rods_hand", "merchant"]
     man = load_manifest()
     for c in cats:
         print("== rendering", c)
@@ -229,6 +233,8 @@ def main():
             do_fisher(man)
         elif c == "rods_hand":
             do_rods_hand(only, man)
+        elif c == "merchant":
+            do_merchant(man)
         elif c in P.PROPS:
             do_props(c, only)
         save_manifest(man)

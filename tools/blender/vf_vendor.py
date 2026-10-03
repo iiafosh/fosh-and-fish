@@ -156,6 +156,7 @@ def set_action(arm, contains):
 def outline_skinned(meshes, t):
     # solidify must run after the armature deform
     for m in meshes:
+        m["outline_even"] = False
         K.add_outline(m, t / max(m.matrix_world.to_scale()))
 
 

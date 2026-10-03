@@ -25,6 +25,7 @@ LENS = 34
 BOAT_SPOT = (-4.0, -3.0)
 BOBBER_SPOT = (4.0, 0.5)
 X0, X1, Y0, Y1 = -46, 46, -16, 52
+EXTRA_AVOID = []      # (x, y, r) kept clear of scattered props (merchant stall)
 
 BIOMES = {
     "River":    dict(shore=8, slope=0.42, deep=3.0, max_a=0.6, water=("#9ce6d6", "#2f8a9a"),
@@ -309,7 +310,7 @@ def scatter(P, rnd, n, zmin, zmax, fn, avoid=()):
         z = H(x, y, P)
         if not (zmin <= z <= zmax):
             continue
-        if any((x - a) ** 2 + (y - b) ** 2 < r * r for a, b, r in avoid):
+        if any((x - a) ** 2 + (y - b) ** 2 < r * r for a, b, r in list(avoid) + EXTRA_AVOID):
             continue
         out += fn((x, y, z), rnd)
         n -= 1
@@ -394,6 +395,29 @@ def build_scene(name, P):
     return parts
 
 
+def merchant_spot(P, cam):
+    """A flat bit of land in the upper-left of the frame (below the HUD)."""
+    from bpy_extras.object_utils import world_to_camera_view
+    sc = bpy.context.scene
+    best, best_d = None, 1e9
+    for min_h in (0.45, 0.25, 0.05):
+        for xi in range(-24, 10):
+            for yi in range(0, 22):
+                x, y = xi * 1.0, yi * 1.0
+                if min(H(x + dx, y + dy, P) for dx, dy in ((0, 0), (2, 0), (-2, 0), (0, 1.5), (0, -1.5))) < min_h:
+                    continue
+                v = world_to_camera_view(sc, cam, Vector((x, y, H(x, y, P))))
+                u, w = v.x, 1 - v.y
+                if not (0.05 < u < 0.45 and 0.24 < w < 0.5):
+                    continue
+                d = (u - 0.2) ** 2 + (w - 0.36) ** 2
+                if d < best_d:
+                    best, best_d = (x, y, H(x, y, P)), d
+        if best:
+            return best
+    return (-12.0, 8.0, H(-12.0, 8.0, P))
+
+
 def render_scene(name, path, mask_path):
     P = BIOMES[name]
     K.clear_scene()
@@ -407,6 +431,9 @@ def render_scene(name, path, mask_path):
     bpy.context.scene.eevee.use_shadows = True
     cam = K.make_camera(CAM_ROT, ortho=False, lens=LENS)
     cam.location = CAM_LOC
+    bpy.context.view_layer.update()
+    spot = merchant_spot(P, cam)
+    EXTRA_AVOID[:] = [(spot[0], spot[1], 4.5)]
     parts = build_scene(name, P)
     parts.append(water(P))
     K.outline_all(parts, 0.04)
@@ -434,7 +461,11 @@ def render_scene(name, path, mask_path):
     a = px((BOAT_SPOT[0], BOAT_SPOT[1], 0))
     b = px((BOAT_SPOT[0] + 1, BOAT_SPOT[1], 0))
     K.SOFT[0] = False
-    return {"boat": a, "bobber": px((BOBBER_SPOT[0], BOBBER_SPOT[1], 0)), "unit_px": round((b[0] - a[0]) * W, 3),
+    EXTRA_AVOID[:] = []
+    m = px(spot)
+    m2 = px((spot[0] + 1, spot[1], spot[2]))
+    return {"merchant": m, "merchant_unit_px": round((m2[0] - m[0]) * W, 3),
+            "boat": a, "bobber": px((BOBBER_SPOT[0], BOBBER_SPOT[1], 0)), "unit_px": round((b[0] - a[0]) * W, 3),
             "water": list(P["water"]), "glow": P.get("glow", "#ffffff")}
 
 

@@ -1,4 +1,6 @@
 extends Control
+
+signal merchant_clicked
 ## Top-down fishing stage. Everything lives in "scene space": the 1920x1080
 ## Blender render, scaled to cover the window. Fish (animated Quaternius
 ## sheets) swim under the water, seagulls fly over it, crabs walk the beach,
@@ -46,6 +48,13 @@ var _dart: Dictionary = {}
 var _t := 0.0
 var water_tint := Color(0.4, 0.8, 0.8)
 var _ambient: CPUParticles2D
+var _merchant_info := {}
+var _merchant_tex := {}
+var _merchant_anim := "idle"
+var _merchant_t := 0.0
+var merchant: TextureRect
+var merchant_hit: Control
+var merchant_tag: PanelContainer
 var _glints: CPUParticles2D
 
 func _ready() -> void:
@@ -84,8 +93,9 @@ func _ready() -> void:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for k in ["idle", "cast", "reel"]:
 		_fisher_tex[k] = _tex("fisher/%s.png" % k)
+	_build_merchant()
 	_fisher_info = manifest.get("fisher", {})
-	_glints = _particles("star_06", 18, 1.6, Color(1, 1, 1, 0.9), 0.04, 0.12)
+	_glints = _particles("star_06", 8, 1.8, Color(1, 1, 1, 0.55), 0.03, 0.07)
 	_glints.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_glints.emission_rect_extents = SCENE * 0.5
 	_glints.position = SCENE * 0.5
@@ -147,12 +157,13 @@ func burst(kind: String, at: Vector2) -> void:
 	var p: CPUParticles2D
 	match kind:
 		"splash":
-			p = _particles("circle_05", 22, 0.6, Color(0.95, 1, 1, 0.9), 0.03, 0.07)
+			p = _particles("circle_05", 9, 0.45, Color(0.92, 0.98, 1.0, 0.75), 0.012, 0.026)
 			p.direction = Vector2.UP
-			p.spread = 70.0
-			p.initial_velocity_min = 120.0
-			p.initial_velocity_max = 260.0
-			p.gravity = Vector2(0, 600)
+			p.spread = 55.0
+			p.initial_velocity_min = 90.0
+			p.initial_velocity_max = 170.0
+			p.gravity = Vector2(0, 520)
+			(p.material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_MIX
 		"sparkle":
 			p = _particles("star_06", 26, 1.1, Color(1.0, 0.85, 0.3), 0.08, 0.2)
 			p.spread = 180.0
@@ -195,12 +206,12 @@ func _set_ambient(biome: String) -> void:
 	if _ambient: _ambient.queue_free()
 	_ambient = null
 	var cfg := {"Volcanic": ["spark_05", Color(1.0, 0.55, 0.2), Vector2(0, -40)],
-		"Abyss": ["light_02", Color(0.4, 0.95, 1.0, 0.6), Vector2(0, -12)],
-		"Alien": ["light_02", Color(0.6, 1.0, 0.7, 0.5), Vector2(0, -15)],
+		"Abyss": ["star_06", Color(0.45, 0.95, 1.0, 0.5), Vector2(0, -8)],
+		"Alien": ["star_06", Color(0.6, 1.0, 0.75, 0.45), Vector2(0, -8)],
 		"Space": ["star_06", Color(0.85, 0.8, 1.0, 0.8), Vector2(0, 0)]}
 	if not cfg.has(biome): return
 	var c: Array = cfg[biome]
-	_ambient = _particles(c[0], 40, 5.0, c[1], 0.05, 0.16)
+	_ambient = _particles(c[0], 24, 5.0, c[1], 0.03, 0.09)
 	_ambient.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_ambient.emission_rect_extents = SCENE * 0.5
 	_ambient.position = SCENE * 0.5
@@ -232,6 +243,7 @@ func set_biome(name: String) -> void:
 	_spawn_life()
 	_set_ambient(name)
 	_place_boat()
+	_place_merchant()
 
 func _species_entry(f: String, swim: Dictionary) -> Dictionary:
 	if f in swim.get("species", []):
@@ -362,6 +374,7 @@ func _process(delta: float) -> void:
 	if _anim != "idle" and _frame_index() >= _frames(_anim) - 1 and _anim_t > _frames(_anim) / 18.0 + 0.25:
 		play_anim("idle")
 	_set_frame()
+	_tick_merchant(delta)
 	for f in _fish:
 		# wander toward a target in deep enough water; turn at a limited rate
 		if f.pos.distance_to(f.target) < 40.0 or not _in_water(f.target, 0.18):
@@ -550,3 +563,89 @@ func show_bite(fish_name: String) -> void:
 	var sp := _species_entry(fish_name, manifest.get("swim", {}))
 	if sp.tex == null: return
 	_dart = {"sp": sp, "from": _bobber + Vector2.from_angle(randf() * TAU) * 170.0, "pos": _bobber, "t": 0.0}
+
+# ---------------------------------------------------------------- merchant
+func _build_merchant() -> void:
+	_merchant_info = manifest.get("merchant", {})
+	for k in ["idle", "wave"]:
+		_merchant_tex[k] = _tex("merchant/%s.png" % k)
+	merchant = TextureRect.new()
+	merchant.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	merchant.stretch_mode = TextureRect.STRETCH_SCALE
+	merchant.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(merchant)
+	root.move_child(merchant, caustics.get_index() + 1)
+	merchant_hit = Control.new()
+	merchant_hit.mouse_filter = Control.MOUSE_FILTER_STOP
+	merchant_hit.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	merchant_hit.gui_input.connect(_merchant_input)
+	merchant_hit.mouse_entered.connect(func(): _hover_merchant(true))
+	merchant_hit.mouse_exited.connect(func(): _hover_merchant(false))
+	root.add_child(merchant_hit)
+	merchant_tag = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#fbf5e8")
+	sb.set_corner_radius_all(12)
+	sb.set_border_width_all(2)
+	sb.border_color = Color("#c9a86a")
+	sb.set_content_margin_all(10)
+	sb.shadow_size = 6
+	sb.shadow_color = Color(0.2, 0.12, 0.05, 0.25)
+	merchant_tag.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	var t := Label.new()
+	t.text = "Merchant"
+	t.add_theme_font_size_override("font_size", 26)
+	t.add_theme_color_override("font_color", Color("#3b2c20"))
+	var sub := Label.new()
+	sub.text = "Click to shop: rods · bait · boats"
+	sub.add_theme_font_size_override("font_size", 16)
+	sub.add_theme_color_override("font_color", Color("#8c7660"))
+	v.add_child(t)
+	v.add_child(sub)
+	merchant_tag.add_child(v)
+	merchant_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	merchant_tag.visible = false
+	root.add_child(merchant_tag)
+
+func _place_merchant() -> void:
+	if merchant == null or _merchant_info.is_empty() or not _scene.has("merchant"): return
+	var cell: float = _merchant_info.cell
+	var k: float = float(_scene.get("merchant_unit_px", _scene.unit_px)) / float(_merchant_info.unit_px) * 1.5
+	merchant.size = Vector2(cell, cell) * k
+	var spot := Vector2(_scene.merchant[0], _scene.merchant[1]) * SCENE
+	merchant.position = spot - Vector2(_merchant_info.anchor[0], _merchant_info.anchor[1]) * merchant.size
+	merchant_hit.position = merchant.position + merchant.size * Vector2(0.15, 0.2)
+	merchant_hit.size = merchant.size * Vector2(0.7, 0.65)
+	merchant_tag.position = merchant.position + Vector2(merchant.size.x * 0.5 - 150, -20)
+
+func _tick_merchant(delta: float) -> void:
+	if merchant == null or _merchant_info.is_empty(): return
+	_merchant_t += delta
+	var n := int(_merchant_info.get(_merchant_anim, {}).get("frames", 1))
+	var fi := int(_merchant_t * 8.0)
+	if _merchant_anim == "wave" and fi >= n * 2:
+		_merchant_anim = "idle"
+		_merchant_t = 0.0
+	elif _merchant_anim == "idle" and _merchant_t > 9.0:
+		_merchant_anim = "wave"           # greet the player now and then
+		_merchant_t = 0.0
+	var tex: Texture2D = _merchant_tex.get(_merchant_anim)
+	if tex == null: return
+	var cell: float = _merchant_info.cell
+	var at := AtlasTexture.new()
+	at.atlas = tex
+	at.region = Rect2((fi % n) * cell, 0, cell, cell)
+	merchant.texture = at
+
+func _hover_merchant(on: bool) -> void:
+	merchant_tag.visible = on
+	merchant.modulate = Color(1.08, 1.06, 1.0) if on else Color.WHITE
+	if on and _merchant_anim == "idle":
+		_merchant_anim = "wave"
+		_merchant_t = 0.0
+
+func _merchant_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		merchant_clicked.emit()
+		merchant_hit.accept_event()
