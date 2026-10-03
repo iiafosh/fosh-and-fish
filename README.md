@@ -1,3 +1,71 @@
+# 🐟 Virtual Fisher (Godot 4 + Blender)
+
+A desktop fishing game built on the real **Virtual Fisher** Discord bot mechanics, with all art
+rendered procedurally in **Blender** (cel-shaded, outlined, low-poly).
+
+## Play
+
+```bash
+launch_game.bat
+```
+or `Godot.exe --path .` (Godot 4.7). Controls: **Space/F** fish, **S** sell, **Esc** close panel.
+
+## What's in the game
+
+Everything follows the Virtual Fisher Encyclopaedia, the miraheze wiki (snapshot in `wiki_dump/`)
+and the Prestige 0 Guide:
+
+- **Fishing formula** from the wiki: rod range × fish catch, +1 fish per boat, bait fish,
+  × biome catch rate (River 100% → Abyss 1%), fish/treasure boosts, duplicator.
+- **Fish quality**: per-rod, per-biome species odds from the wiki tables, shifted by Fish Quality
+  (`E_n = min(Q_n·fq, 1 − higher tiers)`).
+- **20 fish, 21 rods, 17 boats, 8 baits, 7 biomes** with exact prices, levels and cooldowns.
+- **Chests** (Common → Artifact, Super) with the encyclopedia drop tables; **Gold / Emerald /
+  Lava / Diamond** fish unlock at levels 10 / 10 / 50 / 100.
+- **8 charms** (tier n costs n charms; 440 at P0, `10 + P` tiers later).
+- **5 pets** (1/10,000 per cast, never buyable) with the wiki buff formulas and pet XP table.
+- **Shop upgrades (9), Special (10), League (6), Boosts & Workers**, daily reward, daily quests,
+  league quest and weekly hooks.
+- **Prestige**: P0 needs Level 250, $5B and 440/440 charms; grants an Azure Fish for the
+  Prestige Shop (cap `1 + P/5`). The community P1–P160 buy-order chart is built in (Prestige → Guide).
+- Real **XP-per-level table** (25,000 levels) in `data/vf/levels.txt`.
+
+Values the sources don't state (per-level upgrade prices, chest base weights, prestige
+requirements after P0) are marked `DERIVED` in `scripts/vf/vf_data.gd`.
+
+## Code map
+
+| Path | What |
+|---|---|
+| `scripts/vf/vf_data.gd` | All game data + sources |
+| `scripts/vf/vf_game.gd` | Simulation (autoload `VF`): casting, chests, pets, prestige, save |
+| `scripts/vf/vf_main.gd` | UI: stage, catch card, dock, panels |
+| `shaders/vf_foreground_water.gdshader` | Animated water in front of the boat |
+| `tools/blender/` | Procedural art pipeline (models, materials, biome scenes) |
+| `assets/vf/` | Rendered sprites + `manifest.json` (rod-tip / waterline / horizon anchors) |
+| `tests/vf_sim_test.gd` | Headless mechanics & balance checks |
+| `legacy/` | Previous Godot prototype (ignored by Godot via `.gdignore`) |
+
+## Re-render the art
+
+```bash
+D:/Blender/blender-4.2.3-windows-x64/blender.exe -b --factory-startup --python tools/blender/render_assets.py
+```
+Pass categories (`fish exotics pets rods boats baits chests charms ui biomes`) and/or
+`--only "Name,Other"` to render a subset.
+
+## Tests & screenshots
+
+```bash
+Godot_console.exe --headless --path . -s res://tests/vf_sim_test.gd
+Godot_console.exe --path . -- --capture=OUT_DIR --demo=Ocean
+```
+`--capture` plays a few casts, screenshots the main screen and panels, then quits without saving.
+
+---
+
+# Legacy web prototype
+
 # 🐟 Virtual Fisher 2099 (`vfish.fosh`)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
