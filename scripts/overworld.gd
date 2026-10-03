@@ -5,6 +5,8 @@ extends Node2D
 @onready var boss_minigame: Control = $CanvasLayer/BossMinigame
 @onready var catch_toast: Control = $CanvasLayer/CatchToast
 @onready var travel_map: Control = $CanvasLayer/TravelMapModal
+@onready var inventory_modal: Control = $CanvasLayer/InventoryModal
+@onready var shop_modal: Control = $CanvasLayer/ShopModal
 
 # Top HUD
 @onready var hud_biome_label: Label = $CanvasLayer/TopHUD/LeftPill/HBox/BiomeLabel
@@ -15,9 +17,8 @@ extends Node2D
 
 # Bottom Dock
 @onready var hero_cast_btn: Button = $CanvasLayer/BottomDock/Center/CenterBox/HeroCastBtn
-@onready var btn_market: Button = $CanvasLayer/BottomDock/Center/LeftBox/MarketBtn
-@onready var btn_tackle: Button = $CanvasLayer/BottomDock/Center/LeftBox/TackleBtn
-@onready var btn_shipyard: Button = $CanvasLayer/BottomDock/Center/RightBox/ShipyardBtn
+@onready var btn_inventory: Button = $CanvasLayer/BottomDock/Center/LeftBox/InventoryBtn
+@onready var btn_shop: Button = $CanvasLayer/BottomDock/Center/LeftBox/ShopBtn
 @onready var btn_pets: Button = $CanvasLayer/BottomDock/Center/RightBox/PetsBtn
 @onready var btn_map: Button = $CanvasLayer/BottomDock/Center/RightBox/MapBtn
 
@@ -77,15 +78,26 @@ func _ready() -> void:
 	if boss_minigame:
 		boss_minigame.boss_resolved.connect(_on_boss_resolved)
 
+	# Modals setup
+	if inventory_modal:
+		inventory_modal.visible = false
+		inventory_modal.open_shop_requested.connect(func():
+			if shop_modal:
+				shop_modal.open_modal("hub")
+		)
+		inventory_modal.open_pets_requested.connect(func():
+			_open_station_from_deck({"id": "pets", "name": "Companion Sanctuary", "tab": "pets"})
+		)
+	if shop_modal:
+		shop_modal.visible = false
+
 	# Connect Bottom Dock Buttons directly
-	if btn_market and not btn_market.pressed.is_connected(_on_dock_btn_pressed):
-		btn_market.pressed.connect(func(): _on_dock_btn_pressed("market"))
-	if btn_tackle and not btn_tackle.pressed.is_connected(_on_dock_btn_pressed):
-		btn_tackle.pressed.connect(func(): _on_dock_btn_pressed("tackle"))
-	if btn_shipyard and not btn_shipyard.pressed.is_connected(_on_dock_btn_pressed):
-		btn_shipyard.pressed.connect(func(): _on_dock_btn_pressed("shipyard"))
-	if btn_pets and not btn_pets.pressed.is_connected(_on_dock_btn_pressed):
-		btn_pets.pressed.connect(func(): _on_dock_btn_pressed("pets"))
+	if btn_inventory and not btn_inventory.pressed.is_connected(_toggle_inventory):
+		btn_inventory.pressed.connect(_toggle_inventory)
+	if btn_shop and not btn_shop.pressed.is_connected(_toggle_shop):
+		btn_shop.pressed.connect(func(): _toggle_shop("hub"))
+	if btn_pets:
+		btn_pets.pressed.connect(func(): _open_station_from_deck({"id": "pets", "name": "Companion Sanctuary", "tab": "pets"}))
 	if btn_map and not btn_map.pressed.is_connected(_open_travel_map):
 		btn_map.pressed.connect(_open_travel_map)
 
@@ -236,10 +248,54 @@ func _get_current_stations(bounds: Vector2) -> Array:
 		{"id": "pets",    "x": bounds.y * 0.80, "name": "Companion Sanctuary", "tab": "pets"}
 	]
 
+func _toggle_inventory() -> void:
+	AudioManager.play_click()
+	if inventory_modal:
+		if inventory_modal.visible:
+			inventory_modal.close_modal()
+		else:
+			if shop_modal and shop_modal.visible:
+				shop_modal.close_modal()
+			if travel_map and travel_map.visible:
+				travel_map.visible = false
+			if station_hub and station_hub.visible:
+				station_hub.close_dock()
+			inventory_modal.open_modal()
+
+func _toggle_shop(target_view: String = "hub") -> void:
+	AudioManager.play_click()
+	if shop_modal:
+		if shop_modal.visible and shop_modal.current_view == target_view:
+			shop_modal.close_modal()
+		else:
+			if inventory_modal and inventory_modal.visible:
+				inventory_modal.close_modal()
+			if travel_map and travel_map.visible:
+				travel_map.visible = false
+			if station_hub and station_hub.visible:
+				station_hub.close_dock()
+			shop_modal.open_modal(target_view)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_SPACE:
-			if not station_hub.visible and not boss_minigame.visible and not (travel_map and travel_map.visible):
+		if event.keycode == KEY_ESCAPE:
+			if inventory_modal and inventory_modal.visible:
+				inventory_modal.close_modal()
+			elif shop_modal and shop_modal.visible:
+				shop_modal.close_modal()
+			elif travel_map and travel_map.visible:
+				travel_map.visible = false
+			elif station_hub and station_hub.visible:
+				station_hub.close_dock()
+		elif event.keycode == KEY_I:
+			_toggle_inventory()
+		elif event.keycode == KEY_S:
+			_toggle_shop("hub")
+		elif event.keycode == KEY_M:
+			_open_travel_map()
+		elif event.keycode == KEY_SPACE:
+			var modal_active = (inventory_modal and inventory_modal.visible) or (shop_modal and shop_modal.visible) or (station_hub and station_hub.visible) or (boss_minigame and boss_minigame.visible) or (travel_map and travel_map.visible)
+			if not modal_active:
 				_on_cast_pressed()
 		elif event.keycode == KEY_E:
 			if not active_station.is_empty():
@@ -250,6 +306,12 @@ func _open_station_from_deck(station_info: Dictionary) -> void:
 	var tab_name = station_info.get("tab", "fishing")
 	if tab_name == "map":
 		_open_travel_map()
+	elif tab_name == "market":
+		_toggle_shop("hub")
+	elif tab_name == "tackle":
+		_toggle_shop("bait")
+	elif tab_name == "shipyard":
+		_toggle_shop("boats")
 	else:
 		var dock_data = {
 			"id": station_info["id"],
@@ -261,12 +323,6 @@ func _open_station_from_deck(station_info: Dictionary) -> void:
 		}
 		station_hub.open_dock(dock_data)
 		match tab_name:
-			"market":
-				station_hub._on_market_btn_pressed()
-			"tackle":
-				station_hub._on_tackle_btn_pressed()
-			"shipyard":
-				station_hub._on_shipyard_btn_pressed()
 			"pets":
 				station_hub._on_pets_btn_pressed()
 			"fishing":

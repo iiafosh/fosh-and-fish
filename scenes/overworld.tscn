@@ -8,10 +8,12 @@
 [ext_resource type="Texture2D" uid="uid://yywxtyqfoguu" path="res://web/assets/finding_sobron/sprites/house/house.png" id="6_house_tex"]
 [ext_resource type="Script" uid="uid://ce3rc47sg5xu0" path="res://scripts/vessel_deck.gd" id="7_vessel"]
 [ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="8_theme"]
-[ext_resource type="PackedScene" uid="uid://ccatchtoast1" path="res://scenes/catch_toast.tscn" id="9_toast"]
-[ext_resource type="PackedScene" uid="uid://cstationhub1" path="res://scenes/station_hub.tscn" id="10_hub"]
+[ext_resource type="PackedScene" path="res://scenes/catch_toast.tscn" id="9_toast"]
+[ext_resource type="PackedScene" path="res://scenes/station_hub.tscn" id="10_hub"]
 [ext_resource type="PackedScene" path="res://scenes/boss_minigame.tscn" id="11_boss"]
 [ext_resource type="PackedScene" path="res://scenes/travel_map.tscn" id="12_map"]
+[ext_resource type="PackedScene" path="res://scenes/inventory_modal.tscn" id="13_inv"]
+[ext_resource type="PackedScene" path="res://scenes/shop_modal.tscn" id="14_shop"]
 
 [node name="Overworld" type="Node2D" unique_id=386474908]
 script = ExtResource("1_overworld")
@@ -254,17 +256,17 @@ alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MarketBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox" unique_id=378097928]
-custom_minimum_size = Vector2(90, 44)
+[node name="InventoryBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox" unique_id=378097928]
+custom_minimum_size = Vector2(110, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "💰 Market"
+text = "🎒 Inventory [I]"
 
-[node name="TackleBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox" unique_id=1008345652]
-custom_minimum_size = Vector2(90, 44)
+[node name="ShopBtn" type="Button" parent="CanvasLayer/BottomDock/Center/LeftBox" unique_id=1008345652]
+custom_minimum_size = Vector2(110, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "🧰 Tackle"
+text = "🛒 Shop Hub [S]"
 
 [node name="CenterBox" type="MarginContainer" parent="CanvasLayer/BottomDock/Center" unique_id=978923973]
 layout_mode = 2
@@ -283,23 +285,17 @@ text = "🎣 CAST LINE [SPACE]"
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ShipyardBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox" unique_id=218022081]
-custom_minimum_size = Vector2(90, 44)
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "🚢 Shipyard"
-
 [node name="PetsBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox" unique_id=1585887870]
 custom_minimum_size = Vector2(90, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "🐾 Pets"
+text = "🐾 Companions"
 
 [node name="MapBtn" type="Button" parent="CanvasLayer/BottomDock/Center/RightBox" unique_id=1847183919]
-custom_minimum_size = Vector2(85, 44)
+custom_minimum_size = Vector2(95, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "🧭 Chart"
+text = "🧭 Chart [M]"
 
 [node name="CatchToast" parent="CanvasLayer" unique_id=1060791674 instance=ExtResource("9_toast")]
 
@@ -310,6 +306,12 @@ visible = false
 visible = false
 
 [node name="TravelMapModal" parent="CanvasLayer" unique_id=335768816 instance=ExtResource("12_map")]
+visible = false
+
+[node name="InventoryModal" parent="CanvasLayer" unique_id=1358941021 instance=ExtResource("13_inv")]
+visible = false
+
+[node name="ShopModal" parent="CanvasLayer" unique_id=1358941022 instance=ExtResource("14_shop")]
 visible = false
 
 [connection signal="pressed" from="CanvasLayer/TopHUD/LeftPill/HBox/ChartBtn" to="." method="_open_travel_map"]

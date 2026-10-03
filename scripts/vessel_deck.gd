@@ -29,15 +29,15 @@ func _draw() -> void:
 	var t = Time.get_ticks_msec() * 0.001
 	var deck_y = 0.0
 	var cur_boat = GameManager.current_boat
+	var b_info = GameManager.boats_database.get(cur_boat, {})
+	var visual_style = b_info.get("visual_style", cur_boat)
 
 	# --- 1. LAYER 1: TRAILING AUTO-TRAWLER NET (WORKER SYSTEM) ---
 	if GameManager.worker_unlocked:
 		_draw_trawler_net(t, deck_y)
 
-	# --- 2. LAYER 2: BOAT HULL & SUPERSTRUCTURE (7 DISTINCT TIERS) ---
-	match cur_boat:
-		"Standard Skiff":
-			_draw_skiff(t, deck_y)
+	# --- 2. LAYER 2: BOAT HULL & SUPERSTRUCTURE (VISUAL MODELS) ---
+	match visual_style:
 		"Rowboat":
 			_draw_rowboat(t, deck_y)
 		"Fishing Boat":

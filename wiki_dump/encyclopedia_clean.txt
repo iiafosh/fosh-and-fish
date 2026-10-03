@@ -1,0 +1,485 @@
+Virtual Fisher Encyclopaedia
+This Encyclopaedia was made by @defilantema
+NOTE: INFORMATION ON THIS ENCYCLOPAEDIA WAS GIVEN TO ME BY BOTH MEMBERS OF THE COMMUNITY, AS WELL AS SALTSPREADER. IF THE VALUES EVER GET UPDATED, THIS GOOGLE DOCUMENT WILL ALSO BE UPDATED
+
+Hello Fisher! Welcome to the Virtual Fisher Encyclopedia, containing all of your 
+knowledgeable needs about the bot! Here you will find basic information about the bot you may have forgotten, or looking for a guide for your progress on the bot. This will have anything and everything you need to know about the bot, including some things not previously shared before to the public.
+
+Fish
+Raw Fish - Found first in the River Biome, Raw Fish sell for $1 with a 1x sell multiplier, awarding 1 experience when caught.
+
+Raw Salmon - Found first in the River Biome, Raw Salmon sell for $3 with a 1x sell multiplier, awarding 2 experience when caught.
+
+Cod - Found first in the River Biome, Cod sells for $10 with a 1x sell multiplier, awarding 5 experience when caught.
+
+Tropical Fish - Found first in the River biome, Tropical Fish sell for $50 with a 1x sell multiplier, awarding 10 experience when caught.
+
+Pufferfish - Found first in the River Biome , Pufferfish sells for $150 with a 1x sell multiplier, awarding 25 experience when caught.
+
+Fiery Pufferfish - Found first in the Volcanic Biome,Fiery Pufferfish sell for $250 with a 1x sell multiplier, awarding 50 experience when caught.
+Hot Cod - Found first in the Volcanic Biome, Hot Cod sells for $500 with a 1x sell multiplier, awarding 100 experience when caught.
+
+Squid - Found first in the Ocean Biome, Squid sells for $1 200 with a 1x sell multiplier, awarding 175 experience when caught.
+
+Turtle - Found first in the Ocean Biome, Turtles sell for $4 000 with a 1x sell multiplier, awarding 400 experience when caught.
+
+Dolphin - Found first in the Ocean Biome, Dolphins sell for $20 000 with a 1x sell multiplier, awarding 800 experience when caught.
+
+Guardian - Found first in the Sky Biome, Guardians sell for $29 000 with a 1x sell multiplier, awarding 1 100 experience when caught.
+
+Emerald Squid - Found first in the Sky Biome, Emerald Squid sells for 
+$42 000 with a 1x sell multiplier, awarding 1 900 experience when caught.
+
+Rainbow Fish - Found first in the Sky Biome, Rainbow Fish sell for 
+$125 000 with a 1x sell multiplier, awarding 4 800 experience when caught.
+
+Space Fish -  Found first in the Space Biome, Space Fish sells for $200 000 with a 1x sell multiplier, awarding 8 000 experience when caught.
+
+Galactic Crab - Found first in the Space Biome, Galactic Crab sells for 
+$600 000 with a 1x sell multiplier, awarding 15 000 experience when caught.
+
+Shark - Found first in the Alien Biome, Sharks sell for $2 000 000 with a 1x sell multiplier, awarding 35 000 experience when caught.
+
+Alien Fish - Found first in the Alien Biome, Alien Fish sell for 
+$5 000 000 with a 1x sell multiplier, awarding 65 000 experience when caught.
+
+Artifact Fish - Found in the Abyss Biome. Artifact Fish sell for $8 000 000 with a 1x sell multiplier, awarding 120 000 experience when caught.
+
+Dark Puffer - Found in the Abyss Biome. Dark Puffer sell for $23 000 000 with a 1x sell multiplier, awarding 270 000 experience when caught.
+
+Dark Tuna - Found in the Abyss Biome. Dark Puffer sell for $23 000 000 with a 1x sell multiplier, awarding 420 000 experience when caught.
+
+
+Boats
+Boats are one of the most useful things in the bot. Each boat decreases your cooldown by 0.25s, and increases your fish count by a small amount (+1 Fish per cast). Certain boats are unlocked during different parts of the bot depending on the level you are.
+
+
+Rowboat - Level 0 - $5 000
+Fishing Boat - Level 0 - $25 000
+Speedboat - Level 0 - $100 000
+Pontoon - Level 0 - $250 000
+Sailboat - Level 0 - $1 000 000
+
+Yacht - Level 50 - $20 000 000
+Luxury Yacht - Level 50 - $100 000 000
+
+Cruise Ship - Level 100 - $500 000 000
+
+Gold Boat - Level 250 - $2 500 000 000
+Sky Cruiser - Level 250 - $10 000 000 000
+
+Satellite - Level 500 - $50 000 000 000 
+Space Shuttle - Level 500 - $250 000 000 000
+Cruiser - Level 500 - $1 000 000 000 000
+
+Alien Raft - Level 1 000 - $2 500 000 000 000
+Alien Submarine - Level 1 000 - $5 000 000 000 000
+
+Dark Explorer - Level 2 500 - $50 000 000 000 000
+Abyssal Surveyor - Level 2 500 - $500 000 000 000 000
+
+
+
+
+
+Rods
+Plastic Rod - $0. This rod is automatically unlocked once you start. This is the first rod you receive at the start of your fishing adventure. This rod will always be unlocked for the player to use, no matter the progress. It can only be used in The River.
+4-10 Fish per cast.
+5% Treasure Chance
+Improved Rod - $500. This rod is automatically unlocked once you start. This rod can only be used in The River
+“Attracts slightly better fish.”
+5-10 Fish per cast.
+5% Treasure Chance
+Steel Rod - $8 000. This rod is automatically unlocked once you start. This rod can only be used in The River
+“Allows you to catch better fish, but slightly less of them.”
+5-8 Fish per cast.
+5% Treasure Chance
+Fiberglass Rod - $50 000. This rod is automatically unlocked once you start. This rod can only be used in The River
+“Catches large amounts of quality fish.”
+7-10 Fish per cast.
+5% Treasure Chance
+Heavy Rod - $100 000. This rod is automatically unlocked once you start. This rod can only be used in The River
+“Doesn’t catch as many fish, but gets you far more treasure.”
+6-9 Fish per cast
+8.5% Treasure Chance
+5% Extra Treasure Quality
+Alloy Rod - $250 000. This rod is automatically unlocked once you start. This rod can only be used in The River
+“Catch rare fish at an inconsistent rate.”
+4-13 Fish per cast
+5% Treasure Chance
+Lava Rod - $1 000 000. This rod is unlocked once you start. This rod can be used in The River, Volcanic and Ocean biomes.
+“Catches many rare fish consistently”
+7-11 Fish per cast
+5% Treasure Chance
+Magma Rod - $10 000 000. This rod is unlocked once you start. This rod can be used in The River, Volcanic and Ocean biomes.
+“Empowered lava rod to catch even more fish.”
+10-13 Fish per cast
+5% Treasure Chance
+Oceanium Rod - $75 000 000. This rod is unlocked once you hit level 100. This rod can be used in The River and Ocean biomes.
+“Made of rare ocean materials.”
+11-14 Fish per cast
+5% Treasure Chance
+Golden Rod - $120 000 000. This rod is unlocked once you hit level 100. This rod is one of the better rods to use for getting treasure until ~P30. This rod can be used in all biomes up to Sky Biome.
+“Made of pure gold. Catch treasure like you never thought possible.”
+4-6 Fish per cast
+13% Treasure Chance
+Superium Rod - $250 000 000. This rod is unlocked once you hit level 100. This rod can be used in The River, Volcanic, Ocean and Sky biomes.
+“Ultra light strong design for incredible fish catching abilities.”
+8-18 Fish per cast
+5.5% Treasure Chance
+Infinity Rod - $1 000 000 000. This rod is unlocked once you hit level 100. This rod can be used in The River, Volcanic, Ocean and Sky biomes.
+“From 6 stones...”
+15-18 Fish per cast
+6% Treasure Chance
+Floating Rod - $50 000 000 000. This rod is unlocked once you hit level 250. This rod can be used in all biomes up to Space.
+“Emits so much energy it appears to float.”
+15-30 Fish per cast
+6.5% Treasure Chance
+Sky Rod - $250 000 000 000. This rod is unlocked once you hit level 250. This rod can be used in all biomes up to Space.
+“The ultimate rod - made from elements found in the sky biome.”
+30-34 Fish per cast
+6.7% Treasure Chance
+
+
+Meteor Rod - $500 000 000 000. This rod is unlocked once you hit level 500. This is one of the best rods for getting treasure on the bot. It can only be used in Space and Alien biomes.
+“Extremely dense rod capable of attracting much high quality treasure.”
+20-24 Fish per cast
+15% Treasure Chance
+30% Extra Treasure Quality
+Space Rod - $1 000 000 000 000. This rod is unlocked once you hit level 500. It is one of the best rods to use in the space biome, and can be used anywhere.
+“SPAAAAAAAAAAAACE.”
+33-37 Fish per cast
+6.8% Treasure Chance
+Alien Rod - $5 000 000 000 000. This rod is unlocked once you hit level 1 000. This rod can be used in every biome.
+“An extremely complex rod built with alien technology.”
+37-42 Fish per cast
+7% Treasure Chance
+10% Extra Treasure Quality
+Supporter Rod - This rod can be unlocked at Prestige 3, or by buying any of the donator tiers for the bot. The rod can be used in every biome, as with how good the rod is scales with each of the different biomes it is in.     +   7-10 Fish per cast (1.2x Volcanic. 1.4x Ocean. 2.0x Sky. 3.2x Space. 4.0x Alien. 4.6x Abyss.)
+6.5% Treasure Chance
+10% Extra Treasure Quality
+Ultimate Depths Rod - $50 000 000 000 000. This rod can be unlocked once you hit level 2 500. This rod can be used in every biome.
+“A rod capable of fishing in extreme depths.”
+40-47 Fish per cast
+7% Treasure Chance
+5% Extra Treasure Quality
+Abyssal Supermagnet - $250 000 000 000 000. This rod can be unlocked once you hit level 2 500. This rod can be used in every biome.
+“A magnetic rod capable of attracting the highest quality treasure.”
+22-28 Fish per cast
+~5% Treasure Chance
+~50% Extra Treasure Quality
+Ultimate Depths Rod - $1 000 000 000 000 000.This rod can be unlocked once you hit level 2 500. This rod can be used in every biome.
+“The ultimate fishing rod.”
+42-50 Fish per cast
+7% Treasure Chance
+10% Extra Treasure Quality
+
+
+
+
+
+
+Biomes
+Biomes are unlocked as you progress further through the bot. Each unlocked at a different level, and rewarding different types of fish per cast. The biomes will impact your casting time by a little, which can be lowered again with the available boats to purchase.
+
+River - The River biome is unlocked as soon as you run your first command on the bot. Every rod can be used in this biome except for the Meteor rod. Every item available in this biome is:
+100% Fish Catch Rate
+Raw Fish 
+Raw Salmon
+Cod
+Tropical Fish
+Pufferfish
+Improved Rod
+Steel Rod
+Fiberglass Rod
+Heavy Rod
+Alloy Rod
+Lava Rod
+Magma Rod
+Rowboat
+Fishing Boat
+Speedboat
+Pontoon
+Sailboat
+Yacht
+Gold Fish (Level 10)
+%charms (Level 20)
+Worms
+Leeches (Level 10)
+Magnet (Level 20)
+Wise Bait (Level 30)
+Fish (Level 40)
+
+Volcanic - The Volcanic biome is unlocked once you reach level 50. This biome unlocks 2 new rods, 1 new boat and 2 new baits. The rods bought in the River cannot be used in this biome, as well as the Meteor Rod. Every item available in this biome is:
++0.5s Fishing Cooldown
+60% Fish Catch Rate
+Raw Salmon
+Cod
+Tropical Fish
+Fiery Pufferfish
+Hot Cod
+Luxury Yacht
+Lava Fish
+%shop special command
+Artifact Magnet (Level 60)
+Magic Bait (Level 80)
+Ocean - The Ocean biome is unlocked once you reach level 100. This biome unlocks 4 new rods, 2 new boats, 1 new bait and 5 new upgrades in %shop special. All rods in the River, Volcanic, and Meteor Rod cannot be used in this biome. Every item available in this biome is:
++1s Fishing Cooldown
+30% Fish Catch Rate
+Tropical Fish
+Pufferfish
+Squid
+Turtle
+Dolphin
+Oceanium Rod
+Golden Rod
+Superium Rod
+Infinity Rod
+Cruise Ship
+Diamond Fish
+Support Bait (Level 150)
+
+Sky - The Sky biome is unlocked at level 250. This biome unlocks 2 new rods, 2 new boats, 1 new upgrade in %shop special. All previous biome rods as well as Meteor rod cannot be used in this biome. Every item available in this biome is:
++2s Fishing Cooldown
+12% Fish Catch Rate
+Fiery Puffer
+Squid
+Guardian
+Emerald Squid
+Rainbow Fish
+Floating Rod
+Sky Rod
+Gold Boat
+Sky Cruiser
+New upgrade in %shop special
+
+
+
+
+Space - The Space biome is unlocked at level 500. This biome unlocks 2 new rods and 2 new boats. All previous biome rods cannot be used in this biome. Every item available in this biome is:
++3s Fishing Cooldown
+6.5% Fish Catch Rate
+Fish
+Raw Salmon
+Rainbow Fish
+Space Fish
+Galactic Crab
+Meteor Rod
+Space Rod
+Satellite
+Space Shuttle
+Cruiser
+2 new upgrades in %shop special
+
+Alien - The Alien biome is unlocked at level 1 000. It is the 6th biome, and unlocks 1 new rod and 2 new boats. All previous biome rods cannot be used in this biome. Every item available in this biome is:
++4s Fishing Cooldown.
++3% Fish Catch Rate
+Emerald Squid
+Rainbow Fish
+Space Fish
+Shark
+Alien Fish
+Alien Rod
+Alien Raft
+Alien Submarine
+
+Abyss - The Abyss biome is unlocked at level 2 500. It is currently the last unlockable biome, and unlocks 3 new rod and 2 new boats. All previous biome rods cannot be used in this biome. Every item available in this biome is:
++5s Fishing Cooldown.
++3% Fish Catch Rate
+Artifact Fish
+Dark Puffer
+Dark Tuna
+Ultimate Depths Rod
+Abyssal Supermagnet
+Dark Rod
+Dark Explorer
+Abyssal Surveyor
+
+NOTE: The fishing cooldowns do not stack on top of each other. They add on that amount of time from the base fishing cooldown in the river. E.G. 3 second cooldown in river + alien cooldown = 7s. Caps at 5s cooldown.
+
+
+
+
+
+Baits
+Worms - “Increases amount of fish caught.” Worms can be bought using the command “/buy Worms <amount>”. They cost $4. The buffs from the bait are:
+XP Multiplier -10%+2 Fish per cast
+Leeches - “Increases amount of fish caught and slightly improves the quality of fish caught.” Leeches can be bought using the command “/buy Leeches <amount>”. They cost $25. The buffs from the bait are:Fish Catch +20%Fish Quality +20%XP Multiplier -20%+3 Fish per cast
+Magnet - “Causes fewer fish to bite but significantly increases your chances of finding treasure.” 
+Magnets can be bought using the command “/buy Magnet <amount>”. They cost $25. The buffs from the bait are:Fish Catch -10%Fish Quality -10%Treasure Chance +50%XP Multiplier +20%
+
+Wise Bait - “Increases XP per fish catch.” Wise bait can be bought using the command “/buy Wise bait <amount>”. They cost $35. The buffs from the bait are:XP Multiplier +150%
+
+Fish - “Increases your fish catch and the quality of fish.” 
+Fish can be bought using the command “/buy Fish <amount>”. They cost $70. The buffs from the bait are:Fish Catch +50%Fish Quality +100%XP Multiplier -30%+1 Fish per cast
+
+
+
+
+
+Artifact Magnet - “Causes fewer fish to bite but increases your chances of finding treasure and increases quality of treasure found.” 
+Artifact Magnets can be bought using the command “/buy Artifact Magnet <amount>”. They cost $75. The buffs from the bait are:Fish Catch -30%Fish Quality -30%Treasure Chance +40%Treasure Quality +50%XP Multiplier +30%
+
+
+
+
+
+Magic Bait - “Causes you to catch more, better quality fish and treasure.” 
+Magic Bait can be bought using the command “/buy Magic Bait <amount>”. They cost $250. The buffs from the bait are:Fish Catch +100%Fish Quality +50%Treasure Chance +15%Treasure Quality +15%XP Multiplier -20%+2 Fish per cast
+
+
+
+
+Support Bait - “Helps you find pets. Increases effectiveness of pets.”
+Support Bait can be bought using the command “/buy item:support bait <amount>”. They cost $500. The buffs from the bait are:
+Pet Catch Chance +40%
+Pet Effectiveness +35%
+Pet XP +35%
+
+
+
+
+
+
+Treasures
+Treasures are unlocked once you reach level 20. You have a random chance to get them while fishing, and the chances increase with the more Treasure Chance you have. There are 7 different qualities of treasures.
+Common - (1x rewards)
+15% Gold Fish. 2% Emerald Fish. 1% Lava Fish. 82% XP/Money.
+Uncommon - (1x rewards)
+25% Gold Fish. 5% Emerald Fish. 1.9% Lava Fish. 1% Diamond Fish. 67.1% XP/Money.Rare - (1.4x rewards)
+38% Gold Fish. 15% Emerald Fish. 6.5% Lava Fish. 6% Diamond Fish. 2% Charm. 32.5% XP/Money.Epic - (1.7x rewards)25% Gold Fish. 25% Emerald Fish. 10% Lava Fish. 15% Diamond Fish. 25% Charm.Legendary - (2.2x rewards)
+15% Gold Fish. 10% Emerald Fish. 15% Lava Fish. 20% Diamond Fish. 40% Charm.Artifact - (3x rewards)
+5% Gold Fish. 5% Emerald Fish. 5% Lava Fish. 10% Diamond Fish. 75% Charm.Vote - (5x rewards)[1]
+Under Level 100 - 10% Gold Fish. 40% Emerald Fish. 50% Charm.
+Over Level 100 - 50% Diamond Fish. 50% Charm.
+Super - (7.5x rewards)[2]
+50% Charm[3], 45% Super Exotic Crate[4], 5% Money/XP
+NOTES: The Vote quality is exclusive as a reward for voting to the bot on the “top.gg” website.
+Artifact Treasures have a chance to give 1-3 Charms. This can be increased depending on your prestige level.
+Some rewards from the Treasures are locked behind level walls. Diamond fish (Level 100) and Lava Fish (Level 50) will only be awarded to the player once they reach that level. Otherwise it is replaced by XP/Money.
+The multipliers for the Treasures do not affect Charms.[1] The level based rewards depend on what biome you are in. If you want the Under Level 100 rewards, make sure to vote in River/Volcanic biome. Over Level 100 rewards are in Ocean/Sky/Space/Alien biomes.
+[2] You can only get Super Crates through the new upgrade “Super Crates’ in the League Shop. Once you purchase one level of the upgrade, you can start earning Super Crates.
+[3] The chances to get charms from the crate are increased by 5% for each “Super Crates” level. Level 2 on the upgrade means you get a 55% chance for charms. Level 3 = 60% etc.
+[4] The chances to get the Super Exotic Crate are lowered by 5% for each level of “Super Crates”. Level 2 = 40%. Level 3 = 35%. A Super Exotic Crate rewards the player with every special fish.
+
+
+Charms
+Charms are unlocked once you are able to collect treasures from fishing, which is level 20. You have a chance to get charms from treasures while fishing. All buffs are given per level of the charms.
+
+Marketing Charm - +5% Sell price
+
+Endurance Charm - +2.5% Fish Catch
+
+Haste Charm - -0.05s Fishing Cooldown
+
+Quantity Charm - +5% Extra Chest Items
+
+Worker Charm - +3% Worker Fish
+
+Treasure Charm - +2.5% Treasure Chance
+
+Quality Charm - +2.5% Treasure Quality
+
+Experience Charm - +5% XP Multiplier
+
+
+Pets
+Pets are rare things that can be acquired through fishing. With a 1 in 10 000 chance of getting one per cast, these pets can help you while you fish, and can each be leveled up to level 100. The level cap can be increased to 125 by purchasing the “Pet Helper” upgrade in the League shop.
+
+Puffer: Fish Catch +10.75% (Lv 1) +85.00% (Lv 100) 103.75% (Lv 125)
+
+Dolphin: XP and Treasure Chance +8.06% (Lv 1) +63.75% (Lv 100) +77.81% (Lv 125)
+
+Axolotl: Treasure Chance +2.69% (Lv 1) +21.25% (Lv 100) 25.94% (Lv125)
+              Treasure Quality +10.75% (Lv 1) +85.00% (Lv 100) 103.75% (Lv 125)
+
+Tuna: Fish Catch, Fish Quality, XP, Treasure Chance, and Treasure Quality +3.23% (Lv 1) +25.50% (Lv 100) 31.12% (Lv 125)
+
+Zebrafish: Fish Catch +2.69% (Lv 1) +21.25% (Lv 100) 25.94% (Lv 125)
+                    Fish Quality +10.75% (Lv 1) +85% (Lv 100) 103.75% (Lv 125)
+NOTE: It is not possible to get duplicate pets before owning all 5. Once you have all 5 pets, any further pets you get will convert it into xp for that pet type.
+Pets are more common to get if you don’t get one within a certain amount of trips. They are 1.5x as common if no pets have been found in 10k trips, and 3x as common if not found in 15k trips. This only applies to the first pet you get.
+
+Upgrades
+Upgrades. One of the most important things in progressing. Giving yourself little stat boosts to make life (and fishing) easier. Apart of the bot there are three different categories of upgrades. All with different currencies required to purchase, Normal Upgrades, costing money. Special Upgrades, costing Exotic Fish, and Prestige Upgrades, bought with Azure Fish.
+
+Normal Upgrades
+You can access these by running the command “/shop upgrades”. These 9 upgrades cost money, which as you should know by now, you can get from selling fish, from treasures, or as a daily or vote reward.
+
+Better Fish - Increases Fish Quality by 5%. Can be upgraded 21 times, and costs $14,902,000 to max.
+
+Salesman - Increases sell price by 5% per upgrade. Can be upgraded 18 times, and costs $4,058,000 to max.
+
+Bait Efficiency - Lowers the chance of consuming bait by 5% when casting. Can be upgraded 9 times, and costs $220,500 to max.
+
+More Chests - Increases Treasure Chance by 5%. Can be upgraded 11 times, and costs $6,087,000 to max.
+
+Worker Motivation - Increases Fish Catch from workers by 10%. Can be upgraded 12 times, and costs $777,310,000 to max.
+
+Artifact Specialist - Improves Treasure rewards by 10% excluding charms. Can be upgraded 7 times, and costs $521,500 to max.
+
+Experienced - Increases XP Gain by 10%. Can be upgraded 5 times, and costs $555,550,000 to max.
+
+Better Chests - Increases Treasure Quality by 10%. Can be upgraded 5 times, and costs $131,100,000 to max.
+
+Better Dailies - Increases Daily Rewards items by 10%. Can be upgraded 10 times, and costs $2,990,000 to max.
+
+Special Upgrades
+These upgrades can be accessed by running the command “/shop special”. These take three different kinds of exotic fish to be able to upgrade. Lava Fish, Diamond Fish and Gold Fish.
+
+Fish Ovens - Increases Sell Price by 5%. Can be upgraded 20 times, and costs 3360 Lava Fish to max.
+
+Bait Lover - Increases effectiveness of bait by 15%. Can be upgraded 4 times, and costs 385 Diamond Fish to max.
+
+Aquatic Expert - Increases Fish Catch by 5%. Can be upgraded 4 times, and costs 385 Diamond Fish to max.
+
+Worker Extender - Increases the length of Worker Boosts by 10%. Can be upgraded 4 times, and costs 385 Diamond Fish to max.
+
+Ultimate Salesman - Increases Sell Price by 15%. Can be upgraded 4 times, and costs 385 Diamond Fish to max.
+
+Highly Experienced - Increases XP Gain by 15%. Can be upgraded 4 times, and costs 395 Diamond Fish to max.
+
+Boost Booster - Increases Treasure Quality by 50% (Extra 10% per Level),  Fish Quality by 40% (Extra 2% per Level), and Worker fish speed by 0.1[1]. (By default, they fish every 20s.). Can be Upgraded 4 times, and costs 385 Diamond Fish to max.
+
+Statistician - Increases all Multipliers by 2%. Can be upgraded 10 times, and costs 4000 Gold Fish to max.
+
+Duplicator - Increases chance to duplicate fish by 2%. This only affects your current trip when it procs. Can be upgraded 10 times, and costs 4400 Emerald Fish to max.
+
+Charmer - Increases Charms found by 2.5%. Can be upgraded 10 times, and costs 3200 Lava Fish to max.
+
+
+Prestige Upgrades
+These upgrades become available as soon as you are able to prestige. Each upgrade will cost 1 Azure Fish, which you get when you meet the prestige requirements. These upgrades, when available, can be seen with the “/prestige shop” command.
+
+International Ties - Increases all multipliers by 10%. Can be upgraded 26 times on max prestige. A new tier unlocks every 5 prestiges, and costs 1 Azure Fish.
+Business Education - Increases Sell Price by 40%. Can be upgraded 26 times on max prestige. A new tier unlocks every 5 prestiges, and costs 1 Azure Fish.
+
+Fish Whisperer - Increases Fish Catch by 25%. Can be upgraded 26 times on max prestige. A new tier unlocks every 5 prestiges, and costs 1 Azure Fish.
+
+Ancient One - Increases XP Gain by 35%. Can be upgraded 26 times on max prestige. A new tier unlocks every 5 prestiges, and costs 1 Azure Fish.
+
+Virtual Fisher - Increases Fish Quality by 40%, Sell Price by 20%, and XP Gain by 20%. This upgrade unlocks upon reaching Prestige 5. Can be upgraded 26 times on max prestige. A new tier unlocks every 5 prestiges, and costs 1 Azure Fish.
+
+
+League Upgrades
+These upgrades are available as soon as you start the bot. You can earn currency for these upgrades by completing daily special quests, which reward 10 hooks upon completion, or by hitting a certain milestone of trips in a week, with a max reward of 100 hooks. The maximum amount of hooks you can earn in a week is 170. A total of 6435 hooks is needed to max every upgrade. Upgrades bought in this shop are permanent.
+
+Pet Helper - Increases max Pet Level by 5, and increases the experience of your lowest level pet by a small margin. Can be upgraded 5 times, and costs 1050 hooks to max. 
+
+Bait Helper - Increases effectiveness of Bait by 5%. Can be upgraded 5 times, and costs 1050 hooks to max.
+
+Super Crates - Unlocks the ability to find Super Crates. Level 1 chance is 1/200. Can be upgraded 5 times, and costs 1050 hooks to max.
+
+Worker Crates - Unlocks the ability for Workers to fish crates. With no buffs on the worker, it has a 1/50 chance to find a crate. Can be upgraded 5 times, and costs 1050 hooks to max.
+[1]Workers by default fish every 20 seconds. Any upgrade of Fishing Frenzy, or Boost booster, increases the speed of workers by 10%. With a level 2 Boost Booster upgrade, and a level 1 Fishing Frenzy upgrade, workers fish 30% faster (1 trip every ~15.38s). The fastest the worker can fish with max upgrades is ~10.52s.
+**The chances for a Worker to fish a crate for each level are: Level 1 - 1/50 | Level 2 - 1/40 | Level 3 - 1/32 | Level 4 - 1/26 | Level 5 - 1/20. Treasure Quality affects the rewards as well.
+
+Fishing Frenzy - Increases Worker fish speed by 10% per upgrade. Increases Fish Boost’s effectiveness by 1%. Can be upgraded 5 times, and costs 1050 hooks to max.
+While the Fish Boost may seem like a small increase, it can vastly change the rewards that you can get while using the Fish Boost in the Boosts shop. The formula for the Fish Boost was changed with the addition to the leagues shop making it: 5% fish increase + 1% per Boost Booster and Fishing Frenzy level + (0-3 fish * Fishing Frenzy level + 1-4 fish + Boost Booster level) * Rod Multiplier * Biome Multiplier.
+
+Duplicator 2.0 - Increases Duplication chance by 2%. Can be upgraded 10 times, and costs 1185 hooks to max.
+
+
+
+
+

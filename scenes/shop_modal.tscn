@@ -1,0 +1,370 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/shop_modal.gd" id="1_shop"]
+[ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_embed"]
+bg_color = Color(0.06, 0.08, 0.11, 0.98)
+border_width_left = 4
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.12, 0.85, 0.35, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.85)
+shadow_size = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_nav"]
+bg_color = Color(0.22, 0.32, 0.85, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.55, 1.0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="ShopModal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_shop")
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.02, 0.03, 0.6)
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(520, 620)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -310.0
+offset_right = 260.0
+offset_bottom = 310.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_embed")
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "Shop Hub"
+
+[node name="BalanceLabel" type="Label" parent="Panel/Margin/VBox/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.95, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "Balance: $384,021,555"
+
+[node name="CloseXBtn" type="Button" parent="Panel/Margin/VBox/Header"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+text = "✕"
+
+[node name="HSeparator" type="HSeparator" parent="Panel/Margin/VBox"]
+layout_mode = 2
+
+[node name="ViewHub" type="VBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="DirectoryLabel" type="Label" parent="Panel/Margin/VBox/ViewHub"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_font_sizes/font_size = 13
+text = "Welcome to the Shop! Select a department below:
+
+• /shop rods      - Upgrade your rod for higher catch & treasure
+• /shop bait      - Purchase specialty baits & magnetic lures
+• /shop upgrades  - Permanent character progression perks
+• /shop boats     - Commission vessels with stacking -CD & +Fish
+• /shop boosts    - Deploy automated net worker expeditions
+• /shop special   - Exotic fish trade & legendary blessings
+• /shop league    - High-tier enhancements purchased with hooks"
+
+[node name="Spacer" type="Control" parent="Panel/Margin/VBox/ViewHub"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MatrixGrid" type="GridContainer" parent="Panel/Margin/VBox/ViewHub"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 4
+
+[node name="RodsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "🎣 Rods"
+
+[node name="BaitBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "🪱 Bait"
+
+[node name="UpgradesBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "⬆️ Upgrades"
+
+[node name="BoatsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "⛵ Boats"
+
+[node name="BoostsBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "🔥 Boosts"
+
+[node name="SpecialBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "🐟 Special"
+
+[node name="LeagueBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+text = "🪝 League"
+
+[node name="ReturnBtn" type="Button" parent="Panel/Margin/VBox/ViewHub/MatrixGrid"]
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "↩ Return"
+
+[node name="ViewRods" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ViewRods"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RodsList" type="VBoxContainer" parent="Panel/Margin/VBox/ViewRods/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="NavRow" type="HBoxContainer" parent="Panel/Margin/VBox/ViewRods"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="PrevBtn" type="Button" parent="Panel/Margin/VBox/ViewRods/NavRow"]
+custom_minimum_size = Vector2(90, 34)
+layout_mode = 2
+text = "◀ Prev"
+
+[node name="PageLabel" type="Label" parent="Panel/Margin/VBox/ViewRods/NavRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Page 1/3"
+horizontal_alignment = 1
+
+[node name="NextBtn" type="Button" parent="Panel/Margin/VBox/ViewRods/NavRow"]
+custom_minimum_size = Vector2(90, 34)
+layout_mode = 2
+text = "Next ▶"
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewRods/NavRow"]
+custom_minimum_size = Vector2(110, 34)
+layout_mode = 2
+text = "↩ Shop Hub"
+
+[node name="ViewBoats" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="NoticeLabel" type="Label" parent="Panel/Margin/VBox/ViewBoats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "⚓ Boats permanently reduce cooldown (-0.25s each) and increase fish caught (+1 each). Cumulative bonuses apply to all owned boats!"
+autowrap_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ViewBoats"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BoatsList" type="VBoxContainer" parent="Panel/Margin/VBox/ViewBoats/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewBoats"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "↩ Back to Shop Hub"
+
+[node name="ViewBait" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="NoticeLabel" type="Label" parent="Panel/Margin/VBox/ViewBait"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "🪱 Equip baits to enhance catch quantity, quality, and sunken treasure discovery!"
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ViewBait"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BaitList" type="VBoxContainer" parent="Panel/Margin/VBox/ViewBait/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewBait"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "↩ Back to Shop Hub"
+
+[node name="ViewUpgrades" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="NoticeLabel" type="Label" parent="Panel/Margin/VBox/ViewUpgrades"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.95, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "⬆️ Permanent career upgrades scaling sell prices, quality, XP, and treasure discovery."
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ViewUpgrades"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UpgradesList" type="VBoxContainer" parent="Panel/Margin/VBox/ViewUpgrades/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewUpgrades"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "↩ Back to Shop Hub"
+
+[node name="ViewBoosts" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin/VBox/ViewBoosts"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewBoosts"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "↩ Back to Shop Hub"
+
+[node name="ViewSpecial" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="NoticeLabel" type="Label" parent="Panel/Margin/VBox/ViewSpecial"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "🐟 Spend exotic fish (🪙 Gold, 🟢 Emerald, 🌶️ Lava, 💎 Diamond) for legendary blessings!"
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ViewSpecial"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SpecialList" type="VBoxContainer" parent="Panel/Margin/VBox/ViewSpecial/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewSpecial"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "↩ Back to Shop Hub"
+
+[node name="ViewLeague" type="VBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="NoticeLabel" type="Label" parent="Panel/Margin/VBox/ViewLeague"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "🪝 League Hook Emporium. Permanent high-tier enhancements purchased with League Hooks."
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ViewLeague"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeagueList" type="VBoxContainer" parent="Panel/Margin/VBox/ViewLeague/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BackBtn" type="Button" parent="Panel/Margin/VBox/ViewLeague"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "↩ Back to Shop Hub"

@@ -19,63 +19,123 @@ signal treasure_found(chest_data: Dictionary)
 
 const SAVE_PATH = "user://savegame.json"
 
-# --- Player State ---
-var cash: int = 250
-var level: int = 1
-var xp: int = 0
-var xp_needed: int = 30
-var current_biome: String = "River"
+# --- Player Profile State (Screenshot 1 Match) ---
+var player_name: String = "iisafosh_"
+var prestige: int = 4
+var level: int = 203
+var xp: int = 63266
+var xp_needed: int = 3195000
+var cash: int = 384021555
+var current_biome: String = "Ocean"
 
-# Exotic Currencies
-var gold_fish: int = 0
-var emerald_fish: int = 0
-var lava_fish: int = 0
-var diamond_fish: int = 0
+# Exotic Currencies (Screenshot 1 Match)
+var gold_fish: int = 2605
+var emerald_fish: int = 1427
+var lava_fish: int = 33
+var diamond_fish: int = 51
 
-# Equipment
-var current_rod: String = "Plastic Rod"
-var owned_rods: Array[String] = ["Plastic Rod"]
-var current_boat: String = "Standard Skiff"
-var owned_boats: Array[String] = ["Standard Skiff"]
-var current_bait: String = "None"
+# Special Currencies (Screenshot 1 Match)
+var hooks: int = 101          # League currency
+var azure_fish: int = 4       # Prestige currency
+
+# Equipment & Companions
+var current_rod: String = "Golden Rod"
+var owned_rods: Array[String] = [
+	"Plastic Rod", "Improved Rod", "Steel Rod", "Fiberglass Rod",
+	"Heavy Rod", "Lava Rod", "Oceanium Rod", "Golden Rod"
+]
+
+var current_boat: String = "Luxury Yacht"
+var owned_boats: Array[String] = [
+	"Rowboat", "Fishing Boat", "Speedboat", "Pontoon",
+	"Sailboat", "Yacht", "Luxury Yacht", "Cruise Ship"
+]
+
+var current_bait: String = "Artifact Magnet"
 var bait_stock: Dictionary = {
-	"Worms": 15,
-	"Leeches": 0,
-	"Wise": 0,
-	"Fish": 0,
-	"Magic": 0
+	"Worms": 250,
+	"Leeches": 40,
+	"Magnet": 100,
+	"Wise": 50,
+	"Fish": 25,
+	"Artifact Magnet": 2882,
+	"Magic": 15,
+	"Support": 10
 }
 
-# Inventory
-var inventory: Dictionary = {}
+# Pets (Screenshot 1 Match: Axolotl Level 51)
+var equipped_pet: String = "Axolotl"
+var pet_level: int = 51
+var pet_xp: int = 2400
+var pet_xp_needed: int = 5000
+var owned_pets: Array[String] = ["Axolotl", "Puffer", "Dolphin"]
+
+var pets_database: Dictionary = {
+	"Axolotl": {
+		"icon": "🦎", "desc": "+%s%% Treasure Quality & +%s%% Treasure Chance.",
+		"type": "treasure"
+	},
+	"Puffer": {
+		"icon": "🐡", "desc": "+%s%% Fish Catch.",
+		"type": "fish_catch"
+	},
+	"Dolphin": {
+		"icon": "🐬", "desc": "+%s%% XP Gain & +%s%% Treasure Chance.",
+		"type": "xp_treasure"
+	},
+	"Zebrafish": {
+		"icon": "🦓", "desc": "+%s%% Fish Catch & +%s%% Fish Quality.",
+		"type": "catch_quality"
+	},
+	"Tuna": {
+		"icon": "🐟", "desc": "+%s%% across All Stats.",
+		"type": "all_stats"
+	}
+}
+
+# Fish Inventory (Hold)
+var inventory: Dictionary = {
+	"Pufferfish": 6,
+	"Squid": 1
+}
 
 # Shop Upgrades (level: int)
 var upgrades: Dictionary = {
-	"better_fish": 0,    # +5% quality per lvl
-	"salesman": 0,       # +5% sell price per lvl
-	"more_chests": 0,    # +5% treasure chance per lvl
-	"experienced": 0     # +10% XP gain per lvl
+	"better_fish": 5,        # Master Angler (+5% quality per lvl)
+	"salesman": 5,           # Master Merchant (+5% sell price per lvl)
+	"more_chests": 5,        # Treasure Hunter (+5% treasure chance per lvl)
+	"experienced": 5,        # Seasoned Sailor (+10% XP gain per lvl)
+	"worker_motivation": 2,  # Increases Fish Catch from workers (+10%/lvl)
+	"better_chests": 1       # Increases Treasure Quality (+10%/lvl)
+}
+
+# Special Upgrades (Exotic Fish)
+var special_upgrades: Dictionary = {
+	"fish_ovens": 2,         # +5% Sell Price (Cost: Lava Fish)
+	"statistician": 2,       # +2% All Multipliers (Cost: Gold Fish)
+	"duplicator": 1,         # +2% Fish Duplication (Cost: Emerald Fish)
+	"boost_booster": 0       # +50% TQ, +40% FQ, +10% Worker Speed (Cost: Diamond Fish)
+}
+
+# League Upgrades (Hooks)
+var league_upgrades: Dictionary = {
+	"pet_helper": 1,         # +5 Max Pet Level (Cost: Hooks)
+	"bait_helper": 1,        # +5% Bait Effectiveness (Cost: Hooks)
+	"super_crates": 0,       # Unlocks Super Crates (Cost: Hooks)
+	"worker_crates": 1,      # Worker Fishes Crates (Cost: Hooks)
+	"fishing_frenzy": 0      # +10% Worker Trip Speed (Cost: Hooks)
 }
 
 # Auto-Trawler Net (Worker System from Virtual Fisher)
-var worker_unlocked: bool = false
-var worker_level: int = 1
-var worker_timer: float = 18.0
+var worker_unlocked: bool = true
+var worker_level: int = 2
+var worker_timer: float = 14.0
+var worker_boost_remaining: float = 0.0
 
 # Dynamic Weather System (Virtual Fisher Core)
 var current_weather: String = "Clear"
 var weather_timer: float = 200.0
 const WEATHERS = ["Clear", "Rain", "Storm", "Fog"]
-
-# Pets & Companions
-var equipped_pet: String = "None"
-var owned_pets: Array[String] = []
-var pets_database: Dictionary = {
-	"Axo-9": {"req_level": 5, "icon": "🦎", "desc": "Cyber Axolotl. +15% XP Gain on all catches.", "xp_boost": 0.15, "double_catch": 0.0},
-	"Otto-Flux": {"req_level": 15, "icon": "🦦", "desc": "Quantum Otter. 25% Chance to double fish catch.", "xp_boost": 0.0, "double_catch": 0.25},
-	"Chrono-Jelly": {"req_level": 25, "icon": "🪼", "desc": "Tachyon Jelly. Slows down boss tension by 40%.", "xp_boost": 0.10, "double_catch": 0.10},
-	"Aethelgard": {"req_level": 40, "icon": "🐉", "desc": "Sovereign Dragon. Instant boss taming & 50% double catch.", "xp_boost": 0.30, "double_catch": 0.50}
-}
 
 # Fish Quality Tiers (Virtual Fisher Exact Scaling)
 const QUALITY_TIERS = {
@@ -90,21 +150,21 @@ const QUALITY_TIERS = {
 # --- Databases ---
 var fish_database: Dictionary = {
 	# River Biome
-	"Raw Fish": {"price": 2, "xp": 2, "rarity": "Common", "biomes": ["River"], "color": Color(0.7, 0.8, 0.9), "is_boss": false},
-	"Raw Salmon": {"price": 6, "xp": 4, "rarity": "Common", "biomes": ["River", "Volcanic"], "color": Color(1.0, 0.6, 0.5), "is_boss": false},
-	"Cod": {"price": 18, "xp": 8, "rarity": "Uncommon", "biomes": ["River", "Volcanic"], "color": Color(0.9, 0.85, 0.4), "is_boss": false},
-	"Tropical Fish": {"price": 65, "xp": 18, "rarity": "Rare", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.2, 0.9, 0.8), "is_boss": false},
-	"Pufferfish": {"price": 180, "xp": 40, "rarity": "Epic", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.9, 0.7, 0.2), "is_boss": false},
+	"Raw Fish": {"price": 1, "xp": 1, "rarity": "Common", "biomes": ["River"], "color": Color(0.7, 0.8, 0.9), "is_boss": false},
+	"Raw Salmon": {"price": 3, "xp": 2, "rarity": "Common", "biomes": ["River", "Volcanic"], "color": Color(1.0, 0.6, 0.5), "is_boss": false},
+	"Cod": {"price": 10, "xp": 5, "rarity": "Uncommon", "biomes": ["River", "Volcanic"], "color": Color(0.9, 0.85, 0.4), "is_boss": false},
+	"Tropical Fish": {"price": 50, "xp": 10, "rarity": "Rare", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.2, 0.9, 0.8), "is_boss": false},
+	"Pufferfish": {"price": 150, "xp": 25, "rarity": "Epic", "biomes": ["River", "Volcanic", "Ocean"], "color": Color(0.9, 0.7, 0.2), "is_boss": false},
 	
 	# Volcanic Biome
-	"Fiery Pufferfish": {"price": 320, "xp": 75, "rarity": "Rare", "biomes": ["Volcanic"], "color": Color(1.0, 0.4, 0.2), "is_boss": false},
-	"Hot Cod": {"price": 650, "xp": 140, "rarity": "Epic", "biomes": ["Volcanic"], "color": Color(1.0, 0.2, 0.2), "is_boss": false},
+	"Fiery Pufferfish": {"price": 250, "xp": 50, "rarity": "Rare", "biomes": ["Volcanic"], "color": Color(1.0, 0.4, 0.2), "is_boss": false},
+	"Hot Cod": {"price": 500, "xp": 100, "rarity": "Epic", "biomes": ["Volcanic"], "color": Color(1.0, 0.2, 0.2), "is_boss": false},
 	"Magma Ray": {"price": 1800, "xp": 320, "rarity": "Legendary", "biomes": ["Volcanic"], "color": Color(1.0, 0.3, 0.0), "is_boss": false},
 	
 	# Ocean Biome
-	"Squid": {"price": 1400, "xp": 220, "rarity": "Rare", "biomes": ["Ocean"], "color": Color(0.7, 0.4, 0.9), "is_boss": false},
-	"Turtle": {"price": 4500, "xp": 500, "rarity": "Epic", "biomes": ["Ocean"], "color": Color(0.3, 0.8, 0.4), "is_boss": false},
-	"Dolphin": {"price": 22000, "xp": 950, "rarity": "Legendary", "biomes": ["Ocean"], "color": Color(0.2, 0.6, 1.0), "is_boss": false},
+	"Squid": {"price": 1200, "xp": 175, "rarity": "Rare", "biomes": ["Ocean"], "color": Color(0.7, 0.4, 0.9), "is_boss": false},
+	"Turtle": {"price": 4000, "xp": 400, "rarity": "Epic", "biomes": ["Ocean"], "color": Color(0.3, 0.8, 0.4), "is_boss": false},
+	"Dolphin": {"price": 20000, "xp": 800, "rarity": "Legendary", "biomes": ["Ocean"], "color": Color(0.2, 0.6, 1.0), "is_boss": false},
 	"Abyssal Kraken": {"price": 120000, "xp": 6000, "rarity": "TITAN BOSS", "biomes": ["Ocean"], "color": Color(0.9, 0.1, 0.2), "is_boss": true},
 
 	# Secret Biome: Subspace 0x00 (Glitch Waters)
@@ -114,70 +174,72 @@ var fish_database: Dictionary = {
 	"Echo of the Glitch Sovereign": {"price": 1200000, "xp": 30000, "rarity": "TITAN BOSS", "biomes": ["Subspace 0x00"], "color": Color(0.0, 1.0, 1.0), "is_boss": true}
 }
 
+# Complete 21 Rods from the Virtual Fisher Encyclopedia
 var rods_database: Dictionary = {
-	"Plastic Rod": {"cost": 0, "min_fish": 4, "max_fish": 10, "cd_penalty": 0.0, "treasure_chance": 0.05, "biomes": ["River"], "desc": "Basic starter rod."},
-	"Improved Rod": {"cost": 500, "min_fish": 5, "max_fish": 10, "cd_penalty": 0.0, "treasure_chance": 0.05, "biomes": ["River"], "desc": "Attracts slightly better fish."},
-	"Steel Rod": {"cost": 8000, "min_fish": 5, "max_fish": 8, "cd_penalty": 0.0, "treasure_chance": 0.06, "biomes": ["River"], "desc": "Catches higher quality fish."},
-	"Fiberglass Rod": {"cost": 50000, "min_fish": 7, "max_fish": 10, "cd_penalty": 0.0, "treasure_chance": 0.07, "biomes": ["River", "Ocean"], "desc": "Catches large amounts of quality fish."},
-	"Lava Rod": {"cost": 1000000, "min_fish": 7, "max_fish": 11, "cd_penalty": 0.0, "treasure_chance": 0.08, "biomes": ["River", "Volcanic", "Ocean"], "desc": "Forged to resist boiling magma."},
-	"Celestial Prism Rod": {"cost": 5000000, "min_fish": 10, "max_fish": 18, "cd_penalty": -0.5, "treasure_chance": 0.12, "biomes": ["River", "Volcanic", "Ocean", "Subspace 0x00"], "desc": "Refracts stellar light into pure fishing fortune."},
-	"0xDEADBEEF Dev Glitch Rod": {"cost": 0, "min_fish": 20, "max_fish": 40, "cd_penalty": -1.2, "treasure_chance": 0.25, "biomes": ["River", "Volcanic", "Ocean", "Subspace 0x00"], "desc": "Secret Easter Egg relic pulsing with binary code."}
+	"Plastic Rod": {"cost": 0, "min_fish": 4, "max_fish": 10, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River"], "desc": "Basic starter rod."},
+	"Improved Rod": {"cost": 500, "min_fish": 5, "max_fish": 10, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River"], "desc": "Attracts slightly better fish."},
+	"Steel Rod": {"cost": 8000, "min_fish": 5, "max_fish": 8, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River"], "desc": "Allows you to catch better fish, but slightly less of them."},
+	"Fiberglass Rod": {"cost": 50000, "min_fish": 7, "max_fish": 10, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River", "Ocean"], "desc": "Catches large amounts of quality fish."},
+	"Heavy Rod": {"cost": 100000, "min_fish": 6, "max_fish": 9, "cd_penalty": 0.0, "treasure_chance": 0.085, "treasure_quality": 0.05, "biomes": ["River"], "desc": "Doesn't catch as many fish, but gets you far more treasure."},
+	"Alloy Rod": {"cost": 250000, "min_fish": 4, "max_fish": 13, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River"], "desc": "Catch rare fish at an inconsistent rate."},
+	"Lava Rod": {"cost": 1000000, "min_fish": 7, "max_fish": 11, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean"], "desc": "Forged to resist boiling magma."},
+	"Magma Rod": {"cost": 10000000, "min_fish": 10, "max_fish": 13, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean"], "desc": "Empowered lava rod to catch even more fish."},
+	"Oceanium Rod": {"cost": 75000000, "min_fish": 11, "max_fish": 14, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.0, "biomes": ["River", "Ocean"], "desc": "Made of rare ocean materials."},
+	"Golden Rod": {"cost": 120000000, "min_fish": 4, "max_fish": 6, "cd_penalty": 0.0, "treasure_chance": 0.13, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean", "Sky"], "desc": "Made of pure gold. Catch treasure like you never thought possible."},
+	"Superium Rod": {"cost": 250000000, "min_fish": 8, "max_fish": 18, "cd_penalty": 0.0, "treasure_chance": 0.055, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean", "Sky"], "desc": "Ultra light strong design for incredible fish catching abilities."},
+	"Infinity Rod": {"cost": 1000000000, "min_fish": 15, "max_fish": 18, "cd_penalty": 0.0, "treasure_chance": 0.06, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean", "Sky"], "desc": "From 6 stones..."},
+	"Floating Rod": {"cost": 50000000000, "min_fish": 15, "max_fish": 30, "cd_penalty": 0.0, "treasure_chance": 0.065, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space"], "desc": "Emits so much energy it appears to float."},
+	"Sky Rod": {"cost": 250000000000, "min_fish": 30, "max_fish": 34, "cd_penalty": 0.0, "treasure_chance": 0.067, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space"], "desc": "The ultimate rod - made from elements found in the sky biome."},
+	"Meteor Rod": {"cost": 500000000000, "min_fish": 20, "max_fish": 24, "cd_penalty": 0.0, "treasure_chance": 0.15, "treasure_quality": 0.30, "biomes": ["Space", "Alien"], "desc": "Extremely dense rod capable of attracting high quality treasure."},
+	"Space Rod": {"cost": 1000000000000, "min_fish": 33, "max_fish": 37, "cd_penalty": 0.0, "treasure_chance": 0.068, "treasure_quality": 0.0, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien"], "desc": "SPAAAAAAAAAAACE."},
+	"Alien Rod": {"cost": 5000000000000, "min_fish": 37, "max_fish": 42, "cd_penalty": 0.0, "treasure_chance": 0.07, "treasure_quality": 0.10, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien"], "desc": "An extremely complex rod built with alien technology."},
+	"Ultimate Depths Rod": {"cost": 50000000000000, "min_fish": 40, "max_fish": 47, "cd_penalty": 0.0, "treasure_chance": 0.07, "treasure_quality": 0.05, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"], "desc": "A rod capable of fishing in extreme depths."},
+	"Abyssal Supermagnet": {"cost": 250000000000000, "min_fish": 22, "max_fish": 28, "cd_penalty": 0.0, "treasure_chance": 0.05, "treasure_quality": 0.50, "biomes": ["Abyss"], "desc": "A magnetic rod capable of attracting the highest quality treasure."},
+	"Dark Rod": {"cost": 1000000000000000, "min_fish": 42, "max_fish": 50, "cd_penalty": 0.0, "treasure_chance": 0.07, "treasure_quality": 0.10, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"], "desc": "The ultimate fishing rod."},
+	"0xDEADBEEF Dev Glitch Rod": {"cost": 0, "min_fish": 20, "max_fish": 40, "cd_penalty": -1.2, "treasure_chance": 0.25, "treasure_quality": 0.25, "biomes": ["River", "Volcanic", "Ocean", "Subspace 0x00"], "desc": "Secret Easter Egg relic pulsing with binary code."}
 }
 
+# Complete 18-Tier Permanent Boat Progression from Virtual Fisher
 var boats_database: Dictionary = {
-	"Standard Skiff": {
-		"tier": 1, "cost": 0, "speed": 180.0, "cd_bonus": 0.0, "fish_bonus": 0,
-		"deck_min_x": -140.0, "deck_max_x": 140.0,
-		"desc": "Rustic handcrafted oak timber skiff with lantern."
-	},
-	"Rowboat": {
-		"tier": 2, "cost": 5000, "speed": 220.0, "cd_bonus": 0.25, "fish_bonus": 1,
-		"deck_min_x": -170.0, "deck_max_x": 170.0,
-		"desc": "Varnished dory with brass rowlocks and resting oars."
-	},
-	"Fishing Boat": {
-		"tier": 3, "cost": 25000, "speed": 260.0, "cd_bonus": 0.50, "fish_bonus": 2,
-		"deck_min_x": -210.0, "deck_max_x": 220.0,
-		"desc": "Coastal motor trawler with wheelhouse & diesel exhaust."
-	},
-	"Speedboat": {
-		"tier": 4, "cost": 100000, "speed": 340.0, "cd_bonus": 0.75, "fish_bonus": 3,
-		"deck_min_x": -230.0, "deck_max_x": 230.0,
-		"desc": "Midnight-blue aerodynamic racer with wraparound glass."
-	},
-	"Hovercraft Vanguard": {
-		"tier": 5, "cost": 750000, "speed": 420.0, "cd_bonus": 1.0, "fish_bonus": 5,
-		"deck_min_x": -250.0, "deck_max_x": 250.0,
-		"desc": "Amphibious air-cushion platform with twin turbofans."
-	},
-	"Luxury Yacht": {
-		"tier": 6, "cost": 20000000, "speed": 480.0, "cd_bonus": 1.25, "fish_bonus": 7,
-		"deck_min_x": -280.0, "deck_max_x": 280.0,
-		"desc": "Tri-deck sovereign cruiser with teak deck & salon."
-	},
-	"Abyssal Submersible": {
-		"tier": 7, "cost": 100000000, "speed": 520.0, "cd_bonus": 1.5, "fish_bonus": 10,
-		"deck_min_x": -260.0, "deck_max_x": 260.0,
-		"desc": "Titanium bathyscaphe with quartz viewport and searchlights."
-	}
+	"Rowboat": {"tier": 1, "cost": 5000, "req_level": 0, "speed": 220.0, "cd_bonus": 0.25, "fish_bonus": 1, "visual_style": "Rowboat", "deck_bounds": Vector2(-170, 170), "desc": "-0.25s CD, +1 fish per cast."},
+	"Fishing Boat": {"tier": 2, "cost": 25000, "req_level": 0, "speed": 260.0, "cd_bonus": 0.50, "fish_bonus": 2, "visual_style": "Fishing Boat", "deck_bounds": Vector2(-210, 220), "desc": "Motorized coastal workhorse."},
+	"Speedboat": {"tier": 3, "cost": 100000, "req_level": 0, "speed": 340.0, "cd_bonus": 0.75, "fish_bonus": 3, "visual_style": "Speedboat", "deck_bounds": Vector2(-230, 230), "desc": "High-speed aerodynamic racer."},
+	"Pontoon": {"tier": 4, "cost": 250000, "req_level": 0, "speed": 240.0, "cd_bonus": 1.00, "fish_bonus": 4, "visual_style": "Rowboat", "deck_bounds": Vector2(-220, 220), "desc": "Twin-hull river platform."},
+	"Sailboat": {"tier": 5, "cost": 1000000, "req_level": 0, "speed": 280.0, "cd_bonus": 1.25, "fish_bonus": 5, "visual_style": "Rowboat", "deck_bounds": Vector2(-240, 240), "desc": "Traditional cutter under sail."},
+	"Yacht": {"tier": 6, "cost": 20000000, "req_level": 50, "speed": 400.0, "cd_bonus": 1.50, "fish_bonus": 6, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-260, 260), "desc": "Spacious sea-going cruiser."},
+	"Luxury Yacht": {"tier": 7, "cost": 100000000, "req_level": 50, "speed": 480.0, "cd_bonus": 1.75, "fish_bonus": 7, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-280, 280), "desc": "Tri-deck luxury sovereign flagship."},
+	"Cruise Ship": {"tier": 8, "cost": 500000000, "req_level": 100, "speed": 360.0, "cd_bonus": 2.00, "fish_bonus": 8, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-300, 300), "desc": "Massive ocean-going liner."},
+	"Gold Boat": {"tier": 9, "cost": 2500000000, "req_level": 250, "speed": 500.0, "cd_bonus": 2.25, "fish_bonus": 9, "visual_style": "Luxury Yacht", "deck_bounds": Vector2(-280, 280), "desc": "Solid gold plated pleasure craft."},
+	"Sky Cruiser": {"tier": 10, "cost": 10000000000, "req_level": 250, "speed": 550.0, "cd_bonus": 2.50, "fish_bonus": 10, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-280, 280), "desc": "Aero-skiff navigating high clouds."},
+	"Satellite": {"tier": 11, "cost": 50000000000, "req_level": 500, "speed": 600.0, "cd_bonus": 2.75, "fish_bonus": 11, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-270, 270), "desc": "Orbital sensory station."},
+	"Space Shuttle": {"tier": 12, "cost": 250000000000, "req_level": 500, "speed": 680.0, "cd_bonus": 3.00, "fish_bonus": 12, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-280, 280), "desc": "Rocket-propelled spaceplane."},
+	"Cruiser": {"tier": 13, "cost": 1000000000000, "req_level": 500, "speed": 720.0, "cd_bonus": 3.25, "fish_bonus": 13, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-290, 290), "desc": "Deep void battle cruiser."},
+	"Alien Raft": {"tier": 14, "cost": 2500000000000, "req_level": 1000, "speed": 750.0, "cd_bonus": 3.50, "fish_bonus": 14, "visual_style": "Hovercraft Vanguard", "deck_bounds": Vector2(-280, 280), "desc": "Hover platform woven from alien tech."},
+	"Alien Submarine": {"tier": 15, "cost": 5000000000000, "req_level": 1000, "speed": 780.0, "cd_bonus": 3.75, "fish_bonus": 15, "visual_style": "Abyssal Submersible", "deck_bounds": Vector2(-270, 270), "desc": "Extraterrestrial submersible vessel."},
+	"Dark Explorer": {"tier": 16, "cost": 50000000000000, "req_level": 2500, "speed": 820.0, "cd_bonus": 4.00, "fish_bonus": 16, "visual_style": "Abyssal Submersible", "deck_bounds": Vector2(-280, 280), "desc": "Obsidian hull braving dark pressure."},
+	"Abyssal Surveyor": {"tier": 17, "cost": 500000000000000, "req_level": 2500, "speed": 900.0, "cd_bonus": 4.25, "fish_bonus": 17, "visual_style": "Abyssal Submersible", "deck_bounds": Vector2(-290, 290), "desc": "The ultimate oceanic research bathyscaphe."}
 }
 
+# Complete 8 Baits from the Virtual Fisher Encyclopedia
 var baits_database: Dictionary = {
-	"None": {"cost": 0, "bonus_fish": 0, "quality_mult": 1.0, "xp_mult": 1.0, "desc": "Standard unbaited hook."},
-	"Worms": {"cost": 4, "bonus_fish": 3, "quality_mult": 1.0, "xp_mult": 0.9, "desc": "+3 Fish per cast, -10% XP."},
-	"Leeches": {"cost": 25, "bonus_fish": 3, "quality_mult": 1.2, "xp_mult": 0.8, "desc": "+20% Quality, +3 Fish, -20% XP."},
-	"Wise": {"cost": 35, "bonus_fish": 0, "quality_mult": 1.0, "xp_mult": 2.5, "desc": "+150% XP Gain for rapid leveling."},
-	"Fish": {"cost": 70, "bonus_fish": 1, "quality_mult": 2.0, "xp_mult": 0.7, "desc": "+100% Quality, +1 Fish."},
-	"Magic": {"cost": 200, "bonus_fish": 4, "quality_mult": 3.0, "xp_mult": 1.5, "desc": "Mystic bait attracting rare exotic species."}
+	"None": {"cost": 0, "req_level": 0, "bonus_fish": 0, "quality_mult": 1.0, "xp_mult": 1.0, "treasure_chance_mult": 1.0, "treasure_qual_add": 0.0, "desc": "Standard unbaited hook."},
+	"Worms": {"cost": 4, "req_level": 0, "bonus_fish": 2, "quality_mult": 1.0, "xp_mult": 0.9, "treasure_chance_mult": 1.0, "treasure_qual_add": 0.0, "desc": "+2 Fish per cast, -10% XP."},
+	"Leeches": {"cost": 25, "req_level": 10, "bonus_fish": 3, "quality_mult": 1.2, "xp_mult": 0.8, "treasure_chance_mult": 1.0, "treasure_qual_add": 0.0, "desc": "+3 Fish, +20% Quality, -20% XP."},
+	"Magnet": {"cost": 25, "req_level": 20, "bonus_fish": 0, "quality_mult": 0.9, "xp_mult": 1.2, "treasure_chance_mult": 1.5, "treasure_qual_add": 0.0, "desc": "+50% Treasure Chance, -10% Quality, +20% XP."},
+	"Wise": {"cost": 35, "req_level": 30, "bonus_fish": 0, "quality_mult": 1.0, "xp_mult": 2.5, "treasure_chance_mult": 1.0, "treasure_qual_add": 0.0, "desc": "+150% XP Gain for rapid leveling."},
+	"Fish": {"cost": 70, "req_level": 40, "bonus_fish": 1, "quality_mult": 2.0, "xp_mult": 0.7, "treasure_chance_mult": 1.0, "treasure_qual_add": 0.0, "desc": "+100% Quality, +1 Fish, -30% XP."},
+	"Artifact Magnet": {"cost": 75, "req_level": 60, "bonus_fish": 0, "quality_mult": 0.7, "xp_mult": 1.3, "treasure_chance_mult": 1.4, "treasure_qual_add": 0.50, "desc": "+40% Treasure Chance, +50% Treasure Quality."},
+	"Magic": {"cost": 250, "req_level": 80, "bonus_fish": 2, "quality_mult": 1.5, "xp_mult": 0.8, "treasure_chance_mult": 1.15, "treasure_qual_add": 0.15, "desc": "+2 Fish, +50% Quality, +15% Treasure Chance."},
+	"Support": {"cost": 500, "req_level": 150, "bonus_fish": 0, "quality_mult": 1.0, "xp_mult": 1.0, "treasure_chance_mult": 1.0, "treasure_qual_add": 0.0, "desc": "+40% Pet Catch Chance, +35% Pet Effectiveness."}
 }
 
 func _ready() -> void:
 	for f in fish_database.keys():
-		inventory[f] = 0
+		if not inventory.has(f):
+			inventory[f] = 0
 	load_game()
 
 func _process(delta: float) -> void:
-	# 1. Weather Cycle Engine
 	weather_timer -= delta
 	if weather_timer <= 0.0:
 		weather_timer = randf_range(180.0, 260.0)
@@ -185,15 +247,19 @@ func _process(delta: float) -> void:
 		current_weather = WEATHERS[next_idx]
 		weather_changed.emit(current_weather)
 
-	# 2. Passive Auto-Trawler Net (Worker System)
-	if worker_unlocked:
+	if worker_boost_remaining > 0.0:
+		worker_boost_remaining = max(0.0, worker_boost_remaining - delta)
+
+	if worker_unlocked or worker_boost_remaining > 0.0:
 		worker_timer -= delta
 		if worker_timer <= 0.0:
-			worker_timer = max(9.0, 18.0 - (worker_level - 1) * 2.0)
+			var base_sec = 20.0 / (1.0 + 0.1 * special_upgrades.get("boost_booster", 0) + 0.1 * league_upgrades.get("fishing_frenzy", 0))
+			if worker_boost_remaining > 0.0:
+				base_sec *= 0.70
+			worker_timer = max(5.0, base_sec - (worker_level - 1) * 1.5)
 			_process_worker_trip()
 
 func _process_worker_trip() -> void:
-	# Determine eligible fish in current biome
 	var pool: Array[String] = []
 	for f_name in fish_database.keys():
 		if current_biome in fish_database[f_name]["biomes"] and not fish_database[f_name].get("is_boss", false):
@@ -201,7 +267,9 @@ func _process_worker_trip() -> void:
 	if pool.is_empty():
 		pool = ["Raw Fish"]
 	var caught_fish = pool[randi() % pool.size()]
-	var count = randi_range(1 + worker_level, 2 + worker_level * 2)
+	var count = randi_range(1 + worker_level, 3 + worker_level * 2)
+	var motivation_mult = 1.0 + (upgrades.get("worker_motivation", 0) * 0.10)
+	count = int(count * motivation_mult)
 	var price_each = int(fish_database[caught_fish]["price"] * get_sell_multiplier())
 	var total_earned = count * price_each
 
@@ -209,31 +277,50 @@ func _process_worker_trip() -> void:
 	add_xp(count * fish_database[caught_fish]["xp"])
 	inventory_changed.emit()
 	worker_netted.emit(caught_fish, count, total_earned)
+
+	# Worker crates roll from League Shop
+	var wc_lvl = league_upgrades.get("worker_crates", 0)
+	if wc_lvl > 0:
+		var chances = [0.0, 0.02, 0.025, 0.031, 0.038, 0.05]
+		var c_rate = chances[clamp(wc_lvl, 0, 5)]
+		if randf() < c_rate:
+			roll_treasure_chest()
+
 	save_game()
 
 func save_game() -> void:
 	var save_data = {
-		"cash": cash,
+		"player_name": player_name,
+		"prestige": prestige,
 		"level": level,
 		"xp": xp,
 		"xp_needed": xp_needed,
+		"cash": cash,
 		"gold_fish": gold_fish,
 		"emerald_fish": emerald_fish,
 		"lava_fish": lava_fish,
 		"diamond_fish": diamond_fish,
+		"hooks": hooks,
+		"azure_fish": azure_fish,
 		"current_rod": current_rod,
 		"owned_rods": owned_rods,
 		"current_boat": current_boat,
 		"owned_boats": owned_boats,
 		"current_bait": current_bait,
 		"bait_stock": bait_stock,
+		"equipped_pet": equipped_pet,
+		"pet_level": pet_level,
+		"pet_xp": pet_xp,
+		"owned_pets": owned_pets,
 		"inventory": inventory,
 		"upgrades": upgrades,
-		"equipped_pet": equipped_pet,
-		"owned_pets": owned_pets,
+		"special_upgrades": special_upgrades,
+		"league_upgrades": league_upgrades,
 		"worker_unlocked": worker_unlocked,
 		"worker_level": worker_level,
-		"current_weather": current_weather
+		"worker_boost_remaining": worker_boost_remaining,
+		"current_weather": current_weather,
+		"current_biome": current_biome
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -254,14 +341,18 @@ func load_game() -> void:
 	var data = json.get_data()
 	if typeof(data) != TYPE_DICTIONARY:
 		return
-	cash = data.get("cash", cash)
+	player_name = data.get("player_name", player_name)
+	prestige = data.get("prestige", prestige)
 	level = data.get("level", level)
 	xp = data.get("xp", xp)
 	xp_needed = data.get("xp_needed", xp_needed)
+	cash = data.get("cash", cash)
 	gold_fish = data.get("gold_fish", gold_fish)
 	emerald_fish = data.get("emerald_fish", emerald_fish)
 	lava_fish = data.get("lava_fish", lava_fish)
 	diamond_fish = data.get("diamond_fish", diamond_fish)
+	hooks = data.get("hooks", hooks)
+	azure_fish = data.get("azure_fish", azure_fish)
 	current_rod = data.get("current_rod", current_rod)
 	if data.has("owned_rods"):
 		owned_rods.clear()
@@ -276,22 +367,46 @@ func load_game() -> void:
 	if data.has("bait_stock"):
 		for k in data["bait_stock"].keys():
 			bait_stock[k] = int(data["bait_stock"][k])
+	equipped_pet = data.get("equipped_pet", equipped_pet)
+	pet_level = data.get("pet_level", pet_level)
+	pet_xp = data.get("pet_xp", pet_xp)
+	if data.has("owned_pets"):
+		owned_pets.clear()
+		for p in data["owned_pets"]:
+			owned_pets.append(str(p))
 	if data.has("inventory"):
 		for k in data["inventory"].keys():
 			inventory[k] = int(data["inventory"][k])
 	if data.has("upgrades"):
 		for k in data["upgrades"].keys():
 			upgrades[k] = int(data["upgrades"][k])
-	equipped_pet = data.get("equipped_pet", equipped_pet)
-	if data.has("owned_pets"):
-		owned_pets.clear()
-		for p in data["owned_pets"]:
-			owned_pets.append(str(p))
+	if data.has("special_upgrades"):
+		for k in data["special_upgrades"].keys():
+			special_upgrades[k] = int(data["special_upgrades"][k])
+	if data.has("league_upgrades"):
+		for k in data["league_upgrades"].keys():
+			league_upgrades[k] = int(data["league_upgrades"][k])
 	worker_unlocked = data.get("worker_unlocked", worker_unlocked)
 	worker_level = data.get("worker_level", worker_level)
+	worker_boost_remaining = data.get("worker_boost_remaining", worker_boost_remaining)
 	current_weather = data.get("current_weather", current_weather)
+	current_biome = data.get("current_biome", current_biome)
 
-# --- Getters & Formulas ---
+# --- Formatters & Getters ---
+func get_display_level() -> String:
+	if prestige > 0:
+		return "P%d Level %d" % [prestige, level]
+	return "Level %d" % level
+
+func get_inventory_total_value() -> int:
+	var total = 0
+	var mult = get_sell_multiplier()
+	for f in inventory.keys():
+		var count = inventory[f]
+		if count > 0 and fish_database.has(f):
+			total += int(count * fish_database[f]["price"] * mult)
+	return total
+
 func get_sell_multiplier() -> float:
 	return 1.0 + (upgrades["salesman"] * 0.05)
 
@@ -310,21 +425,26 @@ func get_xp_multiplier() -> float:
 	return (1.0 + (upgrades["experienced"] * 0.10)) * bait_mult * weather_xp
 
 func get_fishing_cooldown() -> float:
-	var base_cd = 3.2
+	var base_cd = 3.5
 	if current_biome == "Volcanic":
 		base_cd += 0.5
 	elif current_biome == "Ocean":
 		base_cd += 0.8
 	
-	if boats_database.has(current_boat):
-		base_cd -= boats_database[current_boat]["cd_bonus"]
+	# All owned boats stack CD bonus in Virtual Fisher
+	var total_cd_bonus = 0.0
+	for b in owned_boats:
+		if boats_database.has(b):
+			total_cd_bonus += 0.25
+
+	base_cd -= total_cd_bonus
 
 	if current_weather == "Rain":
 		base_cd *= 0.80
 	elif current_weather == "Storm":
 		base_cd *= 0.65
 	
-	return max(1.2, base_cd)
+	return max(1.5, base_cd)
 
 func get_boat_speed() -> float:
 	if boats_database.has(current_boat):
@@ -334,21 +454,124 @@ func get_boat_speed() -> float:
 func get_deck_bounds() -> Vector2:
 	if boats_database.has(current_boat):
 		var b = boats_database[current_boat]
-		return Vector2(b["deck_min_x"], b["deck_max_x"])
-	return Vector2(-150.0, 150.0)
+		return b.get("deck_bounds", Vector2(-180, 180))
+	return Vector2(-180.0, 180.0)
+
+func get_upgrade_max(perk_name: String) -> int:
+	match perk_name:
+		"better_fish": return 21
+		"salesman": return 18
+		"more_chests": return 11
+		"experienced": return 5
+		"worker_motivation": return 12
+		"better_chests": return 5
+		_: return 10
 
 func get_upgrade_cost(perk_name: String) -> int:
 	var rank = upgrades.get(perk_name, 0)
-	return int(150 * pow(1.75, rank))
+	match perk_name:
+		"better_fish": return int(250 * pow(1.65, rank))
+		"salesman": return int(150 * pow(1.65, rank))
+		"more_chests": return int(350 * pow(1.75, rank))
+		"experienced": return int(1000 * pow(2.0, rank))
+		"worker_motivation": return int(500 * pow(1.8, rank))
+		"better_chests": return int(2000 * pow(2.2, rank))
+		_: return int(200 * pow(1.75, rank))
 
 func buy_perk_upgrade(perk_name: String) -> bool:
+	var max_lvl = get_upgrade_max(perk_name)
+	var current_lvl = upgrades.get(perk_name, 0)
+	if current_lvl >= max_lvl:
+		return false
 	var cost = get_upgrade_cost(perk_name)
-	if cash >= cost and upgrades.get(perk_name, 0) < 10:
+	if cash >= cost:
 		cash -= cost
-		upgrades[perk_name] = upgrades.get(perk_name, 0) + 1
+		upgrades[perk_name] = current_lvl + 1
 		stats_changed.emit()
 		save_game()
 		return true
+	return false
+
+# --- Special Upgrades (Exotics) ---
+func get_special_upgrade_cost(id: String) -> int:
+	var rank = special_upgrades.get(id, 0)
+	match id:
+		"fish_ovens": return 10 + rank * 10
+		"statistician": return 40 + rank * 40
+		"duplicator": return 45 + rank * 45
+		"boost_booster": return 5 + rank * 5
+		_: return 20
+
+func get_special_upgrade_currency(id: String) -> String:
+	match id:
+		"fish_ovens": return "lava"
+		"statistician": return "gold"
+		"duplicator": return "emerald"
+		"boost_booster": return "diamond"
+		_: return "gold"
+
+func buy_special_upgrade(id: String) -> bool:
+	var rank = special_upgrades.get(id, 0)
+	var max_rank = 4 if id == "boost_booster" else (20 if id == "fish_ovens" else 10)
+	if rank >= max_rank:
+		return false
+	var cost = get_special_upgrade_cost(id)
+	var curr = get_special_upgrade_currency(id)
+	var can_afford = false
+	match curr:
+		"lava": can_afford = (lava_fish >= cost)
+		"gold": can_afford = (gold_fish >= cost)
+		"emerald": can_afford = (emerald_fish >= cost)
+		"diamond": can_afford = (diamond_fish >= cost)
+
+	if can_afford:
+		match curr:
+			"lava": lava_fish -= cost
+			"gold": gold_fish -= cost
+			"emerald": emerald_fish -= cost
+			"diamond": diamond_fish -= cost
+		special_upgrades[id] = rank + 1
+		stats_changed.emit()
+		save_game()
+		return true
+	return false
+
+# --- League Upgrades (Hooks) ---
+func get_league_upgrade_cost(id: String) -> int:
+	var rank = league_upgrades.get(id, 0)
+	match id:
+		"pet_helper", "bait_helper": return 15 + rank * 15
+		_: return 20 + rank * 20
+
+func buy_league_upgrade(id: String) -> bool:
+	var rank = league_upgrades.get(id, 0)
+	if rank >= 5:
+		return false
+	var cost = get_league_upgrade_cost(id)
+	if hooks >= cost:
+		hooks -= cost
+		league_upgrades[id] = rank + 1
+		stats_changed.emit()
+		save_game()
+		return true
+	return false
+
+# --- Worker Boosts ---
+func buy_worker_boost(boost_type: String) -> bool:
+	if boost_type == "Auto10m":
+		if gold_fish >= 8:
+			gold_fish -= 8
+			worker_boost_remaining += 600.0
+			stats_changed.emit()
+			save_game()
+			return true
+	elif boost_type == "Auto30m":
+		if emerald_fish >= 8:
+			emerald_fish -= 8
+			worker_boost_remaining += 1800.0
+			stats_changed.emit()
+			save_game()
+			return true
 	return false
 
 # --- Economy Methods ---
@@ -383,7 +606,7 @@ func sell_all_fish() -> int:
 	var mult = get_sell_multiplier()
 	for f in inventory.keys():
 		var count = inventory[f]
-		if count > 0:
+		if count > 0 and fish_database.has(f):
 			var price = fish_database[f]["price"]
 			total_earned += int(count * price * mult)
 			inventory[f] = 0
@@ -391,6 +614,63 @@ func sell_all_fish() -> int:
 	inventory_changed.emit()
 	save_game()
 	return total_earned
+
+# --- Shop Actions ---
+func buy_rod(r_name: String) -> bool:
+	if not rods_database.has(r_name) or r_name in owned_rods:
+		return false
+	var cost = rods_database[r_name]["cost"]
+	if cash >= cost:
+		cash -= cost
+		owned_rods.append(r_name)
+		current_rod = r_name
+		stats_changed.emit()
+		save_game()
+		return true
+	return false
+
+func select_rod(r_name: String) -> void:
+	if r_name in owned_rods:
+		current_rod = r_name
+		stats_changed.emit()
+		save_game()
+
+func buy_boat(b_name: String) -> bool:
+	if not boats_database.has(b_name) or b_name in owned_boats:
+		return false
+	var b_data = boats_database[b_name]
+	if cash >= b_data["cost"] and level >= b_data.get("req_level", 0):
+		cash -= b_data["cost"]
+		owned_boats.append(b_name)
+		current_boat = b_name
+		stats_changed.emit()
+		save_game()
+		return true
+	return false
+
+func select_boat(b_name: String) -> void:
+	if b_name in owned_boats:
+		current_boat = b_name
+		stats_changed.emit()
+		save_game()
+
+func buy_bait(b_name: String, amount: int) -> bool:
+	if not baits_database.has(b_name) or b_name == "None":
+		return false
+	var total_cost = baits_database[b_name]["cost"] * amount
+	if cash >= total_cost:
+		cash -= total_cost
+		bait_stock[b_name] = bait_stock.get(b_name, 0) + amount
+		stats_changed.emit()
+		save_game()
+		return true
+	return false
+
+func select_bait(b_name: String) -> void:
+	if baits_database.has(b_name):
+		current_bait = b_name
+		stats_changed.emit()
+		save_game()
 
 # --- Virtual Fisher Quality Roll ---
 func roll_fish_quality() -> Dictionary:
@@ -443,7 +723,7 @@ func roll_treasure_chest() -> Dictionary:
 	elif roll < 0.70:
 		chest_name = "Iron Locker"
 		cash_reward = randi_range(450, 1100)
-		bait_name = "Leeches"
+		bait_name = "Magnet"
 		bait_amt = 3
 	else:
 		chest_name = "Wooden Crate"
@@ -471,9 +751,7 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 	var biome_to_use = location_biome if location_biome != "" else current_biome
 	var rod = rods_database.get(current_rod, rods_database["Plastic Rod"])
 	var bait = baits_database.get(current_bait, baits_database["None"])
-	var boat = boats_database.get(current_boat, boats_database["Standard Skiff"])
 
-	# Deduct 1 bait if equipped
 	if current_bait != "None":
 		if bait_stock.get(current_bait, 0) > 0:
 			bait_stock[current_bait] -= 1
@@ -481,7 +759,6 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 			current_bait = "None"
 			stats_changed.emit()
 
-	# Determine available fish in this biome
 	var eligible_fish: Array[String] = []
 	for f_name in fish_database.keys():
 		var f_data = fish_database[f_name]
@@ -491,7 +768,6 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 	if eligible_fish.is_empty():
 		eligible_fish = ["Raw Fish"]
 
-	# Quality roll
 	var quality_mult = get_fish_quality_multiplier()
 	var selected_fish = eligible_fish[0]
 	var roll = randf() / max(1.0, quality_mult)
@@ -540,45 +816,30 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 	# Calculate quantity caught (Virtual Fisher formula: CNT += boats)
 	var base_count = randi_range(rod["min_fish"], rod["max_fish"])
 	base_count += bait["bonus_fish"]
-	base_count += boat["fish_bonus"]
+	base_count += owned_boats.size() # Cumulative permanent boats!
 	if current_weather == "Rain":
 		base_count += 1
-		
-	# Pet Perks (Double Catch)
-	var pet_bonus_msg = ""
-	if equipped_pet != "None" and pets_database.has(equipped_pet):
-		var p_data = pets_database[equipped_pet]
-		if p_data.get("double_catch", 0.0) > 0 and randf() < p_data["double_catch"]:
-			base_count *= 2
-			pet_bonus_msg = " ⚡ [PET DOUBLE-CATCH!]"
 
 	base_count = max(1, base_count)
-
-	# Roll fish quality tier
 	var quality = roll_fish_quality()
 
-	# Rare roll for exotic currencies
 	var exotic_msg = ""
 	if randf() < 0.08:
 		gold_fish += 1
 		exotic_msg = " +1 🪙 Gold Fish!"
 	if randf() < 0.03:
 		emerald_fish += 1
-		exotic_msg = " +1 💎 Emerald Fish!"
+		exotic_msg = " +1 🟢 Emerald Fish!"
 
-	# Award XP
 	var xp_unit = fish_database[selected_fish]["xp"]
 	var xp_mult = get_xp_multiplier() * quality["xp_mult"]
-	if equipped_pet != "None" and pets_database.has(equipped_pet):
-		xp_mult *= (1.0 + pets_database[equipped_pet].get("xp_boost", 0.0))
-
 	var total_xp = int(base_count * xp_unit * xp_mult)
 	var rarity = fish_database[selected_fish]["rarity"]
 	var is_boss_fish = fish_database[selected_fish].get("is_boss", false)
 
 	# Sunken Treasure Chest check
 	var chest_data = {}
-	var base_t_chance = rod.get("treasure_chance", 0.05) * (1.0 + upgrades["more_chests"] * 0.05)
+	var base_t_chance = rod.get("treasure_chance", 0.05) * (1.0 + upgrades["more_chests"] * 0.05) * bait.get("treasure_chance_mult", 1.0)
 	if current_weather == "Storm":
 		base_t_chance += 0.15
 	elif current_weather == "Fog":
@@ -586,42 +847,21 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 	if randf() < base_t_chance:
 		chest_data = roll_treasure_chest()
 
-	# Titan Boss Check
 	if is_boss_fish:
-		if equipped_pet == "Aethelgard":
-			inventory[selected_fish] = inventory.get(selected_fish, 0) + base_count
-			diamond_fish += 1
-			add_xp(total_xp)
-			inventory_changed.emit()
-			fish_caught.emit(selected_fish, base_count, total_xp, rarity, quality)
-			save_game()
-			return {
-				"name": selected_fish,
-				"count": base_count,
-				"xp": total_xp,
-				"rarity": rarity,
-				"quality": quality,
-				"color": fish_database[selected_fish]["color"],
-				"exotic": exotic_msg + pet_bonus_msg + " [🐉 Aethelgard Tamed Titan!]",
-				"chest": chest_data,
-				"is_boss": false
-			}
-		else:
-			var boss_data = {
-				"name": selected_fish,
-				"count": base_count,
-				"xp": total_xp,
-				"rarity": rarity,
-				"quality": quality,
-				"color": fish_database[selected_fish]["color"],
-				"exotic": exotic_msg + pet_bonus_msg,
-				"chest": chest_data,
-				"is_boss": true
-			}
-			boss_hooked.emit(boss_data)
-			return boss_data
+		var boss_data = {
+			"name": selected_fish,
+			"count": base_count,
+			"xp": total_xp,
+			"rarity": rarity,
+			"quality": quality,
+			"color": fish_database[selected_fish]["color"],
+			"exotic": exotic_msg,
+			"chest": chest_data,
+			"is_boss": true
+		}
+		boss_hooked.emit(boss_data)
+		return boss_data
 
-	# Standard chill instant catch
 	inventory[selected_fish] = inventory.get(selected_fish, 0) + base_count
 	add_xp(total_xp)
 	inventory_changed.emit()
@@ -635,7 +875,7 @@ func roll_catch(location_biome: String = "") -> Dictionary:
 		"rarity": rarity,
 		"quality": quality,
 		"color": fish_database[selected_fish]["color"],
-		"exotic": exotic_msg + pet_bonus_msg,
+		"exotic": exotic_msg,
 		"chest": chest_data,
 		"is_boss": false
 	}
