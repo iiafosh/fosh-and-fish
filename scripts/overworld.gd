@@ -369,6 +369,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_E:
 			if not active_station.is_empty():
 				_open_station_from_deck(active_station)
+		elif event.keycode == KEY_V:
+			_open_cozy_3d()
+
+func _open_cozy_3d() -> void:
+	AudioManager.play_click()
+	get_tree().change_scene_to_file("res://scenes/cozy_fishing_3d.tscn")
 
 func _open_station_from_deck(station_info: Dictionary) -> void:
 	AudioManager.play_click()
