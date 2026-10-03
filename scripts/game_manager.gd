@@ -237,6 +237,20 @@ func get_boat_speed() -> float:
 		return boats_database[current_boat]["speed"]
 	return 180.0
 
+func get_upgrade_cost(perk_name: String) -> int:
+	var rank = upgrades.get(perk_name, 0)
+	return int(150 * pow(1.75, rank))
+
+func buy_perk_upgrade(perk_name: String) -> bool:
+	var cost = get_upgrade_cost(perk_name)
+	if cash >= cost and upgrades.get(perk_name, 0) < 10:
+		cash -= cost
+		upgrades[perk_name] = upgrades.get(perk_name, 0) + 1
+		stats_changed.emit()
+		save_game()
+		return true
+	return false
+
 # --- Economy Methods ---
 func add_cash(amount: int) -> void:
 	cash += amount

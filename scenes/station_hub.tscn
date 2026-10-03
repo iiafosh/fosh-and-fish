@@ -1,21 +1,21 @@
-[gd_scene load_steps=4 format=3 uid="uid://cstationhub1"]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/station_hub.gd" id="1_hub"]
-[ext_resource type="Theme" uid="uid://cmaritimewood1" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
+[ext_resource type="Theme" path="res://themes/maritime_wood_theme.tres" id="2_theme"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_drawer"]
 bg_color = Color(0.086, 0.051, 0.027, 0.96)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
 border_color = Color(0.85, 0.58, 0.28, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-shadow_color = Color(0, 0, 0, 0.75)
-shadow_size = 20
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_size = 22
 
 [node name="StationHub" type="Control"]
 layout_mode = 3
@@ -34,162 +34,173 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.04, 0.02, 0.01, 0.65)
+color = Color(0.02, 0.01, 0.01, 0.55)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -480.0
-offset_top = -280.0
-offset_right = 480.0
-offset_bottom = 280.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = -520.0
+offset_right = -50.0
+offset_bottom = -10.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_drawer")
 
-[node name="VBox" type="VBoxContainer" parent="Panel"]
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Header" type="HBoxContainer" parent="Panel"]
+[node name="Header" type="HBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 20
+theme_override_constants/separation = 16
 
-[node name="VBox" type="VBoxContainer" parent="Panel/Header"]
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TitleLabel" type="Label" parent="Panel/Header/VBox"]
+[node name="TitleLabel" type="Label" parent="Panel/Margin/VBox/Header/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
-theme_override_font_sizes/font_size = 20
-text = "Riverwood Harbor"
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 18
+text = "⚓ Riverwood Harbor"
 
-[node name="SubtitleLabel" type="Label" parent="Panel/Header/VBox"]
+[node name="SubtitleLabel" type="Label" parent="Panel/Margin/VBox/Header/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.7, 0.75, 1)
-theme_override_font_sizes/font_size = 12
-text = "The bustling inland river port. Trade fish, upgrade rods and hulls."
+theme_override_colors/font_color = Color(0.8, 0.75, 0.65, 1)
+theme_override_font_sizes/font_size = 11
+text = "The bustling inland river port. Trade fish, upgrade tackle, hulls, and companions."
 
-[node name="Currencies" type="HBoxContainer" parent="Panel/Header"]
+[node name="Currencies" type="HBoxContainer" parent="Panel/Margin/VBox/Header"]
 layout_mode = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 14
 
-[node name="CashContainer" type="HBoxContainer" parent="Panel/Header/Currencies"]
+[node name="CashContainer" type="HBoxContainer" parent="Panel/Margin/VBox/Header/Currencies"]
 layout_mode = 2
 
-[node name="CashLabel" type="Label" parent="Panel/Header/Currencies/CashContainer"]
+[node name="CashLabel" type="Label" parent="Panel/Margin/VBox/Header/Currencies/CashContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.9, 0.5, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 15
 text = "$ 150"
 
-[node name="LevelContainer" type="VBoxContainer" parent="Panel/Header/Currencies"]
+[node name="LevelContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Header/Currencies"]
 layout_mode = 2
 alignment = 1
 
-[node name="LevelLabel" type="Label" parent="Panel/Header/Currencies/LevelContainer"]
+[node name="LevelLabel" type="Label" parent="Panel/Margin/VBox/Header/Currencies/LevelContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.8, 0.95, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 11
 text = "Lv. 1"
 
-[node name="XPBar" type="ProgressBar" parent="Panel/Header/Currencies/LevelContainer"]
-custom_minimum_size = Vector2(90, 8)
+[node name="XPBar" type="ProgressBar" parent="Panel/Margin/VBox/Header/Currencies/LevelContainer"]
+custom_minimum_size = Vector2(80, 8)
 layout_mode = 2
 show_percentage = false
 
-[node name="ExoticContainer" type="HBoxContainer" parent="Panel/Header/Currencies"]
+[node name="ExoticContainer" type="HBoxContainer" parent="Panel/Margin/VBox/Header/Currencies"]
 layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="GoldLabel" type="Label" parent="Panel/Header/Currencies/ExoticContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 12
-text = "🪙 0"
-
-[node name="EmeraldLabel" type="Label" parent="Panel/Header/Currencies/ExoticContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.9, 0.6, 1)
-theme_override_font_sizes/font_size = 12
-text = "💎 0"
-
-[node name="CloseBtn" type="Button" parent="Panel/Header"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
-text = "⛵ Set Sail"
-
-[node name="TabButtons" type="HBoxContainer" parent="Panel"]
-layout_mode = 2
-size_flags_vertical = 0
 theme_override_constants/separation = 8
 
-[node name="MarketBtn" type="Button" parent="Panel/TabButtons"]
+[node name="GoldLabel" type="Label" parent="Panel/Margin/VBox/Header/Currencies/ExoticContainer"]
 layout_mode = 2
-text = "💰 Market & Fishmonger"
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 11
+text = "🪙 0"
 
-[node name="TackleBtn" type="Button" parent="Panel/TabButtons"]
+[node name="EmeraldLabel" type="Label" parent="Panel/Margin/VBox/Header/Currencies/ExoticContainer"]
 layout_mode = 2
-text = "🎣 Tackle & Bait"
+theme_override_colors/font_color = Color(0.3, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "💎 0"
 
-[node name="ShipyardBtn" type="Button" parent="Panel/TabButtons"]
+[node name="CloseBtn" type="Button" parent="Panel/Margin/VBox/Header"]
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "✕ Close"
+
+[node name="TabButtons" type="HBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MarketBtn" type="Button" parent="Panel/Margin/VBox/TabButtons"]
+layout_mode = 2
+text = "💰 Cargo Market"
+
+[node name="TackleBtn" type="Button" parent="Panel/Margin/VBox/TabButtons"]
+layout_mode = 2
+text = "🧰 Tackle & Bait"
+
+[node name="ShipyardBtn" type="Button" parent="Panel/Margin/VBox/TabButtons"]
 layout_mode = 2
 text = "🚢 Shipyard & Hulls"
 
-[node name="FishingBtn" type="Button" parent="Panel/TabButtons"]
-layout_mode = 2
-text = "🌊 Pier Angling"
-
-[node name="PetsBtn" type="Button" parent="Panel/TabButtons"]
+[node name="PetsBtn" type="Button" parent="Panel/Margin/VBox/TabButtons"]
 layout_mode = 2
 text = "🐾 Sanctuary & Pets"
 
-[node name="Content" type="Control" parent="Panel"]
+[node name="UpgradesBtn" type="Button" parent="Panel/Margin/VBox/TabButtons"]
+layout_mode = 2
+text = "✨ Perks & Charms"
+
+[node name="FishingBtn" type="Button" parent="Panel/Margin/VBox/TabButtons"]
+visible = false
+layout_mode = 2
+text = "🎣 Pier Angling"
+
+[node name="Content" type="Control" parent="Panel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MarketPanel" type="VBoxContainer" parent="Panel/Content"]
+[node name="MarketPanel" type="VBoxContainer" parent="Panel/Margin/VBox/Content"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 8
 
-[node name="SellHeader" type="HBoxContainer" parent="Panel/Content/MarketPanel"]
+[node name="SellHeader" type="HBoxContainer" parent="Panel/Margin/VBox/Content/MarketPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Panel/Content/MarketPanel/SellHeader"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/Content/MarketPanel/SellHeader"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.6, 0.8, 0.85, 1)
-theme_override_font_sizes/font_size = 13
-text = "Sell your caught fish to local merchants for cash to fund expeditions."
+theme_override_colors/font_color = Color(0.85, 0.8, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Cargo Hold: Sell catches individually or clear your hold in bulk."
 
-[node name="SellAllBtn" type="Button" parent="Panel/Content/MarketPanel/SellHeader"]
+[node name="SellAllBtn" type="Button" parent="Panel/Margin/VBox/Content/MarketPanel/SellHeader"]
+custom_minimum_size = Vector2(160, 34)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
-text = "💰 Sell All Fish"
+theme_override_colors/font_color = Color(1, 0.9, 0.35, 1)
+text = "💰 Sell All Catch"
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Content/MarketPanel"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/Content/MarketPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="FishGrid" type="GridContainer" parent="Panel/Content/MarketPanel/Scroll"]
+[node name="FishGrid" type="GridContainer" parent="Panel/Margin/VBox/Content/MarketPanel/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
-columns = 5
+columns = 4
 
-[node name="TacklePanel" type="VBoxContainer" parent="Panel/Content"]
+[node name="TacklePanel" type="VBoxContainer" parent="Panel/Margin/VBox/Content"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -198,36 +209,36 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Content/TacklePanel"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/Content/TacklePanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBox" type="VBoxContainer" parent="Panel/Content/TacklePanel/Scroll"]
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin/VBox/Content/TacklePanel/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 14
 
-[node name="RodsTitle" type="Label" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+[node name="RodsTitle" type="Label" parent="Panel/Margin/VBox/Content/TacklePanel/Scroll/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
 text = "🎣 Available Fishing Rods"
 
-[node name="RodsContainer" type="VBoxContainer" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+[node name="RodsContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Content/TacklePanel/Scroll/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BaitsTitle" type="Label" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+[node name="BaitsTitle" type="Label" parent="Panel/Margin/VBox/Content/TacklePanel/Scroll/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 15
-text = "🪱 Available Baits"
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+text = "🪱 Bait Tackle & Specialty Lures"
 
-[node name="BaitsContainer" type="VBoxContainer" parent="Panel/Content/TacklePanel/Scroll/VBox"]
+[node name="BaitsContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Content/TacklePanel/Scroll/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ShipyardPanel" type="VBoxContainer" parent="Panel/Content"]
+[node name="ShipyardPanel" type="VBoxContainer" parent="Panel/Margin/VBox/Content"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -236,16 +247,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Content/ShipyardPanel"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/Content/ShipyardPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="BoatsContainer" type="VBoxContainer" parent="Panel/Content/ShipyardPanel/Scroll"]
+[node name="BoatsContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Content/ShipyardPanel/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="FishingPanel" type="VBoxContainer" parent="Panel/Content"]
+[node name="PetsPanel" type="VBoxContainer" parent="Panel/Margin/VBox/Content"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -253,96 +264,104 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
 
-[node name="InfoBar" type="HBoxContainer" parent="Panel/Content/FishingPanel"]
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 25
-
-[node name="RodInfoLabel" type="Label" parent="Panel/Content/FishingPanel/InfoBar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.9, 1, 1)
-text = "Equipped Rod: Plastic Rod"
-
-[node name="BaitInfoLabel" type="Label" parent="Panel/Content/FishingPanel/InfoBar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.9, 1, 1)
-text = "Equipped Bait: None"
-
-[node name="CDInfoLabel" type="Label" parent="Panel/Content/FishingPanel/InfoBar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.8, 0.9, 1)
-text = "Base Cooldown: 3.5s"
-
-[node name="Center" type="VBoxContainer" parent="Panel/Content/FishingPanel"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/Content/PetsPanel"]
 layout_mode = 2
 size_flags_vertical = 3
-alignment = 1
 
-[node name="CatchBanner" type="Label" parent="Panel/Content/FishingPanel/Center"]
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin/VBox/Content/PetsPanel/Scroll"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 18
-text = "Cast your line into the waters to reel in fish!"
-horizontal_alignment = 1
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
 
-[node name="CastBtn" type="Button" parent="Panel/Content/FishingPanel/Center"]
-custom_minimum_size = Vector2(260, 55)
+[node name="MascotTitle" type="Label" parent="Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox"]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 18
-text = "🎣 CAST LINE"
-
-[node name="PetsPanel" type="VBoxContainer" parent="Panel/Content"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Label" type="Label" parent="Panel/Content/PetsPanel"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.85, 0.4, 1)
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "🐾 Companion Pet Sanctuary & Mascot Wardrobe. Pets grant passive fishing perks."
+text = "🌀 Rimuru Tempest Mascot Forms"
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Content/PetsPanel"]
+[node name="MascotsContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PetsTitle" type="Label" parent="Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+text = "🐾 Milestone Companion Pets (Level Unlocked)"
+
+[node name="PetsContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Content/PetsPanel/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="UpgradesPanel" type="VBoxContainer" parent="Panel/Margin/VBox/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/Content/UpgradesPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBox" type="VBoxContainer" parent="Panel/Content/PetsPanel/Scroll"]
+[node name="UpgradesContainer" type="VBoxContainer" parent="Panel/Margin/VBox/Content/UpgradesPanel/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="MascotsHeader" type="Label" parent="Panel/Content/PetsPanel/Scroll/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.9, 1, 1)
-theme_override_font_sizes/font_size = 14
-text = "Mascot Wardrobe (Rimuru Tempest):"
+[node name="FishingPanel" type="VBoxContainer" parent="Panel/Margin/VBox/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="MascotsContainer" type="VBoxContainer" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+[node name="Center" type="VBoxContainer" parent="Panel/Margin/VBox/Content/FishingPanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+size_flags_vertical = 3
+alignment = 1
 
-[node name="PetsHeader" type="Label" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+[node name="CastBtn" type="Button" parent="Panel/Margin/VBox/Content/FishingPanel/Center"]
+custom_minimum_size = Vector2(240, 50)
 layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 14
-text = "Unlocked Companion Pets (Earned via level milestones):"
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 15
+text = "🎣 CAST LINE"
 
-[node name="PetsContainer" type="VBoxContainer" parent="Panel/Content/PetsPanel/Scroll/VBox"]
+[node name="CatchBanner" type="Label" parent="Panel/Margin/VBox/Content/FishingPanel/Center"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
 
-[connection signal="pressed" from="Panel/Header/CloseBtn" to="." method="_on_close_btn_pressed"]
-[connection signal="pressed" from="Panel/TabButtons/MarketBtn" to="." method="_on_market_btn_pressed"]
-[connection signal="pressed" from="Panel/TabButtons/TackleBtn" to="." method="_on_tackle_btn_pressed"]
-[connection signal="pressed" from="Panel/TabButtons/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
-[connection signal="pressed" from="Panel/TabButtons/FishingBtn" to="." method="_on_fishing_btn_pressed"]
-[connection signal="pressed" from="Panel/TabButtons/PetsBtn" to="." method="_on_pets_btn_pressed"]
-[connection signal="pressed" from="Panel/Content/MarketPanel/SellHeader/SellAllBtn" to="." method="_on_sell_all_btn_pressed"]
-[connection signal="pressed" from="Panel/Content/FishingPanel/Center/CastBtn" to="." method="_on_cast_btn_pressed"]
+[node name="InfoBar" type="HBoxContainer" parent="Panel/Margin/VBox/Content/FishingPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RodInfoLabel" type="Label" parent="Panel/Margin/VBox/Content/FishingPanel/InfoBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="BaitInfoLabel" type="Label" parent="Panel/Margin/VBox/Content/FishingPanel/InfoBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="CDInfoLabel" type="Label" parent="Panel/Margin/VBox/Content/FishingPanel/InfoBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[connection signal="pressed" from="Panel/Margin/VBox/Header/CloseBtn" to="." method="_on_close_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/TabButtons/MarketBtn" to="." method="_on_market_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/TabButtons/TackleBtn" to="." method="_on_tackle_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/TabButtons/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/TabButtons/PetsBtn" to="." method="_on_pets_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/TabButtons/UpgradesBtn" to="." method="_on_upgrades_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/TabButtons/FishingBtn" to="." method="_on_fishing_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/Content/MarketPanel/SellHeader/SellAllBtn" to="." method="_on_sell_all_btn_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/Content/FishingPanel/Center/CastBtn" to="." method="_on_cast_btn_pressed"]
