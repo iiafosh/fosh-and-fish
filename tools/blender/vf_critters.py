@@ -340,13 +340,120 @@ def _market(model, length=7.0):
     return meshes
 
 
+def _bait_shack():
+    """Fishing 'Bait & Tackle' shack: Quaternius Storage Hut (CC0) dressed
+    with rods, a fish-drying rack, bait buckets and a sign."""
+    from vf_kit import cube, cyl, torus
+    import vf_models as M
+    t = lambda c: toon(c, soft=True)
+    parts = _market("storage", length=5.2)
+    lo, hi = V.world_bbox(parts)
+    front = lo.y - 0.05
+    # sign over the door
+    parts.append(cube(loc=(0, front - 0.05, hi.z * 0.62), scale=(2.4, 0.1, 0.55), mat=t("#f2e3c0"), bevel=0.04))
+    parts.append(cube(loc=(0, front - 0.11, hi.z * 0.62), scale=(1.9, 0.02, 0.2), mat=t("#2f8f8a")))
+    # rods leaning on the front wall
+    for i, c in enumerate(["#4aa3ff", "#ffd23f", "#e0533e"]):
+        x = 1.0 + i * 0.28
+        parts.append(K.tube([(x, front - 0.1, 0.1), (x + 0.15, front - 0.05, 2.4)], 0.035, mat=t(c), taper=(1.0, 0.5)))
+    # fish drying rack on the left with hanging fish
+    rx = lo.x - 0.6
+    for y in (front + 0.3, front + 1.6):
+        parts.append(cyl(loc=(rx, y, 0.9), r=0.06, depth=1.8, mat=t("#7a5232"), verts=8))
+    parts.append(cyl(loc=(rx, front + 0.95, 1.75), r=0.05, depth=1.4, rot=(90, 0, 0), mat=t("#7a5232"), verts=8))
+    for k, col in enumerate(["#6f8fa8", "#c86b5a", "#9a8a5c", "#6f8fa8"]):
+        f = M.build_fish(dict(top=col, belly="#eef3f6", fin=col, L=0.32, H=0.12, W=0.08))
+        y = front + 0.45 + k * 0.32
+        for o in f:
+            o.rotation_euler = (0, math.radians(90), 0)
+            o.location = Vector((rx, y, 1.35)) + o.location.copy() * 0
+        parts += f
+    # bait buckets and a barrel of fish by the door
+    for x, c in ((-1.1, "#4f86c6"), (-0.6, "#e07a3a")):
+        parts.append(cyl(loc=(x, front - 0.5, 0.25), r=0.22, depth=0.5, mat=t(c), verts=16))
+        parts.append(cyl(loc=(x, front - 0.5, 0.48), r=0.18, depth=0.04, mat=t("#6b4a2e"), verts=16))
+    parts.append(cyl(loc=(lo.x + 0.2, front - 0.6, 0.4), r=0.35, depth=0.8, mat=t("#9a6a3c"), verts=16))
+    for k in range(3):
+        f = M.build_fish(dict(top="#ffb02e", belly="#fff1c9", fin="#2b7de9", L=0.2, H=0.1, W=0.05))
+        for o in f:
+            o.location += Vector((lo.x + 0.05 + k * 0.15, front - 0.6, 0.85))
+        parts += f
+    parts.append(torus(loc=(hi.x + 0.3, front + 0.4, 0.06), R=0.35, r=0.07, mat=t("#d8c49a")))
+    return parts
+
+
+def _fish_shop():
+    """'Bait & Tackle' fish shop designed for the top-down camera: bold teal
+    roof with a big fish sign, striped awning over a counter of fish on ice."""
+    from vf_kit import cube, cyl, torus, extrude_poly
+    import vf_models as M
+    t = lambda c, **k: toon(c, soft=True, **k)
+    P = []
+    # deck
+    for i in range(9):
+        P.append(cube(loc=(-2.4 + i * 0.6, 0.2, 0.08), scale=(0.56, 4.6, 0.16), mat=t("#b07a4a" if i % 2 else "#a8723f")))
+    # building
+    W, D, Hh = 3.8, 2.6, 2.0
+    P.append(cube(loc=(0, 0.9, Hh / 2 + 0.16), scale=(W, D, Hh), mat=t("#e6cfa2"), bevel=0.04))
+    for x in (-1.4, -0.7, 0.0, 0.7, 1.4):
+        P.append(cube(loc=(x, 0.9 - D / 2 - 0.01, Hh / 2 + 0.16), scale=(0.05, 0.02, Hh), mat=t("#c9ad7e")))
+    P.append(cube(loc=(-1.0, 0.9 - D / 2 - 0.03, 0.95), scale=(0.75, 0.04, 1.45), mat=t("#5a3a24")))       # door
+    P.append(cube(loc=(1.0, 0.9 - D / 2 - 0.03, 1.3), scale=(0.9, 0.04, 0.65), mat=t("#8fd3ff", emit=0.15)))  # window
+    for dx in (-0.55, 0.55):
+        P.append(cube(loc=(1.0 + dx, 0.9 - D / 2 - 0.05, 1.3), scale=(0.18, 0.04, 0.72), mat=t("#2f8f9e")))
+    # gable roof (two slabs) in bold teal, with ridge
+    for sgn in (1, -1):
+        slab = cube(loc=(0, 0.9 + sgn * 0.78, Hh + 0.75), scale=(W + 0.7, 1.85, 0.16), rot=(sgn * 32, 0, 0), mat=t("#2fa3a8"))
+        P.append(slab)
+        for k in range(5):
+            P.append(cube(loc=(-1.9 + k * 0.95, 0.9 + sgn * 0.78, Hh + 0.85), scale=(0.08, 1.8, 0.04), rot=(sgn * 32, 0, 0),
+                          mat=t("#1f7f86")))
+    P.append(cyl(loc=(0, 0.9, Hh + 1.27), r=0.12, depth=W + 0.8, rot=(0, 90, 0), mat=t("#f2e3c0"), verts=10))
+    # big golden fish sign on the ridge
+    fish = M.build_fish(dict(top="#ffcf3f", belly="#fff1a8", fin="#e0a01f", L=1.25, H=0.55, W=0.2))
+    for o in fish:
+        o.location = o.location + Vector((0, 0.9, Hh + 2.0))
+    P += fish
+    P.append(cyl(loc=(0, 0.9, Hh + 1.55), r=0.05, depth=0.6, mat=t("#7a5232"), verts=8))
+    # awning + counter of fish on ice in front
+    for i in range(6):
+        P.append(cube(loc=(-1.25 + i * 0.5, -0.75, Hh + 0.05), scale=(0.5, 1.1, 0.06), rot=(-20, 0, 0),
+                      mat=t("#2fa3a8" if i % 2 == 0 else "#f6efe2")))
+    P.append(cube(loc=(0, -0.9, 0.6), scale=(3.0, 0.8, 0.9), mat=t("#a8723f"), bevel=0.04))
+    P.append(cube(loc=(0, -0.9, 1.08), scale=(2.8, 0.66, 0.06), mat=t("#eaf6ff")))                       # ice
+    for k, col in enumerate(["#6f8fa8", "#c86b5a", "#ffb02e", "#9a8a5c", "#6f8fa8", "#c86b5a"]):
+        f = M.build_fish(dict(top=col, belly="#eef3f6", fin=col, L=0.22, H=0.09, W=0.06))
+        for o in f:
+            o.location = o.location + Vector((-1.15 + k * 0.46, -0.9, 1.2))
+        P += f
+    # life ring, barrels, bait buckets, rod rack, lantern
+    P.append(torus(loc=(2.05, 0.9 - D / 2 - 0.1, 1.4), R=0.32, r=0.09, rot=(90, 0, 0), mat=t("#e0533e")))
+    for a in range(4):
+        P.append(cube(loc=(2.05 + 0.32 * math.cos(a * math.pi / 2), 0.9 - D / 2 - 0.2, 1.4 + 0.32 * math.sin(a * math.pi / 2)),
+                      scale=(0.1, 0.06, 0.1), mat=t("#ffffff")))
+    for x, y in ((-2.3, -0.9), (-2.3, -0.2)):
+        P.append(cyl(loc=(x, y, 0.55), r=0.32, depth=0.8, mat=t("#9a6a3c"), verts=16))
+        P.append(cyl(loc=(x, y, 0.97), r=0.33, depth=0.05, mat=t("#6b4a2e"), verts=16))
+    for x, c in ((1.9, "#4f86c6"), (2.35, "#e07a3a")):
+        P.append(cyl(loc=(x, -1.6, 0.36), r=0.2, depth=0.45, mat=t(c), verts=16))
+    for i, c in enumerate(["#4aa3ff", "#ffd23f", "#e0533e", "#3fbf6a"]):
+        x = 2.25 + i * 0.12
+        P.append(K.tube([(x, 0.9 + D / 2 - 0.2, 0.2), (x + 0.05, 0.9 + D / 2 + 0.2, 2.6)], 0.03, mat=t(c), taper=(1.0, 0.5)))
+    P.append(cyl(loc=(-1.75, -1.32, 1.8), r=0.12, depth=0.3, mat=t("#ffd76a", emit=0.6), verts=10))
+    return P
+
+
+SHOP_MODEL = "fish_shop"
+
+
 def render_merchant(out_dir, model=None):
     os.makedirs(out_dir, exist_ok=True)
     cam = _setup(MERCHANT_CELL, TD.CAM_ROT)
-    stall = _market(model or MARKET_MODEL)
+    model = model or SHOP_MODEL
+    stall = _fish_shop() if model == "fish_shop" else _bait_shack() if model == "bait_shack" else _market(model)
     meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "character.glb"))
     root = V.group_root(roots, "merchant")
-    root.location = (0.4, -2.0, 0)                    # in front of the stalls, facing the camera (-Y)
+    root.location = (1.3, -1.9, 0.16)                 # beside the counter on the deck, facing the camera (-Y)
     for m in meshes:
         for mt in m.data.materials:
             name = mt.name.split(".")[0]

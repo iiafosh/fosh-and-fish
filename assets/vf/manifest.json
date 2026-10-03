@@ -449,13 +449,13 @@
  "merchant": {
   "anchor": [
    0.5,
-   0.5599
+   0.6786
   ],
   "cell": 384,
   "idle": {
    "frames": 8
   },
-  "unit_px": 45.158,
+  "unit_px": 53.536,
   "wave": {
    "frames": 10
   }

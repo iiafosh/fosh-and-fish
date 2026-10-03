@@ -24,7 +24,6 @@ GLBS = {
     "manta": "32b4e08e-4605-4356-8bd3-e0cf32335a0f", "gull": "882c4ff3-c97b-4ae2-aedf-953c8d692898",
     "crab": "1acf95b5-2e6b-4c9d-bd37-8384b88bdbea", "character": "ba7a1955-ea51-4cb9-a561-188bdef0a6c7",
     "chest": "803af4ae-433f-4b05-b1f1-c6a2da02d768",
-    "market/village": "d99b4be3-5157-4dda-b308-ad77acbe8801",
 }
 
 

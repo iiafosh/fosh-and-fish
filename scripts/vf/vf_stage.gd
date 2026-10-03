@@ -611,10 +611,11 @@ func _build_merchant() -> void:
 func _place_merchant() -> void:
 	if merchant == null or _merchant_info.is_empty() or not _scene.has("merchant"): return
 	var cell: float = _merchant_info.cell
-	var k: float = float(_scene.get("merchant_unit_px", _scene.unit_px)) / float(_merchant_info.unit_px) * 0.75
+	var k: float = float(_scene.get("merchant_unit_px", _scene.unit_px)) / float(_merchant_info.unit_px) * 0.95
 	merchant.size = Vector2(cell, cell) * k
 	var spot := Vector2(_scene.merchant[0], _scene.merchant[1]) * SCENE
 	merchant.position = spot - Vector2(_merchant_info.anchor[0], _merchant_info.anchor[1]) * merchant.size
+	merchant.position.y = maxf(merchant.position.y, 125.0)      # keep the roof clear of the HUD
 	merchant_hit.position = merchant.position + merchant.size * Vector2(0.08, 0.1)
 	merchant_hit.size = merchant.size * Vector2(0.84, 0.75)
 	merchant_tag.position = merchant.position + Vector2(merchant.size.x * 0.5 - 150, merchant.size.y * 0.82)
