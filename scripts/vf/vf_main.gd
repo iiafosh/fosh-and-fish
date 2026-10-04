@@ -1273,6 +1273,9 @@ func _panel_stats() -> void:
 ## godot --path . -- --capture=DIR [--demo=BIOME] : plays a few casts, saves
 ## screenshots of the main screen and key panels, then quits. Never saves.
 func _check_capture() -> void:
+	if "--trailer" in OS.get_cmdline_user_args():
+		_trailer()
+		return
 	var dir := ""
 	var demo := ""
 	for a in OS.get_cmdline_user_args():
@@ -1317,29 +1320,7 @@ func _check_capture() -> void:
 		get_tree().quit()
 		return
 	if demo != "":
-		var lv: int = VFData.BIOMES[demo].level
-		VF.level = maxi(lv, 120)
-		VF.money = 3_400_000_000
-		VF.biome = demo
-		VF.boats_owned = 0
-		for b in VFData.BOAT_ORDER:
-			if VFData.BOATS[b].level <= VF.level: VF.boats_owned += 1
-		for r in VFData.ROD_ORDER:
-			if VFData.RODS[r].level <= VF.level and r != "Supporter Rod": VF.owned_rods.append(r)
-		for r in VFData.ROD_ORDER:
-			if r in VF.owned_rods and VF.rod_usable(r, demo): VF.rod = r
-		VF.bait_stock = {"Magic Bait": 850, "Wise Bait": 120, "Leeches": 40}
-		VF.bait = "Magic Bait"
-		VF.exotics = {"gold": 412, "emerald": 268, "lava": 91, "diamond": 37, "azure": 1}
-		VF.prestige = 1
-		VF.perks = {"international_ties": 1}
-		VF.pets = {"Puffer": {"level": 34, "xp": 1200}, "Axolotl": {"level": 12, "xp": 300}}
-		VF.pet = "Puffer"
-		VF.upgrades = {"better_fish": 14, "salesman": 14, "more_chests": 7, "artifact_specialist": 7, "experienced": 2}
-		for id in VFData.CHARM_ORDER: VF.charms[id] = 20
-		for f in VFData.FISH_ORDER: VF.discovered[f] = 1      # a veteran: no discovery banners
-		VF.goals_done = VFData.STARTER_GOALS.size()
-		VF.changed.emit()
+		_veteran(demo)
 	await get_tree().create_timer(0.6).timeout
 	for i in 3:
 		VF._last_cast_ms = -100000
@@ -1701,3 +1682,121 @@ func _draw_coach() -> void:
 	if VF.tutorial == 0:
 		var r := 26.0 + fmod(_coach_t * 30.0, 30.0)
 		_coach.draw_arc(tgt, r, 0, TAU, 40, Color(1, 1, 1, 1.0 - (r - 26.0) / 30.0), 3.0, true)
+
+# a well-progressed save for screenshots and the demo video (never saved)
+func _veteran(demo: String) -> void:
+	VF.owned_rods = []
+	var lv: int = VFData.BIOMES[demo].level
+	VF.level = maxi(lv, 120)
+	VF.money = 3_400_000_000
+	VF.biome = demo
+	VF.boats_owned = 0
+	for b in VFData.BOAT_ORDER:
+		if VFData.BOATS[b].level <= VF.level: VF.boats_owned += 1
+	for r in VFData.ROD_ORDER:
+		if VFData.RODS[r].level <= VF.level and r != "Supporter Rod": VF.owned_rods.append(r)
+	for r in VFData.ROD_ORDER:
+		if r in VF.owned_rods and VF.rod_usable(r, demo): VF.rod = r
+	VF.bait_stock = {"Magic Bait": 850, "Wise Bait": 120, "Leeches": 40}
+	VF.bait = "Magic Bait"
+	VF.exotics = {"gold": 412, "emerald": 268, "lava": 91, "diamond": 37, "azure": 1}
+	VF.prestige = 1
+	VF.perks = {"international_ties": 1}
+	VF.pets = {"Puffer": {"level": 34, "xp": 1200}, "Axolotl": {"level": 12, "xp": 300}}
+	VF.pet = "Puffer"
+	VF.upgrades = {"better_fish": 14, "salesman": 14, "more_chests": 7, "artifact_specialist": 7, "experienced": 2}
+	for id in VFData.CHARM_ORDER: VF.charms[id] = 20
+	for f in VFData.FISH_ORDER: VF.discovered[f] = 1      # a veteran: no discovery banners
+	VF.goals_done = VFData.STARTER_GOALS.size()
+	VF.changed.emit()
+
+
+# ============================================================ demo video
+## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --trailer
+## plays a scripted tour with real taps on the water, then quits. Never saves.
+var _cap_box: PanelContainer
+var _cap_label: Label
+
+func _wait(t: float) -> void:
+	await get_tree().create_timer(t).timeout
+
+func _tap(at: Vector2) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		ev.position = at
+		ev.global_position = at
+		Input.parse_input_event(ev)
+
+func _caption(text: String) -> void:
+	if _cap_box == null:
+		_cap_box = PanelContainer.new()
+		_cap_box.add_theme_stylebox_override("panel", sbox(Color("#3b2c20", 0.88), 22, 0, Color.TRANSPARENT, 26, 12))
+		_cap_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_cap_label = lbl("", 30, Color("#fff4dc"))
+		_cap_box.add_child(_cap_label)
+		add_child(_cap_box)
+	move_child(_cap_box, get_child_count() - 1)
+	_cap_label.text = text
+	_cap_box.reset_size()
+	await get_tree().process_frame
+	var vs := get_viewport_rect().size
+	_cap_box.position = Vector2((vs.x - _cap_box.size.x) * 0.5, vs.y - 168)
+	_cap_box.modulate.a = 0.0
+	_cap_box.create_tween().tween_property(_cap_box, "modulate:a", 1.0, 0.25)
+
+func _cast_tap() -> void:
+	VF._last_cast_ms = -100000
+	_tap(stage.bobber_screen() + Vector2(40, 30))
+
+func _trailer() -> void:
+	VF.autosave = false
+	AudioManager.music_on = true          # record with sound, without touching saved settings
+	AudioManager.sfx_on = true
+	AudioManager.apply_settings()
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99          # captions explain instead of the tutorial pointer
+	VF.changed.emit()
+	_coach_show()
+	await _wait(1.2)
+	_caption("Tap the water to fish")
+	for i in 3:
+		await _wait(0.5)
+		_cast_tap()
+		await _wait(1.8)
+	_caption("Sell your catch")
+	await _wait(1.0)
+	_do_sell()
+	await _wait(2.4)
+	_caption("Shop at the fish market on the island")
+	await _wait(1.0)
+	stage.merchant_clicked.emit()
+	await _wait(2.6)
+	_close_panel()
+	_caption("Better rods and boats bring bigger catches")
+	_veteran("Ocean")
+	for i in 3:
+		await _wait(0.4)
+		_cast_tap()
+		await _wait(1.6)
+	_caption("Explore 7 biomes, from the River to the Abyss")
+	for b in ["Volcanic", "Sky", "Abyss"]:
+		_veteran(b)
+		for i in 2:
+			await _wait(0.5)
+			_cast_tap()
+			await _wait(1.5)
+	_veteran("Ocean")
+	_caption("Pets, charms, quests & prestige")
+	for p in [["pets", ""], ["charms", ""], ["prestige", "Guide"]]:
+		_open_panel(p[0], p[1])
+		await _wait(1.9)
+	_close_panel()
+	_caption("Free to play on browser, Windows, Android & Linux")
+	for i in 2:
+		await _wait(0.5)
+		_cast_tap()
+		await _wait(1.3)
+	await _wait(0.6)
+	get_tree().quit()

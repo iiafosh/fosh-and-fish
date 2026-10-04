@@ -45,3 +45,8 @@ pointing/emulate_mouse_from_touch=true
 renderer/rendering_method="mobile"
 renderer/rendering_method.web="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+
+[editor]
+
+movie_writer/mjpeg_quality=0.95
+movie_writer/movie_file=""

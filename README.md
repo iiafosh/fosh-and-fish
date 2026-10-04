@@ -19,6 +19,7 @@ Made with **Godot 4**; all the art is rendered in **Blender**.
 
 No Godot or other install needed. How to play: [GUIDE.md](GUIDE.md) or press **G** in the game.
 What's new: [CHANGELOG.md](CHANGELOG.md).
+🎬 Watch the 50-second demo: [fosh-and-fish-demo.mp4](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-demo.mp4)
 
 ## 💬 Feedback
 
@@ -61,6 +62,11 @@ wiki_dump/       source snapshot of the wiki and encyclopedia
 ```bash
 Godot_console.exe --headless --path . -s res://tests/vf_sim_test.gd
 Godot_console.exe --path . -- --capture=OUT_DIR --demo=Ocean
+```
+
+**Demo video** (scripted tour with real taps, recorded by Godot's Movie Maker)
+```bash
+Godot.exe --path . --write-movie demo.avi --fixed-fps 30 -- --trailer
 ```
 
 **Re-render the art** (Blender 4.2)
