@@ -1,6 +1,6 @@
 # Changelog
 
-![Virtual Fisher](https://raw.githubusercontent.com/iiafosh/vfish.fosh/master/assets/brand/cover_1280x720.png)
+![fosh_fish](https://raw.githubusercontent.com/iiafosh/vfish.fosh/master/assets/brand/cover_1280x720.png)
 
 ## 0.1 beta — first public test
 
@@ -9,7 +9,7 @@
 Play in the browser: https://iiafosh.github.io/vfish.fosh/
 
 **Game**
-- Full Virtual Fisher progression: 20 fish, 21 rods, 17 boats, 8 baits, 7 biomes (River → Abyss),
+- Full Virtual Fisher (Discord bot) progression: 20 fish, 21 rods, 17 boats, 8 baits, 7 biomes (River → Abyss),
   the real 25,000-level XP table, per-rod catch odds and fish-quality rules from the wiki.
 - Chests (Common → Artifact, Super), Gold / Emerald / Lava / Diamond fish, 8 charms, 5 pets.
 - Shop, special and league upgrades; Fish / Treasure boosts and Workers; daily reward, daily quests,

@@ -1,11 +1,11 @@
-# 🐟 Virtual Fisher (Godot 4 + Blender)
+# 🐟 fosh_fish (Godot 4 + Blender)
 
-![Virtual Fisher](assets/brand/cover_1280x720.png)
+![fosh_fish](assets/brand/cover_1280x720.png)
 
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 
 
-A desktop fishing game built on the real **Virtual Fisher** Discord bot mechanics, with all art
+**fosh_fish** — a fishing game built on the real **Virtual Fisher** Discord bot mechanics, with all art
 rendered procedurally in **Blender**: high-angle biome scenes with see-through water (one shared
 height function drives the terrain mesh and the water's depth colour/foam), a straw-hat fisherman
 on each of the 17 boats, and fish that swim under the surface in-game with caustics on top.
@@ -14,8 +14,8 @@ their licenses in [CREDITS.md](CREDITS.md); fetch the raw packs with `python too
 
 ## Play the 0.1 beta
 
-- Download from [Releases](https://github.com/iiafosh/vfish.fosh/releases): **Windows** `…-windows.zip` (run `VirtualFisher.exe`), **Linux** `…-linux.tar.gz` (run `./VirtualFisher.x86_64`), **Android** `…-android.apk` (install on the phone).
-- **Browser / phone:** upload `VirtualFisher-0.1-beta-web.zip` to itch.io (HTML game) or serve `build/web/`.
+- Download from [Releases](https://github.com/iiafosh/vfish.fosh/releases): **Windows** `…-windows.zip` (run `fosh_fish.exe`), **Linux** `…-linux.tar.gz` (run `./fosh_fish.x86_64`), **Android** `…-android.apk` (install on the phone).
+- **Browser / phone:** upload `fosh_fish-0.1-beta-web.zip` to itch.io (HTML game) or serve `build/web/`.
 - **How to play:** [GUIDE.md](GUIDE.md) or press **G** in-game.  **Feedback:** Guide → Feedback in-game, or [open an issue](https://github.com/iiafosh/vfish.fosh/issues/new/choose).
 - What's in it: [CHANGELOG.md](CHANGELOG.md)
 
@@ -30,11 +30,11 @@ or `Godot.exe --path .` (Godot 4.7). Controls: **Space/F** or tap/click the wate
 
 | Platform | How |
 |---|---|
-| **Desktop (Windows)** | `Godot_console.exe --headless --path . --export-release "Windows Desktop" build/windows/VirtualFisher.exe` |
+| **Desktop (Windows)** | `Godot_console.exe --headless --path . --export-release "Windows Desktop" build/windows/fosh_fish.exe` |
 | **Web** | `Godot_console.exe --headless --path . --export-release "Web" build/web/index.html`, then `python tools/serve_web.py` (or upload `build/web/` to itch.io / GitHub Pages) |
 | **Mobile** | Open the web build on your phone (same Wi-Fi: the URL printed by `serve_web.py`) and use *Add to Home Screen* — it installs as a full-screen landscape app (PWA). Tap the water to cast. |
 
-Saves are kept per device (desktop: `%APPDATA%/Godot/app_userdata/Virtual Fisher`, web/mobile: browser storage).
+Saves are kept per device (desktop: `%APPDATA%/Godot/app_userdata/fosh_fish`, web/mobile: browser storage).
 
 ## What's in the game
 

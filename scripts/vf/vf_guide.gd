@@ -5,7 +5,7 @@ extends RefCounted
 
 const TABS := {
 	"Basics": [
-		["Welcome to Virtual Fisher", ["ui", "inventory"],
+		["Welcome to fosh_fish", ["ui", "inventory"],
 		"Cast, catch, sell, upgrade, repeat. Everything you catch goes into your hold (bucket). Sell it for money, spend the money on better rods, bait, boats and upgrades, and travel to new biomes as you level up."],
 		["Fishing", ["rod", "Plastic Rod"],
 		"Tap the water, press FISH or hit Space. After every cast there is a short cooldown (the green bar on the FISH button). Each cast catches several fish at once — how many depends on your rod, boats, bait and buffs."],

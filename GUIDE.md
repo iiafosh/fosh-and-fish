@@ -1,4 +1,4 @@
-# Virtual Fisher — Player Guide (v0.1 beta)
+# fosh_fish — Player Guide (v0.1 beta)
 
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 
@@ -128,9 +128,9 @@ community buy order for P1–P160 (your current prestige is highlighted). First 
 ---
 
 ## 6. Platforms & saves
-- **Windows:** unzip and run `VirtualFisher.exe` (no install needed). If Windows SmartScreen warns, click *More info → Run anyway* (the beta isn't code-signed).
-- **Linux:** extract the `.tar.gz` and run `./VirtualFisher.x86_64`.
-- **Android:** copy `VirtualFisher-0.1-beta-android.apk` to the phone, open it and allow *Install unknown apps* when asked. Android 7.0 or newer.
+- **Windows:** unzip and run `fosh_fish.exe` (no install needed). If Windows SmartScreen warns, click *More info → Run anyway* (the beta isn't code-signed).
+- **Linux:** extract the `.tar.gz` and run `./fosh_fish.x86_64`.
+- **Android:** copy `fosh_fish-0.1-beta-android.apk` to the phone, open it and allow *Install unknown apps* when asked. Android 7.0 or newer.
 - **Browser:** open the web version; on iPhone/iPad use it in Safari and *Add to Home Screen*.
 - The game **autosaves** every 20 seconds and when you close it. Each device/browser has its own save.
   **Buffs → Reset save…** wipes progress (asks twice).

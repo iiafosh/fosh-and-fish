@@ -68,6 +68,7 @@ func _init() -> void:
 	_defaults = to_dict().duplicate(true)
 
 func _ready() -> void:
+	_migrate_old_user_dir()
 	load_game()
 	_roll_quest_day()
 
@@ -948,3 +949,13 @@ func check_goals() -> void:
 		if bait == "" and r.has("bait"): bait = r.bait[0]
 		goal_done.emit(gdef.text, goal_reward_text(r), chest)
 		changed.emit()
+
+
+## The game used to be called "Virtual Fisher"; desktop saves lived in that
+## folder. Copy them over once so players keep their progress after the rename.
+func _migrate_old_user_dir() -> void:
+	if FileAccess.file_exists(SAVE_PATH): return
+	var old := ProjectSettings.globalize_path("user://").trim_suffix("/").get_base_dir() + "/Virtual Fisher/"
+	for f in ["vf_save.json", "settings.cfg"]:
+		if FileAccess.file_exists(old + f) and not FileAccess.file_exists("user://" + f):
+			DirAccess.copy_absolute(old + f, ProjectSettings.globalize_path("user://" + f))

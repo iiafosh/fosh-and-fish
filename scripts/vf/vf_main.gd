@@ -1,5 +1,5 @@
 extends Control
-## Main screen: Blender-rendered biome + boat, Virtual Fisher style catch
+## Main screen: Blender-rendered biome + boat, Virtual Fisher (bot) style catch
 ## card, and panels for every system (shop, biomes, charms, pets, boosts,
 ## quests, prestige, buffs). All art comes from assets/vf (see
 ## tools/blender/render_assets.py).
@@ -1379,7 +1379,7 @@ func _capturing() -> bool:
 	return false
 
 func _build_version_label() -> void:
-	var v := lbl("Virtual Fisher %s · by afosh" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
+	var v := lbl("fosh_fish %s · by afosh" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
 	v.anchor_left = 1.0
 	v.anchor_right = 1.0
 	v.anchor_top = 1.0
@@ -1478,7 +1478,7 @@ func _send_feedback() -> void:
 func _panel_credits() -> void:
 	var head := VBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
-	var t := lbl("Virtual Fisher", 34, C_TEXT)
+	var t := lbl("fosh_fish", 34, C_TEXT)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(t)
 	var by := lbl("Made by %s" % VFGuide.AUTHOR, 24, Color("#2f8f9e"))
@@ -1551,7 +1551,7 @@ func _panel_settings() -> void:
 	var keys := lbl("Shortcuts: Space/F cast · S sell · 1-9 menus · G guide · O settings · Esc close", 13, C_MUTED)
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel_body.add_child(keys)
-	var info := lbl("Virtual Fisher %s · made by afosh · your progress saves automatically" % VERSION, 12, C_MUTED)
+	var info := lbl("fosh_fish %s · made by afosh · your progress saves automatically" % VERSION, 12, C_MUTED)
 	panel_body.add_child(info)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
