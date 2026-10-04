@@ -4,9 +4,9 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1791071941|6115455';
+const CACHE_VERSION = '1791079504|6516812';
 /** @type {string} */
-const CACHE_PREFIX = 'fosh_fish-sw-cache-';
+const CACHE_PREFIX = 'fosh&fish-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 /** @type {string} */
 const OFFLINE_URL = 'index.offline.html';
