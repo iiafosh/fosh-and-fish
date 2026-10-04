@@ -1,6 +1,6 @@
 # Changelog
 
-![fosh_fish](https://raw.githubusercontent.com/iiafosh/vfish.fosh/master/assets/brand/cover_1280x720.png)
+![fosh&fish](https://raw.githubusercontent.com/iiafosh/vfish.fosh/master/assets/brand/cover_1280x720.png)
 
 ## 0.1 beta — first public test
 

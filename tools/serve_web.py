@@ -40,7 +40,7 @@ def lan_ip():
 if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), Handler) as httpd:
-        print("fosh_fish web build:")
+        print("fosh&fish web build:")
         print("  this PC : http://localhost:%d" % PORT)
         print("  phone   : http://%s:%d  (same Wi-Fi)" % (lan_ip(), PORT))
         httpd.serve_forever()

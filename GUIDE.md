@@ -1,4 +1,4 @@
-# fosh_fish — Player Guide (v0.1 beta)
+# fosh&fish — Player Guide (v0.1 beta)
 
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 

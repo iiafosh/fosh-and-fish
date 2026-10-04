@@ -951,11 +951,15 @@ func check_goals() -> void:
 		changed.emit()
 
 
-## The game used to be called "Virtual Fisher"; desktop saves lived in that
-## folder. Copy them over once so players keep their progress after the rename.
+## The game was called "Virtual Fisher", then "fosh_fish"; desktop saves live in a
+## folder named after the game. Copy the newest old save once so progress carries over.
 func _migrate_old_user_dir() -> void:
 	if FileAccess.file_exists(SAVE_PATH): return
-	var old := ProjectSettings.globalize_path("user://").trim_suffix("/").get_base_dir() + "/Virtual Fisher/"
-	for f in ["vf_save.json", "settings.cfg"]:
-		if FileAccess.file_exists(old + f) and not FileAccess.file_exists("user://" + f):
-			DirAccess.copy_absolute(old + f, ProjectSettings.globalize_path("user://" + f))
+	var base := ProjectSettings.globalize_path("user://").trim_suffix("/").get_base_dir()
+	for name in ["fosh_fish", "Virtual Fisher"]:
+		var old: String = base + "/" + name + "/"
+		if not FileAccess.file_exists(old + "vf_save.json"): continue
+		for f in ["vf_save.json", "settings.cfg"]:
+			if FileAccess.file_exists(old + f) and not FileAccess.file_exists("user://" + f):
+				DirAccess.copy_absolute(old + f, ProjectSettings.globalize_path("user://" + f))
+		return
