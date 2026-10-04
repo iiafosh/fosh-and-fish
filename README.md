@@ -19,7 +19,7 @@ Made with **Godot 4**; all the art is rendered in **Blender**.
 
 No Godot or other install needed. How to play: [GUIDE.md](GUIDE.md) or press **G** in the game.
 What's new: [CHANGELOG.md](CHANGELOG.md).
-🎬 Watch the 50-second demo: [fosh-and-fish-demo.mp4](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-demo.mp4)
+🎬 Watch the 30-second trailer: [fosh-and-fish-trailer-16x9.mp4](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-trailer-16x9.mp4) (also [vertical](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-trailer-9x16.mp4) and [square](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-trailer-1x1.mp4))
 
 ## 💬 Feedback
 
@@ -64,10 +64,13 @@ Godot_console.exe --headless --path . -s res://tests/vf_sim_test.gd
 Godot_console.exe --path . -- --capture=OUT_DIR --demo=Ocean
 ```
 
-**Demo video** (scripted tour with real taps, recorded by Godot's Movie Maker)
+**Trailer** (original music + beat-synced edit, 16:9 / 9:16 / 1:1; needs `pip install numpy pillow imageio-ffmpeg`)
 ```bash
-Godot.exe --path . --write-movie demo.avi --fixed-fps 30 -- --trailer
+Godot.exe --path . --write-movie WORK/reel.avi --fixed-fps 30 -- --reel > WORK/reel_log.txt
+python tools/video/music.py WORK/music.wav
+python tools/video/edit.py WORK OUT_DIR
 ```
+Record at 1920x1080 (e.g. an `override.cfg` with `window/size/window_width_override=1920`). `-- --trailer` records the simpler captioned demo.
 
 **Re-render the art** (Blender 4.2)
 ```bash

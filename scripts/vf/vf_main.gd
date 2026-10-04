@@ -1276,6 +1276,9 @@ func _check_capture() -> void:
 	if "--trailer" in OS.get_cmdline_user_args():
 		_trailer()
 		return
+	if "--reel" in OS.get_cmdline_user_args():
+		_reel()
+		return
 	var dir := ""
 	var demo := ""
 	for a in OS.get_cmdline_user_args():
@@ -1799,4 +1802,67 @@ func _trailer() -> void:
 		_cast_tap()
 		await _wait(1.3)
 	await _wait(0.6)
+	get_tree().quit()
+
+
+## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --reel
+## clean footage for the edited trailer (tools/video): no captions, and every key
+## moment is printed as "MARK frame name bobber_x bobber_y boat_x boat_y".
+func _mark(name: String) -> void:
+	var b: Vector2 = stage.bobber_screen()
+	var o: Vector2 = stage.boat_screen()
+	print("MARK %d %s %.0f %.0f %.0f %.0f" % [Engine.get_frames_drawn(), name, b.x, b.y, o.x, o.y])
+
+func _reel() -> void:
+	VF.autosave = false
+	AudioManager.music_on = true
+	AudioManager.sfx_on = true
+	AudioManager.apply_settings()
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.changed.emit()
+	_coach_show()
+	await _wait(1.0)
+	_mark("river")
+	for i in 3:
+		await _wait(0.4)
+		_mark("tap")
+		_cast_tap()
+		await _wait(1.6)
+	_mark("sell")
+	_do_sell()
+	await _wait(2.0)
+	_mark("shop")
+	stage.merchant_clicked.emit()
+	await _wait(2.4)
+	_close_panel()
+	for b in VFData.BIOME_ORDER:
+		_veteran(b)
+		await _wait(0.6)
+		_mark("biome_" + b)
+		for i in 2:
+			await _wait(0.3)
+			_mark("tap_" + b)
+			_cast_tap()
+			await _wait(1.5)
+	_veteran("Ocean")
+	VF.xp = maxi(0, VF.xp_to_next() - 1)
+	VF.changed.emit()
+	await _wait(0.5)
+	_mark("levelup")
+	_cast_tap()
+	await _wait(2.2)
+	for p in [["pets", ""], ["charms", ""], ["prestige", "Guide"], ["shop", "Rods"], ["biomes", ""]]:
+		_open_panel(p[0], p[1])
+		await _wait(0.3)
+		_mark("panel_" + p[0])
+		await _wait(1.6)
+	_close_panel()
+	await _wait(0.5)
+	_veteran("Ocean")
+	for i in 3:
+		await _wait(0.3)
+		_mark("hero")
+		_cast_tap()
+		await _wait(1.7)
 	get_tree().quit()
