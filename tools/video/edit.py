@@ -342,7 +342,7 @@ def end_card(fmt, i):
         layer = Image.new("RGBA", (ow, int(110 * s)), (0, 0, 0, 0))
         ImageDraw.Draw(layer).text((ow / 2, 55 * s), "Play free now", font=f, fill=BROWN, anchor="mm")
         paste_center(bg, layer, ow / 2, top + 440 * s, 1, min(1, (i - 14) / 6))
-    rows = [("Browser & phone", "iiafosh.github.io/vfish.fosh"), ("Windows · Android · Linux", "github.com/iiafosh/vfish.fosh")]
+    rows = [("Browser & phone", "iiafosh.github.io/fosh-and-fish"), ("Windows · Android · Linux", "github.com/iiafosh/fosh-and-fish")]
     for j, (k_, v) in enumerate(rows):
         kk = (i - 22 - j * 6) / 9
         if kk <= 0:

@@ -1,12 +1,12 @@
 # Changelog
 
-![fosh&fish](https://raw.githubusercontent.com/iiafosh/vfish.fosh/master/assets/brand/cover_1280x720.png)
+![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
 ## 0.1 beta — first public test
 
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 
-Play in the browser: https://iiafosh.github.io/vfish.fosh/
+Play in the browser: https://iiafosh.github.io/fosh-and-fish/
 
 **Game**
 - Full Virtual Fisher (Discord bot) progression: 20 fish, 21 rods, 17 boats, 8 baits, 7 biomes (River → Abyss),

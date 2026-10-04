@@ -12,18 +12,18 @@ Made with **Godot 4**; all the art is rendered in **Blender**.
 
 | Device | How |
 |---|---|
-| 🌐 **Browser / iPhone** | Play instantly at **https://iiafosh.github.io/vfish.fosh/** (Safari: Share → Add to Home Screen) |
-| 🖥️ **Windows** | [Releases](https://github.com/iiafosh/vfish.fosh/releases/latest) → `fosh_fish-0.1-beta-windows.zip` → extract → `fosh_fish.exe` |
-| 📱 **Android** | [Releases](https://github.com/iiafosh/vfish.fosh/releases/latest) → `fosh_fish-0.1-beta-android.apk` → allow *Install unknown apps* |
-| 🐧 **Linux** | [Releases](https://github.com/iiafosh/vfish.fosh/releases/latest) → `fosh_fish-0.1-beta-linux.tar.gz` → `./fosh_fish.x86_64` |
+| 🌐 **Browser / iPhone** | Play instantly at **https://iiafosh.github.io/fosh-and-fish/** (Safari: Share → Add to Home Screen) |
+| 🖥️ **Windows** | [Releases](https://github.com/iiafosh/fosh-and-fish/releases/latest) → `fosh_fish-0.1-beta-windows.zip` → extract → `fosh_fish.exe` |
+| 📱 **Android** | [Releases](https://github.com/iiafosh/fosh-and-fish/releases/latest) → `fosh_fish-0.1-beta-android.apk` → allow *Install unknown apps* |
+| 🐧 **Linux** | [Releases](https://github.com/iiafosh/fosh-and-fish/releases/latest) → `fosh_fish-0.1-beta-linux.tar.gz` → `./fosh_fish.x86_64` |
 
 No Godot or other install needed. How to play: [GUIDE.md](GUIDE.md) or press **G** in the game.
 What's new: [CHANGELOG.md](CHANGELOG.md).
-🎬 Watch the 30-second trailer: [fosh-and-fish-trailer-16x9.mp4](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-trailer-16x9.mp4) (also [vertical](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-trailer-9x16.mp4) and [square](https://github.com/iiafosh/vfish.fosh/releases/download/v0.1-beta/fosh-and-fish-trailer-1x1.mp4))
+🎬 Watch the 30-second trailer: [fosh-and-fish-trailer-16x9.mp4](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.1-beta/fosh-and-fish-trailer-16x9.mp4) (also [vertical](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.1-beta/fosh-and-fish-trailer-9x16.mp4) and [square](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.1-beta/fosh-and-fish-trailer-1x1.mp4))
 
 ## 💬 Feedback
 
-In the game: **G → Feedback**, or [open an issue](https://github.com/iiafosh/vfish.fosh/issues/new/choose).
+In the game: **G → Feedback**, or [open an issue](https://github.com/iiafosh/fosh-and-fish/issues/new/choose).
 Bugs, balance, ideas and art notes are all welcome.
 
 ## 🎣 What's in it

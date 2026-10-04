@@ -139,4 +139,4 @@ community buy order for P1–P160 (your current prestige is highlighted). First 
 Found a bug or have an idea? Open **Guide → Feedback** in-game (or press **G**), pick a category,
 write a few words and press **Send feedback** — it opens a pre-filled GitHub issue with your version
 and platform. No GitHub account? Press **Copy report** and paste it anywhere you found the game.
-Direct link: <https://github.com/iiafosh/vfish.fosh/issues/new/choose>
+Direct link: <https://github.com/iiafosh/fosh-and-fish/issues/new/choose>

@@ -6,7 +6,7 @@ extends Control
 
 const ART := "res://assets/vf/"
 const VERSION := "0.1 beta"
-const FEEDBACK_URL := "https://github.com/iiafosh/vfish.fosh/issues/new"
+const FEEDBACK_URL := "https://github.com/iiafosh/fosh-and-fish/issues/new"
 const C_BG := Color("#e9dcc4")
 const C_PANEL := Color("#fbf5e8")
 const C_PANEL2 := Color("#f1e6d0")
