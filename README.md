@@ -6,7 +6,7 @@ A cozy top-down fishing game inspired by the **Virtual Fisher** Discord bot. Cas
 upgrade your rod and boat, travel through 7 biomes from the River to the Abyss, find pets and prestige.
 Made with **Godot 4**; all the art is rendered in **Blender**.
 
-**Made by afosh** · [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
+**Made by afosh** · [LinkedIn](https://www.linkedin.com/in/mostafa-kmal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 
 ## ▶️ Play (0.1 beta)
 

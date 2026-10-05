@@ -56,6 +56,6 @@ const TABS := {
 const TAB_ORDER := ["Basics", "Gear", "Progress", "Prestige", "Controls", "Credits", "Feedback"]
 
 const AUTHOR := "afosh"
-const SOCIALS := [["LinkedIn", "https://www.linkedin.com/in/mostafa-kamal-3731453a9/"],
+const SOCIALS := [["LinkedIn", "https://www.linkedin.com/in/mostafa-kmal-3731453a9/"],
 	["GitHub", "https://github.com/iiafosh"]]
 const ASSET_CREDITS := "Fish, characters & market art: Quaternius (CC0) · Nature, boats, particles, UI & sounds: Kenney (CC0) · Seagull & crab: Poly by Google (CC-BY 3.0) · Water sounds: OpenGameArt (CC0) · Font: Fredoka (OFL) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."

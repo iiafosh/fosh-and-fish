@@ -4,7 +4,7 @@
 
 ## 0.1 beta — first public test
 
-**Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kamal-3731453a9/) · [GitHub](https://github.com/iiafosh)
+**Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kmal-3731453a9/) · [GitHub](https://github.com/iiafosh)
 
 Play in the browser: https://iiafosh.github.io/fosh-and-fish/
 
