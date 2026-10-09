@@ -66,6 +66,7 @@ func _init() -> void:
 	rng.randomize()
 	_load_levels()
 	_defaults = to_dict().duplicate(true)
+	_tok_connect()                         # FishTok: auto-posts + daily challenge progress
 
 func _ready() -> void:
 	_migrate_old_user_dir()
@@ -559,8 +560,9 @@ func _worker_trip() -> void:
 # ------------------------------------------------------------------ economy
 func inventory_value() -> int:
 	var v := 0.0
+	var trend := trending_fish()           # FishTok: today's trending fish sells for +50%
 	for f in inventory:
-		v += int(inventory[f]) * VFData.FISH[f].price
+		v += int(inventory[f]) * VFData.FISH[f].price * (TOK_TREND_MULT if f == trend else 1.0)
 	return int(round(v * sell_mult()))
 
 func sell_all() -> int:
@@ -845,6 +847,7 @@ func to_dict() -> Dictionary:
 		"week_key": week_key, "week_trips": week_trips, "week_hooks": week_hooks,
 		"daily_last": daily_last, "daily_streak": daily_streak,
 		"discovered": discovered, "goals_done": goals_done, "tutorial": tutorial,
+		"tok": _tok_dict(),
 	}
 
 var autosave := true
@@ -885,6 +888,7 @@ func _apply(d: Dictionary) -> void:
 		if goals_done > 0: tutorial = 99
 	for k in ["sells", "bait_casts"]:
 		if not stats.has(k): stats[k] = 0
+	_tok_apply(d.get("tok", {}))           # FishTok (absent in old saves -> defaults)
 
 func _ints(src: Dictionary) -> Dictionary:
 	var out := {}
@@ -972,3 +976,384 @@ func _migrate_old_user_dir() -> void:
 			if FileAccess.file_exists(old + f) and not FileAccess.file_exists("user://" + f):
 				DirAccess.copy_absolute(old + f, ProjectSettings.globalize_path("user://" + f))
 		return
+
+
+# ======================================================================
+# ---- FishTok
+# The in-game phone's social app (UI: vf_phone.gd, content: vf_fishtok.gd).
+#  * Trending fish of the day: one species from your unlocked biomes, picked
+#    from the UTC date, sells for +50% (inventory_value / fish_price).
+#  * Your posts: new species, record hauls, rare+ chests and level milestones
+#    post themselves. Likes grow over real time on a fixed curve
+#    (peak * (0.05 + 0.95 * (1 - e^(-age / 15 min)))); 12% of likes become followers.
+#  * Follower milestones (100 ... 1M) pay a reward once.
+#  * Daily challenge (#challenge) tracked from trip results, claimed once a day.
+# Not part of the Virtual Fisher bot — all numbers here are DERIVED.
+
+const TOK_TREND_MULT := 1.5
+const TOK_MILESTONES := [100, 1000, 10000, 100000, 1000000]
+## milestone -> [money x max(250, level-up money), chest tier or ""]
+const TOK_MILESTONE_REWARD := {100: [1, ""], 1000: [2, "uncommon"], 10000: [4, "rare"], 100000: [8, "epic"], 1000000: [15, "legendary"]}
+const TOK_MAX_POSTS := 30
+const TOK_TAU := 900.0                    # a post gets ~63% of its likes in 15 minutes
+const TOK_CONV := 0.12                    # followers per like
+const TOK_POST_GAP := 120.0               # seconds between auto posts (new species always post)
+const TOK_FLEX_GAP := 600.0               # "post your catch" cooldown
+const TOK_CHEST_Q := {"rare": 3.0, "epic": 4.5, "legendary": 6.0, "artifact": 8.0, "super": 7.0}
+
+var tok_posts: Array = []                 # your posts, oldest first (max TOK_MAX_POSTS)
+var tok_next_id := 1
+var tok_banked_likes := 0                 # likes/followers of posts that scrolled out of the cap
+var tok_banked_followers := 0
+var tok_claimed: Array = []               # follower milestones already paid
+var tok_announced := 0                    # highest milestone announced with a toast
+var tok_best_haul := 0
+var tok_last_post := 0.0
+var tok_last_flex := 0.0
+var tok_ch := {}                          # today's challenge {day, kind, fish, goal, reward}
+var tok_ch_prog := 0
+var tok_ch_claimed := false
+var tok_seen_day := ""                    # last day FishTok was opened (badge)
+var tok_liked: Array = []                 # feed post ids you liked (today's ids only)
+var tok_trend_day := ""
+var tok_trend := ""
+
+func _tok_connect() -> void:
+	trip_done.connect(_tok_on_trip)
+	leveled_up.connect(_tok_on_level)
+
+func _tok_now() -> float:
+	return Time.get_unix_time_from_system()
+
+# ---------------------------------------------------------------- trending
+## Fish from every biome you have unlocked at `lvl`, cheapest first.
+static func tok_trend_candidates(lvl: int) -> Array:
+	var out := []
+	for f in VFData.FISH_ORDER:
+		for b in VFData.BIOME_ORDER:
+			if VFData.BIOMES[b].level <= lvl and f in VFData.BIOMES[b].fish:
+				out.append(f)
+				break
+	return out
+
+## Deterministic: the same day and level always give the same fish.
+static func trending_for(day: String, lvl: int) -> String:
+	var c := tok_trend_candidates(maxi(1, lvl))
+	return c[absi(hash("fishtok-trend:" + day)) % c.size()]
+
+## Today's trending fish (picked once per UTC day, then kept even if you level up).
+func trending_fish() -> String:
+	var t := _today()
+	if tok_trend_day != t or not VFData.FISH.has(tok_trend):
+		tok_trend_day = t
+		tok_trend = trending_for(t, level)
+	return tok_trend
+
+func is_trending(f: String) -> bool:
+	return f == trending_fish()
+
+## Base price of one fish today (before sell multipliers).
+func fish_price(f: String) -> float:
+	return float(VFData.FISH[f].price) * (TOK_TREND_MULT if f == trending_fish() else 1.0)
+
+# ------------------------------------------------------------ posts & fans
+func tok_post_likes(p: Dictionary, now := -1.0) -> int:
+	if now < 0.0: now = _tok_now()
+	var age := maxf(0.0, now - float(p.get("t", now)))
+	return int(float(p.get("peak", 0)) * (0.05 + 0.95 * (1.0 - exp(-age / TOK_TAU))))
+
+func tok_likes(now := -1.0) -> int:
+	if now < 0.0: now = _tok_now()
+	var s := tok_banked_likes
+	for p in tok_posts: s += tok_post_likes(p, now)
+	return s
+
+func tok_followers(now := -1.0) -> int:
+	if now < 0.0: now = _tok_now()
+	var s := tok_banked_followers
+	for p in tok_posts: s += int(tok_post_likes(p, now) * TOK_CONV)
+	return s
+
+## Create one of your posts. `q` (quality ~1-10) and your current followers set
+## how many likes it will reach. Auto posts are rate limited unless `force`.
+func _tok_post(kind: String, data: Dictionary, q: float, force := false, now := -1.0) -> Dictionary:
+	if now < 0.0: now = _tok_now()
+	if not force and now - tok_last_post < TOK_POST_GAP: return {}
+	var fans := float(tok_followers(now))
+	var id := tok_next_id
+	tok_next_id += 1
+	var jitter := 0.85 + float(absi(hash("fishtok-post:%d" % id)) % 1000) / 1000.0 * 0.4
+	var p := {"id": id, "kind": kind, "t": now, "q": snappedf(q, 0.01), "fish": "", "tier": "", "count": 0,
+		"level": level, "biome": biome}
+	p.merge(data, true)
+	p["peak"] = int(round((40.0 + 30.0 * q + fans * (0.25 + 0.05 * q)) * jitter))
+	tok_posts.append(p)
+	tok_last_post = now
+	while tok_posts.size() > TOK_MAX_POSTS:
+		var old: Dictionary = tok_posts.pop_front()       # keeps what it would have earned
+		var l := maxi(int(old.peak), tok_post_likes(old, now))
+		tok_banked_likes += l
+		tok_banked_followers += int(l * TOK_CONV)
+	if kind != "species":                  # new species already get a banner
+		toast.emit("Posted to FishTok: %s" % tok_post_title(p), "tok")
+	return p
+
+func tok_post_title(p: Dictionary) -> String:
+	match String(p.get("kind", "")):
+		"species": return "New fish: %s!" % p.fish
+		"chest": return "%s chest!" % String(p.tier).capitalize()
+		"haul": return "%d fish in one cast!" % int(p.count)
+		"level": return "Level %s!" % commas(int(p.level))
+		"flex": return "Check out my %s" % p.fish
+	return "New post"
+
+func _tok_best_fish(fish: Dictionary) -> String:
+	var best := ""
+	for f in fish:
+		if int(fish[f]) > 0 and (best == "" or VFData.FISH[f].price > VFData.FISH[best].price): best = f
+	return best
+
+func _tok_on_trip(res: Dictionary) -> void:
+	_tok_roll_day()
+	var goal := int(tok_ch.get("goal", 0))
+	var before := tok_ch_prog
+	tok_ch_prog += _tok_ch_gain(res)
+	if before < goal and tok_ch_prog >= goal and not tok_ch_claimed:
+		toast.emit("FishTok challenge complete! Claim it on your phone (P)", "quest")
+	var newbies: Array = res.get("new_species", [])
+	if not newbies.is_empty():
+		var best: String = newbies[0]
+		for f in newbies:
+			if VFData.FISH_ORDER.find(f) > VFData.FISH_ORDER.find(best): best = f
+		_tok_post("species", {"fish": best}, 2.0 + 0.4 * VFData.FISH_ORDER.find(best), true)
+	var chest: Dictionary = res.get("chest", {})
+	var tier := String(chest.get("tier", ""))
+	if TOK_CHEST_Q.has(tier):
+		_tok_post("chest", {"tier": tier}, TOK_CHEST_Q[tier])
+	var n := int(res.get("count", 0))
+	if n > tok_best_haul:
+		var prev := tok_best_haul
+		tok_best_haul = n
+		if n >= 12 and n >= prev * 1.15:
+			_tok_post("haul", {"count": n, "fish": _tok_best_fish(res.get("fish", {}))}, 2.5 + log(float(n)) / log(10.0))
+
+func _tok_on_level(lvl: int, _money: int) -> void:
+	var unlock := false
+	for b in VFData.BIOME_ORDER:
+		if VFData.BIOMES[b].level == lvl and lvl > 1: unlock = true
+	if unlock or lvl in [5, 10, 25] or lvl % 50 == 0:
+		_tok_post("level", {"level": lvl}, 2.0 + 1.5 * log(float(lvl)) / log(10.0) + (3.0 if unlock else 0.0), unlock)
+
+## "Post your catch": shows off the most valuable fish in your hold (or your
+## best discovery). Ten-minute cooldown. Returns "" or a reason.
+func tok_post_flex() -> String:
+	var now := _tok_now()
+	var left := TOK_FLEX_GAP - (now - tok_last_flex)
+	if left > 0.0:
+		return "You can post again in %d:%02d" % [int(left) / 60, int(left) % 60]
+	var best := _tok_best_fish(inventory)
+	if best == "": best = _tok_best_fish(discovered)
+	if best == "": return "Catch a fish first!"
+	tok_last_flex = now
+	_tok_post("flex", {"fish": best, "count": int(inventory.get(best, 0))}, 1.5 + 0.35 * VFData.FISH_ORDER.find(best), true, now)
+	changed.emit()
+	return ""
+
+func tok_flex_ready_in() -> float:
+	return maxf(0.0, TOK_FLEX_GAP - (_tok_now() - tok_last_flex))
+
+# --------------------------------------------------------------- milestones
+func tok_milestone_reward(m: int) -> Dictionary:
+	var r: Array = TOK_MILESTONE_REWARD.get(m, [1, ""])
+	var out := {"money": int(maxf(250.0, levelup_money(level)) * r[0])}
+	if r[1] != "": out["chest"] = r[1]
+	return out
+
+func tok_milestone_state(m: int) -> String:
+	if m in tok_claimed: return "claimed"
+	return "ready" if tok_followers() >= m else "locked"
+
+func tok_claim_milestone(m: int) -> Dictionary:
+	if not m in TOK_MILESTONES: return {"error": "Unknown milestone."}
+	if m in tok_claimed: return {"error": "Already claimed."}
+	if tok_followers() < m: return {"error": "Reach %s followers first." % fmt(m)}
+	var r := tok_milestone_reward(m)
+	tok_claimed.append(m)
+	var chest := _tok_give(r)
+	changed.emit()
+	return {"text": goal_reward_text(r), "chest": chest, "reward": r}
+
+func _tok_give(r: Dictionary) -> Dictionary:
+	if r.has("money"): money += int(r.money)
+	if r.has("bait"):
+		bait_stock[r.bait[0]] = int(bait_stock.get(r.bait[0], 0)) + int(r.bait[1])
+		if bait == "" or not has_bait(): bait = r.bait[0]
+	if r.has("chest"): return _open_chest(String(r.chest))
+	return {}
+
+# ----------------------------------------------------------- daily challenge
+func tok_challenge() -> Dictionary:
+	_tok_roll_day()
+	return tok_ch
+
+func _tok_roll_day() -> void:
+	var t := _today()
+	if String(tok_ch.get("day", "")) == t: return
+	tok_ch = _tok_make_challenge(t)
+	tok_ch_prog = 0
+	tok_ch_claimed = false
+	tok_liked = tok_liked.filter(func(id): return String(id).begins_with(t))
+
+## Expected fish per cast with your current setup (mirrors the Buffs panel).
+func _tok_avg_fish() -> float:
+	var r: Dictionary = VFData.RODS[rod]
+	var v: float = (r.min + r.max) / 2.0 * fish_catch_mult() + boats_owned
+	if has_bait(): v += round(float(VFData.BAITS[bait].get("fish", 0)) * bait_eff())
+	return maxf(1.0, v * VFData.BIOMES[biome].catch_rate * float(r.get("biome_mult", {}).get(biome, 1.0)))
+
+static func _tok_nice(v: float, lo: int) -> int:
+	var step := 1.0
+	if v >= 5000.0: step = 500.0
+	elif v >= 1000.0: step = 100.0
+	elif v >= 200.0: step = 50.0
+	elif v >= 50.0: step = 10.0
+	elif v >= 10.0: step = 5.0
+	return maxi(lo, int(round(v / step) * step))
+
+## Built once per day from your biome and gear (~100 casts of work).
+func _tok_make_challenge(day: String) -> Dictionary:
+	var h := absi(hash("fishtok-challenge:" + day))
+	var kinds := ["species", "species", "fish"]
+	if level >= 10: kinds.append("chests")
+	var kind: String = kinds[h % kinds.size()]
+	var avg := _tok_avg_fish()
+	var c := {"day": day, "kind": kind, "fish": "", "goal": 0, "biome": biome}
+	if kind == "species":
+		var odds := species_odds()
+		var names: Array = VFData.BIOMES[biome].fish
+		var pick := 0
+		for i in range(4, 0, -1):          # the rarest fish you land about once every 12 casts
+			if avg * odds[i] >= 0.08:
+				pick = i
+				break
+		c.fish = names[pick]
+		c.goal = _tok_nice(avg * odds[pick] * 100.0, 5)
+	elif kind == "fish":
+		c.goal = _tok_nice(avg * 120.0, 50)
+	else:
+		c.goal = _tok_nice(treasure_chance() * 150.0, 2)
+	c.reward = _tok_challenge_reward((h / 7) % 3)
+	return c
+
+func _tok_challenge_reward(kind: int) -> Dictionary:
+	var base := maxi(200, levelup_money(level) * 2)
+	if kind == 1:
+		var b := "Worms"
+		for x in VFData.BAIT_ORDER:
+			if VFData.BAITS[x].level <= level and x != "Support Bait": b = x
+		return {"bait": [b, clampi(base / int(VFData.BAITS[b].cost), 10, 250)]}
+	if kind == 2:
+		return {"chest": "uncommon" if level < 20 else ("rare" if level < 100 else "epic")}
+	return {"money": base}
+
+func _tok_ch_gain(res: Dictionary) -> int:
+	match String(tok_ch.get("kind", "")):
+		"species": return int(res.get("fish", {}).get(tok_ch.fish, 0))
+		"fish": return int(res.get("count", 0))
+		"chests": return 0 if res.get("chest", {}).is_empty() else 1
+	return 0
+
+func tok_challenge_text(c: Dictionary = {}) -> String:
+	if c.is_empty(): c = tok_challenge()
+	match String(c.get("kind", "")):
+		"species": return "Catch %s %s" % [commas(int(c.goal)), c.fish]
+		"fish": return "Catch %s fish" % commas(int(c.goal))
+		"chests": return "Open %d chests" % int(c.goal)
+	return ""
+
+func tok_challenge_done() -> bool:
+	return tok_ch_prog >= int(tok_challenge().get("goal", 1))
+
+func tok_claim_challenge() -> Dictionary:
+	_tok_roll_day()
+	if tok_ch_claimed: return {"error": "Already claimed today. New challenge tomorrow!"}
+	if tok_ch_prog < int(tok_ch.goal): return {"error": "Not done yet: %s / %s" % [commas(tok_ch_prog), commas(int(tok_ch.goal))]}
+	tok_ch_claimed = true
+	var chest := _tok_give(tok_ch.reward)
+	changed.emit()
+	return {"text": goal_reward_text(tok_ch.reward), "chest": chest}
+
+# ------------------------------------------------------------- badge & seen
+## Red badge on the Phone pill: unclaimed milestones + a finished challenge +
+## "something new today". Also announces newly reached milestones once.
+func tok_badge() -> int:
+	var fans := tok_followers()
+	var n := 0
+	for m in TOK_MILESTONES:
+		if fans >= m and not m in tok_claimed:
+			n += 1
+			if m > tok_announced:
+				tok_announced = m
+				toast.emit("FishTok: %s followers! Claim your reward on the phone (P)" % fmt(m), "quest")
+	if tok_challenge_done() and not tok_ch_claimed: n += 1
+	if tok_seen_day != _today(): n += 1
+	return n
+
+func tok_mark_seen() -> void:
+	tok_seen_day = _today()
+
+func tok_toggle_like(id: String) -> bool:
+	if id in tok_liked:
+		tok_liked.erase(id)
+		return false
+	tok_liked.append(id)
+	if tok_liked.size() > 200: tok_liked.pop_front()
+	return true
+
+# --------------------------------------------------------------- save/load
+func _tok_dict() -> Dictionary:
+	return {"posts": tok_posts, "next_id": tok_next_id, "banked_likes": tok_banked_likes,
+		"banked_followers": tok_banked_followers, "claimed": tok_claimed, "announced": tok_announced,
+		"best_haul": tok_best_haul, "last_post": tok_last_post, "last_flex": tok_last_flex,
+		"ch": tok_ch, "ch_prog": tok_ch_prog, "ch_claimed": tok_ch_claimed, "seen_day": tok_seen_day,
+		"liked": tok_liked, "trend_day": tok_trend_day, "trend": tok_trend}
+
+func _tok_apply(t: Dictionary) -> void:
+	tok_posts = []
+	for p in t.get("posts", []):
+		if typeof(p) != TYPE_DICTIONARY: continue
+		var fish := String(p.get("fish", ""))
+		tok_posts.append({"id": int(p.get("id", 0)), "kind": String(p.get("kind", "flex")), "t": float(p.get("t", 0.0)),
+			"peak": int(p.get("peak", 0)), "q": float(p.get("q", 1.0)), "fish": fish if VFData.FISH.has(fish) else "",
+			"tier": String(p.get("tier", "")), "count": int(p.get("count", 0)), "level": int(p.get("level", 1)),
+			"biome": String(p.get("biome", "River")) if VFData.BIOMES.has(String(p.get("biome", ""))) else "River"})
+	tok_next_id = int(t.get("next_id", tok_posts.size() + 1))
+	tok_banked_likes = int(t.get("banked_likes", 0))
+	tok_banked_followers = int(t.get("banked_followers", 0))
+	tok_claimed = []
+	for m in t.get("claimed", []): tok_claimed.append(int(m))
+	tok_announced = int(t.get("announced", 0))
+	tok_best_haul = int(t.get("best_haul", 0))
+	tok_last_post = float(t.get("last_post", 0.0))
+	tok_last_flex = float(t.get("last_flex", 0.0))
+	tok_ch = {}
+	var c = t.get("ch", {})
+	if typeof(c) == TYPE_DICTIONARY and c.has("day") and c.has("reward"):
+		var fish := String(c.get("fish", ""))
+		var r: Dictionary = c.reward if typeof(c.reward) == TYPE_DICTIONARY else {"money": 200}
+		var clean_r := {}
+		if r.has("money"): clean_r["money"] = int(r.money)
+		if r.has("chest"): clean_r["chest"] = String(r.chest)
+		if r.has("bait") and typeof(r.bait) == TYPE_ARRAY and r.bait.size() == 2 and VFData.BAITS.has(String(r.bait[0])):
+			clean_r["bait"] = [String(r.bait[0]), int(r.bait[1])]
+		if clean_r.is_empty(): clean_r = {"money": 200}
+		tok_ch = {"day": String(c.day), "kind": String(c.get("kind", "fish")), "fish": fish if VFData.FISH.has(fish) else "",
+			"goal": maxi(1, int(c.get("goal", 50))), "biome": String(c.get("biome", "River")), "reward": clean_r}
+		if tok_ch.kind == "species" and tok_ch.fish == "": tok_ch.kind = "fish"
+	tok_ch_prog = int(t.get("ch_prog", 0))
+	tok_ch_claimed = bool(t.get("ch_claimed", false))
+	tok_seen_day = String(t.get("seen_day", ""))
+	tok_liked = []
+	for id in t.get("liked", []): tok_liked.append(String(id))
+	tok_trend_day = String(t.get("trend_day", ""))
+	tok_trend = String(t.get("trend", ""))

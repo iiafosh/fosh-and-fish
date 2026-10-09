@@ -107,6 +107,73 @@ func _init() -> void:
 	check(not d.has("error") and d.streak >= 1, "Daily reward claimable")
 	check(g.claim_daily().has("error"), "Daily can't be claimed twice")
 
+	print("== FishTok: trending fish")
+	g._tok_apply({})
+	g.prestige = 0; g.level = 120; g.biome = "Ocean"
+	var t1: String = g.trending_for("2026-10-09", 120)
+	check(t1 == g.trending_for("2026-10-09", 120) and t1 in g.tok_trend_candidates(120), "Trending fish is deterministic for a date (%s)" % t1)
+	var seen := {}
+	for dd in 30: seen[g.trending_for("2026-11-%02d" % (dd + 1), 120)] = true
+	check(seen.size() >= 4, "Trending fish changes day to day (%d species in 30 days)" % seen.size())
+	check(g.tok_trend_candidates(1).size() == 5 and g.tok_trend_candidates(120).size() == 10, "Only fish from unlocked biomes can trend")
+	var tf: String = g.trending_fish()
+	check(tf == g.trending_for(g._today(), 120) and g.is_trending(tf), "Today's trending fish comes from today's date")
+	var other := "Raw Fish" if tf != "Raw Fish" else "Cod"
+	check(is_equal_approx(g.fish_price(tf), VFData.FISH[tf].price * 1.5) and is_equal_approx(g.fish_price(other), float(VFData.FISH[other].price)),
+		"Trending fish sells for +50%, other fish unchanged")
+	g.inventory = {tf: 10, other: 10}
+	var want := int(round((10 * VFData.FISH[tf].price * 1.5 + 10 * VFData.FISH[other].price) * g.sell_mult()))
+	var mb: int = g.money
+	check(g.inventory_value() == want and g.sell_all() == want and g.money == mb + want, "inventory_value and sell_all pay the trending bonus ($%d)" % want)
+	g.level = 200
+	check(g.trending_fish() == tf, "Trending fish stays fixed for the day after leveling up")
+
+	print("== FishTok: posts, likes, followers")
+	g._tok_apply({})
+	var now := Time.get_unix_time_from_system()
+	var post: Dictionary = g._tok_post("species", {"fish": "Cod"}, 3.0, true, now)
+	var l0: int = g.tok_post_likes(post, now)
+	var l1: int = g.tok_post_likes(post, now + 600)
+	var l2: int = g.tok_post_likes(post, now + 7200)
+	check(l0 > 0 and l1 > l0 and l2 > l1 and l2 <= int(post.peak), "Post likes grow over real time toward a peak (%d -> %d -> %d / %d)" % [l0, l1, l2, post.peak])
+	check(g.tok_followers(now + 7200) > g.tok_followers(now) and g.tok_likes(now + 7200) == l2, "Likes turn into followers")
+	check(g._tok_post("chest", {"tier": "rare"}, 3.0, false, now + 10).is_empty(), "Auto posts are rate limited")
+	var big: Dictionary = g._tok_post("chest", {"tier": "legendary"}, 6.0, true, now + 20)
+	check(int(big.peak) > int(post.peak), "Better posts and more followers reach more likes")
+	var fans_before: int = g.tok_followers(now + 9000)
+	for i in 40: g._tok_post("level", {"level": 50 + i}, 2.0, true, now + 30 + i)
+	check(g.tok_posts.size() == 30 and g.tok_followers(now + 9000) > fans_before, "Posts cap at 30; old posts keep their followers")
+	g._tok_apply({})
+	g._tok_on_trip({"count": 3, "fish": {"Raw Fish": 3}, "chest": {}, "new_species": ["Raw Fish"]})
+	check(g.tok_posts.size() == 1 and g.tok_posts[0].kind == "species", "Discovering a new species posts automatically")
+
+	print("== FishTok: milestones + challenge")
+	g._tok_apply({})
+	g.level = 30
+	check(g.tok_claim_milestone(100).has("error"), "Milestone locked below 100 followers")
+	g.tok_banked_followers = 150
+	var m0: int = g.money
+	var r1: Dictionary = g.tok_claim_milestone(100)
+	var m1: int = g.money
+	check(not r1.has("error") and m1 > m0, "Milestone 100 pays ($%d)" % (m1 - m0))
+	check(g.tok_claim_milestone(100).has("error") and g.money == m1, "A milestone pays only once")
+	check(g.tok_claim_milestone(1000).has("error") and g.tok_milestone_state(1000) == "locked", "1K needs 1K followers")
+	check(g.tok_milestone_reward(1000000).money <= g.levelup_money(30) * 15, "Milestone rewards stay modest")
+	g.biome = "River"; g.rod = "Steel Rod"
+	var ch: Dictionary = g.tok_challenge()
+	check(int(ch.goal) > 0 and g.tok_challenge_text() != "", "Daily challenge rolls: %s -> %s" % [g.tok_challenge_text(), g.goal_reward_text(ch.reward)])
+	check(g.tok_claim_challenge().has("error"), "Challenge can't be claimed before it's done")
+	g.tok_ch = {"day": g._today(), "kind": "species", "fish": "Cod", "goal": 20, "biome": "River", "reward": {"money": 400}}
+	g.tok_ch_prog = 0
+	g._tok_on_trip({"count": 9, "fish": {"Cod": 12, "Raw Fish": 3}, "chest": {}, "new_species": []})
+	check(g.tok_ch_prog == 12, "Challenge progress comes from trip results")
+	g._tok_on_trip({"count": 9, "fish": {"Cod": 9}, "chest": {}, "new_species": []})
+	var mc: int = g.money
+	check(not g.tok_claim_challenge().has("error") and g.money == mc + 400, "Finished challenge pays its reward")
+	check(g.tok_claim_challenge().has("error") and g.money == mc + 400, "Challenge pays only once per day")
+	g.tok_posts = []
+	g._tok_post("haul", {"count": 21, "fish": "Cod"}, 3.5, true, now - 3600)
+
 	print("== save / load round trip")
 	g.charms = {"marketing": 7}
 	g.pets = {"Puffer": {"level": 12, "xp": 30}}
@@ -117,6 +184,13 @@ func _init() -> void:
 	g2._apply(JSON.parse_string(JSON.stringify(snap)))
 	check(g2.money == g.money and g2.level == g.level and g2.rod == g.rod and g2.boats_owned == g.boats_owned, "Core state survives JSON round trip")
 	check(int(g2.charms.marketing) == 7 and int(g2.pets.Puffer.level) == 12 and g2.pet == "Puffer", "Charms and pets survive JSON round trip")
+	check(g2.tok_followers() == g.tok_followers() and g2.tok_likes() == g.tok_likes() and g2.tok_posts.size() == g.tok_posts.size()
+		and 100 in g2.tok_claimed and g2.tok_ch_claimed and g2.trending_fish() == g.trending_fish(), "FishTok state survives JSON round trip")
+	check(g2.tok_claim_milestone(100).has("error"), "Claimed milestones stay claimed after loading")
+	var old: Dictionary = JSON.parse_string(JSON.stringify(snap))
+	old.erase("tok")
+	g2._apply(old)
+	check(g2.tok_posts.is_empty() and g2.tok_followers() == 0 and g2.tok_claimed.is_empty(), "Old saves without FishTok data load with defaults")
 	g2.free()
 
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
