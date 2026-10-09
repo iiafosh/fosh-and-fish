@@ -7,16 +7,19 @@ extends Control
 const ART := "res://assets/vf/"
 var VERSION: String = Updater.version + " beta"
 const FEEDBACK_URL := "https://github.com/iiafosh/fosh-and-fish/issues/new"
-const C_BG := Color("#e9dcc4")
-const C_PANEL := Color("#fbf5e8")
-const C_PANEL2 := Color("#f1e6d0")
-const C_TEXT := Color("#3b2c20")
-const C_MUTED := Color("#8c7660")
-const C_GOOD := Color("#2f9e6a")
-const C_GOLD := Color("#c9861a")
-const C_BAD := Color("#d0473a")
-const C_NEUTRAL := Color("#ecdfc5")
-const C_SHADOW := Color(0.24, 0.16, 0.08, 0.22)
+const C_BG := Color("#cfe8ec")
+const C_PANEL := Color("#fbfdfe")          # frosted white
+const C_PANEL2 := Color("#eef4f6")         # cards inside panels
+const C_TEXT := Color("#1f2d35")
+const C_MUTED := Color("#6b7d86")
+const C_GOOD := Color("#22a06b")
+const C_GOLD := Color("#d4920f")
+const C_BAD := Color("#e04f45")
+const C_NEUTRAL := Color("#eef3f5")
+const C_TEAL := Color("#1d9bb0")
+const C_DARK := Color(0.055, 0.16, 0.2, 0.74)  # dark glass pills (numbers)
+const C_LIGHT := Color(1, 1, 1, 0.9)          # light glass pills (actions)
+const C_SHADOW := Color(0.02, 0.1, 0.14, 0.22)
 
 var manifest := {}
 var _tex_cache := {}
@@ -67,6 +70,14 @@ var _panel_tab := ""
 
 var _save_timer := 0.0
 var update_pill: Button
+var xp_ring: Control
+var cast_ring: Control
+var top_right: HBoxContainer
+var book_btn: Button
+var phone_btn: Button
+var menu_btn: Button
+var panel_back: Button
+var tabs_track: PanelContainer
 var _update_announced := false
 
 func _ready() -> void:
@@ -98,8 +109,7 @@ func _process(delta: float) -> void:
 		VF.save_game()
 	var cd: float = VF.cooldown()
 	var left: float = VF.cooldown_left()
-	fish_fill.anchor_right = 1.0 - (left / cd if cd > 0.0 else 0.0)
-	fish_btn.text = "FISH" if left <= 0.0 else "%.1fs" % left
+	cast_ring.queue_redraw()
 	_process_hold()
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
@@ -134,7 +144,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_S:
 				if not overlay.visible: _do_sell()
 			KEY_ESCAPE:
-				_close_panel()
+				if overlay.visible: _close_panel()
+				else: _open_panel("menu")
+			KEY_TAB:
+				if overlay.visible and _panel_kind == "inventory": _close_panel()
+				else: _open_panel("inventory")
+			KEY_P:
+				_open_phone()
 			KEY_O:
 				if overlay.visible and _panel_kind == "settings": _close_panel()
 				else: _open_panel("settings")
@@ -226,22 +242,127 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", size)
 	var fc := C_TEXT if color.get_luminance() > 0.55 else Color.WHITE
-	b.add_theme_color_override("font_color", fc)
-	b.add_theme_color_override("font_hover_color", fc)
-	b.add_theme_color_override("font_pressed_color", fc)
-	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.4))
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(k, fc)
+	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.35))
 	if color == C_NEUTRAL:
-		b.add_theme_stylebox_override("normal", sbox(Color("#f6ecda"), 12, 1, Color("#dccaa8"), 6))
-		b.add_theme_stylebox_override("hover", sbox(Color("#fff6e6"), 12, 2, Color("#c9a86a"), 6))
-		b.add_theme_stylebox_override("pressed", sbox(Color("#ead9b8"), 12, 1, Color("#c9a86a"), 6))
+		b.add_theme_stylebox_override("normal", sbox(Color.WHITE, 14, 1, Color("#d5e1e5"), 8))
+		b.add_theme_stylebox_override("hover", sbox(Color("#f6fbfc"), 14, 2, C_TEAL.lightened(0.3), 8))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#e3eef1"), 14, 1, C_TEAL, 8))
 	else:
-		b.add_theme_stylebox_override("normal", sbox(color, 10, 2, color.darkened(0.3), 8, 2))
-		b.add_theme_stylebox_override("hover", sbox(color.lightened(0.15), 10, 2, color.darkened(0.3), 8))
-		b.add_theme_stylebox_override("pressed", sbox(color.darkened(0.2), 10, 2, color.darkened(0.3), 8))
-	b.add_theme_stylebox_override("disabled", sbox(Color("#ddd0b6"), 10, 0, Color.TRANSPARENT, 8))
+		var n := sbox(color, 14, 0, Color.TRANSPARENT, 9)
+		n.border_width_bottom = 3
+		n.border_color = color.darkened(0.25)
+		b.add_theme_stylebox_override("normal", n)
+		var h := n.duplicate()
+		h.bg_color = color.lightened(0.12)
+		b.add_theme_stylebox_override("hover", h)
+		var pr := n.duplicate()
+		pr.bg_color = color.darkened(0.12)
+		pr.border_width_bottom = 1
+		b.add_theme_stylebox_override("pressed", pr)
+	b.add_theme_stylebox_override("disabled", sbox(Color("#e4ecef"), 14, 0, Color.TRANSPARENT, 9))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	if min_w > 0: b.custom_minimum_size.x = min_w
 	b.pressed.connect(func(): AudioManager.play_click())
 	return b
+
+# ------------------------------------------------------- pill UI kit (0.2)
+const PH := "res://assets/third_party/phosphor/"
+
+## a Phosphor icon (white, tint it with modulate / icon colors)
+func ph(name: String) -> Texture2D:
+	var path := PH + name + ".svg"
+	if not _tex_cache.has(path):
+		_tex_cache[path] = load(path) if ResourceLoader.exists(path) else null
+	return _tex_cache[path]
+
+func is_touch() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+
+func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
+	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.7) if light else Color(1, 1, 1, 0.08), 0, 6)
+	sb.content_margin_left = pad_h
+	sb.content_margin_right = pad_h
+	sb.content_margin_top = pad_v
+	sb.content_margin_bottom = pad_v
+	return sb
+
+## small keyboard hint chip ("Tab", "Esc"); hidden on phones
+func keycap(text: String) -> Control:
+	var p := PanelContainer.new()
+	var sb := sbox(Color("#e6eef1"), 6, 1, Color("#c9d6db"), 0)
+	sb.content_margin_left = 5
+	sb.content_margin_right = 5
+	sb.content_margin_top = 0
+	sb.content_margin_bottom = 1
+	p.add_theme_stylebox_override("panel", sb)
+	p.add_child(lbl(text, 11, Color("#5b6d75")))
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.visible = not is_touch()
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return p
+
+## a clickable pill: [icon] text [keycap] (+ optional red badge)
+func pill_button(icon_name: String, text: String, key := "", light := true) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.custom_minimum_size.y = 40
+	b.text = text
+	b.add_theme_font_size_override("font_size", 14)
+	var fc := C_TEXT if light else Color.WHITE
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(k, fc)
+	for k in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+		b.add_theme_color_override(k, fc)
+	if icon_name != "":
+		b.icon = ph(icon_name)
+		b.add_theme_constant_override("icon_max_width", 18)
+		b.add_theme_constant_override("h_separation", 7)
+	var show_key := key != "" and not is_touch()
+	var sb := pill_box(light, 13, 6)
+	if show_key: sb.content_margin_right = 13 + 8 + 9 * key.length() + 10
+	b.add_theme_stylebox_override("normal", sb)
+	var hv := sb.duplicate()
+	hv.bg_color = Color.WHITE if light else C_DARK.lightened(0.1)
+	hv.border_color = C_TEAL.lightened(0.35) if light else Color(1, 1, 1, 0.25)
+	b.add_theme_stylebox_override("hover", hv)
+	var pr := sb.duplicate()
+	pr.bg_color = Color("#e3eef1") if light else C_DARK.darkened(0.2)
+	b.add_theme_stylebox_override("pressed", pr)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	if show_key:
+		var kc := keycap(key)
+		kc.anchor_left = 1.0
+		kc.anchor_right = 1.0
+		kc.anchor_top = 0.5
+		kc.anchor_bottom = 0.5
+		kc.offset_right = -11
+		kc.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		kc.grow_vertical = Control.GROW_DIRECTION_BOTH
+		b.add_child(kc)
+	var badge := PanelContainer.new()
+	badge.name = "Badge"
+	var bsb := sbox(Color("#ff4d4f"), 999, 2, Color.WHITE, 0)
+	bsb.content_margin_left = 5
+	bsb.content_margin_right = 5
+	badge.add_theme_stylebox_override("panel", bsb)
+	badge.add_child(lbl("", 11, Color.WHITE))
+	badge.position = Vector2(-6, -7)
+	badge.visible = false
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(badge)
+	b.pressed.connect(func(): AudioManager.play_click())
+	return b
+
+func pill_text(b: Button, text: String) -> void:
+	b.text = text
+
+func pill_badge(b: Button, n: int) -> void:
+	var bd: PanelContainer = b.get_node("Badge")
+	bd.visible = n > 0
+	(bd.get_child(0) as Label).text = str(n) if n < 100 else "99+"
 
 func accent() -> Color:
 	return VFData.BIOMES[VF.biome].accent
@@ -293,56 +414,71 @@ func _flat(pad := 10, radius := 16) -> StyleBoxFlat:
 	return sbox(Color(C_PANEL, 0.94), radius, 1, Color("#e3d3b4"), pad, 8)
 
 func _build_hud() -> void:
+	# ---- top-left: who you are + what you have (dark glass = numbers)
 	var col := VBoxContainer.new()
 	col.position = Vector2(14, 12)
-	col.add_theme_constant_override("separation", 6)
+	col.add_theme_constant_override("separation", 8)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
-	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", _flat(10))
-	col.add_child(bar)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	bar.add_child(row)
-	var badge := PanelContainer.new()
-	badge.add_theme_stylebox_override("panel", sbox(Color("#2f8f9e"), 12, 0, Color.TRANSPARENT, 7))
-	lvl_label = lbl("Lv 1", 17, Color.WHITE)
-	badge.add_child(lvl_label)
-	badge.tooltip_text = "Your level. Fish to earn XP."
-	row.add_child(badge)
-	var xpbox := VBoxContainer.new()
-	xpbox.add_theme_constant_override("separation", 2)
-	xpbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	xp_label = lbl("0 / 100 XP", 11, C_MUTED)
-	xp_bar = ProgressBar.new()
-	xp_bar.show_percentage = false
-	xp_bar.custom_minimum_size = Vector2(150, 9)
-	xp_bar.add_theme_stylebox_override("background", sbox(C_NEUTRAL, 5, 0, Color.TRANSPARENT, 0))
-	xp_bar.add_theme_stylebox_override("fill", sbox(C_GOOD, 5, 0, Color.TRANSPARENT, 0))
-	xpbox.add_child(xp_label)
-	xpbox.add_child(xp_bar)
-	row.add_child(xpbox)
-	var m := HBoxContainer.new()
-	m.add_child(icon(icon_for("ui", "money"), 28))
-	money_label = lbl("$0", 18)
-	m.add_child(money_label)
-	m.tooltip_text = "Money"
-	row.add_child(m)
-	wallet_btn = btn("", C_NEUTRAL, 14)
-	wallet_btn.icon = icon_for("exotic", "gold")
-	wallet_btn.add_theme_constant_override("icon_max_width", 24)
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(row)
+	# level: XP ring around the number
+	var lv := PanelContainer.new()
+	lv.add_theme_stylebox_override("panel", pill_box(false, 6, 4))
+	lv.tooltip_text = "Your level. Fish to earn XP."
+	var lvh := HBoxContainer.new()
+	lvh.add_theme_constant_override("separation", 8)
+	lv.add_child(lvh)
+	xp_ring = Control.new()
+	xp_ring.custom_minimum_size = Vector2(32, 32)
+	xp_ring.draw.connect(_draw_xp_ring)
+	xp_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lvh.add_child(xp_ring)
+	var lvv := VBoxContainer.new()
+	lvv.add_theme_constant_override("separation", -4)
+	lvv.alignment = BoxContainer.ALIGNMENT_CENTER
+	lvl_label = lbl("Lv 1", 16, Color.WHITE)
+	xp_label = lbl("0 / 100 XP", 10, Color(1, 1, 1, 0.7))
+	lvv.add_child(lvl_label)
+	lvv.add_child(xp_label)
+	lvh.add_child(lvv)
+	var pad := Control.new()
+	pad.custom_minimum_size.x = 4
+	lvh.add_child(pad)
+	row.add_child(lv)
+	xp_bar = ProgressBar.new()            # kept for the ring's value; never shown
+	xp_bar.visible = false
+	add_child(xp_bar)
+	# money
+	var mp := PanelContainer.new()
+	mp.add_theme_stylebox_override("panel", pill_box(false, 12, 6))
+	mp.tooltip_text = "Money"
+	var mh := HBoxContainer.new()
+	mh.add_theme_constant_override("separation", 6)
+	var coin := icon(ph("coins"), 18)
+	coin.modulate = Color("#ffcf4a")
+	mh.add_child(coin)
+	money_label = lbl("$0", 16, Color.WHITE)
+	mh.add_child(money_label)
+	mp.add_child(mh)
+	row.add_child(mp)
+	# exotic fish wallet (click to open)
+	wallet_btn = pill_button("diamond", "0", "", false)
 	wallet_btn.tooltip_text = "Wallet: exotic fish, hooks and azure fish"
 	wallet_btn.pressed.connect(_toggle_wallet)
 	row.add_child(wallet_btn)
-	prestige_label = lbl("P0", 15, C_GOLD)
+	prestige_label = lbl("P0", 15, Color("#ffcf4a"), 4)
 	prestige_label.tooltip_text = "Prestige"
 	prestige_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	row.add_child(prestige_label)
-	# wallet popup (hidden until clicked)
+	# wallet popover
 	wallet = PanelContainer.new()
-	wallet.add_theme_stylebox_override("panel", _flat(10, 12))
+	wallet.add_theme_stylebox_override("panel", sbox(C_LIGHT, 16, 1, Color.WHITE, 12, 8))
 	wallet.visible = false
 	var wg := GridContainer.new()
-	wg.columns = 2
+	wg.columns = 3
 	wg.add_theme_constant_override("h_separation", 18)
 	wallet.add_child(wg)
 	for k in ["gold", "emerald", "lava", "diamond", "azure"]:
@@ -360,36 +496,73 @@ func _build_hud() -> void:
 	hk.tooltip_text = "Hooks (league currency)"
 	wg.add_child(hk)
 	col.add_child(wallet)
-	# next goal hint
+	# goal: one quiet line + thin progress, click to jump to it
 	goal_box = PanelContainer.new()
-	goal_box.add_theme_stylebox_override("panel", _flat(8, 12))
+	goal_box.add_theme_stylebox_override("panel", sbox(C_LIGHT, 14, 1, Color(1, 1, 1, 0.7), 10, 6))
 	var gv := VBoxContainer.new()
-	gv.add_theme_constant_override("separation", 3)
+	gv.add_theme_constant_override("separation", 4)
 	goal_label = lbl("", 13)
 	goal_bar = ProgressBar.new()
 	goal_bar.show_percentage = false
-	goal_bar.custom_minimum_size = Vector2(220, 7)
-	goal_bar.add_theme_stylebox_override("background", sbox(C_NEUTRAL, 4, 0, Color.TRANSPARENT, 0))
-	goal_bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 4, 0, Color.TRANSPARENT, 0))
+	goal_bar.custom_minimum_size = Vector2(230, 5)
+	goal_bar.add_theme_stylebox_override("background", sbox(Color("#dfe9ec"), 3, 0, Color.TRANSPARENT, 0))
+	goal_bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 3, 0, Color.TRANSPARENT, 0))
 	gv.add_child(goal_label)
 	gv.add_child(goal_bar)
 	goal_box.add_child(gv)
 	goal_box.mouse_filter = Control.MOUSE_FILTER_STOP
+	goal_box.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	goal_box.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _open_goal())
-	goal_box.tooltip_text = "Your next upgrade. Click to open it."
+	goal_box.tooltip_text = "Your next goal. Click to go there."
 	col.add_child(goal_box)
+	# buffs: tiny dark line under the goal
+	boost_label = lbl("", 12, Color.WHITE, 4)
+	col.add_child(boost_label)
+
+	# ---- top-right: where you can go (light glass = actions)
+	var tr := HBoxContainer.new()
+	tr.add_theme_constant_override("separation", 8)
+	tr.anchor_left = 1.0
+	tr.anchor_right = 1.0
+	tr.offset_right = -14
+	tr.offset_top = 12
+	tr.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	tr.alignment = BoxContainer.ALIGNMENT_END
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tr)
+	top_right = tr
+	book_btn = pill_button("book-open-text", "Fish Book", "Tab")
+	book_btn.pressed.connect(func(): _open_panel("inventory"))
+	tr.add_child(book_btn)
+	phone_btn = pill_button("device-mobile", "Phone", "P")
+	phone_btn.pressed.connect(_open_phone)
+	tr.add_child(phone_btn)
+	menu_btn = pill_button("dots-nine", "Menu", "Esc")
+	menu_btn.pressed.connect(func(): _open_panel("menu"))
+	tr.add_child(menu_btn)
+
+func _draw_xp_ring() -> void:
+	var c := xp_ring.size * 0.5
+	var r := minf(c.x, c.y) - 3.0
+	var k := clampf(xp_bar.value / maxf(1.0, xp_bar.max_value), 0.0, 1.0)
+	xp_ring.draw_arc(c, r, 0, TAU, 40, Color(1, 1, 1, 0.18), 4.0, true)
+	if k > 0.0:
+		xp_ring.draw_arc(c, r, -PI / 2, -PI / 2 + TAU * k, 40, Color("#7ef0c6"), 4.0, true)
+	xp_ring.draw_circle(c, r - 4.5, Color(1, 1, 1, 0.12))
 
 func _toggle_wallet() -> void:
 	wallet.visible = not wallet.visible
 
 func _build_card() -> void:
 	card = PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _flat(0, 14))
+	card.add_theme_stylebox_override("panel", sbox(C_LIGHT, 18, 1, Color(1, 1, 1, 0.8), 0, 10))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
-	card.offset_left = -330
+	card.offset_left = -314
 	card.offset_right = -14
-	card.offset_top = 12
+	card.offset_top = 62
+	card.custom_minimum_size.x = 300
+	card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(card)
 	var h := HBoxContainer.new()
@@ -416,7 +589,7 @@ func _build_card() -> void:
 	toast_box.anchor_right = 0.5
 	toast_box.offset_left = -230
 	toast_box.offset_right = 230
-	toast_box.offset_top = 84
+	toast_box.offset_top = 64
 	toast_box.add_theme_constant_override("separation", 4)
 	toast_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toast_box)
@@ -431,86 +604,125 @@ func _show_card() -> void:
 
 var _bottom: HBoxContainer
 
-func _group(anchor_x: float, grow: int) -> HBoxContainer:
-	if _bottom == null:
-		_bottom = HBoxContainer.new()
-		_bottom.anchor_left = 0.0
-		_bottom.anchor_right = 1.0
-		_bottom.anchor_top = 1.0
-		_bottom.anchor_bottom = 1.0
-		_bottom.offset_left = 12
-		_bottom.offset_right = -12
-		_bottom.offset_bottom = -10
-		_bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		_bottom.alignment = BoxContainer.ALIGNMENT_CENTER
-		_bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_bottom)
-	if _bottom.get_child_count() > 0:
-		var sp := Control.new()
-		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_bottom.add_child(sp)
-	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _flat(7, 16))
-	p.size_flags_vertical = Control.SIZE_SHRINK_END
-	_bottom.add_child(p)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 6)
-	p.add_child(h)
-	return h
-
 func _build_dock() -> void:
-	# left: current setup (rod, bait, biome, pet)
-	var left := _group(0.0, Control.GROW_DIRECTION_END)
+	# ---- bottom-left: your gear (rod, bait, biome, pet) in one light pill
+	var gear := PanelContainer.new()
+	gear.add_theme_stylebox_override("panel", sbox(C_LIGHT, 20, 1, Color(1, 1, 1, 0.7), 6, 6))
+	gear.anchor_top = 1.0
+	gear.anchor_bottom = 1.0
+	gear.offset_left = 14
+	gear.offset_bottom = -12
+	gear.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(gear)
+	var gh := HBoxContainer.new()
+	gh.add_theme_constant_override("separation", 4)
+	gear.add_child(gh)
 	for key in ["rod", "bait", "biome", "pet"]:
-		left.add_child(_chip(key))
-	# centre: fish + sell
-	var mid := _group(0.5, Control.GROW_DIRECTION_BOTH)
-	var midv := VBoxContainer.new()
-	midv.add_theme_constant_override("separation", 4)
-	mid.add_child(midv)
-	boost_label = lbl("", 12, C_MUTED)
-	boost_label.clip_text = true
-	boost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	midv.add_child(boost_label)
-	var mh := HBoxContainer.new()
-	mh.add_theme_constant_override("separation", 6)
-	midv.add_child(mh)
-	fish_btn = btn("FISH", Color("#3fae6a"), 22, 140)
-	fish_btn.custom_minimum_size.y = 54
-	fish_btn.clip_contents = true
-	fish_fill = ColorRect.new()
-	fish_fill.color = Color(1, 1, 1, 0.22)
-	fish_fill.anchor_bottom = 1.0
-	fish_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fish_btn.add_child(fish_fill)
+		gh.add_child(_chip(key))
+	# ---- bottom-centre: sell (only when the hold has fish) + buffs
+	sell_btn = btn("", C_GOLD.lightened(0.1), 16, 0)
+	sell_btn.icon = ph("hand-coins")
+	sell_btn.add_theme_constant_override("icon_max_width", 22)
+	sell_btn.add_theme_color_override("icon_normal_color", Color.WHITE)
+	sell_btn.add_theme_color_override("icon_hover_color", Color.WHITE)
+	sell_btn.add_theme_color_override("icon_pressed_color", Color.WHITE)
+	for st in ["normal", "hover", "pressed"]:
+		var sb: StyleBoxFlat = sell_btn.get_theme_stylebox(st).duplicate()
+		sb.set_corner_radius_all(999)
+		sb.content_margin_left = 20
+		sb.content_margin_right = 20
+		sb.shadow_size = 8
+		sb.shadow_color = C_SHADOW
+		sell_btn.add_theme_stylebox_override(st, sb)
+	sell_btn.custom_minimum_size.y = 48
+	sell_btn.anchor_left = 0.5
+	sell_btn.anchor_right = 0.5
+	sell_btn.anchor_top = 1.0
+	sell_btn.anchor_bottom = 1.0
+	sell_btn.offset_bottom = -16
+	sell_btn.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	sell_btn.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	sell_btn.pressed.connect(_do_sell)
+	sell_btn.tooltip_text = "Sell every fish in your hold  [S]"
+	add_child(sell_btn)
+	# ---- bottom-right: the cast button with a cooldown ring
+	fish_btn = Button.new()
+	fish_btn.focus_mode = Control.FOCUS_NONE
+	fish_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var fb := sbox(C_TEAL, 999, 3, Color.WHITE, 0, 10)
+	fish_btn.add_theme_stylebox_override("normal", fb)
+	var fbh := fb.duplicate()
+	fbh.bg_color = C_TEAL.lightened(0.12)
+	fish_btn.add_theme_stylebox_override("hover", fbh)
+	var fbp := fb.duplicate()
+	fbp.bg_color = C_TEAL.darkened(0.15)
+	fish_btn.add_theme_stylebox_override("pressed", fbp)
+	fish_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	fish_btn.icon = ph("fish")
+	fish_btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fish_btn.expand_icon = false
+	fish_btn.add_theme_constant_override("icon_max_width", 34)
+	fish_btn.custom_minimum_size = Vector2(82, 82)
+	fish_btn.anchor_left = 1.0
+	fish_btn.anchor_right = 1.0
+	fish_btn.anchor_top = 1.0
+	fish_btn.anchor_bottom = 1.0
+	fish_btn.offset_left = -100
+	fish_btn.offset_right = -18
+	fish_btn.offset_top = -100
+	fish_btn.offset_bottom = -18
 	fish_btn.pressed.connect(_do_cast)
 	fish_btn.button_down.connect(func(): _hold_btn = true)
 	fish_btn.button_up.connect(func(): _hold_btn = false)
-	fish_btn.tooltip_text = "Cast your line — hold to keep fishing  [Space / F]"
-	mh.add_child(fish_btn)
-	sell_btn = btn("SELL", Color("#e07a3a"), 15, 112)
-	sell_btn.pressed.connect(_do_sell)
-	sell_btn.tooltip_text = "Sell every fish in your hold  [S]"
-	mh.add_child(sell_btn)
-	# right: navigation
-	var right := _group(1.0, Control.GROW_DIRECTION_BEGIN)
-	var i := 1
-	for nav in [["inventory", "Hold"], ["shop", "Shop"], ["biomes", "Map"], ["charms", "Charms"], ["pets", "Pets"],
-			["boosts", "Boosts"], ["quests", "Quests"], ["prestige", "Prestige"], ["stats", "Buffs"], ["guide", "Guide"], ["settings", "Settings"]]:
-		var b := _nav_button(nav[0], nav[1])
-		b.tooltip_text = ("%s  [%d]" % [nav[1], i]) if i <= 9 else ("%s  [G]" % nav[1] if nav[0] == "guide" else "%s  [O]" % nav[1])
-		right.add_child(b)
-		i += 1
+	fish_btn.tooltip_text = "Cast — or just tap the water. Hold to keep fishing  [Space]"
+	add_child(fish_btn)
+	fish_fill = ColorRect.new()          # kept for compatibility (unused visually)
+	fish_fill.visible = false
+	fish_btn.add_child(fish_fill)
+	cast_ring = Control.new()
+	cast_ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cast_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cast_ring.draw.connect(_draw_cast_ring)
+	fish_btn.add_child(cast_ring)
+	var kc := keycap("Space")
+	kc.anchor_left = 0.5
+	kc.anchor_right = 0.5
+	kc.anchor_top = 1.0
+	kc.anchor_bottom = 1.0
+	kc.offset_top = -4
+	kc.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	fish_btn.add_child(kc)
+
+func _draw_cast_ring() -> void:
+	var c := cast_ring.size * 0.5
+	var r := minf(c.x, c.y) + 5.0
+	var cd: float = VF.cooldown()
+	var left: float = VF.cooldown_left()
+	if left > 0.0 and cd > 0.0:
+		cast_ring.draw_arc(c, r, 0, TAU, 48, Color(1, 1, 1, 0.35), 5.0, true)
+		cast_ring.draw_arc(c, r, -PI / 2, -PI / 2 + TAU * (1.0 - left / cd), 48, Color.WHITE, 5.0, true)
+	else:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
+		cast_ring.draw_arc(c, r + pulse * 3.0, 0, TAU, 48, Color(1, 1, 1, 0.35 + 0.35 * pulse), 3.0, true)
 
 func _chip(key: String) -> Button:
-	var b := btn("", C_NEUTRAL, 11)
-	b.custom_minimum_size = Vector2(58, 56)
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.add_theme_stylebox_override("normal", sbox(Color(1, 1, 1, 0), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("hover", sbox(Color("#e8f2f4"), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("pressed", sbox(Color("#d9e9ed"), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_font_size_override("font_size", 11)
+	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(k, C_MUTED)
+	b.custom_minimum_size = Vector2(56, 58)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	b.add_theme_constant_override("icon_max_width", 34)
+	b.add_theme_constant_override("icon_max_width", 32)
 	b.clip_text = true
 	b.pressed.connect(_on_chip.bind(key))
+	b.pressed.connect(func(): AudioManager.play_click())
 	chips[key] = b
 	return b
 
@@ -542,12 +754,14 @@ func _build_overlay() -> void:
 	overlay.visible = false
 	add_child(overlay)
 	var dim := ColorRect.new()
-	dim.color = Color(0.15, 0.1, 0.05, 0.35)
+	dim.color = Color(0.02, 0.1, 0.14, 0.35)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _close_panel())
 	overlay.add_child(dim)
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", tbox("panel_brown_corners_a", 36, 26))
+	var psb := sbox(Color(C_PANEL, 0.97), 26, 1, Color.WHITE, 22, 28)
+	psb.shadow_offset = Vector2(0, 10)
+	p.add_theme_stylebox_override("panel", psb)
 	p.anchor_left = 0.5
 	p.anchor_right = 0.5
 	p.anchor_top = 0.5
@@ -561,24 +775,27 @@ func _build_overlay() -> void:
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
 	var head := HBoxContainer.new()
-	var ban := PanelContainer.new()
-	ban.add_theme_stylebox_override("panel", tbox("banner_hanging", 40, 0))
-	ban.custom_minimum_size = Vector2(320, 56)
-	panel_title = lbl("", 24, Color.WHITE, 6)
-	panel_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 10)
+	panel_back = pill_button("caret-left", "Menu", "", true)
+	panel_back.pressed.connect(func(): _open_panel("menu"))
+	head.add_child(panel_back)
+	panel_title = lbl("", 26, C_TEXT)
 	panel_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	ban.add_child(panel_title)
-	head.add_child(ban)
+	head.add_child(panel_title)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(spacer)
-	var close := btn("✕", Color("#e2d4b8"), 16, 40)
+	var close := pill_button("x", "Close", "Esc", true)
 	close.pressed.connect(_close_panel)
 	head.add_child(close)
 	v.add_child(head)
+	tabs_track = PanelContainer.new()
+	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e6eef1"), 999, 0, Color.TRANSPARENT, 4))
+	tabs_track.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	panel_tabs = HBoxContainer.new()
-	panel_tabs.add_theme_constant_override("separation", 6)
-	v.add_child(panel_tabs)
+	panel_tabs.add_theme_constant_override("separation", 2)
+	tabs_track.add_child(panel_tabs)
+	v.add_child(tabs_track)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -688,8 +905,12 @@ func _toast(text: String, kind: String) -> void:
 	var colors := {"warn": Color("#b45309"), "pet": Color("#be185d"), "unlock": Color("#7c3aed"), "quest": Color("#0f766e"),
 		"prestige": Color("#1d4ed8"), "buy": Color("#15803d")}
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", sbox(colors.get(kind, Color("#334155")), 10, 0, Color.TRANSPARENT, 8))
-	p.add_child(lbl(text, 15, Color.WHITE))
+	var sb := pill_box(false, 16, 7)
+	sb.bg_color = Color(colors.get(kind, Color("#334155")), 0.9)
+	p.add_theme_stylebox_override("panel", sb)
+	var tl := lbl(text, 14, Color.WHITE)
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p.add_child(tl)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast_box.add_child(p)
 	while toast_box.get_child_count() > 3:
@@ -746,7 +967,7 @@ func _show_catch(res: Dictionary) -> void:
 			else: bits.append("%d %s" % [c.items[k], VFData.EXOTICS[k].name])
 		var l := lbl(txt + "  " + ", ".join(bits), 14, C_GOLD)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = 270
+		l.custom_minimum_size.x = 220
 		row.add_child(l)
 		card_body.add_child(row)
 	if res.pet != "":
@@ -764,16 +985,21 @@ func _refresh() -> void:
 	xp_bar.max_value = maxf(1.0, need)
 	xp_bar.value = VF.xp
 	xp_label.text = "%s / %s XP" % [VF.fmt(VF.xp), VF.fmt(need)]
+	xp_ring.queue_redraw()
 	money_label.text = money_str(VF.money)
 	for k in exotic_labels:
 		exotic_labels[k].text = VF.fmt(VF.exotics.get(k, 0))
 	hooks_label.text = str(VF.hooks)
-	wallet_btn.text = VF.fmt(VF.exotics.gold + VF.exotics.emerald + VF.exotics.lava + VF.exotics.diamond)
+	pill_text(wallet_btn, VF.fmt(VF.exotics.gold + VF.exotics.emerald + VF.exotics.lava + VF.exotics.diamond))
+	wallet_btn.visible = VF.level >= 10 or VF.exotics.gold + VF.exotics.emerald + VF.exotics.lava + VF.exotics.diamond > 0
 	prestige_label.text = "P%d" % VF.prestige
 	prestige_label.visible = VF.prestige > 0
 	var inv: int = VF.inventory_value()
-	sell_btn.text = ("SELL\n%s" % money_str(inv)) if inv > 0 else "SELL"
-	sell_btn.disabled = inv <= 0
+	var nfish := 0
+	for f in VF.inventory: nfish += int(VF.inventory[f])
+	sell_btn.text = "Sell %s fish  ·  %s" % [VF.commas(nfish), money_str(inv)]
+	sell_btn.visible = inv > 0
+	sell_btn.reset_size()
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
 	rod_chip.text = "Rod" if VF.rod_usable() else "⚠ Rod"
@@ -858,7 +1084,7 @@ func _refresh_boosts() -> void:
 	if Time.get_unix_time_from_system() < VF.personal_until:
 		names.append("Personal")
 		tips.append("Personal booster: %s left" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
-	boost_label.text = ("⚡ " + " · ".join(names)) if names else "~%.1f fish per cast" % _avg_fish()
+	boost_label.text = ("⚡ " + "  ·  ".join(names)) if names else ""
 	boost_label.tooltip_text = "
 ".join(tips) if tips else "Average fish per cast with your current setup"
 	boost_label.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -897,15 +1123,27 @@ func _close_panel() -> void:
 func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
-	var titles := {"inventory": "Fish Inventory", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates"}
+	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
-			var b := btn(t, accent().darkened(0.2) if t == _panel_tab else C_NEUTRAL, 14, 96)
-			b.pressed.connect(func(): _panel_tab = t; _render_panel())
+			var b := Button.new()
+			b.text = t
+			b.focus_mode = Control.FOCUS_NONE
+			b.custom_minimum_size = Vector2(86, 34)
+			b.add_theme_font_size_override("font_size", 14)
+			var on: bool = t == _panel_tab
+			b.add_theme_stylebox_override("normal", sbox(Color.WHITE if on else Color(1, 1, 1, 0), 999, 0, Color.TRANSPARENT, 6, 4 if on else 0))
+			b.add_theme_stylebox_override("hover", sbox(Color.WHITE if on else Color(1, 1, 1, 0.5), 999, 0, Color.TRANSPARENT, 6))
+			b.add_theme_stylebox_override("pressed", sbox(Color.WHITE, 999, 0, Color.TRANSPARENT, 6))
+			b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+				b.add_theme_color_override(k, C_TEXT if on else C_MUTED)
+			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel())
 			panel_tabs.add_child(b)
-	panel_tabs.visible = PANEL_TABS.has(_panel_kind)
+	tabs_track.visible = PANEL_TABS.has(_panel_kind)
+	panel_back.visible = _panel_kind != "menu"
 	match _panel_kind:
 		"inventory": _panel_inventory()
 		"shop": _panel_shop()
@@ -919,6 +1157,7 @@ func _render_panel() -> void:
 		"guide": _panel_guide()
 		"settings": _panel_settings()
 		"update": _panel_update()
+		"menu": _panel_menu()
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1423,10 +1662,10 @@ func _build_version_label() -> void:
 	v.anchor_right = 1.0
 	v.anchor_top = 1.0
 	v.anchor_bottom = 1.0
-	v.offset_left = -360
-	v.offset_right = -16
-	v.offset_top = -102
-	v.offset_bottom = -86
+	v.offset_left = -480
+	v.offset_right = -118
+	v.offset_top = -24
+	v.offset_bottom = -8
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	update_pill = btn("⬆  Update available", Color("#2f8f9e"), 14, 0)
@@ -2036,3 +2275,68 @@ func _update_test_report(msg: String) -> void:
 	var f := FileAccess.open(path, FileAccess.READ_WRITE if FileAccess.file_exists(path) else FileAccess.WRITE)
 	f.seek_end()
 	f.store_line(msg)
+
+
+# =================================================================== menu
+const MENU_TILES := [
+	["shop", "Shop", "storefront", "1", "Rods, bait, boats & upgrades"],
+	["biomes", "Map", "map-trifold", "2", "Travel to other waters"],
+	["inventory", "Fish Book", "book-open-text", "Tab", "Your hold & collection"],
+	["charms", "Charms", "sparkle", "4", "Permanent boosts"],
+	["pets", "Pets", "paw-print", "5", "Companions with buffs"],
+	["boosts", "Boosts", "lightning", "6", "Timed boosts & workers"],
+	["quests", "Quests", "target", "7", "Daily & league quests"],
+	["prestige", "Prestige", "crown", "8", "Start over, stronger"],
+	["stats", "Buffs", "chart-bar", "9", "Your multipliers & odds"],
+	["guide", "Guide", "question", "G", "How everything works"],
+	["settings", "Settings", "gear-six", "O", "Sound, screen, save"],
+	["update", "Updates", "arrow-circle-up", "", "Get the newest version"],
+]
+
+func _panel_menu() -> void:
+	var g := _grid(4)
+	g.add_theme_constant_override("h_separation", 12)
+	g.add_theme_constant_override("v_separation", 12)
+	for t in MENU_TILES:
+		var b := Button.new()
+		b.focus_mode = Control.FOCUS_NONE
+		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		b.custom_minimum_size = Vector2(196, 104)
+		b.add_theme_stylebox_override("normal", sbox(C_PANEL2, 18, 0, Color.TRANSPARENT, 12))
+		b.add_theme_stylebox_override("hover", sbox(Color.WHITE, 18, 2, C_TEAL.lightened(0.3), 12, 8))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#dcebef"), 18, 2, C_TEAL, 12))
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		var v := VBoxContainer.new()
+		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		v.offset_left = 14
+		v.offset_top = 12
+		v.offset_right = -12
+		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_theme_constant_override("separation", 4)
+		var top := HBoxContainer.new()
+		var bubble := PanelContainer.new()
+		bubble.add_theme_stylebox_override("panel", sbox(accent() if t[0] == "biomes" else C_TEAL, 12, 0, Color.TRANSPARENT, 7))
+		var ic := icon(ph(t[2]), 22)
+		bubble.add_child(ic)
+		top.add_child(bubble)
+		var sp := Control.new()
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top.add_child(sp)
+		if t[3] != "": top.add_child(keycap(t[3]))
+		v.add_child(top)
+		v.add_child(lbl(t[1], 17))
+		var sub := lbl(t[4], 12, C_MUTED)
+		sub.clip_text = true
+		v.add_child(sub)
+		b.add_child(v)
+		if t[0] == "update" and Updater.state in ["available", "full_needed", "ready"]:
+			bubble.add_theme_stylebox_override("panel", sbox(C_GOOD, 12, 0, Color.TRANSPARENT, 7))
+			sub.text = "Update available!"
+			sub.add_theme_color_override("font_color", C_GOOD)
+		var kind: String = t[0]
+		b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
+		g.add_child(b)
+
+# ================================================================== phone
+func _open_phone() -> void:
+	_toast("FishTok is coming in this update!", "quest")
