@@ -71,6 +71,8 @@ var _panel_tab := ""
 var _save_timer := 0.0
 var update_pill: Button
 var xp_ring: Control
+var boost_pill: PanelContainer
+var boost_icon: TextureRect
 var cast_ring: Control
 var top_right: HBoxContainer
 var book_btn: Button
@@ -515,9 +517,20 @@ func _build_hud() -> void:
 	goal_box.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _open_goal())
 	goal_box.tooltip_text = "Your next goal. Click to go there."
 	col.add_child(goal_box)
-	# buffs: tiny dark line under the goal
-	boost_label = lbl("", 12, Color.WHITE, 4)
-	col.add_child(boost_label)
+	# active buffs: one small dark pill under the goal (hidden when nothing is active)
+	boost_pill = PanelContainer.new()
+	boost_pill.add_theme_stylebox_override("panel", pill_box(false, 10, 4))
+	boost_pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	boost_pill.mouse_filter = Control.MOUSE_FILTER_STOP
+	var bh := HBoxContainer.new()
+	bh.add_theme_constant_override("separation", 6)
+	boost_icon = icon(ph("clover"), 14)
+	boost_icon.modulate = Color("#7ef0c6")
+	bh.add_child(boost_icon)
+	boost_label = lbl("", 12, Color.WHITE)
+	bh.add_child(boost_label)
+	boost_pill.add_child(bh)
+	col.add_child(boost_pill)
 
 	# ---- top-right: where you can go (light glass = actions)
 	var tr := HBoxContainer.new()
@@ -878,19 +891,46 @@ func _on_trip(res: Dictionary) -> void:
 func _on_level_up(new_level: int, reward: int) -> void:
 	AudioManager.play_levelup()
 	stage.burst("confetti", stage.boat.position + stage.boat.pivot_offset)
-	var banner := lbl("LEVEL UP!  %d" % new_level, 40, C_GOLD, 8)
-	banner.position = Vector2(get_viewport_rect().size.x * 0.36 - 160, get_viewport_rect().size.y * 0.22)
-	fx_layer.add_child(banner)
-	var sub := lbl("+%s" % money_str(reward), 22, C_GOOD, 6) if reward > 0 else null
-	if sub:
-		sub.position = banner.position + Vector2(60, 50)
-		fx_layer.add_child(sub)
-	for n in [banner, sub]:
-		if n == null: continue
-		var tw: Tween = n.create_tween()
-		tw.tween_property(n, "position:y", n.position.y - 40, 1.6)
-		tw.parallel().tween_property(n, "modulate:a", 0.0, 1.6).set_delay(0.6)
-		tw.tween_callback(n.queue_free)
+	# a pill that pops in at the top-centre, then floats away
+	var p := PanelContainer.new()
+	var sb := sbox(Color(C_TEAL, 0.95), 999, 3, Color.WHITE, 0, 14)
+	sb.content_margin_left = 26
+	sb.content_margin_right = 26
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	p.add_theme_stylebox_override("panel", sb)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	var star := icon(ph("star"), 26)
+	star.modulate = Color("#ffcf4a")
+	h.add_child(star)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", -6)
+	v.add_child(lbl("LEVEL UP", 13, Color(1, 1, 1, 0.8)))
+	v.add_child(lbl("Level %s" % VF.commas(new_level), 28, Color.WHITE))
+	h.add_child(v)
+	if reward > 0:
+		var chip := PanelContainer.new()
+		chip.add_theme_stylebox_override("panel", pill_box(true, 10, 3))
+		chip.add_child(lbl("+" + money_str(reward), 15, C_GOOD))
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(chip)
+	p.add_child(h)
+	fx_layer.add_child(p)
+	await get_tree().process_frame
+	if not is_instance_valid(p): return
+	var vs := get_viewport_rect().size
+	p.pivot_offset = p.size * 0.5
+	p.position = Vector2((vs.x - p.size.x) * 0.5, vs.y * 0.2)
+	p.scale = Vector2(0.6, 0.6)
+	var tw := p.create_tween()
+	tw.tween_property(p, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.2)
+	tw.tween_property(p, "position:y", p.position.y - 30, 0.6)
+	tw.parallel().tween_property(p, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(p.queue_free)
 
 func _float_text(text: String, at: Vector2, color: Color) -> void:
 	var l := lbl(text, 22, color, 6)
@@ -1079,12 +1119,15 @@ func _refresh_boosts() -> void:
 			names.append(k.capitalize())
 			tips.append("%s boost: %s left" % [k.capitalize(), _clock(VF.boost_left(k))])
 	if VF.beginner_mult() > 1.0:
-		names.append("🍀 Beginner's Luck ×%.1f XP" % VF.beginner_mult())
+		names.append("Beginner's Luck ×%.1f XP" % VF.beginner_mult())
 		tips.append("Beginner's Luck: extra XP for new fishers, fades out by level %d" % VFData.BEGINNER_END)
 	if Time.get_unix_time_from_system() < VF.personal_until:
 		names.append("Personal")
 		tips.append("Personal booster: %s left" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
-	boost_label.text = ("⚡ " + "  ·  ".join(names)) if names else ""
+	boost_label.text = "  ·  ".join(names)
+	boost_pill.visible = not names.is_empty()
+	boost_icon.texture = ph("clover") if names.size() == 1 and VF.beginner_mult() > 1.0 else ph("lightning")
+	boost_icon.modulate = Color("#7ef0c6") if boost_icon.texture == ph("clover") else Color("#ffcf4a")
 	boost_label.tooltip_text = "
 ".join(tips) if tips else "Average fish per cast with your current setup"
 	boost_label.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1900,7 +1943,7 @@ func _next_banner() -> void:
 	p.position = Vector2((vw - p.size.x) * 0.5, -p.size.y - 10)
 	AudioManager.play_success()
 	var tw := p.create_tween()
-	tw.tween_property(p, "position:y", 96.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(p, "position:y", 112.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(2.2)
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)
@@ -1935,7 +1978,7 @@ func _build_coach() -> void:
 	_coach.draw.connect(_draw_coach)
 	add_child(_coach)
 	_coach_bubble = PanelContainer.new()
-	_coach_bubble.add_theme_stylebox_override("panel", sbox(Color("#fffaf0"), 16, 3, Color("#2f8f9e"), 14, 10))
+	_coach_bubble.add_theme_stylebox_override("panel", sbox(Color.WHITE, 18, 3, C_TEAL, 14, 12))
 	_coach_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_coach_label = lbl("", 17)
 	_coach_bubble.add_child(_coach_label)
