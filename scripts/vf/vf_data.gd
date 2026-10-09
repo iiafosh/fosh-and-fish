@@ -40,6 +40,9 @@ const BIOMES := {
 				 "accent": Color("#6a2dbd"), "desc": "The lightless bottom of everything."},
 }
 
+const BEGINNER_XP := 3.0          # DERIVED: Beginner's Luck XP multiplier below level 10 (not in the bot)
+const BEGINNER_XP_AT10 := 2.0     # DERIVED: fades linearly from x2 at level 10 ...
+const BEGINNER_END := 25          # DERIVED: ... to x1 at level 25
 const BASE_COOLDOWN := 3.5        # River base cooldown (wiki Biome page)
 const MIN_COOLDOWN := 2.0         # Haste charm floor (wiki Charm page)
 

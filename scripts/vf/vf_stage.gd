@@ -43,6 +43,8 @@ var _bobber_home := Vector2.ZERO
 var _cast_t := -1.0
 var _cast_from := Vector2.ZERO
 var _cast_to := Vector2.ZERO
+var aim := Vector2.INF            # where the player last tapped the water (scene px); INF = not aimed
+const MAX_CAST := 820.0           # longest cast from the boat, in scene px
 var _cast_done: Callable
 var _dart: Dictionary = {}
 var _t := 0.0
@@ -125,6 +127,48 @@ func _fit() -> void:
 
 func to_screen(p: Vector2) -> Vector2:
 	return global_position + root.position + p * root.scale.x
+
+func to_scene(screen: Vector2) -> Vector2:
+	return (screen - global_position - root.position) / root.scale.x
+
+## Aim the next casts at a tapped screen point. The bobber only ever lands on open water:
+## a tap on land, a dock or a boat moves to the nearest open water around the tap.
+## Very long casts are shortened. Returns false if there's no open water nearby.
+func set_aim(screen: Vector2) -> bool:
+	var from := boat.position + boat.pivot_offset
+	var p := to_scene(screen)
+	if from.distance_to(p) > MAX_CAST:
+		p = from + (p - from).normalized() * MAX_CAST
+	var best := Vector2.INF
+	if open_water(p):
+		best = p
+	else:
+		# rings around the tap, nearest first
+		for r in range(16, 200, 16):
+			var n := maxi(8, int(TAU * r / 18.0))
+			var found := Vector2.INF
+			for i in n:
+				var q := p + Vector2.from_angle(TAU * i / n) * r
+				if open_water(q) and from.distance_to(q) <= MAX_CAST and (found == Vector2.INF or q.distance_to(p) < found.distance_to(p)):
+					found = q
+			if found != Vector2.INF:
+				best = found
+				break
+	if best == Vector2.INF:
+		return false
+	aim = best
+	_ripples.append({"pos": best, "t": 0.0, "max": 26.0, "w": 2.0})
+	return true
+
+## water at p with a ring of water around it (not touching docks, boats, rocks or the shore),
+## and not right under our own boat
+func open_water(p: Vector2, margin := 30.0) -> bool:
+	if p.x < 20 or p.y < 20 or p.x > SCENE.x - 20 or p.y > SCENE.y - 20: return false
+	if p.distance_to(boat.position + boat.pivot_offset) < 110.0: return false
+	if not _in_water(p, 0.06): return false
+	for i in 8:
+		if not _in_water(p + Vector2.from_angle(TAU * i / 8.0) * margin, 0.03): return false
+	return true
 
 func bobber_screen() -> Vector2:
 	return to_screen(_bobber)
@@ -236,6 +280,7 @@ func set_biome(name: String) -> void:
 	(caustics.material as ShaderMaterial).set_shader_parameter("tint", Color(_scene.water[0]).lerp(Color.WHITE, 0.6))
 	_bobber_home = Vector2(_scene.bobber[0], _scene.bobber[1]) * SCENE
 	_bobber = _bobber_home
+	aim = Vector2.INF
 	_species.clear()
 	var swim: Dictionary = manifest.get("swim", {})
 	for f in VFData.BIOMES[name].fish:
@@ -546,8 +591,11 @@ func _draw_over() -> void:
 # ----------------------------------------------------------------- actions
 func cast(done: Callable) -> void:
 	play_anim("cast")
-	_cast_to = _bobber_home + Vector2(randf_range(-90, 90), randf_range(-50, 50))
-	if not _in_water(_cast_to, 0.1): _cast_to = _bobber_home
+	if aim != Vector2.INF:
+		_cast_to = aim + Vector2(randf_range(-6, 6), randf_range(-4, 4))    # right where you tapped
+	else:
+		_cast_to = _bobber_home + Vector2(randf_range(-90, 90), randf_range(-50, 50))
+	if not open_water(_cast_to): _cast_to = aim if aim != Vector2.INF else _bobber_home
 	_cast_done = done
 	# release the bobber mid-swing
 	get_tree().create_timer(0.22).timeout.connect(func():

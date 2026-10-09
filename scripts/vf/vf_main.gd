@@ -5,7 +5,7 @@ extends Control
 ## tools/blender/render_assets.py).
 
 const ART := "res://assets/vf/"
-const VERSION := "0.1 beta"
+var VERSION: String = Updater.version + " beta"
 const FEEDBACK_URL := "https://github.com/iiafosh/fosh-and-fish/issues/new"
 const C_BG := Color("#e9dcc4")
 const C_PANEL := Color("#fbf5e8")
@@ -50,6 +50,8 @@ var toast_box: VBoxContainer
 
 # dock
 var fish_btn: Button
+var _hold_btn := false       # FISH button held down
+var _hold_water := false     # finger / mouse held on the water
 var fish_fill: ColorRect
 var sell_btn: Button
 var chips := {}
@@ -64,6 +66,8 @@ var _panel_kind := ""
 var _panel_tab := ""
 
 var _save_timer := 0.0
+var update_pill: Button
+var _update_announced := false
 
 func _ready() -> void:
 	_load_manifest()
@@ -80,6 +84,12 @@ func _ready() -> void:
 	_build_version_label()
 	_build_coach()
 	_check_capture()
+	Updater.boot_ok()
+	Updater.status_changed.connect(_on_update_status)
+	if Updater.skipped_patch != "":
+		_toast("Update %s didn't start, so you're on the previous version. A fix is coming!" % Updater.skipped_patch, "warn")
+	if not _capturing() and not OS.get_cmdline_user_args().has("--trailer") and not OS.get_cmdline_user_args().has("--reel"):
+		get_tree().create_timer(4.0).timeout.connect(Updater.check)
 
 func _process(delta: float) -> void:
 	_save_timer += delta
@@ -90,9 +100,18 @@ func _process(delta: float) -> void:
 	var left: float = VF.cooldown_left()
 	fish_fill.anchor_right = 1.0 - (left / cd if cd > 0.0 else 0.0)
 	fish_btn.text = "FISH" if left <= 0.0 else "%.1fs" % left
+	_process_hold()
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 	_process_coach(delta)
+
+## hold the FISH button, Space/F, or a finger on the water to keep casting
+func _process_hold() -> void:
+	if _hold_water and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_hold_water = false
+	var held := _hold_btn or _hold_water or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_F)
+	if held and not overlay.visible and VF.cooldown_left() <= 0.0 and VF.can_cast() == "":
+		_do_cast()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -101,8 +120,12 @@ func _notification(what: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
+		_hold_water = true
+		stage.set_aim(event.position)          # the line lands where you tap
 		_do_cast()
 		return
+	if event is InputEventMouseMotion and _hold_water and not overlay.visible:
+		stage.set_aim(event.position)          # drag while holding to move the spot
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_SPACE, KEY_F:
@@ -462,7 +485,9 @@ func _build_dock() -> void:
 	fish_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fish_btn.add_child(fish_fill)
 	fish_btn.pressed.connect(_do_cast)
-	fish_btn.tooltip_text = "Cast your line  [Space / F]"
+	fish_btn.button_down.connect(func(): _hold_btn = true)
+	fish_btn.button_up.connect(func(): _hold_btn = false)
+	fish_btn.tooltip_text = "Cast your line — hold to keep fishing  [Space / F]"
 	mh.add_child(fish_btn)
 	sell_btn = btn("SELL", Color("#e07a3a"), 15, 112)
 	sell_btn.pressed.connect(_do_sell)
@@ -827,6 +852,9 @@ func _refresh_boosts() -> void:
 		if VF.is_boost_active(k):
 			names.append(k.capitalize())
 			tips.append("%s boost: %s left" % [k.capitalize(), _clock(VF.boost_left(k))])
+	if VF.beginner_mult() > 1.0:
+		names.append("🍀 Beginner's Luck ×%.1f XP" % VF.beginner_mult())
+		tips.append("Beginner's Luck: extra XP for new fishers, fades out by level %d" % VFData.BEGINNER_END)
 	if Time.get_unix_time_from_system() < VF.personal_until:
 		names.append("Personal")
 		tips.append("Personal booster: %s left" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
@@ -870,7 +898,7 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Inventory", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -890,6 +918,7 @@ func _render_panel() -> void:
 		"stats": _panel_stats()
 		"guide": _panel_guide()
 		"settings": _panel_settings()
+		"update": _panel_update()
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1247,6 +1276,8 @@ func _panel_stats() -> void:
 		v.add_child(lbl(r[1], 18))
 		p.add_child(v)
 		_add_to(g, p)
+	if VF.beginner_mult() > 1.0:
+		panel_body.add_child(lbl("🍀 Beginner's Luck: ×%.1f XP (included above) — fades out by level %d" % [VF.beginner_mult(), VFData.BEGINNER_END], 14, C_GOOD))
 	panel_body.add_child(lbl("Catch odds: %s in %s" % [VF.rod, VF.biome], 17))
 	if not VF.rod_usable():
 		panel_body.add_child(lbl("This rod can't be used here.", 14, C_BAD))
@@ -1286,6 +1317,30 @@ func _check_capture() -> void:
 		if a.begins_with("--demo="): demo = a.substr(7)
 	if dir == "": return
 	VF.autosave = false
+	if "--update-test" in OS.get_cmdline_user_args():
+		# exported-build test of in-game updates (tools/release.py --local + a local web server):
+		# download -> verify -> restart, then report what is running. Writes user://update_test.txt
+		VF.autosave = false
+		Updater.status_changed.connect(_update_test_step)
+		Updater.check()
+		return
+	if "--aim-test" in OS.get_cmdline_user_args():
+		# tap three different spots; the bobber must land on each (within a few px)
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 99
+		VF.changed.emit()
+		_coach_show()
+		await get_tree().create_timer(1.0).timeout
+		var vs := get_viewport_rect().size
+		var spots := [vs * Vector2(0.75, 0.62), vs * Vector2(0.45, 0.78), vs * Vector2(0.79, 0.32), vs * Vector2(0.72, 0.21), vs * Vector2(0.3, 0.2)]
+		for i in spots.size():
+			VF._last_cast_ms = -100000
+			_tap(spots[i])
+			await get_tree().create_timer(1.2).timeout
+			print("AIM tap=%s bobber=%s" % [spots[i].round(), stage.bobber_screen().round()])
+			await _shot(dir + "/aim%d.png" % i)
+		get_tree().quit()
+		return
 	if "--onboarding" in OS.get_cmdline_user_args():
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 0
@@ -1374,6 +1429,19 @@ func _build_version_label() -> void:
 	v.offset_bottom = -86
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	update_pill = btn("⬆  Update available", Color("#2f8f9e"), 14, 0)
+	update_pill.custom_minimum_size = Vector2(0, 34)
+	update_pill.anchor_left = 1.0
+	update_pill.anchor_right = 1.0
+	update_pill.anchor_top = 1.0
+	update_pill.anchor_bottom = 1.0
+	update_pill.offset_left = -230
+	update_pill.offset_right = -16
+	update_pill.offset_top = -142
+	update_pill.offset_bottom = -108
+	update_pill.visible = false
+	update_pill.pressed.connect(func(): _open_panel("update"))
+	add_child(update_pill)
 	add_child(v)
 	move_child(v, overlay.get_index())
 
@@ -1535,6 +1603,13 @@ func _panel_settings() -> void:
 	var keys := lbl("Shortcuts: Space/F cast · S sell · 1-9 menus · G guide · O settings · Esc close", 13, C_MUTED)
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel_body.add_child(keys)
+	var urow := HBoxContainer.new()
+	urow.add_theme_constant_override("separation", 12)
+	urow.add_child(lbl("Version %s (build %d)%s" % [VERSION, Updater.build, "  ·  update installed" if Updater.patch_loaded else ""], 14))
+	var ub := btn("Check for updates", Color("#2f8f9e"), 13, 170)
+	ub.pressed.connect(func(): _open_panel("update"); Updater.check())
+	urow.add_child(ub)
+	panel_body.add_child(urow)
 	var info := lbl("fosh&fish %s · made by afosh · your progress saves automatically" % VERSION, 12, C_MUTED)
 	panel_body.add_child(info)
 	var row := HBoxContainer.new()
@@ -1606,7 +1681,8 @@ var _coach_label: Label
 var _coach_t := 0.0
 
 const COACH_TEXT := {
-	0: "Tap the water to cast your line!",
+	0: "Tap the water to cast your line!
+(hold it down to keep fishing)",
 	1: "Nice catch! Your fish are in the hold.\nTap SELL to turn them into money.",
 	2: "Now visit the fish shop to spend it —\ntap the merchant on the island.",
 	3: "Better rods catch more and rarer fish.\nSave $500 for the Improved Rod, then come back!",
@@ -1866,3 +1942,97 @@ func _reel() -> void:
 		_cast_tap()
 		await _wait(1.7)
 	get_tree().quit()
+
+
+# ================================================================ updates
+func _on_update_status() -> void:
+	var st: String = Updater.state
+	update_pill.visible = st in ["available", "full_needed", "downloading", "ready"]
+	match st:
+		"downloading": update_pill.text = "⬇  Updating %d%%" % int(Updater.progress * 100.0)
+		"ready": update_pill.text = "↻  Restart to update"
+		_: update_pill.text = "⬆  Update available"
+	if st in ["available", "full_needed"] and not _update_announced:
+		_update_announced = true
+		_banner("Update available!", "fosh&fish %s is out — tap the Update button" % String(Updater.latest.get("version", "")),
+			icon_for("ui", "xp"), Color("#2f8f9e"))
+	if overlay.visible and _panel_kind == "update":
+		_render_panel()
+
+func _panel_update() -> void:
+	var U = Updater
+	panel_body.add_child(lbl("You have fosh&fish %s (build %d)%s" % [VERSION, U.build, " with an update installed" if U.patch_loaded else ""], 17))
+	var newest: String = String(U.latest.get("version", ""))
+	var status := ""
+	var action: Button = null
+	match U.state:
+		"idle", "checking":
+			status = "Checking for updates…"
+		"up_to_date":
+			status = "✓ You're on the newest version."
+			action = btn("Check again", C_NEUTRAL, 15, 180)
+			action.pressed.connect(U.check)
+		"available":
+			if U.platform() == "web":
+				status = "fosh&fish %s is out! Reload the page to play it." % newest
+				action = btn("Reload now", Color("#3fae6a"), 17, 220)
+			else:
+				var mb := float(U.patch_info().get("size", 0)) / 1048576.0
+				status = "fosh&fish %s is ready to download (%.1f MB). Your progress is kept." % [newest, mb]
+				action = btn("Update now", Color("#3fae6a"), 17, 220)
+			action.pressed.connect(U.download)
+		"full_needed":
+			status = "fosh&fish %s is a big update and needs a new download (one time). Your progress is kept." % newest
+			action = btn("Open downloads", Color("#2f8f9e"), 17, 220)
+			action.pressed.connect(U.open_downloads)
+		"downloading":
+			status = "Downloading the update…"
+		"ready":
+			status = "Update downloaded and checked. Restart to play %s." % newest
+			if U.platform() == "android":
+				status += "
+Close the game and open it again."
+			action = btn("Restart now" if U.platform() == "desktop" else "Close game", Color("#3fae6a"), 17, 220)
+			action.pressed.connect(U.restart)
+		"error":
+			status = U.error
+			action = btn("Try again", C_NEUTRAL, 15, 180)
+			action.pressed.connect(func():
+				U.state = "idle"
+				U.check())
+	var st := lbl(status, 16, C_BAD if U.state == "error" else C_TEXT)
+	st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel_body.add_child(st)
+	if U.state == "downloading":
+		var bar := ProgressBar.new()
+		bar.custom_minimum_size = Vector2(0, 22)
+		bar.value = U.progress * 100.0
+		panel_body.add_child(bar)
+	if action:
+		var row := HBoxContainer.new()
+		row.add_child(action)
+		panel_body.add_child(row)
+	var notes: Array = U.notes()
+	if not notes.is_empty() and U.state in ["available", "full_needed", "downloading", "ready"]:
+		panel_body.add_child(lbl("What's new", 18))
+		for n in notes:
+			var l := lbl("•  " + str(n), 15)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			panel_body.add_child(l)
+
+
+func _update_test_step() -> void:
+	match Updater.state:
+		"available": Updater.download()
+		"ready":
+			_update_test_report("downloaded build %d" % int(Updater.latest.build))
+			Updater.restart()
+		"up_to_date", "full_needed", "error":
+			_update_test_report("running %s build %d patched=%s state=%s %s" % [Updater.version, Updater.build, Updater.patch_loaded, Updater.state, Updater.error])
+			get_tree().quit()
+
+func _update_test_report(msg: String) -> void:
+	var path := "user://update_test.txt"
+	var f := FileAccess.open(path, FileAccess.READ_WRITE if FileAccess.file_exists(path) else FileAccess.WRITE)
+	f.seek_end()
+	f.store_line(msg)

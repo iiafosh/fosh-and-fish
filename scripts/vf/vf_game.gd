@@ -181,8 +181,17 @@ func sell_mult() -> float:
 	return (1.0 + 0.05 * up("salesman") + 0.05 * sp("fish_ovens") + 0.15 * sp("ultimate_salesman")
 		+ 0.40 * pk("business_education") + 0.20 * pk("virtual_fisher")) * marketing_mult() * stat_mult()
 
+## Beginner's Luck (not in the bot): new players level faster so chests and boosts
+## (level 10) arrive in the first session. x3 below level 10, fading to x1 at level 25.
+## First run only (prestige 0).
+func beginner_mult(lvl: int = -1) -> float:
+	if lvl < 0: lvl = level
+	if prestige > 0 or lvl >= VFData.BEGINNER_END: return 1.0
+	if lvl < 10: return VFData.BEGINNER_XP
+	return lerpf(VFData.BEGINNER_XP_AT10, 1.0, float(lvl - 10) / float(VFData.BEGINNER_END - 10))
+
 func xp_mult() -> float:
-	return maxf(0.1, 1.0 + 0.10 * up("experienced") + 0.15 * sp("highly_experienced") + 0.35 * pk("ancient_one")
+	return beginner_mult() * maxf(0.1, 1.0 + 0.10 * up("experienced") + 0.15 * sp("highly_experienced") + 0.35 * pk("ancient_one")
 		+ 0.20 * pk("virtual_fisher") + 0.05 * charm_tier("experience") + pet_stat("xp") + bait_stat("xp")) * stat_mult()
 
 func treasure_boost_mult() -> float:
