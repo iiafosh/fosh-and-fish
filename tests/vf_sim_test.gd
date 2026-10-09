@@ -119,5 +119,53 @@ func _init() -> void:
 	check(int(g2.charms.marketing) == 7 and int(g2.pets.Puffer.level) == 12 and g2.pet == "Puffer", "Charms and pets survive JSON round trip")
 	g2.free()
 
+	print("== online backend (no network)")
+	var B = load("res://scripts/net/backend.gd")
+	var shipped = JSON.parse_string(FileAccess.get_file_as_string("res://data/backend.json"))
+	check(shipped is Dictionary and shipped.has("url") and shipped.has("anon_key"), "data/backend.json has url + anon_key")
+	check(B.parse_config({}).url == "" and B.parse_config({"url": "", "anon_key": ""}).anon_key == "", "empty config = offline mode")
+	check(B.parse_config({"url": " https://abc.supabase.co/rest/v1/ ", "anon_key": " k "}).url == "https://abc.supabase.co"
+		and B.parse_config({"anon_key": " k "}).anon_key == "k", "config URL/key are cleaned up")
+	check(B.friendly_error({"net": true, "code": 0}).begins_with("Can't reach the server"), "offline -> friendly message")
+	check(B.friendly_error({"code": 400, "data": {"code": 400, "error_code": "invalid_credentials", "msg": "Invalid login credentials"}}) == "Wrong email or password."
+		and B.friendly_error({"code": 400, "data": {"error": "invalid_grant", "error_description": "Invalid login credentials"}}) == "Wrong email or password.",
+		"wrong password (new + old GoTrue errors)")
+	check(B.friendly_error({"code": 400, "data": {"error_code": "email_not_confirmed", "msg": "Email not confirmed"}}).begins_with("Please confirm your email"), "email not confirmed")
+	check(B.friendly_error({"code": 422, "data": {"error_code": "user_already_exists", "msg": "User already registered"}}).begins_with("That email already has an account"), "email taken")
+	check(B.friendly_error({"code": 429, "data": {"error_code": "over_request_rate_limit", "msg": "Request rate limit reached"}}).begins_with("Too many tries"), "rate limited")
+	check(B.friendly_error({"code": 409, "data": {"code": "23505", "message": "duplicate key value"}}) == "That name is taken. Try another one.", "name taken")
+	check(B.is_downgrade({"code": 400, "data": {"code": "P0001", "message": "save_downgrade: the cloud save has more progress"}}), "server downgrade refusal recognised")
+	check(B.validate_email("fisher@example.com") == "" and B.validate_email("fisher@") != "" and B.validate_email("a b@c.d") != "", "email check")
+	check(B.validate_password("12345") != "" and B.validate_password("hunter22") == "", "password needs 6+ characters")
+	check(B.validate_name("Marlin Mae") == "" and B.validate_name("Al") != "" and B.validate_name("<script>") != ""
+		and B.validate_name("x".repeat(21)) != "", "fisher name: 3-20 letters, numbers, spaces, _ - .")
+	check(B.validate_name("صياد_سمك") == "" and B.validate_name("Pêcheur") == "", "fisher names may use any alphabet")
+	var frag: Dictionary = B.parse_fragment("access_token=a.b&refresh_token=r1&type=recovery&error_description=Email+link+is+invalid")
+	check(frag.refresh_token == "r1" and frag.type == "recovery" and frag.error_description == "Email link is invalid", "email-link URL fragment parsed")
+	# which save wins
+	g.prestige = 3; g.level = 140; g.money = 9_007_199_254_740_993; g.stats.money_earned = 12_345_678_901_234_567; g.stats.trips = 4000
+	var here: Dictionary = B.summarize(g.to_dict())
+	var round_trip: Dictionary = B.summarize(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(here.fp == round_trip.fp and not here.fresh, "a save and its JSON cloud copy fingerprint the same (huge money too)")
+	check(B.save_valid(JSON.parse_string(JSON.stringify(g.to_dict()))) and not B.save_valid({}) and not B.save_valid({"v": 1, "level": 3}), "cloud save validation")
+	var fresh: Dictionary = B.summarize(g._defaults)
+	check(fresh.fresh, "a new install counts as fresh")
+	var cloud_sum := here.duplicate()
+	cloud_sum["updated_at"] = "2026-10-09T10:00:00+00:00"
+	var played: Dictionary = B.summarize(g.to_dict())
+	played.level = 141; played.fp = "played"
+	var behind := here.duplicate()
+	behind.level = 120; behind.fp = "behind"
+	var cloud_newer := cloud_sum.duplicate()
+	cloud_newer.level = 150; cloud_newer.fp = "elsewhere"; cloud_newer.updated_at = "2026-10-09T11:00:00+00:00"
+	check(B.decide(here, cloud_sum, "", "") == "same", "same progress -> nothing to do")
+	check(B.decide(fresh, cloud_sum, "", "") == "download", "fresh install -> cloud save loads")
+	check(B.decide(played, cloud_sum, here.fp, cloud_sum.updated_at) == "upload", "only this device moved -> upload")
+	check(B.decide(here, cloud_newer, here.fp, cloud_sum.updated_at) == "download", "only the cloud moved -> download")
+	check(B.decide(played, cloud_newer, here.fp, cloud_sum.updated_at) == "ask", "both moved -> ask the player")
+	check(B.decide(behind, cloud_sum, here.fp, cloud_sum.updated_at) == "ask", "this device lost progress (reset) -> ask, never upload")
+	check(B.decide(played, cloud_sum, "", "") == "ask", "first sign-in on a device with progress -> ask")
+	check(B.worse({"prestige": 2, "level": 900}, {"prestige": 3, "level": 1}) and not B.worse({"prestige": 3, "level": 5}, {"prestige": 3, "level": 5}), "prestige outranks level")
+
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)

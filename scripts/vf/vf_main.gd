@@ -81,10 +81,12 @@ var menu_btn: Button
 var panel_back: Button
 var tabs_track: PanelContainer
 var _update_announced := false
+var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
 
 func _ready() -> void:
 	_load_manifest()
 	_build()
+	account_ui = load("res://scripts/net/account_ui.gd").new(self)
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
@@ -128,6 +130,7 @@ func _process_hold() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		VF.save_game()
+		Backend.on_quit()          # signed in: upload the last progress before the window closes
 
 func _unhandled_input(event: InputEvent) -> void:
 	# tap / click anywhere on the scene to cast (mobile friendly)
@@ -1062,7 +1065,7 @@ func _refresh() -> void:
 	_apply_biome()
 	stage.set_rod(VF.rod)
 	_refresh_boosts()
-	if overlay.visible:
+	if overlay.visible and _panel_kind != "account":   # the account forms keep their typing focus
 		_render_panel()
 
 ## The cheapest useful purchase you can't afford yet (next rod or boat),
@@ -1147,6 +1150,7 @@ const PANEL_TABS := {
 	"prestige": ["Prestige", "Shop", "Guide"],
 	"quests": ["Quests", "Daily"],
 	"guide": VFGuide.TAB_ORDER,
+	"account": ["Account", "Leaderboard"],
 }
 
 func _open_panel(kind: String, tab: String = "") -> void:
@@ -1167,7 +1171,7 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1201,6 +1205,11 @@ func _render_panel() -> void:
 		"settings": _panel_settings()
 		"update": _panel_update()
 		"menu": _panel_menu()
+		"account": _panel_account()
+
+## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
+func _panel_account() -> void:
+	account_ui.build(_panel_tab)
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1605,6 +1614,12 @@ func _check_capture() -> void:
 		VF.autosave = false
 		Updater.status_changed.connect(_update_test_step)
 		Updater.check()
+		return
+	if "--backend-test" in OS.get_cmdline_user_args():
+		# accounts + cloud save end to end against tools/mock_supabase.py (see scripts/net/backend_test.gd)
+		var bt = load("res://scripts/net/backend_test.gd").new()
+		await bt.run(self, dir)
+		get_tree().quit(1 if bt.fails > 0 else 0)
 		return
 	if "--aim-test" in OS.get_cmdline_user_args():
 		# tap three different spots; the bobber must land on each (within a few px)
@@ -2334,6 +2349,7 @@ const MENU_TILES := [
 	["guide", "Guide", "question", "G", "How everything works"],
 	["settings", "Settings", "gear-six", "O", "Sound, screen, save"],
 	["update", "Updates", "arrow-circle-up", "", "Get the newest version"],
+	["account", "Account", "user-circle", "", "Cloud save & leaderboard"],
 ]
 
 const MENU_COLORS := {
@@ -2384,6 +2400,7 @@ func _panel_menu() -> void:
 			bubble.add_theme_stylebox_override("panel", sbox(C_GOOD, 12, 0, Color.TRANSPARENT, 7))
 			sub.text = "Update available!"
 			sub.add_theme_color_override("font_color", C_GOOD)
+		if t[0] == "account": sub.text = account_ui.tile_subtitle()
 		var kind: String = t[0]
 		b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
 		g.add_child(b)

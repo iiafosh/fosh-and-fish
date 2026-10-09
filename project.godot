@@ -26,6 +26,7 @@ boot_splash/show_image=true
 Updater="*res://scripts/updater.gd"
 VF="*res://scripts/vf/vf_game.gd"
 AudioManager="*res://scripts/audio_manager.gd"
+Backend="*res://scripts/net/backend.gd"
 
 [display]
 
