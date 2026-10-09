@@ -160,7 +160,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				if overlay.visible and _panel_kind == "guide": _close_panel()
 				else: _open_panel("guide")
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
-				var kinds := ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats"]
+				var kinds := ["shop", "biomes", "inventory", "charms", "pets", "boosts", "quests", "prestige", "stats"]   # same order as the Menu tiles
 				var k: String = kinds[event.keycode - KEY_1]
 				if overlay.visible and _panel_kind == k: _close_panel()
 				else: _open_panel(k)
@@ -1676,7 +1676,7 @@ func _check_capture() -> void:
 		get_tree().quit()
 		return
 	await _shot(dir + "/main.png")
-	var shots := [["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""]]
+	var shots := [["menu", ""], ["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
 		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:
@@ -2336,6 +2336,13 @@ const MENU_TILES := [
 	["update", "Updates", "arrow-circle-up", "", "Get the newest version"],
 ]
 
+const MENU_COLORS := {
+	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
+	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
+	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
+	"account": Color("#6366f1"),
+}
+
 func _panel_menu() -> void:
 	var g := _grid(4)
 	g.add_theme_constant_override("h_separation", 12)
@@ -2345,6 +2352,7 @@ func _panel_menu() -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		b.custom_minimum_size = Vector2(196, 104)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_stylebox_override("normal", sbox(C_PANEL2, 18, 0, Color.TRANSPARENT, 12))
 		b.add_theme_stylebox_override("hover", sbox(Color.WHITE, 18, 2, C_TEAL.lightened(0.3), 12, 8))
 		b.add_theme_stylebox_override("pressed", sbox(Color("#dcebef"), 18, 2, C_TEAL, 12))
@@ -2358,7 +2366,7 @@ func _panel_menu() -> void:
 		v.add_theme_constant_override("separation", 4)
 		var top := HBoxContainer.new()
 		var bubble := PanelContainer.new()
-		bubble.add_theme_stylebox_override("panel", sbox(accent() if t[0] == "biomes" else C_TEAL, 12, 0, Color.TRANSPARENT, 7))
+		bubble.add_theme_stylebox_override("panel", sbox(MENU_COLORS.get(t[0], C_TEAL), 12, 0, Color.TRANSPARENT, 7))
 		var ic := icon(ph(t[2]), 22)
 		bubble.add_child(ic)
 		top.add_child(bubble)
