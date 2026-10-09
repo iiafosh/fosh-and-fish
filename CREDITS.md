@@ -21,6 +21,7 @@ only the files the game uses are copied into `assets/third_party/` or baked into
 | [Interface Sounds](https://kenney.nl/assets/interface-sounds) | Kenney | CC0 | UI clicks and confirmations |
 | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) | rubberduck (OpenGameArt) | CC0 | Splashes, bubbles, water ambience |
 | [Fredoka](https://fonts.google.com/specimen/Fredoka) | Milena Brandão, Hafontia | SIL OFL 1.1 (`assets/third_party/fonts/OFL.txt`) | UI font |
+| [Phosphor Icons](https://phosphoricons.com) | Phosphor Icons (Helena Zhang, Tobias Fried) | MIT (`assets/third_party/phosphor/LICENSE`) | interface icons |
 
 Game mechanics data: Virtual Fisher Encyclopaedia (@defilantema), virtualfisher.miraheze.org wiki,
 Virtual Fisher Prestige 0 Guide (infernal._. and contributors).

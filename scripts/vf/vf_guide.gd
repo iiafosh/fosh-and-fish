@@ -46,9 +46,9 @@ const TABS := {
 	],
 	"Controls": [
 		["Desktop", ["ui", "settings"],
-		"Space / F or click the water — cast\nS — sell everything\n1–9 — open Hold, Shop, Map, Charms, Pets, Boosts, Quests, Prestige, Buffs\nG — guide · O — settings (music, sound, fullscreen)\nEsc — close a panel"],
+		"Click the water — cast right there (hold to keep fishing)\nSpace / F — cast where you aimed last (hold to keep fishing)\nS — sell everything · Tab — Fish Book · P — phone\nEsc — menu (or close a panel) · 1–9 — Shop, Map, Fish Book, Charms, Pets, Boosts, Quests, Prestige, Buffs\nG — guide · O — settings (music, sound, fullscreen)"],
 		["Phone & tablet", ["ui", "settings"],
-		"Tap the water to cast, tap the fish shop to buy. On the web version use your browser's \"Add to Home Screen\" to play full-screen in landscape."],
+		"Tap the water to cast exactly there; keep your finger down to keep fishing. The round button bottom-right casts too. Tap the fish shop to buy. On the web version use your browser's \"Add to Home Screen\" to play full-screen in landscape."],
 		["Saving", ["ui", "daily"],
 		"The game saves automatically every 20 seconds and when you close it. Desktop and web keep separate saves. Settings (O) has the music/sound switches and Reset save."],
 	],
@@ -58,4 +58,4 @@ const TAB_ORDER := ["Basics", "Gear", "Progress", "Prestige", "Controls", "Credi
 const AUTHOR := "afosh"
 const SOCIALS := [["LinkedIn", "https://www.linkedin.com/in/mostafa-kmal-3731453a9/"],
 	["GitHub", "https://github.com/iiafosh"]]
-const ASSET_CREDITS := "Fish, characters & market art: Quaternius (CC0) · Nature, boats, particles, UI & sounds: Kenney (CC0) · Seagull & crab: Poly by Google (CC-BY 3.0) · Water sounds: OpenGameArt (CC0) · Font: Fredoka (OFL) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."
+const ASSET_CREDITS := "Fish, characters & market art: Quaternius (CC0) · Nature, boats, particles, UI & sounds: Kenney (CC0) · Seagull & crab: Poly by Google (CC-BY 3.0) · Water sounds: OpenGameArt (CC0) · Font: Fredoka (OFL) · Interface icons: Phosphor Icons (MIT) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."
