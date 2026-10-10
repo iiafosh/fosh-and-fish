@@ -1,0 +1,16 @@
+{
+  "version": "0.5",
+  "build": 2,
+  "base": 2,
+  "notes": [
+    "Sail between biomes (WASD or drag the boat)",
+    "FishTok phone: trending fish +50%, daily challenge, followers",
+    "Online accounts, cloud save and leaderboard",
+    "In-game updates: future versions install from Menu -> Updates",
+    "17 new boats, new minimal UI, cast where you tap, hold to fish",
+    "Fixed: Arabic phones, the ring on the boat, paper-thin boat turns"
+  ],
+  "date": "2026-10-10",
+  "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
+  "patches": {}
+}
