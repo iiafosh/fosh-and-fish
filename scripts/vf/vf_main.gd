@@ -922,7 +922,9 @@ func _start_minigame(cast_start: int) -> void:
 	var mg: Control = script.new()
 	mg.setup(self, biter[0], biter[1])
 	mg.resolved.connect(func(won: bool): VF.cast_reel(won, cast_start))
-	mg.tree_exited.connect(func(): if minigame == mg: minigame = null)
+	mg.tree_exited.connect(func():
+		if minigame == mg: minigame = null
+		if is_instance_valid(stage): stage.reel_in())   # the catch comes in once the card closes
 	minigame = mg
 	add_child(mg)
 
@@ -936,6 +938,10 @@ func _do_sell() -> void:
 
 func _on_trip(res: Dictionary) -> void:
 	_show_catch(res)
+	# the catch comes in: the bobber zips back to the rod a moment after the splash
+	# (in both catch modes - in Reel mode the long line used to stay stretched out)
+	get_tree().create_timer(0.55).timeout.connect(func():
+		if is_instance_valid(stage): stage.reel_in())
 	for f in res.get("new_species", []):
 		_banner("New fish discovered!", "%s  ·  %d / %d in your collection" % [f, VF.discovered.size(), VFData.FISH_ORDER.size()],
 			icon_for("fish", f), Color("#2f8f9e"))

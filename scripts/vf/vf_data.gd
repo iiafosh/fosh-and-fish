@@ -49,7 +49,7 @@ const MIN_COOLDOWN := 2.0         # Haste charm floor (wiki Charm page)
 ## Catch modes (not in the bot): "relax" = tap, wait out the cooldown (classic);
 ## "reel" = a short "Reel it in!" mini-game after each bite.
 const CATCH_MODES := ["relax", "reel"]
-const MINIGAME_FISH_BONUS := 0.25 # win the mini-game: +25% fish on that cast
+const MINIGAME_FISH_BONUS := 0.75 # win the mini-game: +75% fish on that cast (owner: skill should pay off)
 const MINIGAME_COOLDOWN := 0.5    # ... and the next cast is ready after 0.5s (instead of the normal cooldown)
 const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer fish: up to +1s)
 

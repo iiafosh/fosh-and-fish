@@ -59,7 +59,7 @@ func _init() -> void:
 	for i in 4000:
 		tn += g._fish_count()
 	var ratio := float(tb) / float(tn)
-	check(absf(ratio - (1.0 + VFData.MINIGAME_FISH_BONUS)) < 0.05, "won mini-game: +25%% fish on average (x%.3f)" % ratio)
+	check(absf(ratio - (1.0 + VFData.MINIGAME_FISH_BONUS)) < 0.05, "won mini-game: +%d%% fish on average (x%.3f)" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), ratio])
 	g._last_cast_ms = -100000
 	var rw: Dictionary = g.cast_reel(true)
 	check(rw.ok and rw.reel == "win" and absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001
