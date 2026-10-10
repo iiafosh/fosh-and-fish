@@ -1,27 +1,25 @@
 {
-  "version": "0.5.2",
-  "build": 4,
+  "version": "0.5.3",
+  "build": 5,
   "base": 2,
   "notes": [
-    "Reel it in! is much easier: every rod has a reel power (bigger zone, faster reel, less slipping)",
-    "Easier on PC and Linux: bigger zone, calmer fish, faster reel, +2 seconds",
-    "Fairer on phones too"
+    "Reel it in! rebalanced: a fair challenge for common fish, rare fish need a better rod, even the best rod can lose to the rarest fish"
   ],
   "date": "2026-10-10",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.2/fosh_fish-0.5.2-patch-desktop.pck",
-        "size": 2568348,
-        "sha256": "3c00c2444603154660a544242f36473ee87bc884f5162f6fc4842365e3241e14",
-        "sig": "KvFgODR+ycWdwdhwp6/KMMCIms43If018GOUTYzn4z/ib94cdX+dN47FU533EO+kMpxPD3S45CI1l+oCN2PfoEfqFoN3zpNgL+E1exIxBgbu/ud241xdv0FXFA6ZgIKEPmPuk/5Jx4JXCUyx2HcrVkUppvtjsxsY1k2mKZpbvhQYkIU4rDa3s0eFY2mteQuSALt2LydEkDbzxUhtaZck/89aqOsqbH0i7vpYLauoVFokTeAuiUSm3MFmes1PvKPPKE57iKMg6+jItmkWZgqK9xTku2kCT8k8XCRj2x9bNqiiNF1nQEtK2UOiRMzg7g+UJ4HMId7f2y1Q5W8+S3UnVw=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.3/fosh_fish-0.5.3-patch-desktop.pck",
+        "size": 2568300,
+        "sha256": "b9f78f5b57692cddb1cf6661c0019ad7f971c5b2f2de61dbbff78fd2843a97a3",
+        "sig": "f+elajbzgdG8SZXiWQGdZ0F+gnYlIN1ipw6wEyshBCsTAISczO/XqEo9FoNA2nX28yZpr4mcHzocc2VlUSMIOXIdEchR9gEhXaynqAlB1Ra5eZDgmf3Iq2S1ju8l92X9MjpK4fP2tumVLCq+zcX6uuPw6LEnH8D0YF5drUJoY5Dv4L/KY7i/YHjmWHlkGqgRuY1a31dU8wf7Ot4XzCZX/cVb431plaI2TSSTPsT0W/J09gm8QFNQB/rjiy68tDFfLJ4SYCAPW4zOdhCkWB+e7u3yruk36VVB7zgWwLjJRCqF5VQ/AYUtp3kdHlYVL5OLNuzS3DO2ddspVBcEm60uig=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.2/fosh_fish-0.5.2-patch-android.pck",
-        "size": 2568348,
-        "sha256": "3c00c2444603154660a544242f36473ee87bc884f5162f6fc4842365e3241e14",
-        "sig": "KvFgODR+ycWdwdhwp6/KMMCIms43If018GOUTYzn4z/ib94cdX+dN47FU533EO+kMpxPD3S45CI1l+oCN2PfoEfqFoN3zpNgL+E1exIxBgbu/ud241xdv0FXFA6ZgIKEPmPuk/5Jx4JXCUyx2HcrVkUppvtjsxsY1k2mKZpbvhQYkIU4rDa3s0eFY2mteQuSALt2LydEkDbzxUhtaZck/89aqOsqbH0i7vpYLauoVFokTeAuiUSm3MFmes1PvKPPKE57iKMg6+jItmkWZgqK9xTku2kCT8k8XCRj2x9bNqiiNF1nQEtK2UOiRMzg7g+UJ4HMId7f2y1Q5W8+S3UnVw=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.3/fosh_fish-0.5.3-patch-android.pck",
+        "size": 2568300,
+        "sha256": "b9f78f5b57692cddb1cf6661c0019ad7f971c5b2f2de61dbbff78fd2843a97a3",
+        "sig": "f+elajbzgdG8SZXiWQGdZ0F+gnYlIN1ipw6wEyshBCsTAISczO/XqEo9FoNA2nX28yZpr4mcHzocc2VlUSMIOXIdEchR9gEhXaynqAlB1Ra5eZDgmf3Iq2S1ju8l92X9MjpK4fP2tumVLCq+zcX6uuPw6LEnH8D0YF5drUJoY5Dv4L/KY7i/YHjmWHlkGqgRuY1a31dU8wf7Ot4XzCZX/cVb431plaI2TSSTPsT0W/J09gm8QFNQB/rjiy68tDFfLJ4SYCAPW4zOdhCkWB+e7u3yruk36VVB7zgWwLjJRCqF5VQ/AYUtp3kdHlYVL5OLNuzS3DO2ddspVBcEm60uig=="
       }
     }
   }
