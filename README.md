@@ -19,7 +19,7 @@ Made with **Godot 4**; all the art is rendered in **Blender**.
 
 No Godot or other install needed. After installing once, new versions arrive inside the game: **Menu → Updates**. How to play: [GUIDE.md](GUIDE.md) or press **G** in the game.
 What's new: [CHANGELOG.md](CHANGELOG.md).
-🎬 Watch the 30-second trailer: [fosh-and-fish-trailer-16x9.mp4](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.1-beta/fosh-and-fish-trailer-16x9.mp4) (also [vertical](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.1-beta/fosh-and-fish-trailer-9x16.mp4) and [square](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.1-beta/fosh-and-fish-trailer-1x1.mp4))
+🎬 Watch the 0.5 trailer: [widescreen](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-16x9.mp4) · [square](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-1x1.mp4) · [vertical](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-9x16.mp4)
 
 ## 💬 Feedback
 

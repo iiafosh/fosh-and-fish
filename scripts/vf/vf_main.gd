@@ -1701,6 +1701,9 @@ func _check_capture() -> void:
 	if "--trailer" in OS.get_cmdline_user_args():
 		_trailer()
 		return
+	if "--reel05" in OS.get_cmdline_user_args():
+		_reel05()
+		return
 	if "--reel" in OS.get_cmdline_user_args():
 		_reel()
 		return
@@ -2752,3 +2755,104 @@ func _phone_test(dir: String) -> void:
 	phone.close()
 	await _wait(0.7)
 	await _shot(dir + "/phone_19_closed.png")
+
+
+## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --reel05
+## clean footage of the 0.5 features for the trailer (tools/video/edit05.py): MARK lines as in _reel().
+func _reel05() -> void:
+	VF.autosave = false
+	AudioManager.music_on = true
+	AudioManager.sfx_on = true
+	AudioManager.apply_settings()
+	# 1) hero: a veteran cruise ship hauling in
+	_veteran("Ocean")
+	VF.tutorial = 99
+	_coach_show()
+	await _wait(1.0)
+	for i in 3:
+		await _wait(0.3)
+		_mark("hero")
+		_cast_tap()
+		await _wait(1.8)
+	# 2) a fresh start: tap the water
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.catch_mode = "relax"
+	VF.changed.emit()
+	_coach_show()
+	await _wait(1.0)
+	for i in 2:
+		await _wait(0.3)
+		_mark("tap")
+		_cast_tap()
+		await _wait(1.7)
+	# 3) Reel it in!: a won mini-game
+	_set_catch_mode("reel")
+	await _wait(0.6)
+	VF._last_cast_ms = -100000
+	_mark("mg_cast")
+	_cast_tap()
+	while minigame == null:
+		await get_tree().process_frame
+	var mg = minigame
+	mg.auto = "win"
+	await _wait(0.4)
+	_mark("mg_play")
+	while is_instance_valid(mg) and mg.phase != "end":
+		await get_tree().process_frame
+	_mark("mg_win")
+	while minigame != null:
+		await get_tree().process_frame
+	await _wait(0.5)
+	_mark("mg_after")
+	await _wait(1.0)
+	_set_catch_mode("relax")
+	# 4) the captain: a little dance
+	_mark("dance")
+	stage.react("dance")
+	await _wait(2.4)
+	# 5) sail through the sea lane: River -> Volcanic
+	_veteran("River")
+	VF.level = 3000
+	VF.changed.emit()
+	await _wait(1.0)
+	_mark("sail_go")
+	var t0 := Time.get_ticks_msec()
+	var marked_wipe := false
+	while Time.get_ticks_msec() - t0 < 14000:
+		if sail.state == "idle" and VF.biome == "River": sail._helm(1)
+		else: sail._helm(0)
+		if not marked_wipe and sail.wipe_k > 0.3:
+			marked_wipe = true
+			_mark("sail_wipe")
+		if VF.biome == "Volcanic" and sail.state == "idle": break
+		await get_tree().process_frame
+	sail._helm(0)
+	_mark("sail_arrive")
+	await _wait(1.6)
+	# 6) FishTok
+	_open_phone()
+	await _wait(1.2)
+	_mark("phone")
+	await _wait(2.4)
+	if phone and phone.has_method("go_home"): phone.go_home()
+	await _wait(0.8)
+	_mark("phone_home")
+	await _wait(1.6)
+	if phone: phone.close(false)
+	await _wait(0.6)
+	# 7) new boats across the biomes
+	for b in ["Sky", "Space", "Alien", "Abyss"]:
+		_veteran(b)
+		await _wait(0.6)
+		_mark("boat_" + b)
+		_cast_tap()
+		await _wait(1.6)
+	# 8) wide hero for the end
+	_veteran("Ocean")
+	await _wait(0.6)
+	for i in 2:
+		_mark("end")
+		_cast_tap()
+		await _wait(1.8)
+	get_tree().quit()
