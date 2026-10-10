@@ -1,16 +1,28 @@
 {
-  "version": "0.5",
-  "build": 2,
+  "version": "0.5.1",
+  "build": 3,
   "base": 2,
   "notes": [
-    "Sail between biomes (WASD or drag the boat)",
-    "FishTok phone: trending fish +50%, daily challenge, followers",
-    "Online accounts, cloud save and leaderboard",
-    "In-game updates: future versions install from Menu -> Updates",
-    "17 new boats, new minimal UI, cast where you tap, hold to fish",
-    "Fixed: Arabic phones, the ring on the boat, paper-thin boat turns"
+    "Reel it in! catch mini-game: win for +75% fish and a 0.5 s cooldown",
+    "New fisherman: sits on his cooler, dozes, sips, waves, dances and facepalms",
+    "The line reels back to the rod after every catch"
   ],
   "date": "2026-10-10",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
-  "patches": {}
+  "patches": {
+    "2": {
+      "desktop": {
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.1/fosh_fish-0.5.1-patch-desktop.pck",
+        "size": 2566188,
+        "sha256": "8ba56235aa206823841539db47c0e185f69ad622610ef82e286b3e919845715b",
+        "sig": "l8RiKhqemjVegpNd65BE09038tUeRLfTQNBYzDtH38VRNbaTum47nvre/w5bc4BM6n+WBNPV9+xrou9Kk79a3vXEFu31/66iY9SrNPbzZt7ERRypv8A/1Fft4WqWB5c8CPd/jieHW67BBrEAsmLyk2KFEfp4oIYga+5AL/DmDSbD5SxUVSCTZnSJa/jyEXAMY6PZaYjldON3ayJztU3bbNHuTf8uCviVRk9OaSYww1wLLvcGgS6AF1mHrUWJsxqCbmDJ3vrTGnmAwuvXevIJQQXckU4T3QQrzp7xdUliwnHV/NQbVQwXUlLtlUT9NJqx6Vk53RK/qflWD6URtFIUuA=="
+      },
+      "android": {
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.1/fosh_fish-0.5.1-patch-android.pck",
+        "size": 2566188,
+        "sha256": "8ba56235aa206823841539db47c0e185f69ad622610ef82e286b3e919845715b",
+        "sig": "l8RiKhqemjVegpNd65BE09038tUeRLfTQNBYzDtH38VRNbaTum47nvre/w5bc4BM6n+WBNPV9+xrou9Kk79a3vXEFu31/66iY9SrNPbzZt7ERRypv8A/1Fft4WqWB5c8CPd/jieHW67BBrEAsmLyk2KFEfp4oIYga+5AL/DmDSbD5SxUVSCTZnSJa/jyEXAMY6PZaYjldON3ayJztU3bbNHuTf8uCviVRk9OaSYww1wLLvcGgS6AF1mHrUWJsxqCbmDJ3vrTGnmAwuvXevIJQQXckU4T3QQrzp7xdUliwnHV/NQbVQwXUlLtlUT9NJqx6Vk53RK/qflWD6URtFIUuA=="
+      }
+    }
+  }
 }
