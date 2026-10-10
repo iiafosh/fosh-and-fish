@@ -51,6 +51,36 @@ func _init() -> void:
 	var avg := tot / 2000.0
 	check(avg > 6.5 and avg < 7.5, "Plastic Rod averages ~7 fish/cast (got %.2f)" % avg)
 
+	print("== catch modes (Relax / Reel it in!)")
+	var tb := 0
+	for i in 4000:
+		tb += g._fish_count(false, VFData.MINIGAME_FISH_BONUS)
+	var tn := 0
+	for i in 4000:
+		tn += g._fish_count()
+	var ratio := float(tb) / float(tn)
+	check(absf(ratio - (1.0 + VFData.MINIGAME_FISH_BONUS)) < 0.05, "won mini-game: +25%% fish on average (x%.3f)" % ratio)
+	g._last_cast_ms = -100000
+	var rw: Dictionary = g.cast_reel(true)
+	check(rw.ok and rw.reel == "win" and absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001
+		and g.cooldown_left() <= VFData.MINIGAME_COOLDOWN and g.cooldown_left() > 0.3, "won mini-game: next cast ready after 0.5s (left %.2f)" % g.cooldown_left())
+	var t0 := Time.get_ticks_msec()
+	var rl: Dictionary = g.cast_reel(false, t0)
+	check(rl.ok and rl.reel == "lose" and is_equal_approx(g.cur_cooldown(), g.cooldown()) and g.cooldown_left() > 3.0,
+		"lost mini-game: normal catch + normal cooldown")
+	g._last_cast_ms = -100000
+	var rr: Dictionary = g.cast()
+	check(rr.reel == "" and is_equal_approx(g.cur_cooldown(), g.cooldown()), "Relax cast: normal cooldown, no bonus tag")
+	g.set_catch_mode("reel")
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.catch_mode = "relax"
+	g._apply(saved)
+	check(g.catch_mode == "reel", "catch mode survives save/load")
+	saved.erase("catch_mode")
+	g._apply(saved)
+	check(g.catch_mode == "relax", "old saves default to Relax mode")
+	g._last_cast_ms = -100000
+
 	print("== P0 run: play the guide's opening")
 	var casts := 0
 	g._last_cast_ms = -100000

@@ -47,6 +47,7 @@ var discovered := {}                      # species -> total ever caught (fishde
 var goals_done := 0                       # STARTER_GOALS completed (in order)
 var tutorial := 0                         # onboarding step (UI)
 var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
+var catch_mode := "relax"                 # "relax" (wait the cooldown) | "reel" (mini-game, VFData.MINIGAME_*)
 var quest_day := ""
 var quest_progress := {}
 var quest_claimed := {}
@@ -59,6 +60,8 @@ var worker_fish_total := 0
 
 # --- runtime ---
 var _last_cast_ms := -100000
+var _cd_override := -1.0                  # cooldown of the last cast when it was not the normal one (mini-game win)
+var reel_result := ""                     # "win" / "lose" while cast_reel() runs (-> result "reel")
 var _worker_accum := 0.0
 
 var _defaults := {}
@@ -224,8 +227,12 @@ func worker_cooldown() -> float:
 	return VFData.WORKER_BASE_COOLDOWN / (1.0 + 0.1 * sp("boost_booster") + 0.1 * lg("fishing_frenzy"))
 
 # ------------------------------------------------------------------ fishing
+## the cooldown that is running now (a won mini-game shortens it to VFData.MINIGAME_COOLDOWN)
+func cur_cooldown() -> float:
+	return _cd_override if _cd_override >= 0.0 else cooldown()
+
 func cooldown_left() -> float:
-	return maxf(0.0, cooldown() - (Time.get_ticks_msec() - _last_cast_ms) / 1000.0)
+	return maxf(0.0, cur_cooldown() - (Time.get_ticks_msec() - _last_cast_ms) / 1000.0)
 
 func rod_usable(r: String = "", b: String = "") -> bool:
 	if r == "": r = rod
@@ -268,7 +275,8 @@ func species_odds(r: String = "", b: String = "", fq: float = -1.0) -> Array:
 	e[0] = maxf(0.0, 1.0 - used)
 	return e
 
-func _fish_count(for_worker: bool = false) -> int:
+## fish_bonus: extra share of fish (0.25 = +25%, a won "Reel it in!" mini-game)
+func _fish_count(for_worker: bool = false, fish_bonus: float = 0.0) -> int:
 	var r: Dictionary = VFData.RODS[rod]
 	var bm: Dictionary = VFData.BIOMES[biome]
 	var cnt := float(rng.randi_range(r.min, r.max))
@@ -286,6 +294,7 @@ func _fish_count(for_worker: bool = false) -> int:
 		var ff := lg("fishing_frenzy")
 		cnt += bm.catch_rate * rng.randf_range(0.0, 4.0) + 1.0 + bb + rng.randf_range(0.0, 2.0) * ff
 		cnt *= 1.05 + 0.01 * ff + 0.01 * bb
+	cnt *= 1.0 + fish_bonus
 	var n := int(floor(cnt))
 	if rng.randf() < cnt - n: n += 1
 	if n > 0 and rng.randf() < duplicate_chance():
@@ -325,16 +334,17 @@ func can_cast() -> String:
 	if not rod_usable(): return "Your %s can't be used in the %s biome." % [rod, biome]
 	return ""
 
-func cast() -> Dictionary:
+func cast(fish_bonus: float = 0.0) -> Dictionary:
 	var why := can_cast()
 	if why != "":
 		return {"ok": false, "reason": why}
 	_last_cast_ms = Time.get_ticks_msec()
+	_cd_override = -1.0
 	_roll_quest_day()
 	var res := {"ok": true, "fish": {}, "count": 0, "xp": 0, "chest": {}, "pet": "", "bait_used": "",
-		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0}
+		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0, "reel": reel_result}
 	var used_bait := has_bait()
-	var n := _fish_count()
+	var n := _fish_count(false, fish_bonus)
 	var caught := _distribute(n)
 	var xp_gain := 0.0
 	for f in caught:
@@ -384,6 +394,29 @@ func cast() -> Dictionary:
 	check_goals()
 	changed.emit()
 	return res
+
+## "Reel it in!" mode: the catch after the mini-game (the mini-game already waited, so the
+## cooldown is not checked again). Win: +MINIGAME_FISH_BONUS fish and the next cast is ready
+## after MINIGAME_COOLDOWN. Lose: the normal catch and the normal cooldown, counted from
+## cast_start_ms (when the line went out), so it is never slower than Relax mode.
+func cast_reel(won: bool, cast_start_ms: int = -1) -> Dictionary:
+	_last_cast_ms = -100000
+	reel_result = "win" if won else "lose"           # read by the catch card (trip_done)
+	var res := cast(VFData.MINIGAME_FISH_BONUS if won else 0.0)
+	reel_result = ""
+	if res.ok:
+		if won:
+			_last_cast_ms = Time.get_ticks_msec()
+			_cd_override = VFData.MINIGAME_COOLDOWN
+		elif cast_start_ms >= 0:
+			_last_cast_ms = cast_start_ms
+	return res
+
+func set_catch_mode(m: String) -> void:
+	if m in VFData.CATCH_MODES and m != catch_mode:
+		catch_mode = m
+		changed.emit()
+		save_game()
 
 # ------------------------------------------------------------------ chests
 func _roll_chest_tier() -> String:
@@ -850,6 +883,7 @@ func to_dict() -> Dictionary:
 		"discovered": discovered, "goals_done": goals_done, "tutorial": tutorial,
 		"tok": _tok_dict(),
 		"sail_hint": sail_hint,
+		"catch_mode": catch_mode,
 	}
 
 var autosave := true
@@ -883,6 +917,8 @@ func _apply(d: Dictionary) -> void:
 	discovered = _ints(d.get("discovered", {}))
 	tutorial = int(d.get("tutorial", 0))
 	sail_hint = bool(d.get("sail_hint", false))
+	catch_mode = str(d.get("catch_mode", "relax"))
+	if not catch_mode in VFData.CATCH_MODES: catch_mode = "relax"
 	if d.has("goals_done"):
 		goals_done = int(d.goals_done)
 	else:

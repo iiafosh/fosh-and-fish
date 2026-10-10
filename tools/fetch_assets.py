@@ -17,6 +17,8 @@ ZIPS = {
     "kenney_ui_adventure": "https://kenney.nl/media/pages/assets/ui-pack-adventure/9a877376bc-1723597274/kenney_ui-pack-adventure.zip",
     "kenney_nature": "https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip",
     "splash_sfx": "https://opengameart.org/sites/default/files/water-splash-slime-sfx.zip",
+    "kenney_fish": "https://kenney.nl/media/pages/assets/fish-pack/07ae98c5b6-1747237960/kenney_fish-pack_2.zip",       # mini-game fish (PNG/Double)
+    "kenney_emotes": "https://kenney.nl/media/pages/assets/emotes-pack/d00a3dcb06-1677578798/kenney_emotes-pack.zip",  # mini-game reactions (PNG/Vector/Style 3)
 }
 GLBS = {
     "dolphin": "fcea284f-cafc-4be1-a701-2a0fd811ad5c", "shark": "d2d374ea-eb1d-4659-8cc7-816a83b82470",
