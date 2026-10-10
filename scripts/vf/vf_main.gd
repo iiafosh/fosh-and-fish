@@ -117,6 +117,7 @@ func _process(delta: float) -> void:
 	_process_hold()
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
+		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
 	_process_coach(delta)
 
 ## hold the FISH button, Space/F, or a finger on the water to keep casting
@@ -124,7 +125,7 @@ func _process_hold() -> void:
 	if _hold_water and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_hold_water = false
 	var held := _hold_btn or _hold_water or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_F)
-	if held and not overlay.visible and VF.cooldown_left() <= 0.0 and VF.can_cast() == "":
+	if held and not overlay.visible and not _phone_open() and VF.cooldown_left() <= 0.0 and VF.can_cast() == "":
 		_do_cast()
 
 func _notification(what: int) -> void:
@@ -989,7 +990,7 @@ func _show_catch(res: Dictionary) -> void:
 		var row := HBoxContainer.new()
 		row.add_child(icon(icon_for("fish", f), 34))
 		row.add_child(lbl("%s × %s" % [f, VF.commas(res.fish[f])], 15))
-		var val := lbl(money_str(res.fish[f] * VFData.FISH[f].price * VF.sell_mult()), 13, C_MUTED)
+		var val := lbl(money_str(res.fish[f] * VF.fish_price(f) * VF.sell_mult()), 13, C_GOLD if VF.is_trending(f) else C_MUTED)
 		val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(val)
@@ -1267,7 +1268,8 @@ func _panel_inventory() -> void:
 		var n := int(VF.inventory.get(f, 0))
 		if n <= 0: continue
 		_add_to(g, _card(icon_for("fish", f), "%s × %s" % [f, VF.commas(n)],
-			"%s each • %s total" % [money_str(VFData.FISH[f].price * VF.sell_mult()), money_str(n * VFData.FISH[f].price * VF.sell_mult())], null, false, 56))
+			"%s each • %s total" % [money_str(VF.fish_price(f) * VF.sell_mult()), money_str(n * VF.fish_price(f) * VF.sell_mult())],
+			_trend_tag() if VF.is_trending(f) else null, false, 56))
 	if g.get_child_count() == 0:
 		panel_body.add_child(lbl("Your hold is empty. Go fish!", 16, C_MUTED))
 	panel_body.add_child(lbl("Fish collection  %d / %d" % [VF.discovered.size(), VFData.FISH_ORDER.size()], 18))
@@ -1278,6 +1280,12 @@ func _panel_inventory() -> void:
 		ic.modulate = Color.WHITE if known else Color(0.1, 0.12, 0.18, 0.55)
 		ic.tooltip_text = ("%s — caught %s" % [f, VF.commas(int(VF.discovered[f]))]) if known else "??? (not discovered yet)"
 		ic.mouse_filter = Control.MOUSE_FILTER_STOP
+		if VF.is_trending(f):                 # FishTok trending fish: small flame badge
+			var fl := icon(ph("fire"), 18)
+			fl.modulate = Color("#ff6a2b")
+			fl.position = Vector2(34, -2)
+			ic.add_child(fl)
+			ic.tooltip_text += "\nTrending on FishTok today: sells for +50%"
 		dex.add_child(ic)
 
 func _panel_shop() -> void:
@@ -1636,6 +1644,10 @@ func _check_capture() -> void:
 			await get_tree().create_timer(1.2).timeout
 			print("AIM tap=%s bobber=%s" % [spots[i].round(), stage.bobber_screen().round()])
 			await _shot(dir + "/aim%d.png" % i)
+		get_tree().quit()
+		return
+	if "--phone-test" in OS.get_cmdline_user_args():
+		await _phone_test(dir)
 		get_tree().quit()
 		return
 	if "--onboarding" in OS.get_cmdline_user_args():
@@ -2406,5 +2418,127 @@ func _panel_menu() -> void:
 		g.add_child(b)
 
 # ================================================================== phone
+## The phone + FishTok live in vf_phone.gd (state in VF's FishTok section).
+var phone: Control
+
 func _open_phone() -> void:
-	_toast("FishTok is coming in this update!", "quest")
+	if phone == null:
+		phone = load("res://scripts/vf/vf_phone.gd").new()
+		phone.main = self
+		add_child(phone)
+	if overlay.visible: _close_panel()
+	move_child(phone, get_child_count() - 1)
+	phone.open()
+
+func _phone_open() -> bool:
+	return phone != null and phone.visible
+
+## "Trending +50%" pill for today's FishTok trending fish (Fish Book)
+func _trend_tag() -> Control:
+	var p := PanelContainer.new()
+	var sb := sbox(Color("#ff6a2b"), 999, 0, Color.TRANSPARENT, 0)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 9
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 3
+	p.add_theme_stylebox_override("panel", sb)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 3)
+	h.add_child(icon(ph("fire"), 13))
+	h.add_child(lbl("Trending +50%", 12, Color.WHITE))
+	p.add_child(h)
+	p.tooltip_text = "Trending on FishTok today: sells for +50% until midnight (UTC)"
+	return p
+
+## godot --path . -- --capture=DIR --phone-test : a mid-game save (never saved),
+## then the phone: every post type, a like, comments, the challenge claim,
+## profile + milestone claim, discover, inbox, your posts, home screen.
+func _phone_test(dir: String) -> void:
+	VF.autosave = false
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.player_name = "afosh"
+	VF.level = 34
+	VF.money = 18450
+	VF.owned_rods = ["Plastic Rod", "Improved Rod", "Steel Rod"]
+	VF.rod = "Steel Rod"
+	VF.boats_owned = 2
+	VF.bait_stock = {"Leeches": 140}
+	VF.bait = "Leeches"
+	for f in VFData.BIOMES["River"].fish: VF.discovered[f] = 40
+	VF.inventory = {VF.trending_fish(): 12, "Raw Salmon": 30}
+	var now := Time.get_unix_time_from_system()
+	VF._tok_post("species", {"fish": "Pufferfish"}, 3.6, true, now - 7200)
+	VF._tok_post("haul", {"count": 21, "fish": "Cod", "biome": "River"}, 3.8, true, now - 5400)
+	VF._tok_post("chest", {"tier": "epic"}, 4.5, true, now - 3000)
+	VF._tok_post("level", {"level": 25}, 4.1, true, now - 1500)
+	VF._tok_post("species", {"fish": "Tropical Fish"}, 3.2, true, now - 400)
+	VF.tok_banked_followers = 1180         # an established creator: 100 and 1K are claimable
+	VF.tok_banked_likes = 9800
+	VF.tok_challenge()
+	VF.tok_ch_prog = int(VF.tok_ch.goal)   # today's challenge is done
+	VF.changed.emit()
+	_coach_show()
+	print("PHONE trending=%s challenge=%s followers=%d likes=%d badge=%d" % [VF.trending_fish(), VF.tok_challenge_text(),
+		VF.tok_followers(), VF.tok_likes(), VF.tok_badge()])
+	await _wait(1.0)
+	pill_badge(phone_btn, VF.tok_badge())
+	await _shot(dir + "/phone_00_hud_badge.png")
+	_open_panel("inventory")
+	await _wait(0.4)
+	await _shot(dir + "/phone_01_fishbook_trending.png")
+	_close_panel()
+	_open_phone()
+	await _wait(0.12)
+	await _shot(dir + "/phone_02_sliding_up.png")
+	await _wait(1.0)
+	await _shot(dir + "/phone_03_trend.png")
+	var n := 4
+	for kind in ["npc", "challenge", "tip", "ad", "mine"]:
+		phone.debug_goto(kind)
+		await _wait(0.9)
+		await _shot(dir + "/phone_%02d_%s.png" % [n, kind])
+		n += 1
+	phone.feed.go(phone.feed.index + 1)
+	await _wait(0.9)
+	await _shot(dir + "/phone_%02d_next.png" % n)
+	phone.debug_goto("npc")
+	await _wait(0.5)
+	phone.feed.current().double_tap(Vector2(150, 260))
+	await _wait(0.2)
+	await _shot(dir + "/phone_10_double_tap_like.png")
+	await _wait(0.6)
+	phone.open_comments(phone.feed.current().item)
+	await _wait(0.5)
+	await _shot(dir + "/phone_11_comments.png")
+	phone._close_sheet()
+	phone.debug_goto("challenge")
+	await _wait(0.4)
+	var m0: int = VF.money
+	phone.on_claim_challenge(phone.feed.current())
+	await _wait(0.7)
+	await _shot(dir + "/phone_12_challenge_claimed.png")
+	print("PHONE challenge paid %d, claim again -> %s" % [VF.money - m0, VF.tok_claim_challenge().get("error", "PAID TWICE?!")])
+	phone.show_page("profile")
+	await _wait(0.7)
+	await _shot(dir + "/phone_13_profile.png")
+	m0 = VF.money
+	phone.claim_milestone(100)
+	await _wait(0.7)
+	await _shot(dir + "/phone_14_profile_claimed.png")
+	print("PHONE milestone 100 paid %d, again -> %s" % [VF.money - m0, VF.tok_claim_milestone(100).get("error", "PAID TWICE?!")])
+	phone.show_page("discover")
+	await _wait(0.6)
+	await _shot(dir + "/phone_15_discover.png")
+	phone.show_page("inbox")
+	await _wait(0.6)
+	await _shot(dir + "/phone_16_inbox.png")
+	phone._open_viewer(2)
+	await _wait(0.8)
+	await _shot(dir + "/phone_17_my_post.png")
+	phone.go_home()
+	await _wait(0.6)
+	await _shot(dir + "/phone_18_home.png")
+	phone.close()
+	await _wait(0.7)
+	await _shot(dir + "/phone_19_closed.png")
