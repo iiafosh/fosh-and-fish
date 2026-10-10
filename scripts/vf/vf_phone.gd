@@ -656,7 +656,7 @@ const HOME_APPS := [
 	["charms", "Charms", "sparkle", "#f9a8d4", "#db2777"],
 	["prestige", "Prestige", "crown", "#93c5fd", "#1d4ed8"],
 	["stats", "Buffs", "chart-bar", "#5eead4", "#0f766e"],
-	["guide", "Guide", "question", "#cbd5e1", "#64748b"],
+	["tiktok", "TikTok", "music-notes", "#1f1f1f", "#000000"],     # opens the real app / site
 	["settings", "Settings", "gear-six", "#d1d5db", "#4b5563"],
 ]
 const DOCK_APPS := [
@@ -831,9 +831,18 @@ func _draw_app(sq: Control, a: Array) -> void:
 	sq.draw_texture(t, -t.get_size() * 0.5, Color.WHITE)
 	sq.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
+const TIKTOK_URL := "https://www.tiktok.com/"
+
 func _launch(id: String) -> void:
 	if id == "fishtok":
 		_open_tok_from_home()
+		return
+	if id == "tiktok":
+		# the real TikTok: the app on phones (the link opens it), the website elsewhere.
+		# The game keeps running on desktop, so your workers keep fishing while you scroll.
+		OS.shell_open(TIKTOK_URL)
+		if main and main.has_method("_toast"):
+			main._toast("Opening TikTok — come back anytime, your boat is waiting", "quest")
 		return
 	var tab := ""
 	if id == "quests": tab = "Quests"
