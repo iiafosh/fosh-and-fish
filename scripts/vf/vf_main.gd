@@ -386,6 +386,9 @@ func _build() -> void:
 	# otherwise mirror every container and anchor - the map even slid off-screen.
 	# Arabic text that players type (names, comments, feedback) still shapes and reads RTL inside its line.
 	layout_direction = Control.LAYOUT_DIRECTION_LTR
+	# The game's text is English: use English text rules everywhere, whatever the phone's language
+	# (on Arabic phones, drawn text like the FishTok "+50%" sticker came out as "50%+").
+	TranslationServer.set_locale("en")
 	# text boxes follow what the player types: Arabic runs right-to-left, English left-to-right
 	get_tree().node_added.connect(func(n: Node):
 		if n is LineEdit or n is TextEdit: (n as Control).text_direction = Control.TEXT_DIRECTION_AUTO)
@@ -2091,7 +2094,7 @@ func _process_coach(delta: float) -> void:
 	var bs := _coach_bubble.size
 	var below := VF.tutorial in [2, 4]
 	var bp := tgt + (Vector2(-bs.x * 0.5, 46) if below else Vector2(-bs.x * 0.5, -bs.y - 58))
-	if VF.tutorial == 3: bp = tgt + Vector2(-bs.x * 0.5, -bs.y * 0.5)
+	if VF.tutorial == 3: bp = Vector2((vs.x - bs.x) * 0.5, 8)        # above the shop panel, not over its tabs
 	bp.x = clampf(bp.x, 12, vs.x - bs.x - 12)
 	bp.y = clampf(bp.y, 12, vs.y - bs.y - 12)
 	_coach_bubble.position = bp

@@ -121,6 +121,19 @@ func _ready() -> void:
 	resized.connect(_fit)
 	_fit()
 
+## The one way to make a water ring. Rings never start under a boat's hull (they used to sit
+## on the boat like a bubble), and they are drawn on the water layer, below every boat.
+func _add_ripple(pos: Vector2, max_r: float, width: float, t0 := 0.0) -> void:
+	if _over_hull(pos, max_r): return
+	_ripples.append({"pos": pos, "t": t0, "max": max_r, "w": width})
+
+func _over_hull(pos: Vector2, max_r := 0.0) -> bool:
+	if boat == null or boat.texture == null: return false
+	var c := boat.position + boat.pivot_offset
+	var half := boat.size * absf(boat.scale.y) * 0.5
+	var d := (pos - c).abs()
+	return d.x < half.x * 0.55 + max_r * 0.25 and d.y < half.y * 0.3 + max_r * 0.25
+
 func _layer(cb: Callable) -> Control:
 	var c := Control.new()
 	c.size = SCENE
@@ -171,7 +184,7 @@ func set_aim(screen: Vector2) -> bool:
 	if best == Vector2.INF:
 		return false
 	aim = best
-	_ripples.append({"pos": best, "t": 0.0, "max": 26.0, "w": 2.0})
+	_add_ripple(best, 26.0, 2.0, 0.0)
 	return true
 
 ## water at p with a ring of water around it (not touching docks, boats, rocks or the shore),
@@ -502,10 +515,8 @@ func _process(delta: float) -> void:
 	boat.rotation = sin(_t * 1.1) * 0.025 + boat_lean
 	var bob := 1.0 + sin(_t * 1.6) * 0.008
 	boat.scale = Vector2(bob * boat_flip, bob)
-	if randf() < delta * 0.9 and boat_speed < 25.0:
-		_ripples.append({"pos": boat_pos, "t": 0.0, "max": 90.0, "w": 2.0})
 	if randf() < delta * 0.6 and _cast_t < 0.0 and not reeled and _reel_t < 0.0:
-		_ripples.append({"pos": _bobber, "t": 0.0, "max": 34.0, "w": 1.5})
+		_add_ripple(_bobber, 34.0, 1.5, 0.0)
 	_tick_reel(delta)
 	if _cast_t >= 0.0:
 		_cast_t += delta / 0.42
@@ -566,6 +577,10 @@ func _draw_life() -> void:
 		life_layer.draw_set_transform(c.pos, c.tilt, Vector2(cs, cs))
 		life_layer.draw_texture(ct, -ct.get_size() * 0.5)
 	life_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for r in _ripples:                       # water rings live under the boats
+		if r.t < 0.0: continue
+		var k: float = r.t / 1.4
+		life_layer.draw_arc(r.pos, 6.0 + k * r.max, 0, TAU, 40, Color(1, 1, 1, (1.0 - k) * 0.55), r.w, true)
 
 func _draw_sky() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
@@ -600,10 +615,6 @@ func _draw_rod() -> void:
 
 func _draw_over() -> void:
 	_draw_rod()
-	for r in _ripples:
-		if r.t < 0.0: continue
-		var k: float = r.t / 1.4
-		over.draw_arc(r.pos, 6.0 + k * r.max, 0, TAU, 40, Color(1, 1, 1, (1.0 - k) * 0.55), r.w, true)
 	var tip := rod_tip()
 	var mid := (tip + _bobber) * 0.5 + Vector2(0, 30 if _cast_t < 0.0 else 0)
 	var pts := PackedVector2Array()
@@ -635,7 +646,7 @@ func cast(done: Callable) -> void:
 
 func splash(at: Vector2, big := 1.0) -> void:
 	for i in 3:
-		_ripples.append({"pos": at, "t": -i * 0.15, "max": 50.0 * big, "w": 2.5})
+		_add_ripple(at, 50.0 * big, 2.5, -i * 0.15)
 
 func show_bite(fish_name: String) -> void:
 	play_anim("reel")
@@ -652,7 +663,7 @@ func reel_in() -> void:
 	if reeled or _reel_t >= 0.0 or _cast_t >= 0.0: return
 	_reel_from = _bobber
 	_reel_t = 0.0
-	_ripples.append({"pos": _bobber, "t": 0.0, "max": 24.0, "w": 1.5})
+	_add_ripple(_bobber, 24.0, 1.5, 0.0)
 
 func _tick_reel(delta: float) -> void:
 	if _cast_t >= 0.0: return

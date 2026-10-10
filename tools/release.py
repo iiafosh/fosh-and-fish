@@ -131,6 +131,7 @@ def main():
     a = ap.parse_args()
 
     manifest = load(STATE, {"build": 1, "version": "0.1.0", "base": 1, "patches": {}})
+    prev_build_json = load(BUILD_JSON, {})
     build = int(manifest["build"]) + 1
     tag = f"v{a.version}"
     save(BUILD_JSON, {"version": a.version, "build": build})
@@ -176,11 +177,15 @@ def main():
         save(test, manifest)
         print("test manifest:", test)
         return
+    if not a.publish:
+        # a dry run must not move the published build number forward
+        preview = os.path.join(B, "update.preview.json")
+        save(preview, manifest)
+        save(BUILD_JSON, prev_build_json)
+        print("built only (nothing published, version files untouched) - preview manifest:", preview)
+        return
     save(STATE, manifest)
     print("manifest saved:", STATE)
-    if not a.publish:
-        print("built only - rerun with --publish to upload")
-        return
     notes = "\n".join("- " + n for n in a.note) or "See CHANGELOG.md"
     run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes])
     if a.kind == "full":
