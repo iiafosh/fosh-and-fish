@@ -1,8 +1,7 @@
 """Animated sprite sheets from vendor models:
 - swimming fish (Quaternius Animated Fish, CC0), recoloured per VF species
 - ambient whale / manta ray, seagull and crab (Poly by Google, CC-BY 3.0)
-- the fisher: Quaternius animated character (CC0) + Quaternius fishing rod
-  (CC0) + the project's straw hat, rendered idle / cast / reel.
+- the fisher: see vf_fisher.py (original puppet, sits on a cooler).
 All sheets face +X and use the top-down camera pitch from vf_topdown.
 """
 import math
@@ -84,130 +83,11 @@ def render_static(model, out_path, size=128, rot_z=90):
 
 
 # ------------------------------------------------------------------ fisher
-ANIMS = {"idle": ("Idle_Sword", 8), "cast": ("Sword_Slash", 10), "reel": ("Interact", 8)}
-FISHER_CELL = 256
-ROD_GRIP_AT_MIN_Y = True
-
-
-def build_fisher():
-    meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "character.glb"))
-    root = V.group_root(roots, "fisher")
-    root.rotation_euler = (0, 0, math.radians(90))          # face +X (toward the bobber)
-    for m in meshes:
-        for mt in m.data.materials:
-            name = mt.name.split(".")[0]
-            V.toonify(mt, tint={"Grey": "#e8553b", "White": "#f2efe6", "Orange": "#2f4a7a"}.get(name))
-    V.set_action(arm, ANIMS["idle"][0])
-    bpy.context.scene.frame_set(1)
-    bpy.context.view_layer.update()
-    pb = arm.pose.bones
-
-    def bone_world(b, tail=False):
-        return arm.matrix_world @ (pb[b].tail if tail else pb[b].head)
-
-    def attach(ob, bone):
-        bpy.context.view_layer.update()
-        mw = ob.matrix_world.copy()
-        ob.parent = arm
-        ob.parent_type = "BONE"
-        ob.parent_bone = bone
-        bpy.context.view_layer.update()
-        ob.matrix_world = mw
-
-    # straw hat on the head
-    head_top = bone_world("Head", tail=True)
-    hat = [cone(loc=head_top + Vector((0, 0, -0.02)), r1=0.36, r2=0.02, depth=0.2, mat=toon("#e3c27e", soft=True), verts=40),
-           torus(loc=head_top + Vector((0, 0, 0.03)), R=0.15, r=0.016, mat=toon("#2f8f8a", soft=True), seg=32, mseg=8)]
-    for h in hat:
-        attach(h, "Head")
-    # rod in the right hand, pointing forward/up (built here: grip at origin, tip at +Y)
-    L = 2.3
-    rod = K.tube([(0, 0, 0), (0, L * 0.5, 0), (0, L, 0)], 0.03, mat=toon("#3a2a22", soft=True), taper=(1.2, 0.35))
-    grip = cyl(loc=(0, 0.18, 0), r=0.045, depth=0.36, rot=(90, 0, 0), mat=toon("#c48a52", soft=True))
-    reel = cyl(loc=(0.06, 0.3, -0.05), r=0.07, depth=0.05, rot=(0, 90, 0), mat=toon("#c0c6cc", soft=True))
-    rod = K.join([rod, grip, reel], "rod")
-    rod.rotation_mode = "XYZ"
-    rod.rotation_euler = Vector((1, 0, 0.6)).normalized().to_track_quat("Y", "Z").to_euler()
-    rod.location = bone_world("Wrist.R", tail=True)
-    tip = bpy.data.objects.new("rod_tip", None)
-    bpy.context.collection.objects.link(tip)
-    tip.parent = rod
-    tip.location = (0, L, 0)
-    grip = bpy.data.objects.new("rod_grip", None)
-    bpy.context.collection.objects.link(grip)
-    grip.parent = rod
-    grip.location = (0, 0.18, 0)
-    rod["grip"] = grip.name
-    rod.hide_render = True          # the equipped rod is drawn in-game from rods_hand/ strips
-    attach(rod, "Wrist.R")
-    return meshes + [rod] + hat, arm, tip
-
-
 def render_fisher(out_dir):
-    """Returns manifest info: per-anim frames, rod tip and feet (0..1 in cell)."""
-    os.makedirs(out_dir, exist_ok=True)
-    info = {}
-    cam = _setup(FISHER_CELL, TD.CAM_ROT)
-    objs, arm, tip = build_fisher()
-    sc = bpy.context.scene
-    # one framing for every animation so the feet stay put between sheets
-    allframes = []
-    objs = [o for o in objs if not o.hide_render]
-    for key, (act_name, n) in ANIMS.items():
-        act = V.set_action(arm, act_name)
-        fr = act.frame_range
-        allframes += [(act, int(fr[0] + (fr[1] - fr[0]) * i / n)) for i in range(n)]
-    los, his = [], []
-    for act, f in allframes:
-        arm.animation_data.action = act
-        sc.frame_set(f)
-        lo, hi = V.world_bbox([o for o in objs if o.type == "MESH"])
-        los.append(lo)
-        his.append(hi)
-    lo = Vector(map(min, *los))
-    hi = Vector(map(max, *his))
-    bpy.ops.mesh.primitive_cube_add(size=1.0)
-    box = bpy.context.active_object
-    box.location = (lo + hi) / 2
-    box.scale = hi - lo
-    bpy.context.view_layer.update()
-    K.frame_ortho(cam, [box], 1.08)
-    bpy.data.objects.remove(box)
-    for o in objs:
-        if o.type == "MESH" and not o.hide_render:
-            o["outline_even"] = False          # even-offset spikes on skinned, deforming meshes
-            K.add_outline(o, 0.018 / max(o.matrix_world.to_scale()))
-    W = FISHER_CELL
-    for key, (act_name, n) in ANIMS.items():
-        act = V.set_action(arm, act_name)
-        fr = act.frame_range
-        tips = []
-        grips = []
-        grip = bpy.data.objects["rod_grip"]
-
-        def step(i, act=act, fr=fr, n=n):
-            arm.animation_data.action = act
-            sc.frame_set(int(fr[0] + (fr[1] - fr[0]) * i / n))
-        import tempfile
-        tmp = tempfile.mkdtemp()
-        paths = []
-        for i in range(n):
-            step(i)
-            bpy.context.view_layer.update()
-            t = K.project(cam, tip.matrix_world.translation)
-            tips.append([round(t[0] / W, 4), round(t[1] / W, 4)])
-            g = K.project(cam, grip.matrix_world.translation)
-            grips.append([round(g[0] / W, 4), round(g[1] / W, 4)])
-            p = os.path.join(tmp, "f%02d.png" % i)
-            K.render(p)
-            paths.append(p)
-        V._stitch(paths, os.path.join(out_dir, key + ".png"), W)
-        info[key] = {"frames": n, "rod_tip": tips, "rod_grip": grips}
-    feet = K.project(cam, (0, 0, 0))
-    _, _, scale, _ = cam["frame"]
-    info["feet"] = [round(feet[0] / W, 4), round(feet[1] / W, 4)]
-    info["unit_px"] = round(W / scale, 3)
-    info["cell"] = W
+    """The fisher (vf_fisher.py): per-anim sheets + manifest info (frames, fps,
+    rod_grip / rod_tip / head per frame, the anchor "feet", 0..1 in the cell)."""
+    import vf_fisher
+    info = vf_fisher.render(out_dir, lambda size: _setup(size, TD.CAM_ROT))
     K.SOFT[0] = False
     return info
 

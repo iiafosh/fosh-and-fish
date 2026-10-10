@@ -4,7 +4,8 @@ signal merchant_clicked
 ## Top-down fishing stage. Everything lives in "scene space": the 1920x1080
 ## Blender render, scaled to cover the window. Fish (animated Quaternius
 ## sheets) swim under the water, seagulls fly over it, crabs walk the beach,
-## and the animated fisher stands on the boat's deck holding the line.
+## and the animated fisher sits on his cooler on the boat's deck holding the line
+## (stands up to cast / reel / react, idles with little gags in between).
 
 const SCENE := Vector2(1920, 1080)
 const ART := "res://assets/vf/"
@@ -27,6 +28,9 @@ var _fisher_info: Dictionary = {}
 var _fisher_tex := {}
 var _anim := "idle"
 var _anim_t := 0.0
+var _react := ""                  # reaction queued after the cast / reel (happy, dance, sad, shrug)
+var _idle_wait := 5.0             # seconds until the next idle gag (yawn, sip, doze...)
+var _last_cheer := -100.0
 var _biome := ""
 var _rod_name := ""
 var _rod_tex: Texture2D
@@ -107,10 +111,11 @@ func _ready() -> void:
 	sky_layer = _layer(_draw_sky)
 	for c in [root, backdrop, caustics, boat, fisher]:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for k in ["idle", "cast", "reel"]:
-		_fisher_tex[k] = _tex("fisher/%s.png" % k)
 	_build_merchant()
 	_fisher_info = manifest.get("fisher", {})
+	for k in _fisher_info:
+		if _fisher_info[k] is Dictionary and _fisher_info[k].has("frames"):
+			_fisher_tex[k] = _tex("fisher/%s.png" % k)
 	_glints = _particles("star_06", 8, 1.8, Color(1, 1, 1, 0.55), 0.03, 0.07)
 	_glints.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_glints.emission_rect_extents = SCENE * 0.5
@@ -348,24 +353,97 @@ func _place_boat() -> void:
 	boat.pivot_offset = origin
 	if boat_pos.x < 0.0: boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
 	boat.position = boat_pos - origin
-	# fisher: feet on the deck anchor, scaled to scene units
+	# fisher: his anchor (the cooler he sits on) on the boat's seat point, scaled to scene units.
+	# He is a child of the boat, so he mirrors with it when the boat turns around.
 	if _fisher_info.is_empty(): return
 	var cell: float = _fisher_info.cell
 	var fk: float = float(_scene.unit_px) / float(_fisher_info.unit_px) * float(_boat_info.get("fisher_scale", 1.0))
 	fisher.size = Vector2(cell, cell) * fk
-	var deck := Vector2(_boat_info.deck[0], _boat_info.deck[1]) * boat.size
-	fisher.position = deck - Vector2(_fisher_info.feet[0], _fisher_info.feet[1]) * fisher.size
+	var seat: Array = _boat_info.get("seat", _boat_info.deck)
+	fisher.position = Vector2(seat[0], seat[1]) * boat.size - Vector2(_fisher_info.feet[0], _fisher_info.feet[1]) * fisher.size
 	_set_frame()
 
 func _frames(anim: String) -> int:
 	return int(_fisher_info.get(anim, {}).get("frames", 1))
 
+func _fps(anim: String) -> float:
+	return float(_fisher_info.get(anim, {}).get("fps", 7.0 if anim == "idle" else 18.0))
+
+## one-shot length in seconds (a "loop_range" is held for "hold" seconds, e.g. the doze)
+func _anim_len(anim: String) -> float:
+	var e: Dictionary = _fisher_info.get(anim, {})
+	var n := _frames(anim)
+	if e.has("loop_range"): return n / _fps(anim) + float(e.hold)
+	return n / _fps(anim)
+
 func _frame_index() -> int:
 	var n := _frames(_anim)
-	var fps := 7.0 if _anim == "idle" else 18.0
+	var fps := _fps(_anim)
+	var e: Dictionary = _fisher_info.get(_anim, {})
 	var i := int(_anim_t * fps)
-	if _anim == "idle": return i % n
+	if _anim == "idle" or e.get("loop", false): return i % n
+	if e.has("loop_range"):
+		var a: int = e.loop_range[0]
+		var b: int = e.loop_range[1]
+		if i < a: return i
+		var t2 := _anim_t - a / fps
+		if t2 < float(e.hold): return a + int(t2 * fps) % (b - a + 1)
+		return mini(b + 1 + int((t2 - float(e.hold)) * fps), n - 1)
 	return mini(i, n - 1)
+
+func _standing(anim: String) -> bool:
+	return anim in _fisher_info.get("standing", ["cast", "reel"])
+
+## what follows a finished one-shot: a queued reaction, then sitting back down, then idle
+func _next_anim() -> void:
+	if _standing(_anim):
+		if _react != "" and _fisher_tex.has(_react):
+			var r := _react
+			_react = ""
+			play_anim(r)
+		else:
+			play_anim("sit" if _fisher_tex.has("sit") else "idle")
+	else:
+		play_anim("idle")
+
+## idle gags every few seconds; waves when a gull flies by
+func _pick_idle() -> void:
+	var gags: Array = []
+	for g in _fisher_info.get("idles", []):
+		if _fisher_tex.has(g) and g != "wave": gags.append(g)
+	if gags.is_empty(): return
+	var here := boat.position + boat.pivot_offset
+	var pick: String = gags.pick_random()
+	if _fisher_tex.has("wave"):
+		for g in _gulls:
+			if (g.pos as Vector2).distance_to(here) < 420.0:
+				pick = "wave"
+				break
+	play_anim(pick)
+
+## the catch decides his mood: dance for a new species, fist pump for a big catch (chest, pet,
+## lucky splash, the biome's top fish or a special one), facepalm / shrug when the line comes up empty
+func react_trip(res: Dictionary) -> void:
+	var fish: Dictionary = res.get("fish", {})
+	var kind := ""
+	if fish.is_empty() and res.get("chest", {}).is_empty() and String(res.get("pet", "")) == "":
+		kind = ["sad", "shrug"].pick_random()
+	elif not res.get("new_species", []).is_empty():
+		kind = "dance"
+	elif not res.get("chest", {}).is_empty() or String(res.get("pet", "")) != "" or int(res.get("lucky", 0)) > 0:
+		kind = "happy"
+	elif _t - _last_cheer > 25.0:
+		var tiers: Array = VFData.BIOMES.get(_biome, {}).get("fish", [])
+		for f in fish:
+			var i := tiers.find(f)
+			if i < 0 or i == tiers.size() - 1: kind = "happy"
+	if kind == "happy" or kind == "dance": _last_cheer = _t
+	react(kind)
+
+func react(kind: String) -> void:
+	if kind == "" or not _fisher_tex.has(kind): return
+	if _standing(_anim): _react = kind      # after the cast / reel finishes
+	else: play_anim(kind)
 
 func _set_frame() -> void:
 	var t: Texture2D = _fisher_tex.get(_anim)
@@ -393,8 +471,14 @@ func rod_grip() -> Vector2:
 	return _fisher_point("rod_grip", [0.45, 0.6])
 
 func play_anim(a: String) -> void:
+	if not _fisher_tex.has(a): a = "idle"
+	var from_standing := _standing(_anim) and _anim != "cast"
 	_anim = a
 	_anim_t = 0.0
+	if a == "cast":
+		_react = ""
+		if from_standing: _anim_t = 2.0 / _fps("cast")     # already up: skip getting off the cooler
+	if a == "idle": _idle_wait = randf_range(4.0, 9.0)
 
 func rod_tip() -> Vector2:
 	if _fisher_info.is_empty() or _boat_info.is_empty(): return _bobber_home
@@ -454,8 +538,13 @@ func _spawn_life() -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	_anim_t += delta
-	if _anim != "idle" and _frame_index() >= _frames(_anim) - 1 and _anim_t > _frames(_anim) / 18.0 + 0.25:
-		play_anim("idle")
+	if _anim == "idle":
+		_idle_wait -= delta
+		if _idle_wait <= 0.0:
+			_idle_wait = randf_range(4.0, 9.0)
+			_pick_idle()
+	elif _anim_t > _anim_len(_anim) + (0.25 if _anim in ["cast", "reel"] else 0.08):
+		_next_anim()
 	_set_frame()
 	_tick_merchant(delta)
 	for f in _fish:
@@ -615,6 +704,7 @@ func _draw_rod() -> void:
 
 func _draw_over() -> void:
 	_draw_rod()
+	_draw_zzz()
 	var tip := rod_tip()
 	var mid := (tip + _bobber) * 0.5 + Vector2(0, 30 if _cast_t < 0.0 else 0)
 	var pts := PackedVector2Array()
@@ -626,6 +716,23 @@ func _draw_over() -> void:
 	over.draw_circle(bob + Vector2(4, 5), 9.0, Color(0, 0, 0, 0.18))
 	over.draw_circle(bob, 9.0, Color("#ff4b3e"))
 	over.draw_circle(bob + Vector2(0, -3), 5.0, Color.WHITE)
+
+## "Zzz" floating up from his hat while he naps (drawn here so it never mirrors)
+func _draw_zzz() -> void:
+	var e: Dictionary = _fisher_info.get("doze", {})
+	if _anim != "doze" or not e.has("loop_range") or _frame_index() < int(e.loop_range[0]): return
+	var t2 := _anim_t - float(e.loop_range[0]) / _fps("doze")
+	if t2 > float(e.hold): return
+	var head := _fisher_point("head", [0.5, 0.2])
+	var px := fisher.size.y * absf(boat.scale.y)
+	var font := over.get_theme_default_font()
+	for k in 3:
+		var ph := fmod(t2 * 0.9 + k / 3.0, 1.0)
+		var sz := int(px * (0.13 + 0.09 * ph))
+		var p := head + Vector2(px * (0.04 + 0.16 * ph) + sin(ph * 6.0 + k) * px * 0.03, -px * (0.05 + 0.3 * ph))
+		var a := minf(1.0, ph * 5.0) * minf(1.0, (1.0 - ph) * 2.5)
+		over.draw_string_outline(font, p, "z", HORIZONTAL_ALIGNMENT_LEFT, -1, sz, maxi(2, sz / 6), Color(0.15, 0.2, 0.3, a))
+		over.draw_string(font, p, "z", HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color(1, 1, 1, a))
 
 # ----------------------------------------------------------------- actions
 func cast(done: Callable) -> void:

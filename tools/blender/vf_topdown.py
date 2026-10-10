@@ -501,17 +501,20 @@ def render_boat_top(name, path):
     s.data.angle = math.radians(7)
     cam = K.make_camera(CAM_ROT, ortho=True)
     parts, deck = B.build_boat(name)
+    seat = B.seat_for(deck, B.FISHER_SCALE.get(name, 1.0))
     allp = clip_below(parts)
     K.outline_all(allp, 0.035)
     K.frame_ortho(cam, allp, 1.06)
-    K.render(path)
+    if path:
+        K.render(path)
     W2 = 640
     cx, cy, scale, aspect = cam["frame"]
     d = K.project(cam, deck)
+    st = K.project(cam, seat)
     o = K.project(cam, (0, 0, 0))
     K.SOFT[0] = False
-    return {"deck": [d[0] / W2, d[1] / W2], "origin": [o[0] / W2, o[1] / W2], "unit_px": round(W2 / scale, 3),
-            "fisher_scale": B.FISHER_SCALE.get(name, 1.0)}
+    return {"deck": [d[0] / W2, d[1] / W2], "seat": [st[0] / W2, st[1] / W2], "origin": [o[0] / W2, o[1] / W2],
+            "unit_px": round(W2 / scale, 3), "fisher_scale": B.FISHER_SCALE.get(name, 1.0)}
 
 
 def render_fish_top(name, spec, path):

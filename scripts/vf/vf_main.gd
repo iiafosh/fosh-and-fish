@@ -888,6 +888,7 @@ func _on_trip(res: Dictionary) -> void:
 	for f in res.fish:
 		if best == "" or VFData.FISH[f].price > VFData.FISH[best].price: best = f
 	if best != "": stage.show_bite(best)
+	stage.react_trip(res)                      # fisher cheers / dances / facepalms after reeling in
 	var i := 0
 	var from: Vector2 = stage.bobber_screen()
 	for f in res.fish:

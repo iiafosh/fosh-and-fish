@@ -157,6 +157,18 @@ def do_boats_top(only, man):
         bt[name] = TD.render_boat_top(name, os.path.join(d, slug(name) + ".png"))
 
 
+def do_boat_seats(only, man):
+    """Only the fisher's seat point per boat (same framing as boats_top, no render)."""
+    bt = man.setdefault("boats_top", {})
+    for name in B.BOAT_ORDER:
+        if want(name, only):
+            info = TD.render_boat_top(name, None)
+            old = bt.get(name, {}).get("deck")
+            if old and max(abs(a - b) for a, b in zip(old, info["deck"])) > 0.002:
+                print("WARNING framing differs from the rendered boat:", name, old, info["deck"])
+            bt.setdefault(name, info)["seat"] = info["seat"]
+
+
 def do_fish_top(only):
     d = os.path.join(OUT, "fish_top")
     os.makedirs(d, exist_ok=True)
@@ -225,6 +237,8 @@ def main():
             do_scenes(only, man)
         elif c == "boats_top":
             do_boats_top(only, man)
+        elif c == "boat_seats":
+            do_boat_seats(only, man)
         elif c == "fish_top":
             do_fish_top(only)
         elif c == "critters":
