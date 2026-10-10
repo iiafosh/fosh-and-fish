@@ -46,6 +46,7 @@ var stats := {"trips": 0, "fish": 0, "chests": 0, "charms": 0, "money_earned": 0
 var discovered := {}                      # species -> total ever caught (fishdex)
 var goals_done := 0                       # STARTER_GOALS completed (in order)
 var tutorial := 0                         # onboarding step (UI)
+var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
 var quest_day := ""
 var quest_progress := {}
 var quest_claimed := {}
@@ -848,6 +849,7 @@ func to_dict() -> Dictionary:
 		"daily_last": daily_last, "daily_streak": daily_streak,
 		"discovered": discovered, "goals_done": goals_done, "tutorial": tutorial,
 		"tok": _tok_dict(),
+		"sail_hint": sail_hint,
 	}
 
 var autosave := true
@@ -880,6 +882,7 @@ func _apply(d: Dictionary) -> void:
 	week_hooks = int(d.week_hooks); daily_last = float(d.daily_last); daily_streak = int(d.daily_streak)
 	discovered = _ints(d.get("discovered", {}))
 	tutorial = int(d.get("tutorial", 0))
+	sail_hint = bool(d.get("sail_hint", false))
 	if d.has("goals_done"):
 		goals_done = int(d.goals_done)
 	else:

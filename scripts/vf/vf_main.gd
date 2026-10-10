@@ -26,6 +26,7 @@ var _tex_cache := {}
 
 # stage
 var stage
+var sail                     # vf_sail.gd: steering, sea lanes to other biomes, travel wipe
 var fx_layer: Control
 
 # hud
@@ -147,7 +148,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_SPACE, KEY_F:
 				if overlay.visible: return
 				_do_cast()
-			KEY_S:
+			KEY_E:                                 # (S is "sail down" now: WASD steers the boat)
 				if not overlay.visible: _do_sell()
 			KEY_ESCAPE:
 				if overlay.visible: _close_panel()
@@ -403,6 +404,11 @@ func _build_stage() -> void:
 	stage = load("res://scripts/vf/vf_stage.gd").new()
 	add_child(stage)
 	_click_through.call_deferred(stage)
+	# sailing: takes presses that start on the boat (drag to sail) before _unhandled_input
+	# below sees them; every other tap still casts
+	sail = load("res://scripts/vf/vf_sail.gd").new()
+	sail.setup(self, stage)
+	add_child(sail)
 	fx_layer = Control.new()
 	fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -660,7 +666,7 @@ func _build_dock() -> void:
 	sell_btn.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	sell_btn.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	sell_btn.pressed.connect(_do_sell)
-	sell_btn.tooltip_text = "Sell every fish in your hold  [S]"
+	sell_btn.tooltip_text = "Sell every fish in your hold  [E]"
 	add_child(sell_btn)
 	# ---- bottom-right: the cast button with a cooldown ring
 	fish_btn = Button.new()
@@ -830,6 +836,7 @@ func _apply_biome() -> void:
 
 # ================================================================ actions
 func _do_cast() -> void:
+	if sail.busy(): return                     # no casting while steering or between biomes
 	var why: String = VF.can_cast()
 	if why == "cooldown":
 		return
@@ -1407,7 +1414,7 @@ func _panel_biomes() -> void:
 		var right: Control
 		if VF.biome == b: right = lbl("You are here", 14, C_GOOD)
 		elif locked: right = lbl("Level %d" % d.level, 14, C_MUTED)
-		else: right = _act("Travel", Color("#2f8f9e"), func(): return VF.select_biome(b))
+		else: right = _act("Travel", Color("#2f8f9e"), func(): _close_panel(); return sail.travel_to(b))
 		right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(right)
 		if locked: p.modulate = Color(1, 1, 1, 0.5)
@@ -1628,6 +1635,17 @@ func _check_capture() -> void:
 		var bt = load("res://scripts/net/backend_test.gd").new()
 		await bt.run(self, dir)
 		get_tree().quit(1 if bt.fails > 0 else 0)
+		return
+	if "--sail-test" in OS.get_cmdline_user_args():
+		# steer with keys and a drag, cast from the new spot, sail through lanes, Map travel,
+		# every biome's exits (the scenario lives in vf_sail.gd)
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 99
+		VF.level = 120
+		VF.changed.emit()
+		_coach_show()
+		await sail.capture_test(dir)
+		get_tree().quit()
 		return
 	if "--aim-test" in OS.get_cmdline_user_args():
 		# tap three different spots; the bobber must land on each (within a few px)
@@ -1909,7 +1927,7 @@ func _panel_settings() -> void:
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
 		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
-	var keys := lbl("Shortcuts: Space/F cast · S sell · 1-9 menus · G guide · O settings · Esc close", 13, C_MUTED)
+	var keys := lbl("Shortcuts: Space/F cast · WASD/arrows sail · E sell · 1-9 menus · G guide · O settings · Esc close", 13, C_MUTED)
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel_body.add_child(keys)
 	var urow := HBoxContainer.new()

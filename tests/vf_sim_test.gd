@@ -191,6 +191,13 @@ func _init() -> void:
 	old.erase("tok")
 	g2._apply(old)
 	check(g2.tok_posts.is_empty() and g2.tok_followers() == 0 and g2.tok_claimed.is_empty(), "Old saves without FishTok data load with defaults")
+	g.sail_hint = true
+	g2._apply(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.sail_hint == true, "Sail hint flag survives JSON round trip")
+	var old_sail: Dictionary = g.to_dict()
+	old_sail.erase("sail_hint")                      # a save from before sailing existed
+	g2._apply(JSON.parse_string(JSON.stringify(old_sail)))
+	check(g2.sail_hint == false and g2.level == g.level, "Old saves without the sail hint flag still load")
 	g2.free()
 
 	print("== online backend (no network)")
