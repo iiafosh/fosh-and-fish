@@ -12,10 +12,14 @@ from mathutils import Euler, Matrix, Vector
 import vf_kit as K
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DL = os.path.join(ROOT, "scratch", "downloads")
+# VF_DOWNLOADS lets a git worktree reuse the main checkout's downloads
+DL = os.environ.get("VF_DOWNLOADS") or os.path.join(ROOT, "scratch", "downloads")
 GLB = os.path.join(DL, "glb")
 NATURE = os.path.join(DL, "x_kenney_nature", "Models", "GLTF format")
 WATERCRAFT = os.path.join(DL, "x_kenney_watercraft", "Models", "GLB format")
+PIRATE = os.path.join(DL, "x_kenney_pirate", "Models", "GLB format")
+SPACE = os.path.join(DL, "x_kenney_space", "Models", "GLTF format")
+BOATS = os.path.join(GLB, "boats")          # Quaternius / Poly by Google craft (tools/fetch_assets.py)
 
 
 def _ramp(nt, soft=True):
