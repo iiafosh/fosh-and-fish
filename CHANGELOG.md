@@ -2,6 +2,14 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.2 — in-game update
+
+Get it in the game: **Menu → Updates → Update now**.
+
+- **Reel it in! is much easier**, and better rods help: every rod now has a **reel power** (0–10, shown in the Shop and in the mini-game). More power = a bigger catch zone, a faster reel and less slipping. With the best rods every fish is catchable.
+- **Easier on PC and Linux:** with keyboard and mouse the zone is bigger, the fish calmer, the reel faster, you get 2 extra seconds and the zone is easier to control.
+- Phones got fairer too (the starter rod now beats common fish most of the time).
+
 ## 0.5.1 — in-game update
 
 Get it in the game: **Menu → Updates → Update now** (no new download).

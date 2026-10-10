@@ -54,6 +54,11 @@ var dart := 1.0
 var retarget := 0.5
 var progress := 0.15
 var fill_rate := 0.42
+var drain_rate := 0.24        # how fast the ring empties while the fish is out of the zone
+var reel_power := 0.0         # the rod's reel power (0..1), VFData.rod_reel_power
+var lift := 3.4               # zone acceleration while holding / sinking (gentler on keyboard + mouse)
+var sink := 2.8
+var max_v := 1.7
 var time_limit := 7.0
 var in_zone := false
 var _was_in := false
@@ -108,11 +113,16 @@ func setup(m, fname: String, ftier: int) -> void:
 	main = m
 	fish_name = fname
 	tier = clampi(ftier, 0, 4)
-	# gentle difficulty by tier: smaller zone, faster + dartier fish, slower reel
-	zone_h = 0.34 - 0.03 * tier
-	fish_speed = 0.32 + 0.09 * tier
-	fill_rate = 0.42 - 0.03 * tier
-	time_limit = VFData.MINIGAME_TIME + 0.25 * tier
+	reel_power = VFData.rod_reel_power(VF.rod)
+	var p := VFData.minigame_params(tier, reel_power, not main.is_touch())
+	zone_h = p.zone_h
+	fish_speed = p.fish_speed
+	fill_rate = p.fill_rate
+	drain_rate = p.drain_rate
+	time_limit = p.time_limit
+	lift = p.lift
+	sink = p.sink
+	max_v = p.max_v
 	fish_y = randf_range(0.45, 0.8)
 	fish_target = fish_y
 
@@ -216,6 +226,20 @@ func _build_labels() -> void:
 	status.position = Vector2(RING.x - 125, RING.y + RING_R + 14)
 	status.size = Vector2(250, 28)
 	card.add_child(status)
+	# your rod's reel power (better rods make this easier)
+	var rp := HBoxContainer.new()
+	rp.alignment = BoxContainer.ALIGNMENT_CENTER
+	rp.add_theme_constant_override("separation", 6)
+	rp.add_child(main.icon(main.icon_for("rod", VF.rod), 22))
+	var pips := ""
+	var lvl := int(round(reel_power * 10.0))
+	for i in 10: pips += "●" if i < lvl else "○"
+	rp.add_child(main.lbl("%s  reel power %d/10" % [VF.rod, lvl], 13, Color("#1d9bb0")))
+	rp.position = Vector2(RING.x - 130, RING.y + RING_R + 74)   # under the timer bar, above the hint
+	rp.size = Vector2(260, 24)
+	rp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rp.tooltip_text = "Better rods reel faster and give you a bigger catch zone. " + pips
+	card.add_child(rp)
 	var hb := HBoxContainer.new()
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	hb.add_theme_constant_override("separation", 8)
@@ -276,7 +300,7 @@ func _holding() -> bool:
 func _play(delta: float) -> void:
 	play_t += delta
 	# the catch zone: hold to lift, let go to sink (with a little bounce on the floor)
-	zone_v = clampf(zone_v + (3.4 if _holding() else -2.8) * delta, -1.7, 1.7)
+	zone_v = clampf(zone_v + (lift if _holding() else -sink) * delta, -max_v, max_v)
 	zone_y += zone_v * delta
 	if zone_y < 0.0:
 		zone_y = 0.0
@@ -310,7 +334,7 @@ func _play(delta: float) -> void:
 			_tick_t = 0.15
 			AudioManager.play_sfx("bubble", -17.0, 0.8 + progress * 0.9)
 	else:
-		progress -= 0.24 * delta
+		progress -= drain_rate * delta
 		_out_time += delta
 		if _entered and _out_time > 0.25: perfect = false
 	progress = clampf(progress, 0.0, 1.0)

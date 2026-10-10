@@ -1388,8 +1388,9 @@ func _panel_shop() -> void:
 			var g := _grid(2)
 			for r in VFData.ROD_ORDER:
 				var d: Dictionary = VFData.RODS[r]
-				var desc := "%d-%d fish • %s%% treasure%s\n%s" % [d.min, d.max, str(snappedf(d.tc * 100.0, 0.1)),
-					(" • +%d%% TQ" % int(d.tq * 100)) if d.tq > 0 else "", ", ".join(d.biomes) if d.biomes.size() < 7 else "All biomes"]
+				var desc := "%d-%d fish • %s%% treasure%s • reel %d/10\n%s" % [d.min, d.max, str(snappedf(d.tc * 100.0, 0.1)),
+					(" • +%d%% TQ" % int(d.tq * 100)) if d.tq > 0 else "", int(round(VFData.rod_reel_power(r) * 10.0)),
+					", ".join(d.biomes) if d.biomes.size() < 7 else "All biomes"]
 				var right: Control
 				if r in VF.owned_rods:
 					right = _act("Equipped" if VF.rod == r else "Equip", C_GOOD if VF.rod == r else Color("#2f8f9e"),
@@ -2281,6 +2282,7 @@ func _draw_coach() -> void:
 
 # a well-progressed save for screenshots and the demo video (never saved)
 func _veteran(demo: String) -> void:
+	VF.catch_mode = "relax"                     # demo screenshots: no mini-game popping up
 	VF.owned_rods = []
 	var lv: int = VFData.BIOMES[demo].level
 	VF.level = maxi(lv, 120)

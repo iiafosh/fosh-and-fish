@@ -51,6 +51,52 @@ const MIN_COOLDOWN := 2.0         # Haste charm floor (wiki Charm page)
 const CATCH_MODES := ["relax", "reel"]
 const MINIGAME_FISH_BONUS := 0.75 # win the mini-game: +75% fish on that cast (owner: skill should pay off)
 const MINIGAME_COOLDOWN := 0.5    # ... and the next cast is ready after 0.5s (instead of the normal cooldown)
+## Rod "reel power" for the Reel it in! mini-game (not in the bot): 0 for the starter rod,
+## 1.0 for the best rods. More power = a bigger catch zone, a faster reel and slower slipping.
+static func rod_reel_power(r: String) -> float:
+	var i := ROD_ORDER.find(r)
+	if i < 0: return 0.0
+	return clampf(float(i) / float(ROD_ORDER.size() - 2), 0.0, 1.0)   # the Supporter Rod counts as top
+
+## Mini-game difficulty for a fish tier (0 common .. 4 rarest), the rod's reel power (0..1)
+## and the device. Rarer fish: smaller zone, faster fish, slower reel. Better rod: bigger zone,
+## faster reel, less slipping (the best rod vs the rarest fish = the starter rod vs a common
+## fish). Keyboard + mouse (PC, Linux, desktop browsers) is harder than a thumb on a phone, so
+## desktop gets a bigger zone, a calmer fish, a faster reel, 2 more seconds and a floatier zone.
+## Tuned with a reaction-time bot: starter rod vs common fish wins ~100% on PC, ~84% on phones;
+## the best rod wins against every fish (the original numbers won ~1% even vs common fish).
+static func minigame_params(tier: int, power: float, desktop := false) -> Dictionary:
+	var t := clampi(tier, 0, 4)
+	var pw := clampf(power, 0.0, 1.0)
+	var p := {
+		"zone_h": 0.34 - 0.03 * t + 0.12 * pw,
+		"fish_speed": 0.32 + 0.09 * t,
+		"fill_rate": (0.42 - 0.03 * t) * (1.0 + 0.6 * pw),
+		"drain_rate": 0.24 * (1.0 - 0.4 * pw),
+		"time_limit": MINIGAME_TIME + 0.25 * t,
+		"lift": 3.4, "sink": 2.8, "max_v": 1.7,
+	}
+	if desktop:
+		p.zone_h += 0.08
+		p.fish_speed *= 0.75
+		p.fill_rate *= 1.25
+		p.drain_rate *= 0.75
+		p.time_limit += 2.0
+		p.lift = 2.6
+		p.sink = 2.1
+		p.max_v = 1.25
+	else:
+		# phones (thumb on the screen): a bit harder than desktop, still fair with the starter rod
+		p.zone_h += 0.05
+		p.fish_speed *= 0.85
+		p.fill_rate *= 1.15
+		p.drain_rate *= 0.85
+		p.time_limit += 1.0
+		p.lift = 3.0
+		p.sink = 2.4
+		p.max_v = 1.45
+	return p
+
 const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer fish: up to +1s)
 
 const FISH := {

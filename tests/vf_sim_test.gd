@@ -59,6 +59,17 @@ func _init() -> void:
 	for i in 4000:
 		tn += g._fish_count()
 	var ratio := float(tb) / float(tn)
+	check(VFData.rod_reel_power("Plastic Rod") == 0.0 and VFData.rod_reel_power("Dark Rod") == 1.0
+		and VFData.rod_reel_power("Steel Rod") < VFData.rod_reel_power("Lava Rod"), "rod reel power: starter 0, best 1, rises with the rod")
+	var weak: Dictionary = VFData.minigame_params(4, 0.0)
+	var strong: Dictionary = VFData.minigame_params(4, 1.0)
+	check(strong.zone_h > weak.zone_h and strong.fill_rate > weak.fill_rate and strong.drain_rate < weak.drain_rate
+		and strong.fish_speed == weak.fish_speed, "better rod: bigger zone, faster reel, slower slip (fish speed unchanged)")
+	check(absf(strong.zone_h - VFData.minigame_params(0, 0.0).zone_h) < 0.001, "best rod vs rarest fish = starter rod vs common fish (zone)")
+	var pc: Dictionary = VFData.minigame_params(2, 0.3, true)
+	var phone: Dictionary = VFData.minigame_params(2, 0.3, false)
+	check(pc.zone_h > phone.zone_h and pc.fish_speed < phone.fish_speed and pc.fill_rate > phone.fill_rate
+		and pc.time_limit > phone.time_limit and pc.max_v < phone.max_v, "keyboard + mouse: easier mini-game than on a phone")
 	check(absf(ratio - (1.0 + VFData.MINIGAME_FISH_BONUS)) < 0.05, "won mini-game: +%d%% fish on average (x%.3f)" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), ratio])
 	g._last_cast_ms = -100000
 	var rw: Dictionary = g.cast_reel(true)
