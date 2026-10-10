@@ -1,411 +1,454 @@
-"""17 Virtual Fisher boats. Bow faces +X, waterline at z=0.
+"""The 17 fosh&fish boats, built from CC0 / CC-BY model packs (see CREDITS.md)
+and converted to the project's cel shading. Bow faces +X, waterline at z=0.
 
-build_boat(name) -> (parts, deck_anchor) where deck_anchor is where the
-fisherman's feet go.
+build_boat(name) -> (parts, deck_anchor): deck_anchor is where the fisher's
+feet go (found by casting a ray down onto the model at the boat's deck spot).
+
+Sources (fetched into scratch/downloads by tools/fetch_assets.py):
+  Kenney Watercraft Kit, Pirate Kit, Space Kit (CC0) - most hulls
+  Quaternius (CC0, poly.pizza)                     - luxury yacht, space cruiser
+  Poly by Google / Zoe XR (CC-BY 3.0, poly.pizza)  - satellite, shuttle, UFO, submarine
+Kenney colormap textures are palette-swapped per boat (recolor) so the
+upgrades read as a progression instead of a row of stock models.
 """
 import math
+import os
 
-import bmesh
 import bpy
+import numpy as np
 from mathutils import Vector
 
-from vf_kit import cone, cube, cyl, deform, extrude_poly, hexc, ico, mix, sphere, toon, torus, tube, vcolor
+import vf_kit as K
+import vf_vendor as V
+from vf_kit import cone, cube, cyl, extrude_poly, hexc, ico, sphere, toon, torus, tube
 
 BOAT_ORDER = ["Rowboat", "Fishing Boat", "Speedboat", "Pontoon", "Sailboat", "Yacht", "Luxury Yacht",
               "Cruise Ship", "Gold Boat", "Sky Cruiser", "Satellite", "Space Shuttle", "Cruiser",
               "Alien Raft", "Alien Submarine", "Dark Explorer", "Abyssal Surveyor"]
 
-FISHER_SCALE = {"Yacht": 1.15, "Luxury Yacht": 1.3, "Cruise Ship": 1.7, "Gold Boat": 1.15, "Sky Cruiser": 1.25,
-                "Space Shuttle": 1.3, "Cruiser": 1.4, "Alien Submarine": 1.15, "Dark Explorer": 1.25,
-                "Abyssal Surveyor": 1.3}
+FISHER_SCALE = {"Yacht": 1.05, "Luxury Yacht": 1.1, "Cruise Ship": 1.25, "Gold Boat": 1.15, "Sky Cruiser": 1.15,
+                "Satellite": 1.1, "Space Shuttle": 1.15, "Cruiser": 1.2, "Alien Raft": 1.1, "Alien Submarine": 1.15,
+                "Dark Explorer": 1.2, "Abyssal Surveyor": 1.25}
+
+WC, PI, SP, BO = "wc", "pi", "sp", "bo"
 
 
-def hull(L, W, H, top, bottom, stripe=None, bow=0.92, sheer=0.3, keel=1.6, rise=0.45, metal=False, glow_stripe=0.0):
-    """Subdivided box shaped into a boat hull. Spans z in [-0.35H, 0.65H]."""
-    bpy.ops.mesh.primitive_cube_add(size=1.0)
+def _folder(key):
+    return {WC: V.WATERCRAFT, PI: V.PIRATE, SP: V.SPACE, BO: V.BOATS}[key]
+
+
+# ------------------------------------------------------------- recolouring
+def _lum(c):
+    return 0.2126 * c[..., 0] + 0.7152 * c[..., 1] + 0.0722 * c[..., 2]
+
+
+def _rgb(h):
+    h = h.lstrip("#")
+    return np.array([int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4)])
+
+
+def recolor_image(img, swaps, name):
+    """Palette swap for a Kenney colormap (512 px, swatch pairs of 64x128 px:
+    a flat column + a gradient column). swaps: {src_hex: dst_hex}; every
+    swatch whose flat colour matches src is repainted with dst, keeping the
+    gradient's relative brightness."""
+    w, h = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)   # rows bottom-up
+    out = px.copy()
+    bw, bh = w // 8, h // 4
+    for by in range(4):
+        for bx in range(8):
+            y0, x0 = by * bh, bx * bw
+            base = px[y0 + bh // 2, x0 + bw // 4, :3]
+            for src, dst in swaps.items():
+                if np.abs(base - _rgb(src)).max() < 0.03:
+                    blk = px[y0:y0 + bh, x0:x0 + bw, :3]
+                    k = (_lum(blk) / max(_lum(base), 1e-3))[..., None]
+                    out[y0:y0 + bh, x0:x0 + bw, :3] = np.clip(_rgb(dst)[None, None, :] * k, 0, 1)
+    new = bpy.data.images.new(name, w, h, alpha=True)
+    new.pixels = out.ravel().tolist()
+    new.pack()
+    return new
+
+
+def _recolor_material(mat, swaps, tag):
+    if not swaps or not mat.use_nodes:
+        return
+    for n in mat.node_tree.nodes:
+        if n.type == "TEX_IMAGE" and n.image is not None:
+            n.image = recolor_image(n.image, swaps, "%s_%s" % (n.image.name, tag))
+
+
+def _hsv(mat, h=0.5, s=1.0, v=1.0):
+    """Hue/saturation/value shift on a material's base colour (textured models)."""
+    nt = mat.node_tree
+    pr = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if pr is None:
+        return
+    bc = pr.inputs["Base Color"]
+    hs = nt.nodes.new("ShaderNodeHueSaturation")
+    hs.inputs["Hue"].default_value = h
+    hs.inputs["Saturation"].default_value = s
+    hs.inputs["Value"].default_value = v
+    if bc.is_linked:
+        nt.links.new(bc.links[0].from_socket, hs.inputs["Color"])
+    else:
+        hs.inputs["Color"].default_value = bc.default_value
+    nt.links.new(hs.outputs[0], bc)
+
+
+def squash(ob, z0, k):
+    """Compress everything above z0 by k: masts and sails seen from the
+    high top-down camera otherwise tower over the hull like a side view."""
+    for v in ob.data.vertices:
+        if v.co.z > z0:
+            v.co.z = z0 + (v.co.z - z0) * k
+    ob.data.update()
+
+
+# ---------------------------------------------------------------- loading
+def load(src, name, length, rot=0.0, draft=0.2, swaps=None, tints=None, emit=None, tag="boat", axis="x",
+         drop=(), hsv=None, parts=None):
+    """Import a vendor GLB as ONE cel-shaded mesh: bow turned to +X (`rot`
+    degrees about Z), scaled so its X extent (or `axis` "max") is `length`,
+    centred on the origin, with `draft` world units below the waterline.
+    drop: mesh-name prefixes to leave out (sails, flags...).
+    tints / emit / hsv: per material base name (tint colour, glow 0..1,
+    (hue, sat, val) shift).
+    parts: {mesh-name prefix: {"swaps": {...}, "emit": k}} gives those
+    meshes (e.g. sails) their own palette before everything is joined."""
+    meshes, arm, roots = V.import_glb(os.path.join(_folder(src), name + ".glb"))
+    bpy.context.view_layer.update()
+    for m in [m for m in meshes if any(m.name.startswith(d) for d in drop)]:
+        meshes.remove(m)
+        bpy.data.objects.remove(m)
+    parts = parts or {}
+    for m in meshes:
+        pre = next((p for p in parts if m.name.startswith(p)), None)
+        if pre:
+            if m.data.users > 1:
+                m.data = m.data.copy()
+            for i, mt in enumerate(m.data.materials):
+                c = mt.copy()
+                c.name = "%s__%s" % (mt.name.split(".")[0], pre)
+                m.data.materials[i] = c
+    for m in meshes:
+        mw = m.matrix_world.copy()
+        m.parent = None
+        m.matrix_world = mw
+        if m.data.users > 1:
+            m.data = m.data.copy()
+    for r in roots:
+        try:
+            if r.type == "EMPTY":
+                bpy.data.objects.remove(r)
+        except ReferenceError:
+            pass
+    bpy.ops.object.select_all(action="DESELECT")
+    for m in meshes:
+        m.select_set(True)
+    bpy.context.view_layer.objects.active = meshes[0]
+    if len(meshes) > 1:
+        bpy.ops.object.join()
     ob = bpy.context.active_object
-    me = ob.data
+    ob.name = "%s_%s" % (tag, name)
+    ob.rotation_mode = "XYZ"
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    # weld the per-face vertices glTF ships (flat shading stays) so the
+    # inverted-hull outline is one closed shell instead of floating faces
+    import bmesh
     bm = bmesh.new()
-    bm.from_mesh(me)
-    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=18, use_grid_fill=True)
-    bm.to_mesh(me)
+    bm.from_mesh(ob.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-4)
+    bm.to_mesh(ob.data)
     bm.free()
-
-    def shape(co):
-        t = co.x + 0.5            # 0 stern .. 1 bow
-        zz = co.z + 0.5           # 0 keel .. 1 gunwale
-        w = 1.0 - bow * max(0.0, (t - 0.5) / 0.5) ** 1.7
-        w *= 1.0 - 0.18 * max(0.0, (0.1 - t) / 0.1)
-        w *= (0.25 + 0.75 * zz ** (1.0 / keel))
-        z = (zz - 0.35) * H
-        z += sheer * H * t ** 2.2 * zz
-        z += rise * H * max(0.0, (t - 0.55) / 0.45) ** 2 * (1 - zz)
-        return Vector((co.x * L, co.y * W * w, z))
-    deform(ob, shape)
-    tc, bc = hexc(top), hexc(bottom)
-    sc = hexc(stripe) if stripe else None
-
-    def paint(co, n):
-        zt = co.z
-        if zt < 0.02 * H:
-            return bc
-        if sc and abs(zt - 0.2 * H) < 0.06 * H:
-            return sc
-        return tc
-    vcolor(ob, paint, per_face=True)
-    ob.data.materials.append(toon(None, vcol="col", spec=0.5 if metal else 0.1, emit=glow_stripe,
-                                  key=("hull", top, bottom, stripe, metal, glow_stripe)))
+    if ob.data.has_custom_normals:
+        bpy.ops.mesh.customdata_custom_splitnormals_clear()
     for p in ob.data.polygons:
-        p.use_smooth = True
+        p.use_smooth = False
+    for i, mt in enumerate(ob.data.materials):
+        if mt is None:
+            continue
+        mt = mt.copy()
+        ob.data.materials[i] = mt
+        mt.surface_render_method = "DITHERED"        # glTF "BLEND" materials sort badly
+        base = mt.name.split(".")[0]
+        part = parts.get(base.split("__")[1]) if "__" in base else None
+        _recolor_material(mt, part.get("swaps", swaps) if part else swaps, tag)
+        if hsv and (base in hsv or "*" in hsv):
+            _hsv(mt, *hsv.get(base, hsv.get("*")))
+        tint = (tints or {}).get(base)
+        k = part.get("emit", 0.0) if part else (emit or {}).get(base, 0.0)
+        V.toonify(mt, tint=tint, emit=k)
+    ob.rotation_euler = (0, 0, math.radians(rot))
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    lo, hi = V.world_bbox([ob])
+    size = hi - lo
+    s = length / (size.x if axis == "x" else max(size.x, size.y))
+    ob.scale = (s, s, s)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    lo, hi = V.world_bbox([ob])
+    ob.location = (-(lo.x + hi.x) / 2, -(lo.y + hi.y) / 2, -lo.z - draft)
+    bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
+    ob["outline_even"] = False
     return ob
 
 
-def deck_plate(L, W, z, color, inset=0.9, bow=0.92):
-    pts = []
-    n = 14
-    for i in range(n + 1):
-        t = i / n
-        w = 1.0 - bow * max(0.0, (t - 0.5) / 0.5) ** 1.7
-        pts.append(((t - 0.5) * L * inset, w * W * 0.5 * inset))
-    pts += [(x, -y) for x, y in reversed(pts)]
-    ob = extrude_poly(pts, 0.06, mat=toon(color))
-    ob.location = (0, 0, z)
-    return ob
-
-
-def windows(x0, x1, z, n, h=0.18, y=0.0, color="#2b3a55", side_w=0.5, glow=0.0, round_=False):
-    out = []
-    step = (x1 - x0) / max(1, n - 1) if n > 1 else 0
-    for i in range(n):
-        x = x0 + step * i
-        for s in (1, -1):
-            if round_:
-                w = cyl(loc=(x, s * side_w, z), r=h * 0.5, depth=0.04, rot=(90, 0, 0), mat=toon(color, emit=glow), verts=16)
-            else:
-                w = cube(loc=(x, s * side_w, z), scale=(h * 1.2, 0.04, h), mat=toon(color, emit=glow))
-            w["no_outline"] = True
-            out.append(w)
+def surfaces(x, y=0.0, top=50.0):
+    """Every surface height under (x, y), top first (debug + deck finding)."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    out, z = [], top
+    for _ in range(12):
+        hit, loc, nrm, *_ = bpy.context.scene.ray_cast(dg, Vector((x, y, z)), Vector((0, 0, -1)))
+        if not hit:
+            break
+        out.append(round(loc.z, 3))
+        z = loc.z - 1e-3
     return out
 
 
-def rail(x0, x1, z, side_w, color="#e6e9ee", posts=6, h=0.35):
-    out = []
-    for s in (1, -1):
-        out.append(tube([(x0, s * side_w, z + h), (x1, s * side_w, z + h)], 0.025, mat=toon(color)))
-        for i in range(posts):
-            x = x0 + (x1 - x0) * i / max(1, posts - 1)
-            c = cyl(loc=(x, s * side_w, z + h / 2), r=0.02, depth=h, mat=toon(color))
-            c["outline_k"] = 0.5
-            out.append(c)
+def deck_at(parts, x, y=0.0, below=None):
+    """Top surface under (x, y): where the fisher's feet go. `below` skips
+    hits above that height (cabin roofs, sails, a balloon)."""
+    hs = surfaces(x, y, below if below is not None else 50.0)
+    z = hs[0] if hs else 0.3
+    print("DECK", [p.name for p in parts[:1]], (round(x, 2), round(y, 2)), "surfaces", hs, "->", z)
+    return (x, y, z)
+
+
+def glow(color, k=0.85):
+    return toon(color, emit=k)
+
+
+def noline(o):
+    o["no_outline"] = True
+    return o
+
+
+# --------------------------------------------------------------- details
+def lamp(loc, color, r=0.12):
+    """Small glowing bulb (no outline, so it reads as light)."""
+    return noline(sphere(loc=loc, scale=r, mat=glow(color, 1.0), seg=12, rings=6))
+
+
+def flare(x, y, z, r, length, color="#5ff2ff"):
+    """Engine exhaust cone pointing -X (backwards)."""
+    c = cone(loc=(x - length / 2, y, z), r1=r, r2=0.0, depth=length, rot=(0, -90, 0), mat=glow(color, 1.0), verts=16)
+    return noline(c)
+
+
+def propeller(x, y, z, r=0.5, color="#7a5a3a"):
+    out = [cyl(loc=(x, y, z), r=r * 0.22, depth=r * 0.5, rot=(0, 90, 0), mat=toon("#3a3f44"))]
+    for k in range(3):
+        a = k * 120 + 15
+        out.append(cube(loc=(x - r * 0.1, y + math.cos(math.radians(a)) * r * 0.5, z + math.sin(math.radians(a)) * r * 0.5),
+                        scale=(0.05, r * 0.95, r * 0.26), rot=(a, 0, 0), mat=toon(color)))
     return out
 
 
-def cabin(x, z, l, w, h, color, roof=None, win="#2b3a55", nwin=2, glow=0.0, bevel=0.06):
-    out = [cube(loc=(x, 0, z + h / 2), scale=(l, w, h), mat=toon(color), bevel=bevel)]
-    if roof:
-        out.append(cube(loc=(x, 0, z + h + 0.04), scale=(l * 1.08, w * 1.08, 0.08), mat=toon(roof), bevel=0.02))
-    out += windows(x - l * 0.3, x + l * 0.3, z + h * 0.6, nwin, h=min(0.22, h * 0.35), side_w=w / 2 + 0.01, color=win, glow=glow)
-    front = cube(loc=(x + l / 2 + 0.01, 0, z + h * 0.62), scale=(0.04, w * 0.7, h * 0.32), mat=toon(win, emit=glow))
-    front["no_outline"] = True
-    out.append(front)
-    return out
+def wing(side, root, z, pts, color, dihedral=12.0, thick=0.08):
+    """Flat wing outline (x, y>0) mirrored to `side`, tilted up by dihedral."""
+    w = extrude_poly([(x, y * side) for x, y in pts], thick, mat=toon(color))
+    w.location = (root[0], root[1] * side, z)
+    w.rotation_euler = (math.radians(-dihedral * side), 0, 0)
+    return w
 
 
-def flag(x, z, color="#e8553b", h=1.2):
-    pole = cyl(loc=(x, 0, z + h / 2), r=0.025, depth=h, mat=toon("#d9dde2"))
-    f = extrude_poly([(0, 0), (-0.5, 0.15), (0, 0.3)], 0.02, mat=toon(color))
-    f.rotation_euler = (math.radians(90), 0, 0)
-    f.location = (x, 0, z + h - 0.3)
-    return [pole, f]
+def apply_scale(ob, sx, sy, sz):
+    ob.scale = (sx, sy, sz)
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True)
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+
+# Kenney colormap swatches (flat colour of each pair)
+BROWN, SALMON, TAN, CREAM, WHITE = "#b06041", "#f1976c", "#f2bf99", "#fde4c7", "#ffffff"
+GREEN, YELLOW, ORANGE, RED, BLUE, LBLUE = "#61cb8b", "#ffc044", "#ff7e44", "#cf534f", "#6794d9", "#d0e8ff"
+DARK, GREY, SLATE, LAVENDER, PURPLE, PINK = "#38383d", "#868ba1", "#4f5260", "#a0a8c9", "#a878e8", "#f378f0"
+FEATHER = [(1.0, 0.0), (0.3, 1.2), (-0.9, 2.5), (-1.1, 2.0), (-1.5, 2.1), (-1.6, 1.5), (-2.0, 1.4), (-1.9, 0.8), (-1.4, 0.0)]
 
 
 # ------------------------------------------------------------------ boats
 def rowboat():
-    p = [hull(3.2, 1.3, 0.75, "#a8703f", "#7a4a26", "#d8b27a", bow=0.85, sheer=0.35, rise=0.5)]
-    for x in (-0.6, 0.35):
-        p.append(cube(loc=(x, 0, 0.32), scale=(0.3, 1.1, 0.06), mat=toon("#c48a52")))
-    for s in (1, -1):
-        p.append(tube([(-0.1, s * 0.55, 0.45), (-0.5, s * 1.35, 0.0), (-0.75, s * 1.6, -0.2)], 0.035, mat=toon("#c48a52")))
-        p.append(cube(loc=(-0.78, s * 1.63, -0.22), scale=(0.35, 0.03, 0.14), rot=(0, 25, 0), mat=toon("#c48a52")))
-    p.append(cube(loc=(-1.1, 0, 0.38), scale=(0.4, 0.5, 0.3), mat=toon("#4aa3d8"), bevel=0.04))
-    return p, (0.25, 0, 0.36)
+    ob = load(WC, "boat-row-small", 3.4, rot=90, draft=0.22)
+    return [ob], deck_at([ob], 0.35)
 
 
 def fishing_boat():
-    p = [hull(4.6, 1.6, 1.0, "#f2f0e8", "#c4382e", "#2f5d8a", sheer=0.3)]
-    p.append(deck_plate(4.4, 1.5, 0.62, "#b58d5c"))
-    p += cabin(-1.2, 0.65, 1.3, 1.2, 1.0, "#f2f0e8", roof="#2f5d8a", nwin=2)
-    p.append(cyl(loc=(-1.2, 0, 2.3), r=0.04, depth=1.4, mat=toon("#d9dde2")))
-    p.append(cube(loc=(-1.2, 0, 2.7), scale=(0.6, 0.05, 0.05), mat=toon("#d9dde2")))
-    p.append(cyl(loc=(-1.6, 0.3, 1.9), r=0.09, depth=0.5, mat=toon("#3a3f44")))
-    p.append(cyl(loc=(-0.2, 0, 1.4), r=0.05, depth=1.5, mat=toon("#e0a82e")))
-    p.append(cyl(loc=(-0.65, 0, 1.75), r=0.035, depth=1.1, rot=(0, -60, 0), mat=toon("#e0a82e")))
-    p.append(tube([(-1.12, 0, 2.02), (-1.12, 0, 1.4)], 0.01, mat=toon("#d9dde2")))
-    p.append(torus(loc=(-1.12, 0, 1.36), R=0.06, r=0.015, rot=(90, 0, 0), mat=toon("#d9dde2")))
-    for i in range(4):
-        p.append(cube(loc=(-0.1 + i * 0.25, 0.45, 0.78), scale=(0.2, 0.3, 0.25), mat=toon("#5aa0d8" if i % 2 else "#f2c14e"),
-                      bevel=0.03))
-    return p, (0.85, 0, 0.66)
+    ob = load(WC, "boat-fishing-small", 4.3, rot=90, draft=0.3)
+    return [ob], deck_at([ob], 1.5, below=1.0)
 
 
 def speedboat():
-    p = [hull(4.2, 1.5, 0.75, "#f4f6f8", "#1f3a6a", "#ff4b3e", bow=0.95, sheer=0.15, rise=0.6)]
-    p.append(deck_plate(3.8, 1.35, 0.42, "#2a2f3a"))
-    ws = extrude_poly([(0, 0), (0.6, 0), (0, 0.45)], 1.2, mat=toon("#9ad8ff", emit=0.15, alpha=0.75))
-    ws.rotation_euler = (math.radians(90), 0, 0)
-    ws.location = (0.2, 0, 0.47)
-    ws["no_outline"] = True
-    p.append(ws)
-    p.append(cube(loc=(-0.6, 0, 0.62), scale=(0.7, 1.0, 0.3), mat=toon("#ff4b3e"), bevel=0.08))
-    p.append(cube(loc=(-2.2, 0, 0.55), scale=(0.35, 0.4, 0.7), mat=toon("#2a2f3a"), bevel=0.06))
-    p.append(cube(loc=(-2.2, 0, 0.95), scale=(0.45, 0.45, 0.25), mat=toon("#e9eef2"), bevel=0.06))
-    return p, (-0.9, 0, 0.45)
+    ob = load(WC, "boat-speed-c", 4.7, rot=90, draft=0.28)
+    return [ob], deck_at([ob], -1.2)
 
 
 def pontoon():
-    p = []
-    for s in (1, -1):
-        pt = cyl(loc=(0, s * 0.75, 0.05), r=0.32, depth=4.4, rot=(0, 90, 0), mat=toon("#cfd6dc", spec=0.5))
-        p.append(pt)
-        p.append(sphere(loc=(2.2, s * 0.75, 0.05), scale=(0.5, 0.32, 0.32), mat=toon("#cfd6dc", spec=0.5)))
-    p.append(cube(loc=(0, 0, 0.45), scale=(4.6, 2.1, 0.12), mat=toon("#c9a173"), bevel=0.03))
-    p.append(cube(loc=(0, 0, 0.36), scale=(4.6, 2.1, 0.08), mat=toon("#2f5d8a")))
-    p += rail(-2.1, 2.1, 0.5, 1.0, posts=7, h=0.45)
-    for x in (-1.6, 0.0):
-        for s in (1, -1):
-            c = cyl(loc=(x, s * 0.9, 1.25), r=0.03, depth=1.5, mat=toon("#d9dde2"))
-            p.append(c)
-    p.append(cube(loc=(-0.8, 0, 2.0), scale=(1.9, 2.0, 0.06), mat=toon("#1f3a6a"), bevel=0.02))
-    p.append(cube(loc=(-1.5, 0, 0.75), scale=(0.9, 1.6, 0.4), mat=toon("#e8553b"), bevel=0.1))
-    return p, (1.2, 0, 0.52)
+    ob = load(WC, "boat-house-a", 5.0, rot=90, draft=0.3, swaps={LAVENDER: "#3fbf9f"})
+    return [ob], deck_at([ob], 1.95)
 
 
 def sailboat():
-    p = [hull(4.6, 1.5, 1.0, "#f6f3ea", "#1f3a6a", "#e8553b", sheer=0.3)]
-    p.append(deck_plate(4.3, 1.4, 0.62, "#c9a173"))
-    p.append(cube(loc=(-1.0, 0, 0.85), scale=(1.1, 0.9, 0.4), mat=toon("#f6f3ea"), bevel=0.08))
-    p += windows(-1.3, -0.7, 0.85, 3, h=0.12, side_w=0.46, round_=True)
-    p.append(cyl(loc=(-0.3, 0, 3.2), r=0.06, depth=5.2, mat=toon("#d9c49a")))
-    p.append(cyl(loc=(-1.25, 0, 1.25), r=0.045, depth=1.9, rot=(0, 90, 0), mat=toon("#d9c49a")))
-    main = extrude_poly([(0, 0), (-1.8, 0), (-0.05, 4.4)], 0.03, mat=toon("#fffdf5"))
-    main.rotation_euler = (math.radians(90), 0, 0)
-    main.location = (-0.33, 0, 1.3)
-    jib = extrude_poly([(0, 0), (1.9, 0), (0, 4.0)], 0.03, mat=toon("#ffe6c4"))
-    jib.rotation_euler = (math.radians(90), 0, 0)
-    jib.location = (-0.22, 0, 0.9)
-    p += [main, jib]
-    p.append(tube([(-0.3, 0, 5.75), (2.25, 0, 0.75)], 0.012, mat=toon("#d9dde2")))
-    p += flag(-0.3, 5.75, "#e8553b", 0.4)
-    return p, (1.2, 0, 0.66)
+    ob = load(WC, "boat-sail-a", 5.3, rot=90, draft=0.3)
+    return [ob], deck_at([ob], 1.75, below=2.0)
 
 
 def yacht():
-    p = [hull(6.2, 1.9, 1.2, "#f7f8fa", "#1c2b45", "#c9a24a", sheer=0.25, bow=0.95)]
-    p.append(deck_plate(5.9, 1.8, 0.78, "#c9a173"))
-    p += cabin(-0.6, 0.8, 2.8, 1.5, 0.75, "#f7f8fa", nwin=4)
-    p += cabin(-0.9, 1.55, 1.7, 1.3, 0.55, "#f7f8fa", roof="#1c2b45", nwin=2)
-    ws = cube(loc=(0.9, 0, 1.15), scale=(0.08, 1.4, 0.4), rot=(0, -35, 0), mat=toon("#2b3a55"))
-    p.append(ws)
-    p += rail(1.2, 2.7, 0.8, 0.75, posts=5, h=0.3)
-    p.append(cyl(loc=(-0.9, 0, 2.5), r=0.04, depth=0.8, mat=toon("#d9dde2")))
-    p.append(torus(loc=(-0.9, 0, 2.85), R=0.14, r=0.03, rot=(90, 0, 0), mat=toon("#d9dde2")))
-    return p, (1.75, 0, 0.82)
+    ob = load(BO, "q_cruise", 6.0, rot=90, draft=0.3, tints={"Red": "#1f3a6a", "F2F2F2": "#ffffff"},
+              emit={"F2F2F2": 0.3})
+    return [ob], deck_at([ob], 2.25)
 
 
 def luxury_yacht():
-    p = [hull(7.4, 2.2, 1.45, "#fbfbfd", "#16203a", "#d4af37", sheer=0.22, bow=0.96, metal=True)]
-    p.append(deck_plate(7.0, 2.1, 0.95, "#c9a173"))
-    p += cabin(-0.7, 0.95, 3.8, 1.9, 0.8, "#fbfbfd", nwin=5, win="#1d2b4a")
-    p += cabin(-1.0, 1.75, 2.7, 1.7, 0.7, "#fbfbfd", nwin=3, win="#1d2b4a")
-    p += cabin(-1.3, 2.45, 1.6, 1.5, 0.55, "#fbfbfd", roof="#d4af37", nwin=2, win="#1d2b4a")
-    p.append(cube(loc=(-1.3, 0, 3.25), scale=(0.15, 0.15, 0.5), mat=toon("#d4af37", spec=0.6)))
-    p.append(sphere(loc=(-1.3, 0, 3.6), scale=0.22, mat=toon("#e8eef5", spec=0.4)))
-    p += rail(1.3, 3.2, 0.95, 0.85, posts=6, h=0.32, color="#d4af37")
-    pool = cube(loc=(-2.6, 0, 1.0), scale=(1.0, 1.2, 0.1), mat=toon("#4fd1ff", emit=0.2))
-    p.append(pool)
-    return p, (2.2, 0, 1.0)
+    ob = load(BO, "p_cruise", 7.0, rot=90, draft=0.3)
+    return [ob], deck_at([ob], 2.85)
 
 
 def cruise_ship():
-    p = [hull(9.5, 2.6, 2.1, "#fbfbfd", "#1b3a8a", "#c0392b", sheer=0.12, bow=0.9, rise=0.35)]
-    p.append(deck_plate(9.0, 2.5, 1.4, "#c9a173"))
-    for i, (l, z) in enumerate([(7.2, 1.4), (6.4, 2.05), (5.4, 2.7)]):
-        p.append(cube(loc=(-0.6 - i * 0.2, 0, z + 0.32), scale=(l, 2.2 - i * 0.1, 0.62), mat=toon("#fbfbfd"), bevel=0.05))
-        p += windows(-3.6 + i * 0.4, 2.4 - i * 0.6, z + 0.36, 14 - i * 2, h=0.16, side_w=1.11 - i * 0.05,
-                     color="#1d2b4a" if i else "#4fb3ff", glow=0.2 if i == 0 else 0.0)
-    p += windows(-3.8, 3.4, 0.75, 16, h=0.13, side_w=1.15, round_=True, color="#1d2b4a")
-    for x in (-2.4, -0.8):
-        p.append(cyl(loc=(x, 0, 3.85), r=0.42, depth=1.1, mat=toon("#c0392b"), scale=(1.25, 0.85, 1)))
-        p.append(cyl(loc=(x, 0, 4.42), r=0.43, depth=0.18, mat=toon("#1c1c22"), scale=(1.25, 0.85, 1)))
-    p.append(cube(loc=(1.6, 0, 3.3), scale=(1.4, 1.9, 0.35), mat=toon("#fbfbfd"), bevel=0.05))
-    p += windows(1.1, 2.2, 3.32, 4, h=0.14, side_w=0.96, color="#1d2b4a")
-    p += flag(3.6, 1.45, "#1b3a8a", 0.8)
-    return p, (3.0, 0, 1.45)
+    ob = load(WC, "ship-ocean-liner", 8.0, rot=90, draft=0.38)
+    return [ob], deck_at([ob], 3.3)
 
 
 def gold_boat():
-    p = [hull(5.6, 1.8, 1.2, "#f5c542", "#a8741a", "#c0392b", sheer=0.45, metal=True, rise=0.55)]
-    p.append(deck_plate(5.3, 1.7, 0.85, "#7a2b2b"))
-    p += cabin(-1.0, 0.88, 1.8, 1.3, 0.75, "#f5c542", roof="#c0392b", nwin=2, win="#5a1a1a")
-    crown = cyl(loc=(-1.0, 0, 1.95), r=0.35, depth=0.3, mat=toon("#ffd75e", spec=0.7), verts=10)
-    p.append(crown)
-    for i in range(5):
-        a = i / 5 * math.tau
-        p.append(cone(loc=(-1.0 + math.cos(a) * 0.32, math.sin(a) * 0.32, 2.2), r1=0.08, r2=0.0, depth=0.25,
-                      mat=toon("#ffd75e", spec=0.7), verts=6, smooth=False))
-    p.append(ico(loc=(-1.0, 0.36, 1.95), scale=0.09, mat=toon("#e0322b", emit=0.4, spec=0.6)))
-    p.append(cone(loc=(3.0, 0, 1.45), r1=0.25, r2=0.0, depth=0.9, rot=(0, 70, 0), mat=toon("#ffd75e", spec=0.7)))
-    p += rail(0.7, 2.4, 0.88, 0.7, posts=5, h=0.3, color="#ffd75e")
-    return p, (1.5, 0, 0.9)
+    gold = {BROWN: "#b8860b", SALMON: "#e9b23a", TAN: "#ffd75e", CREAM: "#fff0b3", RED: "#b3263a"}
+    ob = load(PI, "ship-large", 7.6, rot=90, draft=0.45, swaps=gold, emit={"colormap": 0.12})
+    squash(ob, 1.6, 0.55)
+    p = [ob]
+    for x, y in ((3.4, 0.0), (-3.45, 0.55), (-3.45, -0.55)):
+        p.append(lamp((x, y, 1.78), "#fff2a0", 0.1))
+    return p, deck_at([ob], 2.35, below=1.5)
 
 
 def sky_cruiser():
-    p = [hull(5.4, 1.6, 1.0, "#e9f3ff", "#7a8ca8", "#4fb3ff", sheer=0.3, bow=0.95)]
-    p.append(deck_plate(5.1, 1.5, 0.65, "#c9a173"))
-    env = sphere(loc=(-0.6, 0, 3.6), scale=(2.6, 1.1, 1.0), mat=toon("#ffffff"))
+    """A flying galleon: Kenney pirate hull with furled sails, feathered
+    wings and stern propellers, held up by a blimp envelope (Poly by Google)."""
+    ob = load(PI, "ship-medium", 7.4, rot=90, draft=-0.45, drop=("sail",),
+              swaps={RED: "#4f9bea", BROWN: "#a2663f"})
+    squash(ob, 1.5, 0.5)
+    p = [ob]
+    env = load(BO, "p_blimp2", 5.4, rot=90, draft=0.0, tints={"lambert6SG": "#9ad6ff"}, tag="env")
+    lo, hi = V.world_bbox([env])
+    env.location = (-0.9, 0.0, 4.3)
     p.append(env)
+    zb = 4.3 + 0.12
     for s in (1, -1):
-        p.append(tube([(-1.8, s * 0.6, 0.7), (-1.6, s * 0.8, 2.7)], 0.03, mat=toon("#7a5a3a")))
-        p.append(tube([(0.8, s * 0.6, 0.7), (0.6, s * 0.8, 2.7)], 0.03, mat=toon("#7a5a3a")))
-        wing = extrude_poly([(0, 0), (-1.4, 0), (-1.0, 1.3), (-0.2, 1.2)], 0.06, mat=toon("#4fb3ff"))
-        wing.location = (-0.3, s * 0.75, 0.5)
-        wing.rotation_euler = (math.radians(-90 * s + (10 * s)), 0, 0)
-        p.append(wing)
-    for x in (-3.2, 2.0):
-        p.append(cone(loc=(x - 0.2 if x < 0 else x, 0, 3.6), r1=0.4, r2=0.1, depth=0.6, rot=(0, -90 if x < 0 else 90, 0),
-                      mat=toon("#4fb3ff")))
-    prop = cube(loc=(-3.4, 0, 3.6), scale=(0.06, 1.4, 0.18), mat=toon("#7a5a3a"))
-    p.append(prop)
-    p.append(cube(loc=(-0.6, 0, 2.55), scale=(1.4, 0.7, 0.4), mat=toon("#4fb3ff"), bevel=0.06))
-    p += windows(-1.1, -0.1, 2.58, 3, h=0.14, side_w=0.36, round_=True)
-    return p, (1.3, 0, 0.68)
+        p.append(wing(s, (0.4, 0.75), 1.45, FEATHER, "#eef6ff"))
+        p.append(wing(s, (0.6, 0.8), 1.52, [(x * 0.62, y * 0.62) for x, y in FEATHER], "#7cc4ff", thick=0.06))
+        p += propeller(-3.95, s * 0.55, 1.45, 0.6)
+        for x in (-2.6, 0.6):
+            p.append(tube([(x, s * 0.7, 1.5), (x + 0.1, s * 0.45, zb)], 0.03, mat=toon("#5a4632")))
+    for x in (-2.6, 0.2, 2.6):
+        p.append(lamp((x, 0.0, 0.3), "#7dfcff", 0.16))
+    return p, deck_at([ob], 2.4, below=1.9)
 
 
 def satellite():
-    p = [cube(loc=(0, 0, 0.6), scale=(1.4, 1.2, 1.2), mat=toon("#d6a53a", spec=0.6), bevel=0.06)]
-    p.append(cube(loc=(0, 0, 1.25), scale=(1.5, 1.3, 0.1), mat=toon("#cfd6dc", spec=0.4)))
-    for s in (1, -1):
-        p.append(cyl(loc=(0, s * 1.0, 0.6), r=0.05, depth=0.8, rot=(90, 0, 0), mat=toon("#cfd6dc")))
-        panel = cube(loc=(0, s * 2.2, 0.6), scale=(1.1, 1.7, 0.05), mat=toon("#2f4fd1", spec=0.4))
-        p.append(panel)
-        for k in range(3):
-            g = cube(loc=(0, s * (1.6 + k * 0.6), 0.63), scale=(1.12, 0.03, 0.02), mat=toon("#cfd6dc"))
-            g["no_outline"] = True
-            p.append(g)
-    dish = sphere(loc=(-0.95, 0, 1.0), scale=(0.15, 0.55, 0.55), mat=toon("#f2f4f6"))
-    p.append(dish)
-    p.append(cyl(loc=(-1.25, 0, 1.0), r=0.03, depth=0.5, rot=(0, 90, 0), mat=toon("#cfd6dc")))
-    p.append(sphere(loc=(-1.5, 0, 1.0), scale=0.06, mat=toon("#ff4b3e", emit=0.8)))
-    p.append(cyl(loc=(0.4, 0.3, 1.6), r=0.02, depth=0.7, mat=toon("#cfd6dc")))
-    p.append(sphere(loc=(0.4, 0.3, 1.98), scale=0.06, mat=toon("#5ff2ff", emit=0.8)))
-    return p, (0.15, 0, 1.3)
+    ob = load(BO, "p_sat1", 7.8, rot=0, draft=0.1)
+    p = [ob, lamp((0.0, 1.9, 1.3), "#ff4b3e", 0.1)]
+    return p, deck_at([ob], 0.0)
 
 
 def space_shuttle():
-    body = cyl(loc=(0, 0, 0.6), r=0.75, depth=5.0, rot=(0, 90, 0), mat=toon("#f4f6f8"), verts=32)
-    nose = sphere(loc=(2.5, 0, 0.6), scale=(1.2, 0.75, 0.75), mat=toon("#f4f6f8"))
-    tipc = sphere(loc=(3.35, 0, 0.55), scale=(0.45, 0.38, 0.38), mat=toon("#22252c"))
-    belly = cube(loc=(0.2, 0, 0.0), scale=(5.4, 1.3, 0.25), mat=toon("#22252c"), bevel=0.1)
-    p = [body, nose, tipc, belly]
-    wing = extrude_poly([(-2.4, 0), (1.2, 0), (-1.8, 2.4), (-2.6, 2.4)], 0.12, mat=toon("#f4f6f8"))
-    wing2 = extrude_poly([(-2.4, 0), (1.2, 0), (-1.8, -2.4), (-2.6, -2.4)], 0.12, mat=toon("#f4f6f8"))
-    for w in (wing, wing2):
-        w.location = (0, 0, 0.2)
-        p.append(w)
-    tail = extrude_poly([(-2.6, 0), (-1.2, 0), (-2.4, 2.0), (-2.9, 2.0)], 0.1, mat=toon("#f4f6f8"))
-    tail.rotation_euler = (math.radians(90), 0, 0)
-    tail.location = (0, 0, 1.2)
-    p.append(tail)
-    for s in (0.35, -0.35):
-        p.append(cone(loc=(-2.75, s, 0.75), r1=0.3, r2=0.18, depth=0.5, rot=(0, 90, 0), mat=toon("#3a3f44")))
-        p.append(cone(loc=(-3.05, s, 0.75), r1=0.22, r2=0.0, depth=0.4, rot=(0, -90, 0), mat=toon("#5ff2ff", emit=0.9)))
-    p += windows(2.3, 2.7, 1.05, 2, h=0.16, side_w=0.55, color="#22252c")
-    p.append(cube(loc=(-0.4, 0, 1.36), scale=(3.0, 1.2, 0.05), mat=toon("#e3e6ea")))
-    return p, (0.4, 0, 1.38)
+    ob = load(BO, "p_orbiter_zoe", 7.8, rot=180, draft=0.15)
+    lo, hi = V.world_bbox([ob])
+    p = [ob]
+    for y, z, r in ((0.0, 1.1, 0.28), (0.34, 0.74, 0.21), (-0.34, 0.74, 0.21)):
+        p.append(flare(lo.x + 0.05, y, z, r, 0.95))
+    return p, deck_at([ob], 0.6)
 
 
 def cruiser():
-    p = [hull(6.4, 2.0, 1.2, "#7c8796", "#3a414c", "#5ff2ff", bow=0.98, sheer=0.05, rise=0.3, metal=True, glow_stripe=0.3)]
-    p.append(deck_plate(6.0, 1.9, 0.78, "#5c6672", bow=0.98))
-    p.append(cube(loc=(-1.0, 0, 1.25), scale=(2.4, 1.4, 0.9), mat=toon("#8a95a5", spec=0.4), bevel=0.04))
-    p.append(cube(loc=(-1.3, 0, 1.95), scale=(1.2, 1.0, 0.55), mat=toon("#8a95a5", spec=0.4), bevel=0.04))
-    p += windows(-1.7, -0.9, 2.0, 3, h=0.12, side_w=0.51, color="#5ff2ff", glow=0.8)
-    for z, s in [(1.1, 0.5), (1.1, -0.5)]:
-        p.append(cyl(loc=(-3.25, s, z), r=0.32, depth=0.6, rot=(0, 90, 0), mat=toon("#3a414c")))
-        p.append(cone(loc=(-3.75, s, z), r1=0.26, r2=0.0, depth=0.6, rot=(0, -90, 0), mat=toon("#5ff2ff", emit=0.9)))
-    for x in (0.9, 1.7):
-        p.append(cyl(loc=(x, 0, 1.0), r=0.3, depth=0.25, mat=toon("#5c6672")))
-        p.append(cyl(loc=(x + 0.4, 0, 1.12), r=0.06, depth=0.8, rot=(0, 90, 0), mat=toon("#3a414c")))
-    p.append(cyl(loc=(-1.3, 0, 2.7), r=0.03, depth=0.9, mat=toon("#cfd6dc")))
-    p.append(sphere(loc=(-1.3, 0, 3.15), scale=0.07, mat=toon("#ff4b3e", emit=0.8)))
-    return p, (2.3, 0, 0.82)
+    ob = load(BO, "q_space411", 8.2, rot=90, draft=0.15)
+    lo, hi = V.world_bbox([ob])
+    p = [ob]
+    for y in (-0.56, 0.56):
+        p.append(flare(lo.x + 0.15, y, 0.77, 0.25, 1.15, "#ff9a3c"))
+    return p, deck_at([ob], 0.6)
 
 
 def alien_raft():
-    disc = cyl(loc=(0, 0, 0.1), r=2.2, depth=0.4, mat=toon("#5a3a8a"), verts=40, scale=(1.25, 0.8, 1))
-    ring = torus(loc=(0, 0, 0.1), R=2.25, r=0.12, mat=toon("#7dff9a", emit=0.8), scale=(1.25, 0.8, 1), seg=48)
-    top = cyl(loc=(0, 0, 0.32), r=2.0, depth=0.06, mat=toon("#3d2a66"), verts=40, scale=(1.25, 0.8, 1))
-    p = [disc, ring, top]
-    for x, y, h, c in [(-1.6, 0.4, 1.3, "#7dff9a"), (-1.2, -0.6, 0.9, "#c77dff"), (-2.0, -0.2, 0.7, "#5ff2ff")]:
-        p.append(cone(loc=(x, y, 0.35 + h / 2), r1=0.22, r2=0.0, depth=h, mat=toon(c, emit=0.5, spec=0.4), verts=5, smooth=False))
-    stem = tube([(1.4, 0.3, 0.35), (1.5, 0.3, 1.1), (1.3, 0.3, 1.6)], 0.07, mat=toon("#c77dff"))
-    cap = sphere(loc=(1.3, 0.3, 1.7), scale=(0.45, 0.45, 0.22), mat=toon("#7dff9a", emit=0.3))
-    p += [stem, cap]
-    for i in range(6):
-        a = i / 6 * math.tau
-        p.append(sphere(loc=(math.cos(a) * 2.6, math.sin(a) * 1.65, 0.1), scale=0.12, mat=toon("#b8ff6a", emit=0.9)))
-    return p, (0.2, 0, 0.36)
+    ob = load(BO, "p_saucer1", 7.6, rot=0, draft=0.3, hsv={"*": (0.62, 1.4, 1.25)}, emit={"MAIN": 0.15})
+    p = [ob]
+    for i in range(12):
+        a = i / 12 * math.tau
+        p.append(lamp((math.cos(a) * 3.65, math.sin(a) * 3.65, 0.26), "#7dffcf" if i % 2 else "#c77dff", 0.15))
+    return p, deck_at([ob], 2.3)
 
 
 def alien_submarine():
-    body = sphere(loc=(0, 0, 0.5), scale=(3.0, 1.0, 0.95), mat=toon("#6b3fa0"), seg=40, rings=20)
-    p = [body]
-    p.append(cube(loc=(-0.3, 0, 1.55), scale=(1.4, 0.7, 0.7), mat=toon("#7d4fc0"), bevel=0.25))
-    p.append(sphere(loc=(0.35, 0, 1.6), scale=(0.35, 0.32, 0.3), mat=toon("#7dff9a", emit=0.6, alpha=0.9)))
-    p += windows(-1.6, 1.6, 0.6, 5, h=0.26, side_w=0.88, round_=True, color="#7dff9a", glow=0.9)
-    for s in (1, -1):
-        fin = extrude_poly([(0, 0), (-1.0, 0), (-1.3, 0.9), (-0.4, 0.5)], 0.08, mat=toon("#c77dff"))
-        fin.rotation_euler = (math.radians(90 * s), 0, 0)
-        fin.location = (-2.0, s * 0.3, 0.6)
-        p.append(fin)
+    """Poly by Google submarine, hue-shifted alien purple and fattened, with
+    a glowing canopy, glowing portholes, fins and tentacles."""
+    ob = load(BO, "p_sub1", 7.4, rot=90, draft=0.5, hsv={"*": (0.62, 1.3, 1.15)})
+    apply_scale(ob, 1.0, 1.8, 1.4)
+    lo, hi = V.world_bbox([ob])
+    p = [ob]
+    p.append(noline(sphere(loc=(1.3, 0.0, hi.z - 0.12), scale=(0.75, 0.5, 0.38), mat=glow("#7dffcf", 0.4))))
     for i in range(5):
-        y = -0.5 + i * 0.25
-        p.append(tube([(-2.6, y, 0.3), (-3.3, y * 1.3, 0.1 - i * 0.05), (-3.9, y * 1.5, 0.35)], 0.07, mat=toon("#c77dff"),
-                      taper=(1.0, 0.3)))
-    p.append(cyl(loc=(2.6, 0, 0.5), r=0.18, depth=0.3, rot=(0, 90, 0), mat=toon("#7dff9a", emit=0.8)))
-    return p, (-0.9, 0, 1.92)
+        x = -2.3 + i * 0.95
+        for s in (1, -1):
+            p.append(lamp((x, s * (hi.y - 0.14), 0.3), "#7dffcf", 0.16))
+    for s in (1, -1):
+        p.append(wing(s, (lo.x + 1.1, 0.45), 0.35, [(0.6, 0), (-0.6, 0), (-1.1, 1.0), (-0.4, 0.9)], "#c77dff", dihedral=0))
+    for i, y in enumerate((-0.5, -0.25, 0.0, 0.25, 0.5)):
+        tip = (lo.x - 1.5 + abs(y) * 0.8, y * 2.0, 0.25 + 0.15 * (i % 2))
+        p.append(tube([(lo.x + 0.3, y * 0.8, 0.35), (lo.x - 0.6, y * 1.4, 0.2 + 0.1 * (i % 2)), tip], 0.11,
+                      mat=toon("#9b4fd6"), taper=(1.0, 0.35)))
+        p.append(lamp(tip, "#7dffcf", 0.09))
+    return p, deck_at([ob], 2.7)
 
 
 def dark_explorer():
-    p = [hull(6.0, 1.9, 1.3, "#1d1726", "#0d0a12", "#b34dff", bow=0.97, sheer=0.35, rise=0.55, glow_stripe=0.6)]
-    p.append(deck_plate(5.7, 1.8, 0.85, "#2a2236", bow=0.97))
-    p.append(extrude_poly([(-1.3, 0), (0.6, 0), (0.0, 1.1), (-1.1, 1.0)], 1.3, mat=toon("#2a2236")))
-    p[-1].rotation_euler = (math.radians(90), 0, 0)
-    p[-1].location = (-0.8, 0, 0.88)
-    p += windows(-1.6, -0.6, 1.45, 3, h=0.16, side_w=0.66, color="#c77dff", glow=0.9)
-    for x in (1.2, 1.8, 2.4):
-        p.append(cone(loc=(x, 0, 1.15 + (x - 1.2) * 0.15), r1=0.12, r2=0.0, depth=0.5, mat=toon("#3a2f4a"), verts=4,
-                      smooth=False))
-    p.append(cyl(loc=(2.75, 0, 1.55), r=0.03, depth=0.9, rot=(0, -30, 0), mat=toon("#3a2f4a")))
-    p.append(sphere(loc=(3.0, 0, 1.95), scale=0.16, mat=toon("#c77dff", emit=0.9)))
-    return p, (1.4, 0, 0.88)
+    """Kenney ghost ship repainted midnight purple with glowing spectral sails."""
+    spectral = {"swaps": {GREEN: "#b59cff"}, "emit": 0.55}
+    ob = load(PI, "ship-ghost", 9.0, rot=90, draft=0.5, swaps={GREEN: "#433573"}, emit={"colormap": 0.08},
+              parts={"sail": spectral, "flag": spectral})
+    squash(ob, 2.4, 0.55)
+    p = [ob]
+    k = 9.0 / 8.6
+    for x, y, z in ((3.7, 0.0, 1.85), (-3.75, 0.62, 2.7), (-3.75, -0.62, 2.7), (0.6, 0.9, 1.45), (-1.4, 0.9, 1.45),
+                    (0.6, -0.9, 1.45), (-1.4, -0.9, 1.45)):
+        p.append(lamp((x * k, y * k, z * k), "#c77dff", 0.14))
+    return p, deck_at([ob], 2.2, below=1.8)
 
 
 def abyssal_surveyor():
-    p = [hull(6.6, 2.1, 1.3, "#163a46", "#0b1d24", "#ffd23f", sheer=0.15, bow=0.9, glow_stripe=0.3)]
-    p.append(deck_plate(6.2, 2.0, 0.85, "#2c4a54"))
-    p += cabin(-1.6, 0.88, 2.0, 1.6, 0.9, "#1f4d5a", roof="#ffd23f", nwin=3, win="#5ff2ff", glow=0.6)
-    gond = sphere(loc=(-0.2, 0, -0.8), scale=0.75, mat=toon("#e0a82e", spec=0.4))
-    p.append(gond)
-    p += windows(-0.3, -0.3, -0.75, 1, h=0.35, side_w=0.72, round_=True, color="#5ff2ff", glow=0.9)
-    p.append(cyl(loc=(-0.2, 0, -0.05), r=0.18, depth=0.6, mat=toon("#3a414c")))
-    for x in (2.2, 1.4):
-        p.append(cyl(loc=(x, 0.7, 1.05), r=0.12, depth=0.3, rot=(0, 70, 0), mat=toon("#3a414c")))
-        p.append(cone(loc=(x + 0.25, 0.7, 1.1), r1=0.13, r2=0.22, depth=0.18, rot=(0, -70, 0),
-                      mat=toon("#fff2a0", emit=1.0)))
-    p.append(tube([(-0.2, 0, 0.9), (0.4, 0, 2.6), (1.3, 0, 2.3)], 0.06, mat=toon("#ffd23f")))
-    p.append(tube([(1.3, 0, 2.3), (1.3, 0, 1.2)], 0.012, mat=toon("#d9dde2")))
-    return p, (2.2, 0, 0.88)
+    """Deep-sea survey ship: Kenney supply-ship hull repainted abyss teal,
+    with an A-frame crane, a yellow submersible, radar and floodlights."""
+    sw = {RED: "#1f7a8c", ORANGE: "#f2f5f7", GREY: "#3b5566", LAVENDER: "#56788a", SLATE: "#1c2b36"}
+    ob = load(WC, "ship-cargo-c", 9.2, rot=90, draft=0.35, swaps=sw)
+    p = [ob]
+    hs = surfaces(-2.9)
+    zd = hs[0] if hs else 0.8
+    # white bridge + lab block on the forward hatch, radar dome and mast
+    zt = surfaces(1.8)[0]
+    p.append(cube(loc=(1.75, 0.0, zt + 0.32), scale=(2.3, 1.5, 0.64), mat=toon("#f2f5f7"), bevel=0.06))
+    p.append(cube(loc=(2.1, 0.0, zt + 0.86), scale=(1.2, 1.2, 0.46), mat=toon("#f2f5f7"), bevel=0.05))
+    p.append(noline(cube(loc=(2.71, 0.0, zt + 0.9), scale=(0.04, 1.0, 0.2), mat=glow("#5ff2ff", 0.55))))
+    for s in (1, -1):
+        p.append(noline(cube(loc=(1.75, s * 0.76, zt + 0.38), scale=(1.9, 0.04, 0.14), mat=glow("#5ff2ff", 0.4))))
+    p.append(sphere(loc=(1.45, 0.0, zt + 1.25), scale=0.34, mat=toon("#f2f5f7"), seg=20, rings=10))
+    p.append(cyl(loc=(2.35, 0.0, zt + 1.55), r=0.05, depth=0.9, mat=toon("#d9dde2")))
+    p.append(cube(loc=(2.35, 0.0, zt + 1.75), scale=(0.08, 0.8, 0.06), mat=toon("#d9dde2")))
+    p.append(lamp((2.35, 0.0, zt + 2.05), "#ff4b3e", 0.1))
+    # submersible on the aft deck
+    p.append(sphere(loc=(-2.6, 0.0, zd + 0.58), scale=(1.0, 0.66, 0.58), mat=toon("#ffd23f"), seg=24, rings=12))
+    p.append(noline(sphere(loc=(-1.75, 0.0, zd + 0.62), scale=(0.33, 0.38, 0.36), mat=glow("#5ff2ff", 0.9))))
+    p.append(cyl(loc=(-2.7, 0.0, zd + 1.18), r=0.17, depth=0.26, mat=toon("#e0a82e")))
+    for s in (1, -1):
+        p.append(cyl(loc=(-3.3, s * 0.66, zd + 0.32), r=0.13, depth=0.75, rot=(0, 90, 0), mat=toon("#3a414c")))
+    # A-frame crane over the stern
+    for s in (1, -1):
+        p.append(tube([(-4.3, s * 0.85, zd), (-3.6, s * 0.7, zd + 2.2)], 0.09, mat=toon("#ffd23f")))
+    p.append(tube([(-3.6, 0.75, zd + 2.2), (-3.6, -0.75, zd + 2.2)], 0.09, mat=toon("#ffd23f")))
+    p.append(tube([(-3.6, 0.0, zd + 2.2), (-2.7, 0.0, zd + 1.3)], 0.018, mat=toon("#d9dde2")))
+    # floodlights + mast lights
+    for x, y in ((1.3, 0.9), (1.3, -0.9), (-0.6, 0.9), (-0.6, -0.9), (-4.0, 0.9), (-4.0, -0.9)):
+        p.append(lamp((x, y, zd + 0.35), "#fff2a0", 0.15))
+    p.append(lamp((4.45, 0.0, 1.25), "#5ff2ff", 0.17))
+    return p, deck_at([ob], 3.9)
 
 
 BUILDERS = {
@@ -419,4 +462,9 @@ BUILDERS = {
 
 def build_boat(name):
     parts, deck = BUILDERS[name]()
+    if os.environ.get("VF_BOAT_PROFILE"):
+        lo, hi = V.world_bbox([p for p in parts if p.type == "MESH"])
+        for i in range(13):
+            x = lo.x + (hi.x - lo.x) * (i + 0.5) / 13
+            print("PROFILE", name, round(x, 2), surfaces(x, 0.0))
     return parts, deck
