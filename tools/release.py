@@ -202,7 +202,14 @@ def main():
     save(STATE, manifest)
     print("manifest saved:", STATE)
     notes = "\n".join("- " + n for n in a.note) or "See CHANGELOG.md"
-    run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes])
+    if a.kind == "full":
+        run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes])
+    else:
+        # an in-game update: players get it from Menu -> Updates. Keep "latest" pointing at the full download.
+        notes += ("\n\n**How to get it:** open the game and press *Update now* (Menu -> Updates). "
+                  "New players: download the latest full release.")
+        run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version} (in-game update)",
+             "--notes", notes, "--latest=false"])
     if a.kind == "full":
         run(["gh", "release", "create", f"dev-base-b{build}", *[os.path.join(base_dir, f"{p}.pck") for p in PLATFORMS],
              "-R", REPO, "--prerelease", "--title", f"dev base b{build} (not for players)",

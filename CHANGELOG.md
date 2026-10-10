@@ -2,6 +2,14 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.1 — in-game update
+
+Get it in the game: **Menu → Updates → Update now** (no new download).
+
+- **Reel it in!** A new way to catch: switch the pill next to the cast button from *Relax* to *Reel it in!*, then keep the cheeky fish in the zone. Win for **+75% fish** and a **0.5 s cooldown**; lose and you still get your normal catch (the fish just blows a raspberry at you).
+- **A new fisherman:** a chunky sea dog who sits on his cooler, yawns, sips his mug, dozes off, waves at seagulls, dances for new fish and facepalms when nothing bites.
+- The line now reels back to the rod after every catch.
+
 ## 0.5 beta — the big update
 
 Play in the browser: https://iiafosh.github.io/fosh-and-fish/ · Downloads: https://github.com/iiafosh/fosh-and-fish/releases/latest
