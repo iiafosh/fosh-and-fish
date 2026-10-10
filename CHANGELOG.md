@@ -2,6 +2,27 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5 beta — the big update
+
+Play in the browser: https://iiafosh.github.io/fosh-and-fish/ · Downloads: https://github.com/iiafosh/fosh-and-fish/releases/latest
+
+**New**
+- **Sailing:** steer your boat (WASD, or drag it) and sail off the map edge into the next biome. Locked biomes tell you the level you need.
+- **FishTok:** a phone inside the game (P). A daily *trending fish* sells for +50%, a daily challenge, and your best catches get likes and followers with rewards.
+- **Online accounts:** cloud save, play on any device, and a leaderboard (Menu → Account).
+- **In-game updates:** from now on, new versions install from Menu → Updates; no new download needed.
+- **17 new boats**, from a rowboat to a ghost ship and an alien saucer.
+
+**Better**
+- A new minimal look: small pills at the top, a round cast button, a Menu (Esc) and the Fish Book (Tab).
+- The line lands **where you tap** (only on water), and you can **hold** to keep fishing.
+- **Beginner's Luck:** extra XP early on, so chests and boosts (level 10) arrive in about 6 minutes instead of 15.
+
+**Fixed**
+- The game was broken on phones set to Arabic (the map slid off-screen); Arabic text now shows properly.
+- A white ring sat on top of the boat.
+- The boat no longer squashes paper-thin when it turns around.
+
 ## 0.1 beta — first public test
 
 **Made by afosh** — [LinkedIn](https://www.linkedin.com/in/mostafa-kmal-3731453a9/) · [GitHub](https://github.com/iiafosh)
