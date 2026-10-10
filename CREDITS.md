@@ -23,6 +23,8 @@ only the files the game uses are copied into `assets/third_party/` or baked into
 | [Particle Pack](https://kenney.nl/assets/particle-pack) | Kenney | CC0 | Splash, sparkle, ember and confetti particles |
 | [UI Pack – Adventure](https://kenney.nl/assets/ui-pack-adventure) | Kenney | CC0 | Parchment panels, buttons, banner |
 | [Interface Sounds](https://kenney.nl/assets/interface-sounds) | Kenney | CC0 | UI clicks and confirmations |
+| [Fish Pack](https://kenney.nl/assets/fish-pack) | Kenney | CC0 (`assets/third_party/kenney_fish/License.txt`) | "Reel it in!" mini-game: cartoon fish, bubbles, seaweed, rock (`assets/third_party/kenney_fish/`) |
+| [Emotes Pack](https://kenney.nl/assets/emotes-pack) | Kenney | CC0 (`assets/third_party/kenney_emotes/License.txt`) | "Reel it in!" mini-game: the fish's reaction bubbles (HAHA, anger, dizzy...) |
 | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) | rubberduck (OpenGameArt) | CC0 | Splashes, bubbles, water ambience |
 | [Fredoka](https://fonts.google.com/specimen/Fredoka) | Milena Brandão, Hafontia | SIL OFL 1.1 (`assets/third_party/fonts/OFL.txt`) | UI font |
 | [Cairo](https://fonts.google.com/specimen/Cairo) | The Cairo Project Authors (Mohamed Gaber) | SIL OFL 1.1 (`assets/third_party/fonts/Cairo-OFL.txt`) | Arabic letters (fallback font) |

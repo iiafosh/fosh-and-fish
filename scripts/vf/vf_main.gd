@@ -75,6 +75,9 @@ var xp_ring: Control
 var boost_pill: PanelContainer
 var boost_icon: TextureRect
 var cast_ring: Control
+var mode_pill: Button        # Relax / Reel it in! catch mode (next to the cast button)
+var minigame: Control        # vf_minigame.gd while a "Reel it in!" round is on
+var _reel_wait_until := 0    # ticks ms: the line is out in Reel mode, the mini-game opens when it lands
 var top_right: HBoxContainer
 var book_btn: Button
 var phone_btn: Button
@@ -126,6 +129,7 @@ func _process_hold() -> void:
 	if _hold_water and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_hold_water = false
 	var held := _hold_btn or _hold_water or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_F)
+	if VF.catch_mode != "relax" or minigame != null: return     # hold-to-keep-fishing is a Relax thing
 	if held and not overlay.visible and not _phone_open() and VF.cooldown_left() <= 0.0 and VF.can_cast() == "":
 		_do_cast()
 
@@ -727,11 +731,48 @@ func _build_dock() -> void:
 	kc.offset_top = -4
 	kc.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	fish_btn.add_child(kc)
+	# ---- catch mode pill, left of the cast button
+	mode_pill = pill_button("hourglass-medium", "Relax")
+	mode_pill.anchor_left = 1.0
+	mode_pill.anchor_right = 1.0
+	mode_pill.anchor_top = 1.0
+	mode_pill.anchor_bottom = 1.0
+	mode_pill.offset_right = -112
+	mode_pill.offset_top = -79
+	mode_pill.offset_bottom = -39
+	mode_pill.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	mode_pill.pressed.connect(func(): _set_catch_mode("relax" if VF.catch_mode == "reel" else "reel"))
+	add_child(mode_pill)
+	_refresh_mode_pill()
+
+func _set_catch_mode(m: String) -> void:
+	VF.set_catch_mode(m)
+	_refresh_mode_pill()
+	if m == "reel":
+		_toast("Reel it in! Win the mini-game for +%d%% fish and a %ss cooldown" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)], "quest")
+	else:
+		_toast("Relax: cast and wait for the cooldown. Hold to keep fishing", "quest")
+
+func _refresh_mode_pill() -> void:
+	if mode_pill == null: return
+	var reel: bool = VF.catch_mode == "reel"
+	mode_pill.text = "Reel it in!" if reel else "Relax"
+	mode_pill.icon = ph("lightning" if reel else "hourglass-medium")
+	var fc := Color.WHITE if reel else C_TEXT
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+		mode_pill.add_theme_color_override(k, fc)
+	for st in ["normal", "hover", "pressed"]:
+		var sb: StyleBoxFlat = pill_box(true, 13, 6)
+		if reel: sb.bg_color = C_TEAL.lightened(0.1 if st == "hover" else 0.0).darkened(0.12 if st == "pressed" else 0.0)
+		elif st == "hover": sb.bg_color = Color.WHITE
+		mode_pill.add_theme_stylebox_override(st, sb)
+	mode_pill.tooltip_text = ("Catch mode: Reel it in! - play a quick mini-game after each bite: win for +%d%% fish and a %ss cooldown. Click for Relax." if reel
+		else "Catch mode: Relax - cast and wait for the cooldown. Click for Reel it in! (mini-game: +%d%% fish, %ss cooldown)") % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)]
 
 func _draw_cast_ring() -> void:
 	var c := cast_ring.size * 0.5
 	var r := minf(c.x, c.y) + 5.0
-	var cd: float = VF.cooldown()
+	var cd: float = VF.cur_cooldown()
 	var left: float = VF.cooldown_left()
 	if left > 0.0 and cd > 0.0:
 		cast_ring.draw_arc(c, r, 0, TAU, 48, Color(1, 1, 1, 0.35), 5.0, true)
@@ -848,7 +889,7 @@ func _apply_biome() -> void:
 
 # ================================================================ actions
 func _do_cast() -> void:
-	if sail.busy(): return                     # no casting while steering or between biomes
+	if sail.busy() or minigame != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
 	var why: String = VF.can_cast()
 	if why == "cooldown":
 		return
@@ -858,11 +899,32 @@ func _do_cast() -> void:
 	AudioManager.play_cast()
 	var cast_start := Time.get_ticks_msec()
 	VF._last_cast_ms = cast_start              # cooldown starts the moment you cast
+	var reel: bool = VF.catch_mode == "reel"
+	if reel: _reel_wait_until = cast_start + 3000
 	stage.cast(func():
 		AudioManager.play_splash()
+		if reel:
+			_reel_wait_until = 0
+			_start_minigame(cast_start)
+			return
 		VF._last_cast_ms = -100000
 		VF.cast()
 		VF._last_cast_ms = cast_start)         # keep counting from the cast, not the catch
+
+## "Reel it in!" mode: the fish bites -> mini-game (vf_minigame.gd) -> VF.cast_reel(won).
+## With a panel or the phone open there's no mini-game, just the normal catch.
+func _start_minigame(cast_start: int) -> void:
+	if overlay.visible or _phone_open():
+		VF.cast_reel(false, cast_start)
+		return
+	var script: GDScript = load("res://scripts/vf/vf_minigame.gd")
+	var biter: Array = script.pick_biter()
+	var mg: Control = script.new()
+	mg.setup(self, biter[0], biter[1])
+	mg.resolved.connect(func(won: bool): VF.cast_reel(won, cast_start))
+	mg.tree_exited.connect(func(): if minigame == mg: minigame = null)
+	minigame = mg
+	add_child(mg)
 
 func _do_sell() -> void:
 	var earned: int = VF.sell_all()
@@ -1015,6 +1077,10 @@ func _show_catch(res: Dictionary) -> void:
 		row.add_child(val)
 		card_body.add_child(row)
 	card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
+	if res.get("reel", "") == "win":
+		card_body.add_child(lbl("Reeled it in!  +%d%% fish" % int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), 14, C_TEAL))
+	elif res.get("reel", "") == "lose":
+		card_body.add_child(lbl("It got away... normal catch", 13, C_MUTED))
 	if not res.chest.is_empty():
 		var c: Dictionary = res.chest
 		var row := HBoxContainer.new()
@@ -1043,6 +1109,8 @@ func _show_catch(res: Dictionary) -> void:
 
 # ================================================================ refresh
 func _refresh() -> void:
+	if mode_pill and mode_pill.text != ("Reel it in!" if VF.catch_mode == "reel" else "Relax"):
+		_refresh_mode_pill()             # catch mode changed by a loaded / cloud save
 	lvl_label.text = "Lv %s" % VF.commas(VF.level)
 	var need: int = VF.xp_to_next()
 	xp_bar.max_value = maxf(1.0, need)
@@ -1691,6 +1759,10 @@ func _check_capture() -> void:
 			await _shot(dir + "/aim%d.png" % i)
 		get_tree().quit()
 		return
+	if "--minigame-test" in OS.get_cmdline_user_args():
+		await _minigame_test(dir)
+		get_tree().quit()
+		return
 	if "--phone-test" in OS.get_cmdline_user_args():
 		await _phone_test(dir)
 		get_tree().quit()
@@ -1759,6 +1831,67 @@ func _check_capture() -> void:
 		await get_tree().create_timer(0.4).timeout
 		await _shot(dir + "/panel_%s%s.png" % [p[0], ("_" + p[1].to_lower().replace(" / ", "_")) if p[1] != "" else ""])
 	get_tree().quit()
+
+## Reel-it-in mode end to end: toggle, cast, play the mini-game to a WIN and to a LOSS (simulated input)
+func _minigame_test(dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.changed.emit()
+	_coach_show()
+	_set_catch_mode("reel")
+	await get_tree().create_timer(1.0).timeout
+	await _shot(dir + "/mg0_toggle.png")
+	for outcome in ["win", "lose"]:
+		var trips: int = VF.stats.trips
+		var fish: int = VF.stats.fish
+		VF._last_cast_ms = -100000
+		_do_cast()
+		while minigame == null:
+			await get_tree().process_frame
+		var mg = minigame
+		mg.auto = outcome
+		await get_tree().create_timer(0.3).timeout
+		await _shot(dir + "/mg_%s_1intro.png" % outcome)
+		await get_tree().create_timer(1.6).timeout
+		await _shot(dir + "/mg_%s_2play.png" % outcome)
+		while is_instance_valid(mg) and mg.phase != "end":
+			await get_tree().process_frame
+		var t_end := Time.get_ticks_msec()
+		await get_tree().create_timer(0.12).timeout
+		await _shot(dir + "/mg_%s_3pop.png" % outcome)
+		await get_tree().create_timer(0.45).timeout
+		await _shot(dir + "/mg_%s_4gag.png" % outcome)
+		print("MG %s: trips +%d fish +%d cooldown_left %.2f (cur_cooldown %.2f) took %.1fs" % [outcome, VF.stats.trips - trips,
+			VF.stats.fish - fish, VF.cooldown_left(), VF.cur_cooldown(), mg.play_t])
+		while minigame != null:
+			await get_tree().process_frame
+		print("MG %s: closed %.2fs after the result" % [outcome, (Time.get_ticks_msec() - t_end) / 1000.0])
+		await get_tree().create_timer(0.3).timeout
+		await _shot(dir + "/mg_%s_5after.png" % outcome)
+	# fast-skip: a tap during the end gag closes it right away
+	VF._last_cast_ms = -100000
+	_do_cast()
+	while minigame == null:
+		await get_tree().process_frame
+	var m2 = minigame
+	m2.auto = "win"
+	for tr in [3, 4, 2, 1]:          # every fish look (eye / mouth overlay on the Kenney sprites)
+		m2.tier = tr
+		m2.progress = 0.3
+		await get_tree().create_timer(0.7).timeout
+		await _shot(dir + "/mg_tier%d.png" % tr)
+	m2.progress = 0.99
+	m2.zone_y = clampf(m2.fish_y - m2.zone_h * 0.5, 0.0, 1.0 - m2.zone_h)
+	m2.auto = "win"
+	while is_instance_valid(m2) and m2.phase != "end":
+		await get_tree().process_frame
+	await get_tree().create_timer(0.3).timeout
+	_tap(get_viewport_rect().size * 0.5)
+	await get_tree().create_timer(0.25).timeout
+	print("MG skip: closed=%s" % str(minigame == null))
+	_open_panel("settings")
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/mg6_settings.png")
 
 func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
@@ -1950,6 +2083,29 @@ func _setting_row(title: String, sub: String, on: bool, on_key: String, vol: flo
 
 func _panel_settings() -> void:
 	var A = AudioManager
+	# catch mode: Relax / Reel it in!
+	var cm := PanelContainer.new()
+	cm.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 12))
+	var ch := HBoxContainer.new()
+	ch.add_theme_constant_override("separation", 10)
+	cm.add_child(ch)
+	var cv := VBoxContainer.new()
+	cv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cv.add_child(lbl("How you catch", 18))
+	var csub := lbl("Relax: cast and wait for the cooldown. Reel it in!: a quick mini-game - win for +%d%% fish and a %ss cooldown" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)], 13, C_MUTED)
+	csub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cv.add_child(csub)
+	ch.add_child(cv)
+	for m in [["relax", "Relax"], ["reel", "Reel it in!"]]:
+		var on: bool = VF.catch_mode == m[0]
+		var b := btn(m[1], C_TEAL if on else C_NEUTRAL, 15, 112)
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var mode: String = m[0]
+		b.pressed.connect(func():
+			_set_catch_mode(mode)
+			_render_panel())
+		ch.add_child(b)
+	panel_body.add_child(cm)
 	_setting_row("Music & ambience", "Calm water sounds in the background", A.music_on, "music_on", A.music_volume, "music_volume")
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
