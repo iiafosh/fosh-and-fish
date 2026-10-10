@@ -15,7 +15,11 @@ only the files the game uses are copied into `assets/third_party/` or baked into
 | [Flying gull](https://poly.pizza/m/eMNhHDZakYp) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Seagulls (`assets/vf/critters/gull.png`) |
 | [Crab](https://poly.pizza/m/2DgM36qZW2u) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Beach crabs (`assets/vf/critters/crab.png`) |
 | [Nature Kit](https://kenney.nl/assets/nature-kit) | Kenney | CC0 | Trees, palms, rocks, bushes, flowers, lily pads in scenes |
-| [Watercraft Kit](https://kenney.nl/assets/watercraft-kit) | Kenney | CC0 | Buoys and the moored rowboat in scenes |
+| [Watercraft Kit](https://kenney.nl/assets/watercraft-kit) | Kenney | CC0 | Buoys, the moored rowboat, and the Rowboat, Fishing Boat, Speedboat, Pontoon, Sailboat, Yacht, Cruiser and Cruise Ship hulls |
+| [Pirate Kit](https://kenney.nl/assets/pirate-kit) | Kenney | CC0 | Gold Boat (galleon), Sky Cruiser hull, Dark Explorer (ghost ship) |
+| [Cruise Ship](https://poly.pizza/m/yq9EKmEmfC), [Spaceship](https://poly.pizza/m/uCeLfsdmNP) | Quaternius | CC0 | Luxury Yacht, space cruiser parts |
+| [Cruise ship](https://poly.pizza/m/dgLCxDWhnZQ), [Blimp](https://poly.pizza/m/cGHU2Pu0Ytf), [Satellite](https://poly.pizza/m/1C3zb8Q9USk), [Flying saucer](https://poly.pizza/m/6hu2h8v78mO), [Submarine](https://poly.pizza/m/8PgPdFGg3MO) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Boat parts: Sky Cruiser balloon, Satellite, Alien Raft, Alien Submarine, Abyssal Surveyor (recolored, cel-shaded) |
+| [Space Shuttle Orbiter](https://poly.pizza/m/bIAMfx1bHVY) | Zoe XR | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Space Shuttle boat |
 | [Particle Pack](https://kenney.nl/assets/particle-pack) | Kenney | CC0 | Splash, sparkle, ember and confetti particles |
 | [UI Pack – Adventure](https://kenney.nl/assets/ui-pack-adventure) | Kenney | CC0 | Parchment panels, buttons, banner |
 | [Interface Sounds](https://kenney.nl/assets/interface-sounds) | Kenney | CC0 | UI clicks and confirmations |
