@@ -6,11 +6,13 @@
 Everything not listed here (game code, procedural Blender art, shaders) is original to this project.
 Raw source packs are fetched with `python tools/fetch_assets.py` into `scratch/downloads/` (git-ignored);
 only the files the game uses are copied into `assets/third_party/` or baked into renders under `assets/vf/`.
+The fisher (sou'wester, walrus moustache, life vest, cooler and mug; `assets/vf/fisher/`) is original,
+built and animated from primitives in `tools/blender/vf_fisher.py`.
 
 | Asset | Author | License | Used for |
 |---|---|---|---|
 | [Animated Fish](https://poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g) (fish ×3, dolphin, shark, whale, manta ray) | [Quaternius](https://quaternius.com/packs/animatedfish.html) | CC0 | Swimming fish sprite sheets (`assets/vf/swim/`) |
-| [Animated Woman](https://poly.pizza/m/qJ2gsTUBHL) | Quaternius | CC0 | Animated fisher (`assets/vf/fisher/`) |
+| [Animated Woman](https://poly.pizza/m/qJ2gsTUBHL) | Quaternius | CC0 | Market merchant (`assets/vf/merchant/`) |
 | [Chest](https://poly.pizza/m/O72u4Drp8k) | Quaternius | CC0 | Sunken chests in the Ocean / Abyss scenes |
 | [Flying gull](https://poly.pizza/m/eMNhHDZakYp) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Seagulls (`assets/vf/critters/gull.png`) |
 | [Crab](https://poly.pizza/m/2DgM36qZW2u) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Beach crabs (`assets/vf/critters/crab.png`) |

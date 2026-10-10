@@ -217,6 +217,31 @@ def deck_at(parts, x, y=0.0, below=None):
     return (x, y, z)
 
 
+def seat_for(deck, k=1.0):
+    """Where the fisher's cooler goes: up to ~0.45 m aft of the old standing spot, on
+    a patch of deck big enough for him - nothing sticking up within his height (cabin,
+    rail, roof) and no drop to the water - so he sits on deck with his boots about
+    where he used to stand. Falls back to the standing spot."""
+    x0, y0, z0 = deck
+    for d in (0.45, 0.35, 0.25, 0.15):
+        x = x0 - d * k
+        bad = None
+        for dx in (-0.3, -0.15, 0.0, 0.15, 0.3):
+            for dy in (-0.25, 0.0, 0.25):
+                hs = [h for h in surfaces(x + dx * k, y0 + dy * k) if h < z0 + 1.3]
+                if not hs or hs[0] > z0 + 0.18 or hs[0] < z0 - 0.4:
+                    bad = (round(dx, 2), round(dy, 2), hs[:2])
+                    break
+            if bad:
+                break
+        if not bad:
+            print("SEAT", (round(x, 2), round(y0, 2)), "deck", deck)
+            return (x, y0, z0)
+        print("  seat", round(x, 2), "blocked", bad)
+    print("SEAT = deck", deck)
+    return deck
+
+
 def glow(color, k=0.85):
     return toon(color, emit=k)
 
