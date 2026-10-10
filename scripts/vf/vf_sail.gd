@@ -40,6 +40,7 @@ var _was_moving := false
 var _brake := 0.0
 var _bump_t := -10.0
 var _no_turn := 0.0            # right after a bump the boat backs off without turning around
+var _turn_k := 1.0             # 0 -> 1 while the boat swings round (a quick squash, never paper-thin)
 var _aim_seen := Vector2.INF
 var _aim_anchor := Vector2.ZERO
 var _hull_cache := {}
@@ -546,7 +547,11 @@ func _tick_boat(delta: float) -> void:
 	if absf(vel.x) > 30.0 and signf(vel.x) != stage.facing and _no_turn <= 0.0:
 		if state != "idle" or _fits(stage.boat_pos, signf(vel.x)):
 			stage.facing = signf(vel.x)
-	stage.boat_flip = move_toward(stage.boat_flip, stage.facing, delta / 0.12)
+			_turn_k = 0.0
+	# turning around: mirror at once and squash a little (it used to scale through zero and
+	# look like a sheet of paper for a few frames)
+	_turn_k = minf(_turn_k + delta / 0.22, 1.0)
+	stage.boat_flip = stage.facing * (1.0 - 0.22 * sin(PI * _turn_k))
 	var lean: float = clampf(vel.y / MAX_SPEED, -1.0, 1.0) * 0.06 * stage.facing
 	stage.boat_lean = lerpf(stage.boat_lean, lean, 1.0 - exp(-6.0 * delta))
 	if speed > 45.0 and not stage.reeled:
