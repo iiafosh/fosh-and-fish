@@ -86,9 +86,19 @@ var panel_back: Button
 var tabs_track: PanelContainer
 var _update_announced := false
 var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
+var panel_box: PanelContainer
+var ui_k := 1.0                # interface scale (bigger on phones, see _update_ui_scale)
+var _sim_touch := false        # --touch: behave like a phone (captures on a desktop)
+var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N dp (captures)
+var _portrait_note: CanvasLayer
 
 func _ready() -> void:
 	_load_manifest()
+	for a in OS.get_cmdline_user_args():
+		if a == "--touch": _sim_touch = true
+		elif a.begins_with("--ui-dp="): _sim_dp = float(a.substr(8))
+	_update_ui_scale()
+	get_window().size_changed.connect(_update_ui_scale)
 	_build()
 	account_ui = load("res://scripts/net/account_ui.gd").new(self)
 	VF.changed.connect(_refresh)
@@ -289,7 +299,110 @@ func ph(name: String) -> Texture2D:
 	return _tex_cache[path]
 
 func is_touch() -> bool:
-	return OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	return _sim_touch or OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+
+## Phones show the game's 1280x720 layout at about half size (7-8 px text, buttons smaller than a
+## finger), so there the whole interface is scaled up to read like it does on a desktop. The stage
+## covers whatever size it gets, so the world is framed the same either way.
+func _update_ui_scale() -> void:
+	var k := VFData.ui_scale_for(_short_side_dp()) if is_touch() else 1.0
+	if not is_equal_approx(get_window().content_scale_factor, k):
+		get_window().content_scale_factor = k
+	ui_k = k
+	_layout_panel.call_deferred()
+	_check_portrait.call_deferred()
+
+func _short_side_dp() -> float:
+	if _sim_dp > 0.0: return _sim_dp
+	if OS.has_feature("web"):
+		var css: Variant = JavaScriptBridge.eval("Math.min(window.innerWidth, window.innerHeight)", true)
+		if css != null and float(css) > 0.0: return float(css)
+	var win := Vector2(DisplayServer.window_get_size())
+	var dpi := DisplayServer.screen_get_dpi()
+	return minf(win.x, win.y) * 160.0 / float(dpi if dpi > 0 else 160)
+
+## Phones: small print (11-12 px descriptions) would still be ~9 px on the glass, so text gets a floor.
+## Nodes under something tagged "fixed_fonts" (the FishTok phone, drawn as a tiny phone) keep their sizes.
+const PHONE_MIN_FONT := 13
+
+func _min_font(n: Control) -> void:
+	if not is_instance_valid(n) or not n.is_inside_tree(): return
+	var p: Node = n
+	while p != null and p != self:
+		if p.has_meta("fixed_fonts"): return
+		p = p.get_parent()
+	var key := "normal_font_size" if n is RichTextLabel else "font_size"
+	if n.has_theme_font_size_override(key) and n.get_theme_font_size(key) < PHONE_MIN_FONT:
+		n.add_theme_font_size_override(key, PHONE_MIN_FONT)
+
+## A short screen (a phone): panels become a full-screen sheet instead of a 960x590 window.
+func compact() -> bool:
+	return get_viewport_rect().size.y < 640.0
+
+func _layout_panel() -> void:
+	if panel_box == null: return
+	var sb := panel_box.get_theme_stylebox("panel") as StyleBoxFlat
+	if compact():
+		panel_box.anchor_left = 0.0
+		panel_box.anchor_right = 1.0
+		panel_box.anchor_top = 0.0
+		panel_box.anchor_bottom = 1.0
+		panel_box.offset_left = 8
+		panel_box.offset_right = -8
+		panel_box.offset_top = 6
+		panel_box.offset_bottom = -6
+		if sb: sb.set_content_margin_all(14)
+	else:
+		panel_box.anchor_left = 0.5
+		panel_box.anchor_right = 0.5
+		panel_box.anchor_top = 0.5
+		panel_box.anchor_bottom = 0.5
+		panel_box.offset_left = -480
+		panel_box.offset_right = 480
+		panel_box.offset_top = -300
+		panel_box.offset_bottom = 290
+		if sb: sb.set_content_margin_all(22)
+
+## Phones held upright: the game plays sideways, so say so instead of showing a squashed screen.
+func _check_portrait() -> void:
+	var vs := get_viewport_rect().size
+	var upright := is_touch() and vs.y > vs.x * 1.05
+	if upright and _portrait_note == null:
+		_portrait_note = CanvasLayer.new()
+		_portrait_note.layer = 120
+		var cover := ColorRect.new()
+		cover.color = Color("#123c46")
+		cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+		cover.mouse_filter = Control.MOUSE_FILTER_STOP
+		cover.theme = theme                       # a CanvasLayer doesn't inherit the game's font
+		_portrait_note.add_child(cover)
+		var v := VBoxContainer.new()
+		v.set_anchors_preset(Control.PRESET_FULL_RECT)
+		v.alignment = BoxContainer.ALIGNMENT_CENTER
+		v.add_theme_constant_override("separation", 22)
+		cover.add_child(v)
+		var phone := TextureRect.new()
+		phone.texture = ph("device-mobile")
+		phone.custom_minimum_size = Vector2(150, 150)
+		phone.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		phone.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		phone.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		phone.pivot_offset = Vector2(75, 75)
+		phone.modulate = Color("#ffd86b")
+		v.add_child(phone)
+		var tw := phone.create_tween().set_loops()
+		tw.tween_property(phone, "rotation", -PI / 2, 0.7).set_trans(Tween.TRANS_BACK).set_delay(0.5)
+		tw.tween_property(phone, "rotation", 0.0, 0.5).set_delay(0.9)
+		var t := lbl("Turn your phone sideways", 54, Color.WHITE)
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(t)
+		var s := lbl("fosh&fish plays in landscape", 32, Color(1, 1, 1, 0.75))
+		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(s)
+		add_child(_portrait_note)
+	if _portrait_note:
+		_portrait_note.visible = upright
 
 func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
 	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.7) if light else Color(1, 1, 1, 0.08), 0, 6)
@@ -395,7 +508,8 @@ func _build() -> void:
 	TranslationServer.set_locale("en")
 	# text boxes follow what the player types: Arabic runs right-to-left, English left-to-right
 	get_tree().node_added.connect(func(n: Node):
-		if n is LineEdit or n is TextEdit: (n as Control).text_direction = Control.TEXT_DIRECTION_AUTO)
+		if n is LineEdit or n is TextEdit: (n as Control).text_direction = Control.TEXT_DIRECTION_AUTO
+		if ui_k > 1.01 and (n is Label or n is Button or n is RichTextLabel): _min_font.call_deferred(n))
 	var font: Font = load("res://assets/third_party/fonts/Fredoka.ttf")
 	if font.fallbacks.is_empty():
 		font.fallbacks = [load("res://assets/third_party/fonts/Cairo.ttf")]   # Arabic glyphs (Fredoka has none)
@@ -847,6 +961,8 @@ func _build_overlay() -> void:
 	p.offset_top = -300
 	p.offset_bottom = 290
 	overlay.add_child(p)
+	panel_box = p
+	_layout_panel()
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
@@ -1058,10 +1174,14 @@ func _clear(node: Node) -> void:
 		c.queue_free()
 
 func _card_intro() -> void:
+	if compact() and VF.tutorial == 0:
+		card.visible = false    # phones: the "tap the water" tip needs that space first; the first catch card follows
+		return
 	_show_card()
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
-	for t in ["Follow the arrow — or press G for the guide.", "Finish the goals under your level for rewards.", "Made by afosh."]:
+	var guide := "Follow the arrow — or open the Guide from the Menu." if is_touch() else "Follow the arrow — or press G for the guide."
+	for t in [guide, "Finish the goals under your level for rewards.", "Made by afosh."]:
 		var l := lbl("• " + t, 14, C_MUTED)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 320
@@ -1834,7 +1954,7 @@ func _check_capture() -> void:
 		get_tree().quit()
 		return
 	await _shot(dir + "/main.png")
-	var shots := [["menu", ""], ["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""]]
+	var shots := [["menu", ""], ["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""], ["account", "Account"], ["update", ""]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
 		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:

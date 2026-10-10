@@ -51,6 +51,13 @@ const MIN_COOLDOWN := 2.0         # Haste charm floor (wiki Charm page)
 const CATCH_MODES := ["relax", "reel"]
 const MINIGAME_FISH_BONUS := 0.75 # win the mini-game: +75% fish on that cast (owner: skill should pay off)
 const MINIGAME_COOLDOWN := 0.5    # ... and the next cast is ready after 0.5s (instead of the normal cooldown)
+## Interface scale for a touch screen whose short side is short_dp (CSS px on the web, dp on Android):
+## about 1.15 layout px per dp, at least 460 px of height, never smaller than the 1280x720 desktop layout.
+## (vf_main applies it as the window's content scale; phones ~1.5, tablets 1.)
+static func ui_scale_for(short_dp: float) -> float:
+	if short_dp <= 0.0: return 1.0
+	return clampf(720.0 / clampf(short_dp * 1.15, 460.0, 720.0), 1.0, 1.6)
+
 ## Rod "reel power" for the Reel it in! mini-game (not in the bot): 0 for the starter rod,
 ## 1.0 for the best rods. More power = a bigger catch zone, a faster reel and slower slipping.
 static func rod_reel_power(r: String) -> float:

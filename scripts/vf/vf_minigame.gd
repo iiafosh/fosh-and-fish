@@ -84,6 +84,7 @@ var _talk_t := 0.0
 var _taunt_cd := 0.0
 var _shake := 0.0
 var _card_base := Vector2.ZERO
+var _fit := 1.0                  # card scale: < 1 on short (phone) screens
 var _stage_base := Vector2.ZERO
 var _tick_t := 0.0
 var _spin := 0.0
@@ -143,7 +144,9 @@ func _ready() -> void:
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(card)
 	var vs := get_viewport_rect().size
-	_card_base = ((vs - card.size) * 0.5 + Vector2(0, 12)).round()
+	# the card plus its banner above and the result pill below is ~CH + 100 tall: shrink it on short (phone) screens
+	_fit = minf(1.0, (vs.y - 12.0) / (CH + 100.0))
+	_card_base = ((vs - card.size) * 0.5 + Vector2(0, 12) * _fit).round()
 	card.position = _card_base
 	if main and main.stage: _stage_base = main.stage.position
 	board = _layer(card, Rect2(Vector2.ZERO, card.size), _draw_board)
@@ -156,10 +159,10 @@ func _ready() -> void:
 	_sb_zone_in.shadow_size = 10
 	_build_labels()
 	# pop in
-	card.scale = Vector2(0.55, 0.55)
+	card.scale = Vector2(0.55, 0.55) * _fit
 	card.modulate.a = 0.0
 	var tw := card.create_tween()
-	tw.tween_property(card, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(card, "scale", Vector2.ONE * _fit, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(card, "modulate:a", 1.0, 0.14)
 	_fish_out = -220.0
 	create_tween().tween_property(self, "_fish_out", 0.0, 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

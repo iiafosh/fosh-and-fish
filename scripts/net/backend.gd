@@ -480,6 +480,9 @@ func my_rank() -> int:
 func _http(method: int, path: String, body: Variant = null, extra := PackedStringArray(), token := "") -> Dictionary:
 	var h := HTTPRequest.new()
 	h.timeout = TIMEOUT
+	# web: the browser has already un-gzipped the body but the Content-Encoding header still says gzip;
+	# letting Godot decompress it again fails (RESULT_BODY_DECOMPRESS_FAILED) and looked like "can't reach the server"
+	h.accept_gzip = not OS.has_feature("web")
 	add_child(h)
 	var headers := PackedStringArray(["apikey: " + anon_key, "Content-Type: application/json", "Accept: application/json"])
 	if token != "":

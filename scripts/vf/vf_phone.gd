@@ -79,6 +79,7 @@ var _prof_sig := ""
 
 # ==================================================================== setup
 func _ready() -> void:
+	set_meta("fixed_fonts", true)       # a tiny phone: its text sizes are part of the look (no phone font floor)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false

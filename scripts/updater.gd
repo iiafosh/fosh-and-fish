@@ -96,6 +96,7 @@ func check() -> void:
 	_set_state("checking")
 	_http = HTTPRequest.new()
 	_http.timeout = 15.0
+	_http.accept_gzip = not OS.has_feature("web")   # web: the browser already un-gzipped it (see Backend._http)
 	add_child(_http)
 	_http.request_completed.connect(_on_manifest, CONNECT_ONE_SHOT)
 	var url := manifest_url()

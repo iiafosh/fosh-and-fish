@@ -2,6 +2,15 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.4 — in-game update
+
+Get it in the game: **Menu → Updates → Update now** (the web version updates on reload).
+
+- **A phone-sized interface:** on phones everything was the PC layout shrunk to half size. Text and buttons are now about 1.6× bigger, menus fill the screen as scrollable sheets, small print has a minimum size and the Reel it in! card fits short screens. PCs and tablets look the same as before.
+- **Web: cloud save fixed.** Signing in worked, but saving and loading your cloud save failed with "Can't reach the server" (the browser had already unpacked the server's compressed reply and the game tried to unpack it again). The in-game update check on the web had the same bug.
+- **Web on phones:** holding the phone upright shows "Turn your phone sideways" instead of a tiny squashed game.
+- Phones: the welcome card waits until you've made your first cast, and no longer mentions keyboard keys.
+
 ## 0.5.3 — in-game update
 
 - **Reel it in! balanced:** 0.5.2 made it too easy. Now common fish are a fair challenge with the starter rod, rare fish really need a better rod, and even the best rod can lose to the rarest fish. Keyboard & mouse stays a little easier than phones.
