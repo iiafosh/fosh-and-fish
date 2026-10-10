@@ -59,6 +59,20 @@ var merchant_hit: Control
 var merchant_tag: PanelContainer
 var _glints: CPUParticles2D
 
+# ---- sailing state (driven by vf_sail.gd; see the "sailing" section below)
+signal scene_changed              # a new biome scene was set up (sea lanes need re-scanning)
+signal boat_changed               # a different boat sprite (new hull)
+signal cast_started
+var boat_pos := Vector2(-1, -1)   # the boat's pivot point in scene px (moves when you sail)
+var facing := 1.0                 # +1 bow to the right, -1 to the left (sprite mirrored, never rotated)
+var boat_flip := 1.0              # x scale, eased between -1 and 1 while turning around
+var boat_lean := 0.0              # tiny pitch while sailing up / down
+var boat_speed := 0.0             # scene px / s (the wake replaces the idle ripples while moving)
+var reeled := false               # line reeled in while sailing: the bobber hangs at the rod tip
+var _reel_t := -1.0
+var _reel_from := Vector2.ZERO
+var _home_ofs := Vector2(415, -161)   # authored bobber spot relative to the boat (from the manifest)
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -171,7 +185,7 @@ func open_water(p: Vector2, margin := 30.0) -> bool:
 	return true
 
 func bobber_screen() -> Vector2:
-	return to_screen(_bobber)
+	return to_screen(_bobber_home if reeled else _bobber)     # reeled in: where the next cast goes
 
 func boat_screen() -> Vector2:
 	return to_screen(boat.position + boat.pivot_offset)
@@ -281,6 +295,13 @@ func set_biome(name: String) -> void:
 	_bobber_home = Vector2(_scene.bobber[0], _scene.bobber[1]) * SCENE
 	_bobber = _bobber_home
 	aim = Vector2.INF
+	boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
+	_home_ofs = _bobber_home - boat_pos
+	facing = 1.0
+	boat_flip = 1.0
+	boat_lean = 0.0
+	reeled = false
+	_reel_t = -1.0
 	_species.clear()
 	var swim: Dictionary = manifest.get("swim", {})
 	for f in VFData.BIOMES[name].fish:
@@ -289,6 +310,7 @@ func set_biome(name: String) -> void:
 	_set_ambient(name)
 	_place_boat()
 	_place_merchant()
+	scene_changed.emit()
 
 func _species_entry(f: String, swim: Dictionary) -> Dictionary:
 	if f in swim.get("species", []):
@@ -302,6 +324,7 @@ func set_boat(name: String) -> void:
 	boat.texture = _tex("boats_top/%s.png" % VFData.slug(name))
 	_boat_info = manifest.get("boats_top", {}).get(name, {"deck": [0.6, 0.5], "origin": [0.5, 0.6], "unit_px": 100.0, "fisher_scale": 1.0})
 	_place_boat()
+	boat_changed.emit()
 
 func _place_boat() -> void:
 	if _scene.is_empty() or _boat_info.is_empty() or boat.texture == null: return
@@ -310,7 +333,8 @@ func _place_boat() -> void:
 	boat.size = tex_sz * k
 	var origin := Vector2(_boat_info.origin[0], _boat_info.origin[1]) * boat.size
 	boat.pivot_offset = origin
-	boat.position = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE - origin
+	if boat_pos.x < 0.0: boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
+	boat.position = boat_pos - origin
 	# fisher: feet on the deck anchor, scaled to scene units
 	if _fisher_info.is_empty(): return
 	var cell: float = _fisher_info.cell
@@ -349,7 +373,8 @@ func _fisher_point(key: String, fallback: Array) -> Vector2:
 	var pts: Array = _fisher_info.get(_anim, {}).get(key, [fallback])
 	var tp: Array = pts[mini(_frame_index(), pts.size() - 1)]
 	var local := fisher.position + Vector2(tp[0], tp[1]) * fisher.size
-	return boat.position + boat.pivot_offset + (local - boat.pivot_offset).rotated(boat.rotation) * boat.scale
+	# same order as the Control transform: scale (incl. the mirror when facing left), then rotate
+	return boat.position + boat.pivot_offset + ((local - boat.pivot_offset) * boat.scale).rotated(boat.rotation)
 
 func rod_grip() -> Vector2:
 	return _fisher_point("rod_grip", [0.45, 0.6])
@@ -473,12 +498,15 @@ func _process(delta: float) -> void:
 		var walking: bool = c.wait <= 0.0
 		c.pos = c.home + Vector2(c.x, sin(c.ph * 14.0) * 1.2 if walking else 0.0)
 		c.tilt = sin(c.ph * 14.0) * 0.08 if walking else 0.0
-	boat.rotation = sin(_t * 1.1) * 0.025
-	boat.scale = Vector2.ONE * (1.0 + sin(_t * 1.6) * 0.008)
-	if randf() < delta * 0.9:
-		_ripples.append({"pos": Vector2(_scene.get("boat", [0.35, 0.6])[0], _scene.get("boat", [0.35, 0.6])[1]) * SCENE, "t": 0.0, "max": 90.0, "w": 2.0})
-	if randf() < delta * 0.6 and _cast_t < 0.0:
+	boat.position = boat_pos - boat.pivot_offset
+	boat.rotation = sin(_t * 1.1) * 0.025 + boat_lean
+	var bob := 1.0 + sin(_t * 1.6) * 0.008
+	boat.scale = Vector2(bob * boat_flip, bob)
+	if randf() < delta * 0.9 and boat_speed < 25.0:
+		_ripples.append({"pos": boat_pos, "t": 0.0, "max": 90.0, "w": 2.0})
+	if randf() < delta * 0.6 and _cast_t < 0.0 and not reeled and _reel_t < 0.0:
 		_ripples.append({"pos": _bobber, "t": 0.0, "max": 34.0, "w": 1.5})
+	_tick_reel(delta)
 	if _cast_t >= 0.0:
 		_cast_t += delta / 0.42
 		var k := clampf(_cast_t, 0.0, 1.0)
@@ -597,9 +625,12 @@ func cast(done: Callable) -> void:
 		_cast_to = _bobber_home + Vector2(randf_range(-90, 90), randf_range(-50, 50))
 	if not open_water(_cast_to): _cast_to = aim if aim != Vector2.INF else _bobber_home
 	_cast_done = done
+	cast_started.emit()
 	# release the bobber mid-swing
 	get_tree().create_timer(0.22).timeout.connect(func():
 		_cast_from = rod_tip()
+		reeled = false
+		_reel_t = -1.0
 		_cast_t = 0.0)
 
 func splash(at: Vector2, big := 1.0) -> void:
@@ -611,6 +642,56 @@ func show_bite(fish_name: String) -> void:
 	var sp := _species_entry(fish_name, manifest.get("swim", {}))
 	if sp.tex == null: return
 	_dart = {"sp": sp, "from": _bobber + Vector2.from_angle(randf() * TAU) * 170.0, "pos": _bobber, "t": 0.0}
+
+# ----------------------------------------------------------------- sailing
+# vf_sail.gd moves boat_pos and sets facing / boat_flip / boat_lean; the stage
+# draws the boat there and keeps the line, bobber and resting spot with it.
+
+## reel the line in before the boat sails off (the bobber zips back to the rod tip)
+func reel_in() -> void:
+	if reeled or _reel_t >= 0.0 or _cast_t >= 0.0: return
+	_reel_from = _bobber
+	_reel_t = 0.0
+	_ripples.append({"pos": _bobber, "t": 0.0, "max": 24.0, "w": 1.5})
+
+func _tick_reel(delta: float) -> void:
+	if _cast_t >= 0.0: return
+	if _reel_t >= 0.0:
+		_reel_t += delta / 0.3
+		var k := clampf(_reel_t, 0.0, 1.0)
+		_bobber = _reel_from.lerp(_hang_point(), k * k) + Vector2(0, -sin(k * PI) * 40.0)
+		if _reel_t >= 1.0:
+			_reel_t = -1.0
+			reeled = true
+	elif reeled:
+		_bobber = _hang_point()
+
+func _hang_point() -> Vector2:
+	return rod_tip() + Vector2(0, 14)
+
+## the resting spot for casts when the player hasn't aimed: open water ahead of the boat
+## (the authored bobber offset, mirrored when the boat faces left), else the nearest open water
+func update_home() -> void:
+	var from := boat_pos
+	for base in [from + Vector2(_home_ofs.x * facing, _home_ofs.y), from + Vector2(_home_ofs.x * facing, -_home_ofs.y),
+			from + Vector2(-_home_ofs.x * facing, _home_ofs.y), from + Vector2(-_home_ofs.x * facing, -_home_ofs.y)]:
+		var p := _open_near(base, from)
+		if p != Vector2.INF:
+			_bobber_home = p
+			return
+
+func _open_near(base: Vector2, from: Vector2) -> Vector2:
+	if open_water(base) and from.distance_to(base) <= MAX_CAST: return base
+	for r in range(40, 280, 40):
+		var n := maxi(8, int(TAU * r / 40.0))
+		var best := Vector2.INF
+		for i in n:
+			var q := base + Vector2.from_angle(TAU * i / n) * r
+			if from.distance_to(q) <= MAX_CAST and from.distance_to(q) > 200.0 and open_water(q) \
+					and (best == Vector2.INF or q.distance_to(from) < best.distance_to(from)):
+				best = q
+		if best != Vector2.INF: return best
+	return Vector2.INF
 
 # ---------------------------------------------------------------- merchant
 func _build_merchant() -> void:

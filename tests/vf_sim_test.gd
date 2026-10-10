@@ -117,6 +117,13 @@ func _init() -> void:
 	g2._apply(JSON.parse_string(JSON.stringify(snap)))
 	check(g2.money == g.money and g2.level == g.level and g2.rod == g.rod and g2.boats_owned == g.boats_owned, "Core state survives JSON round trip")
 	check(int(g2.charms.marketing) == 7 and int(g2.pets.Puffer.level) == 12 and g2.pet == "Puffer", "Charms and pets survive JSON round trip")
+	g.sail_hint = true
+	g2._apply(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.sail_hint == true, "Sail hint flag survives JSON round trip")
+	var old: Dictionary = g.to_dict()
+	old.erase("sail_hint")                      # a save from before sailing existed
+	g2._apply(JSON.parse_string(JSON.stringify(old)))
+	check(g2.sail_hint == false and g2.level == g.level, "Old saves without the sail hint flag still load")
 	g2.free()
 
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
