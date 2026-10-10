@@ -19,7 +19,7 @@ Made with **Godot 4**; all the art is rendered in **Blender**.
 
 No Godot or other install needed. After installing once, new versions arrive inside the game: **Menu → Updates**. How to play: [GUIDE.md](GUIDE.md) or press **G** in the game.
 What's new: [CHANGELOG.md](CHANGELOG.md).
-🎬 Watch the 0.5 trailer: [widescreen](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-16x9.mp4) · [square](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-1x1.mp4) · [vertical](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-9x16.mp4)
+🎬 Watch the 0.5 update video: [YouTube cut](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-yt-16x9.mp4) · [Shorts](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-yt-9x16.mp4) · trailer: [widescreen](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-16x9.mp4) · [square](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-1x1.mp4) · [vertical](https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5/fosh-and-fish-0.5-trailer-9x16.mp4)
 
 ## 💬 Feedback
 
@@ -71,6 +71,14 @@ python tools/video/music.py WORK/music.wav
 python tools/video/edit.py WORK OUT_DIR
 ```
 Record at 1920x1080 (e.g. an `override.cfg` with `window/size/window_width_override=1920`). `-- --trailer` records the simpler captioned demo.
+
+The 0.5 YouTube cut (hook, 0.1 vs 0.5 slider, online accounts, a break and a drop) records with `--reelyt` against the local test backend:
+```bash
+python tools/mock_supabase.py --port 54321
+Godot.exe --path . --write-movie WORK/reel.avi --fixed-fps 30 -- --reelyt --backend-url=http://127.0.0.1:54321 --backend-key=test > WORK/reel_log.txt
+python tools/video/music_yt.py WORK/music.wav
+python tools/video/edit_yt.py WORK OUT_DIR --thumb
+```
 
 **Re-render the art** (Blender 4.2)
 ```bash

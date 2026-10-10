@@ -20,6 +20,7 @@ signal _refresh_done(ok: bool)
 const CONFIG_FILE := "res://data/backend.json"
 const ACCOUNT_FILE := "user://account.cfg"
 const TEST_ACCOUNT_FILE := "user://account_test.cfg"   # capture/test runs never touch the real session
+const RECORDING_FLAGS := ["--trailer", "--reel", "--reel05", "--reelyt"]   # video recordings count as captures
 const SYNC_EVERY := 60.0        # seconds between automatic uploads (only when progress changed)
 const RETRY_EVERY := 60.0       # offline with a saved session: try to reconnect this often
 const TIMEOUT := 15.0
@@ -101,7 +102,7 @@ func _load_config() -> void:
 		if a.begins_with("--backend-url="): url = clean_url(a.substr(14))
 		elif a.begins_with("--backend-key="): anon_key = a.substr(14).strip_edges()
 		elif a.begins_with("--account-file="): account_file = a.substr(15)
-		elif a.begins_with("--capture="): capturing = true
+		elif a.begins_with("--capture=") or a in RECORDING_FLAGS: capturing = true
 	if capturing and account_file == ACCOUNT_FILE:
 		account_file = TEST_ACCOUNT_FILE
 

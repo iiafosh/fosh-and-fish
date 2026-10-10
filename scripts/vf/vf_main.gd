@@ -107,7 +107,7 @@ func _ready() -> void:
 	Updater.status_changed.connect(_on_update_status)
 	if Updater.skipped_patch != "":
 		_toast("Update %s didn't start, so you're on the previous version. A fix is coming!" % Updater.skipped_patch, "warn")
-	if not _capturing() and not OS.get_cmdline_user_args().has("--trailer") and not OS.get_cmdline_user_args().has("--reel"):
+	if not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in OS.get_cmdline_user_args()):
 		get_tree().create_timer(4.0).timeout.connect(Updater.check)
 
 func _process(delta: float) -> void:
@@ -1701,6 +1701,9 @@ func _check_capture() -> void:
 	if "--trailer" in OS.get_cmdline_user_args():
 		_trailer()
 		return
+	if "--reelyt" in OS.get_cmdline_user_args():
+		_reel_yt()
+		return
 	if "--reel05" in OS.get_cmdline_user_args():
 		_reel05()
 		return
@@ -2849,6 +2852,159 @@ func _reel05() -> void:
 		_cast_tap()
 		await _wait(1.6)
 	# 8) wide hero for the end
+	_veteran("Ocean")
+	await _wait(0.6)
+	for i in 2:
+		_mark("end")
+		_cast_tap()
+		await _wait(1.8)
+	get_tree().quit()
+
+
+## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --reelyt [--backend-url=http://127.0.0.1:54321 --backend-key=test]
+## footage for the YouTube edit (tools/video/edit_yt.py): everything in 0.5 incl. online accounts
+## (against tools/mock_supabase.py, never the live project) and in-game updates. MARK lines as in _reel().
+func _boat_show(biome: String, boat: String) -> void:
+	_veteran(biome)
+	VF.boats_owned = VFData.BOAT_ORDER.find(boat) + 1
+	VF.changed.emit()
+
+func _reel_yt() -> void:
+	VF.autosave = false
+	AudioManager.music_on = true
+	AudioManager.sfx_on = true
+	AudioManager.apply_settings()
+	VF.sail_hint = true                       # no "WASD to sail" hint in the footage
+	_veteran("Ocean")
+	VF.sail_hint = true
+	VF.tutorial = 99
+	_coach_show()
+	await _wait(1.0)
+	for i in 3:
+		await _wait(0.3)
+		_mark("hero")
+		_cast_tap()
+		await _wait(1.8)
+	# fresh start: tap the water
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.sail_hint = true
+	VF.catch_mode = "relax"
+	VF.changed.emit()
+	_coach_show()
+	await _wait(1.0)
+	for i in 2:
+		await _wait(0.3)
+		_mark("tap")
+		_cast_tap()
+		await _wait(1.7)
+	# Reel it in!
+	_set_catch_mode("reel")
+	await _wait(0.6)
+	VF._last_cast_ms = -100000
+	_mark("mg_cast")
+	_cast_tap()
+	while minigame == null:
+		await get_tree().process_frame
+	var mg = minigame
+	mg.auto = "win"
+	await _wait(0.4)
+	_mark("mg_play")
+	while is_instance_valid(mg) and mg.phase != "end":
+		await get_tree().process_frame
+	_mark("mg_win")
+	while minigame != null:
+		await get_tree().process_frame
+	await _wait(0.6)
+	_set_catch_mode("relax")
+	# the captain: dance, then a fist pump
+	_mark("dance")
+	stage.react("dance")
+	await _wait(2.2)
+	_mark("happy")
+	stage.react("happy")
+	await _wait(2.0)
+	# sail through the lane: River -> Volcanic
+	_veteran("River")
+	VF.sail_hint = true
+	VF.level = 3000
+	VF.changed.emit()
+	await _wait(1.0)
+	_mark("sail_go")
+	var t0 := Time.get_ticks_msec()
+	var marked_wipe := false
+	while Time.get_ticks_msec() - t0 < 14000:
+		if sail.state == "idle" and VF.biome == "River": sail._helm(1)
+		else: sail._helm(0)
+		if not marked_wipe and sail.wipe_k > 0.3:
+			marked_wipe = true
+			_mark("sail_wipe")
+		if VF.biome == "Volcanic" and sail.state == "idle": break
+		await get_tree().process_frame
+	sail._helm(0)
+	await _wait(0.3)
+	_mark("sail_arrive")
+	await _wait(1.6)
+	# FishTok
+	_open_phone()
+	await _wait(1.2)
+	_mark("phone")
+	await _wait(2.6)
+	if phone: phone.close(false)
+	await _wait(0.5)
+	# online: sign in (test server) -> cloud save -> leaderboard
+	_veteran("Ocean")
+	VF.level = 248
+	VF.stats.money_earned = 4_200_000_000
+	VF.changed.emit()
+	if Backend.configured() and Backend.account_file != "user://account.cfg":
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.account_file))
+		_open_panel("account", "Account")
+		await _wait(0.5)
+		Backend.sign_up("captain%d@example.com" % (int(Time.get_unix_time_from_system()) % 100000), "hunter22", "afosh")
+		var t1 := Time.get_ticks_msec()
+		while not (Backend.state == "signed_in" and Backend.sync_state == "ok") and Time.get_ticks_msec() - t1 < 8000:
+			await get_tree().process_frame
+		_render_panel()
+		await _wait(0.5)
+		_mark("acct_in")
+		await _wait(2.2)
+		Backend.load_leaderboard()
+		_open_panel("account", "Leaderboard")
+		await _wait(1.0)
+		_render_panel()
+		_mark("acct_board")
+		await _wait(2.4)
+		_close_panel()
+	# in-game updates (the real panel, driven through its states)
+	Updater.latest = {"version": "0.5.4", "build": Updater.build + 1, "notes": ["New fish", "Faster casting"],
+		"patches": {str(Updater.base_build): {Updater.platform(): {"size": 2568192}}}}
+	Updater.state = "available"
+	_open_panel("update")
+	await _wait(0.6)
+	_mark("upd_avail")
+	await _wait(1.0)
+	Updater.state = "downloading"
+	for k in 21:
+		Updater.progress = k / 20.0
+		Updater.status_changed.emit()
+		await _wait(0.05)
+	Updater.state = "ready"
+	Updater.status_changed.emit()
+	_mark("upd_ready")
+	await _wait(1.4)
+	_close_panel()
+	Updater.state = "idle"
+	Updater.latest = {}
+	# the boat parade
+	for bb in [["Ocean", "Speedboat"], ["Ocean", "Yacht"], ["Ocean", "Cruise Ship"], ["Ocean", "Gold Boat"],
+			["Sky", "Sky Cruiser"], ["Space", "Space Shuttle"], ["Alien", "Alien Raft"], ["Abyss", "Dark Explorer"]]:
+		_boat_show(bb[0], bb[1])
+		await _wait(0.5)
+		_mark("boat_" + bb[1].replace(" ", "_"))
+		_cast_tap()
+		await _wait(1.4)
+	# wide hero for the end
 	_veteran("Ocean")
 	await _wait(0.6)
 	for i in 2:
