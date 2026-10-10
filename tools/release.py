@@ -1,10 +1,10 @@
 """Publish fosh&fish releases.
 
 FULL release (players download new files once; becomes the new base for patches):
-    python tools/release.py full 0.2.0 -n "Sailing between biomes" -n "FishTok" --publish
+    python tools/release.py full 0.5 -n "Sailing between biomes" -n "FishTok" --publish
 
 PATCH (an in-game update: players press "Update now"; only changed files are sent):
-    python tools/release.py patch 0.2.1 -n "Faster early levels" --publish
+    python tools/release.py patch 0.5.1 -n "Faster early levels" --publish
 
 Without --publish everything is built and signed locally (build/release, build/patches) and
 nothing is uploaded. --local URL writes a test manifest whose download links point at URL.
