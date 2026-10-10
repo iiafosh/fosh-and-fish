@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.3 — in-game update
+
+- **Reel it in! balanced:** 0.5.2 made it too easy. Now common fish are a fair challenge with the starter rod, rare fish really need a better rod, and even the best rod can lose to the rarest fish. Keyboard & mouse stays a little easier than phones.
+
 ## 0.5.2 — in-game update
 
 Get it in the game: **Menu → Updates → Update now**.

@@ -65,7 +65,7 @@ func _init() -> void:
 	var strong: Dictionary = VFData.minigame_params(4, 1.0)
 	check(strong.zone_h > weak.zone_h and strong.fill_rate > weak.fill_rate and strong.drain_rate < weak.drain_rate
 		and strong.fish_speed == weak.fish_speed, "better rod: bigger zone, faster reel, slower slip (fish speed unchanged)")
-	check(absf(strong.zone_h - VFData.minigame_params(0, 0.0).zone_h) < 0.001, "best rod vs rarest fish = starter rod vs common fish (zone)")
+	check(strong.zone_h < VFData.minigame_params(0, 0.0).zone_h, "the rarest fish stays a bit harder than a common one, even with the best rod")
 	var pc: Dictionary = VFData.minigame_params(2, 0.3, true)
 	var phone: Dictionary = VFData.minigame_params(2, 0.3, false)
 	check(pc.zone_h > phone.zone_h and pc.fish_speed < phone.fish_speed and pc.fill_rate > phone.fill_rate

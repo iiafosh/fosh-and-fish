@@ -60,41 +60,39 @@ static func rod_reel_power(r: String) -> float:
 
 ## Mini-game difficulty for a fish tier (0 common .. 4 rarest), the rod's reel power (0..1)
 ## and the device. Rarer fish: smaller zone, faster fish, slower reel. Better rod: bigger zone,
-## faster reel, less slipping (the best rod vs the rarest fish = the starter rod vs a common
-## fish). Keyboard + mouse (PC, Linux, desktop browsers) is harder than a thumb on a phone, so
-## desktop gets a bigger zone, a calmer fish, a faster reel, 2 more seconds and a floatier zone.
-## Tuned with a reaction-time bot: starter rod vs common fish wins ~100% on PC, ~84% on phones;
-## the best rod wins against every fish (the original numbers won ~1% even vs common fish).
+## faster reel, less slipping. Desktop (keyboard + mouse) gets a slightly calmer setup than phones.
+## Tuning history (reaction-time bot, starter rod vs common fish on PC): 0.5.1 ~1% (owner: "really
+## hard"), 0.5.2 ~100% (owner: "really easy"), 0.5.3 ~52% - a sharp player wins most common fish,
+## rare fish need a better rod, and even the best rod can lose to the rarest fish (~60%).
 static func minigame_params(tier: int, power: float, desktop := false) -> Dictionary:
 	var t := clampi(tier, 0, 4)
 	var pw := clampf(power, 0.0, 1.0)
 	var p := {
-		"zone_h": 0.34 - 0.03 * t + 0.12 * pw,
+		"zone_h": 0.34 - 0.03 * t + 0.09 * pw,
 		"fish_speed": 0.32 + 0.09 * t,
-		"fill_rate": (0.42 - 0.03 * t) * (1.0 + 0.6 * pw),
-		"drain_rate": 0.24 * (1.0 - 0.4 * pw),
+		"fill_rate": (0.42 - 0.03 * t) * (1.0 + 0.4 * pw),
+		"drain_rate": 0.24 * (1.0 - 0.3 * pw),
 		"time_limit": MINIGAME_TIME + 0.25 * t,
 		"lift": 3.4, "sink": 2.8, "max_v": 1.7,
 	}
 	if desktop:
-		p.zone_h += 0.08
-		p.fish_speed *= 0.75
-		p.fill_rate *= 1.25
-		p.drain_rate *= 0.75
-		p.time_limit += 2.0
-		p.lift = 2.6
-		p.sink = 2.1
-		p.max_v = 1.25
-	else:
-		# phones (thumb on the screen): a bit harder than desktop, still fair with the starter rod
-		p.zone_h += 0.05
-		p.fish_speed *= 0.85
-		p.fill_rate *= 1.15
-		p.drain_rate *= 0.85
+		p.zone_h += 0.04
+		p.fish_speed *= 0.9
+		p.fill_rate *= 1.08
+		p.drain_rate *= 0.9
 		p.time_limit += 1.0
 		p.lift = 3.0
 		p.sink = 2.4
 		p.max_v = 1.45
+	else:
+		p.zone_h += 0.035
+		p.fish_speed *= 0.92
+		p.fill_rate *= 1.06
+		p.drain_rate *= 0.92
+		p.time_limit += 0.8
+		p.lift = 3.15
+		p.sink = 2.55
+		p.max_v = 1.52
 	return p
 
 const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer fish: up to +1s)
