@@ -62,6 +62,20 @@ def sign(path):
     sys.exit("signing failed - is the private key there? (tools/update_sign.gd --keygen)")
 
 
+def stamp_presets(version, build):
+    """Write the version into export_presets.cfg (Android versionCode/Name, Windows file version)."""
+    p = os.path.join(ROOT, "export_presets.cfg")
+    t = open(p, encoding="utf-8").read()
+    nums = [int(x) for x in version.split("-")[0].split(".")[:3]] + [0, 0, 0]
+    win = "%d.%d.%d.%d" % (nums[0], nums[1], nums[2], build)
+    import re
+    t = re.sub(r'(?m)^version/code=\d+', "version/code=%d" % build, t)
+    t = re.sub(r'(?m)^version/name=".*"', 'version/name="%s"' % version, t)
+    t = re.sub(r'(?m)^application/file_version=".*"', 'application/file_version="%s"' % win, t)
+    t = re.sub(r'(?m)^application/product_version=".*"', 'application/product_version="%s"' % win, t)
+    open(p, "w", encoding="utf-8", newline="\n").write(t)
+
+
 def export_games(version):
     for d in ["web", "windows", "linux", "android"]:
         shutil.rmtree(os.path.join(B, d), ignore_errors=True)
@@ -140,6 +154,7 @@ def main():
 
     assets = []
     if a.kind == "full":
+        stamp_presets(a.version, build)
         assets = export_games(a.version)
         base_dir = os.path.join(B, "base", f"b{build}")
         os.makedirs(base_dir, exist_ok=True)
@@ -193,7 +208,7 @@ def main():
              "-R", REPO, "--prerelease", "--title", f"dev base b{build} (not for players)",
              "--notes", "Developer files used to build in-game update patches. Players: download the latest fosh&fish release instead."])
     deploy_pages(STATE)
-    run(["git", "add", BUILD_JSON, STATE])
+    run(["git", "add", BUILD_JSON, STATE, os.path.join(ROOT, "export_presets.cfg")])
     run(["git", "commit", "-qm", f"release {a.version} (build {build})"])
     run(["git", "push", "-q", "origin", "HEAD"])
     print("published", tag)

@@ -1065,7 +1065,7 @@ func _refresh() -> void:
 	sell_btn.reset_size()
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
-	rod_chip.text = "Rod" if VF.rod_usable() else "⚠ Rod"
+	rod_chip.text = "Shop" if VF.rod_usable() else "⚠ Shop"
 	rod_chip.tooltip_text = "%s — %s\nClick to change rods" % [VF.rod, "ready" if VF.rod_usable() else "can't be used in %s!" % VF.biome]
 	var bait_chip: Button = chips.bait
 	bait_chip.icon = icon_for("bait", VF.bait) if VF.has_bait() else icon_for("bait", "Worms")
