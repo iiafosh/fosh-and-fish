@@ -52,3 +52,7 @@ textures/vram_compression/import_etc2_astc=true
 
 movie_writer/mjpeg_quality=0.95
 movie_writer/movie_file=""
+
+[internationalization]
+
+rendering/root_node_layout_direction=1

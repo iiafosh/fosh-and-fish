@@ -382,7 +382,16 @@ func _build() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th := Theme.new()
+	# The game UI is built left-to-right. Phones set to Arabic (or any RTL language) would
+	# otherwise mirror every container and anchor - the map even slid off-screen.
+	# Arabic text that players type (names, comments, feedback) still shapes and reads RTL inside its line.
+	layout_direction = Control.LAYOUT_DIRECTION_LTR
+	# text boxes follow what the player types: Arabic runs right-to-left, English left-to-right
+	get_tree().node_added.connect(func(n: Node):
+		if n is LineEdit or n is TextEdit: (n as Control).text_direction = Control.TEXT_DIRECTION_AUTO)
 	var font: Font = load("res://assets/third_party/fonts/Fredoka.ttf")
+	if font.fallbacks.is_empty():
+		font.fallbacks = [load("res://assets/third_party/fonts/Cairo.ttf")]   # Arabic glyphs (Fredoka has none)
 	var fv := FontVariation.new()
 	fv.base_font = font
 	fv.variation_opentype = {"wght": 560}
@@ -1645,6 +1654,21 @@ func _check_capture() -> void:
 		VF.changed.emit()
 		_coach_show()
 		await sail.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--rtl-test" in OS.get_cmdline_user_args():
+		# run with `--language ar`: the layout must stay put and Arabic text must render (not boxes)
+		VF.player_name = "صيّاد السمك"
+		VF.changed.emit()
+		_card_intro()
+		_toast("مرحبا! هذا اختبار للنص العربي", "quest")
+		await get_tree().create_timer(1.2).timeout
+		await _shot(dir + "/rtl_main.png")
+		_open_panel("guide", "Feedback")
+		await get_tree().process_frame
+		if _fb_text: _fb_text.text = "اللعبة جميلة جداً، شكراً! The game is great 123"
+		await get_tree().create_timer(0.4).timeout
+		await _shot(dir + "/rtl_feedback.png")
 		get_tree().quit()
 		return
 	if "--aim-test" in OS.get_cmdline_user_args():
