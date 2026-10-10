@@ -105,6 +105,9 @@ func check() -> void:
 
 func _on_manifest(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	_http.queue_free()
+	if result == HTTPRequest.RESULT_SUCCESS and code == 404:
+		_set_state("up_to_date")          # nothing published yet = you're on the newest version
+		return
 	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
 		_fail("Can't reach the update server (check your internet).")
 		return

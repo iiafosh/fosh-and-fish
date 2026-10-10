@@ -1,0 +1,27 @@
+# One line-ending style everywhere (LF), matching what Godot writes.
+# Without this, Godot re-saving .import/.tscn/.tres files on Windows showed up as
+# hundreds of "modified" files that had no real change.
+* text=auto eol=lf
+
+# binary assets: never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.svg text eol=lf
+*.ttf binary
+*.otf binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.mp4 binary
+*.glb binary
+*.blend binary
+*.pck binary
+*.zip binary
+*.apk binary
+*.ico binary
+*.exe binary
+
+# Windows batch files need CRLF
+*.bat text eol=crlf
