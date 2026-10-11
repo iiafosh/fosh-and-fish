@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.13 — in-game update
+
+- Logo tidy-up: the splash line under "fish" is gone (it looked like an underline), and the logo on the title screen is smaller.
+
 ## 0.5.12 — in-game update
 
 - The web version downloads about 5 MB less (store and social cover images aren't packed into the game any more).

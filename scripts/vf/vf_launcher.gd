@@ -272,7 +272,7 @@ func _place() -> void:
 	col.position = Vector2(x0 + pad, maxf(10.0, (room - col.size.y) * 0.5))
 	# the logo over the sky, centred on the picture's visible part
 	var ts := Vector2(logo.texture.get_size())
-	var lw := minf(size.x * 0.25, 470.0) if not _short() else minf(size.x * 0.24, 330.0)
+	var lw := minf(size.x * 0.2, 380.0) if not _short() else minf(size.x * 0.2, 270.0)
 	var lh := lw * ts.y / ts.x
 	logo.size = Vector2(lw, lh)
 	logo.position = Vector2((size.x - pw) * 0.42 - lw * 0.5, size.y * (0.05 if not _short() else 0.035))

@@ -1,4 +1,4 @@
-"""fosh&fish brand kit (the 0.5.10 rebrand: white, chunky, tilted lettering with a fish and a splash,
+"""fosh&fish brand kit (the 0.5.11 rebrand: white, chunky, tilted lettering with a leaping fish,
 deep-sea teal and mint), all drawn here from the Fredoka font and simple shapes.
 
     python tools/art/make_brand.py            everything
@@ -141,7 +141,6 @@ def logo(scale=1.0, tilt=6.0):
     amp = text_mask("&", int(170 * s))
     l2 = text_mask("fish", int(300 * s))
     fish = fish_mask(int(170 * s))
-    sw = swoosh_mask(int(l2.size[0] * 1.04), int(150 * s))
     drops = [drop_mask(int(44 * s)), drop_mask(int(32 * s)), drop_mask(int(24 * s))]
     W = int(max(l1.size[0] + fish.size[0] + 20 * s, l2.size[0] + 210 * s) + 60 * s)
     H = int(l1.size[1] + l2.size[1] + 40 * s)
@@ -154,8 +153,7 @@ def logo(scale=1.0, tilt=6.0):
     x2 = 160 * s
     m.paste(255, (int(x2 - amp.size[0] * 1.08), int(y2 + 30 * s)), amp)
     m.paste(255, (int(x2), int(y2)), l2)
-    swy = y2 + l2.size[1] - 82 * s
-    m.paste(255, (int(x2 + 30 * s), int(swy)), sw)
+    # (no splash wave under "fish": at small sizes it read as an underline - the leaping fish is the accent)
     m = m.crop(m.getbbox())
     st = styled(m, s)
     if tilt:
