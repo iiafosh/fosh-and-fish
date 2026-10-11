@@ -15,6 +15,7 @@ Patches can't add autoloads, class_name scripts or project settings: use a full 
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,7 @@ PAGES_BRANCH = "gh-pages"
 BUILD_JSON = os.path.join(ROOT, "data", "build.json")
 STATE = os.path.join(ROOT, "tools", "update.json")          # the published manifest, kept in git
 B = os.path.join(ROOT, "build")
+SITE = os.path.join(ROOT, "site")         # the website (foshfish.xyz)
 DOCS = ["GUIDE.md", "CHANGELOG.md", "CREDITS.md"]
 PLATFORMS = {"desktop": "Windows Desktop", "android": "Android"}
 
@@ -115,27 +117,63 @@ def export_games(version):
     return files
 
 
-def deploy_pages(manifest_path):
-    """Put the web build and update.json on the gh-pages branch."""
+SITE_DOMAIN = "foshfish.xyz"
+GAME_FILE = re.compile(r"^index\.")     # the web export's files: index.html, .js, .wasm, .pck, icons, worker, ...
+
+
+def deploy_pages(manifest_path=None, web=True, live=None):
+    """The gh-pages branch. Two layouts:
+      preview (no CNAME yet): the web game at the root, the website (site/) at /site/
+      live (CNAME = foshfish.xyz): the website at the root, the web game at /play/
+    update.json always stays at the root: installed games look for it there (the old github.io URL
+    redirects to the domain once it is live). live=True switches to the live layout, None keeps the
+    current one."""
     wt = os.path.join(B, "_pages")
     shutil.rmtree(wt, ignore_errors=True)
     run(["git", "worktree", "prune"])
     run(["git", "fetch", "-q", "origin", PAGES_BRANCH])
     run(["git", "worktree", "add", "-q", wt, f"origin/{PAGES_BRANCH}"])
     try:
-        for f in os.listdir(os.path.join(B, "web")):
-            shutil.copy(os.path.join(B, "web", f), os.path.join(wt, f))
-        shutil.copy(manifest_path, os.path.join(wt, "update.json"))
+        was_live = os.path.exists(os.path.join(wt, "CNAME"))
+        live = was_live if live is None else live
+        game_dir = os.path.join(wt, "play") if live else wt
+        os.makedirs(game_dir, exist_ok=True)
+        if live and not was_live:
+            # moving to the domain: the game's files go from the root to /play/
+            for f in os.listdir(wt):
+                if GAME_FILE.match(f):
+                    shutil.move(os.path.join(wt, f), os.path.join(game_dir, f))
+            shutil.rmtree(os.path.join(wt, "site"), ignore_errors=True)
+            with open(os.path.join(wt, "CNAME"), "w") as fh:
+                fh.write(SITE_DOMAIN + "\n")
+        if web and os.path.isdir(os.path.join(B, "web")):
+            for f in os.listdir(os.path.join(B, "web")):
+                shutil.copy(os.path.join(B, "web", f), os.path.join(game_dir, f))
+        site_dst = wt if live else os.path.join(wt, "site")
+        for base, _, files in os.walk(SITE):
+            rel = os.path.relpath(base, SITE)
+            os.makedirs(os.path.join(site_dst, rel), exist_ok=True)
+            for f in files:
+                if f != ".gdignore":
+                    shutil.copy(os.path.join(base, f), os.path.join(site_dst, rel, f))
+        if manifest_path:
+            shutil.copy(manifest_path, os.path.join(wt, "update.json"))
         open(os.path.join(wt, ".nojekyll"), "w").close()
         subprocess.run(["git", "add", "-A"], cwd=wt, check=True)
         if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=wt).returncode != 0:
-            subprocess.run(["git", "commit", "-qm", "publish " + json.load(open(manifest_path))["version"]], cwd=wt, check=True)
+            what = ("publish " + json.load(open(manifest_path))["version"]) if manifest_path else "website"
+            subprocess.run(["git", "commit", "-qm", what + (" (live: %s)" % SITE_DOMAIN if live else "")], cwd=wt, check=True)
             subprocess.run(["git", "push", "-q", "origin", f"HEAD:{PAGES_BRANCH}"], cwd=wt, check=True)
+        print("pages:", ("live at https://%s/ (game at /play/)" % SITE_DOMAIN) if live else "preview at https://%s.github.io/%s/site/" % tuple(REPO.split("/")))
     finally:
         run(["git", "worktree", "remove", "--force", wt])
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "site":
+        # python tools/release.py site [--live]: only the website (site/); --live moves to foshfish.xyz
+        deploy_pages(None, web=False, live=True if "--live" in sys.argv else None)
+        return
     ap = argparse.ArgumentParser()
     ap.add_argument("kind", choices=["full", "patch"])
     ap.add_argument("version")
