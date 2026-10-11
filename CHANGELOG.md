@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.9 — in-game update
+
+- Web: the title screen's update check no longer says "Can't reach the update server" when the game has just started (it now waits a moment, and retries once on its own).
+
 ## 0.5.8 — in-game update
 
 - **A title screen.** The game now opens on a hand-painted dock at sunrise, with shimmering water, swaying leaves, bobber ripples, flickering lanterns and the odd passing gull. Everything you need before you play is in one card: **sign in or create an account** (or see that your cloud save is synced), **check and install updates**, then press **Play** (or Enter / Space) to dive in. Settings are one tap away too.

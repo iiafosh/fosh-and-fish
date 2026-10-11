@@ -125,7 +125,9 @@ func _ready() -> void:
 	if Updater.skipped_patch != "":
 		_toast("Update %s didn't start, so you're on the previous version. A fix is coming!" % Updater.skipped_patch, "warn")
 	if title and not _capturing():
-		Updater.check()                        # the title screen shows the result
+		# the title screen shows the result. (Not in the very first frame: on the web a request made while the
+		# game is still starting fails without ever reaching the network - "can't reach the update server".)
+		get_tree().create_timer(0.8).timeout.connect(Updater.check)
 	elif not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in OS.get_cmdline_user_args()):
 		get_tree().create_timer(4.0).timeout.connect(Updater.check)
 

@@ -47,6 +47,7 @@ var play_sub: Label
 var corner: HBoxContainer
 var _leaving := false
 var _key := ""
+var _retried := false            # one quiet automatic retry if the first update check fails
 
 func setup(m) -> void:
 	main = m
@@ -286,6 +287,12 @@ func _refresh() -> void:
 		int(U.progress * 50.0), U.error, VF.level, VF.biome])
 	if key == _key: return
 	_key = key
+	if U.state == "error" and not _retried:
+		_retried = true
+		get_tree().create_timer(2.5).timeout.connect(func():
+			if Updater.state == "error":
+				Updater.state = "idle"
+				Updater.check())
 	_fill_account()
 	_fill_update()
 	var fresh: bool = VF.level <= 1 and VF.stats.trips == 0
