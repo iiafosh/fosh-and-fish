@@ -297,6 +297,7 @@ func _place_signs(delta: float) -> void:
 # =============================================================== steering
 func _keys() -> Vector2:
 	var k := Vector2.ZERO
+	if main.launcher_open(): return k               # the title screen is up
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): k.x -= 1.0
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT): k.x += 1.0
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP): k.y -= 1.0
@@ -315,7 +316,7 @@ func _unhandled_input(e: InputEvent) -> void:
 	if main == null or stage._scene.is_empty(): return
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		if e.pressed:
-			if main.overlay.visible: return
+			if main.overlay.visible or main.launcher_open(): return
 			if state != "idle":
 				get_viewport().set_input_as_handled()          # no casting mid-voyage
 				return

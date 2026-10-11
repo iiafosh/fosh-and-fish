@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.8 — in-game update
+
+- **A title screen.** The game now opens on a hand-painted dock at sunrise, with shimmering water, swaying leaves, bobber ripples, flickering lanterns and the odd passing gull. Everything you need before you play is in one card: **sign in or create an account** (or see that your cloud save is synced), **check and install updates**, then press **Play** (or Enter / Space) to dive in. Settings are one tap away too.
+
 ## 0.5.7 — in-game update
 
 - **Phones: menus scroll with your finger.** Drag anywhere on a menu, even on a card or a button, and flick to keep it moving. Before, cards swallowed the drag and only the thin scrollbar worked. A drag never presses the button it started on; a tap still does.

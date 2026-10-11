@@ -95,6 +95,7 @@ var ui_k := 1.0                # interface scale (bigger on phones, see _update_
 var _sim_touch := false        # --touch: behave like a phone (captures on a desktop)
 var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N dp (captures)
 var _portrait_note: CanvasLayer
+var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
 
 func _ready() -> void:
 	_load_manifest()
@@ -113,16 +114,47 @@ func _ready() -> void:
 	stage.merchant_clicked.connect(func(): _open_panel("shop", "Rods"))
 	_refresh()
 	_apply_biome()
-	_card_intro()
+	var title := _wants_launcher()
+	if not title: _card_intro()
 	_build_version_label()
 	_build_coach()
+	if title: _open_launcher()
 	_check_capture()
 	Updater.boot_ok()
 	Updater.status_changed.connect(_on_update_status)
 	if Updater.skipped_patch != "":
 		_toast("Update %s didn't start, so you're on the previous version. A fix is coming!" % Updater.skipped_patch, "warn")
-	if not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in OS.get_cmdline_user_args()):
+	if title and not _capturing():
+		Updater.check()                        # the title screen shows the result
+	elif not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in OS.get_cmdline_user_args()):
 		get_tree().create_timer(4.0).timeout.connect(Updater.check)
+
+# ============================================================ title screen
+## The title screen comes first (sign in, updates, Play) - except in captures and recordings,
+## unless --launcher asks for it. --no-launcher skips it.
+func _wants_launcher() -> bool:
+	var args := OS.get_cmdline_user_args()
+	if "--launcher" in args: return true
+	if "--no-launcher" in args: return false
+	return not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in args)
+
+func _open_launcher() -> void:
+	launcher = load("res://scripts/vf/vf_launcher.gd").new()
+	launcher.setup(self)
+	add_child(launcher)                        # on top of the game; panels it opens are raised above it
+	stage.visible = false                      # (hidden under the picture anyway: save the GPU)
+	if _coach: _coach.visible = false
+
+func launcher_open() -> bool:
+	return launcher != null and is_instance_valid(launcher) and not launcher.is_queued_for_deletion() and not launcher._leaving
+
+## Play was pressed: the game shows up under the fading title screen
+func _launcher_closing() -> void:
+	_close_panel()
+	stage.visible = true
+	launcher.z_index = 1                       # stays on top while it fades
+	_card_intro()
+	_coach_show()
 
 func _process(delta: float) -> void:
 	_save_timer += delta
@@ -193,6 +225,7 @@ func _release_press() -> void:
 
 ## hold the FISH button, Space/F, or a finger on the water to keep casting
 func _process_hold() -> void:
+	if launcher_open(): return
 	if _hold_water and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_hold_water = false
 	var held := _hold_btn or _hold_water or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_F)
@@ -206,6 +239,10 @@ func _notification(what: int) -> void:
 		Backend.on_quit()          # signed in: upload the last progress before the window closes
 
 func _unhandled_input(event: InputEvent) -> void:
+	if launcher_open():
+		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE and overlay.visible:
+			_close_panel()
+		return                                 # the title screen is up: no casting, no menu keys
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
 		_hold_water = true
@@ -1214,6 +1251,7 @@ func _float_text(text: String, at: Vector2, color: Color) -> void:
 	tw.tween_callback(l.queue_free)
 
 func _toast(text: String, kind: String) -> void:
+	if launcher_open(): return
 	var colors := {"warn": Color("#b45309"), "pet": Color("#be185d"), "unlock": Color("#7c3aed"), "quest": Color("#0f766e"),
 		"prestige": Color("#1d4ed8"), "buy": Color("#15803d")}
 	var p := PanelContainer.new()
@@ -1438,6 +1476,7 @@ func _open_panel(kind: String, tab: String = "") -> void:
 	_panel_kind = kind
 	_panel_tab = tab if tab != "" else (PANEL_TABS[kind][0] if PANEL_TABS.has(kind) else "")
 	overlay.visible = true
+	if launcher_open(): move_child(overlay, get_child_count() - 1)    # over the title screen
 	_render_panel()
 
 func _close_panel() -> void:
@@ -1469,7 +1508,7 @@ func _render_panel() -> void:
 			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel())
 			panel_tabs.add_child(b)
 	tabs_track.visible = PANEL_TABS.has(_panel_kind)
-	panel_back.visible = _panel_kind != "menu"
+	panel_back.visible = _panel_kind != "menu" and not launcher_open()   # from the title screen: just Close
 	match _panel_kind:
 		"inventory": _panel_inventory()
 		"shop": _panel_shop()
@@ -1968,6 +2007,24 @@ func _check_capture() -> void:
 		await _phone_test(dir)
 		get_tree().quit()
 		return
+	if "--launcher" in OS.get_cmdline_user_args() and launcher:
+		# the title screen: as it opens, signing in over it, after Play
+		Updater.check()
+		await _wait(3.0)
+		await _shot(dir + "/launcher.png")
+		launcher._account("sign_in")
+		await _wait(0.6)
+		await _shot(dir + "/launcher_signin.png")
+		_close_panel()
+		await _wait(0.3)
+		launcher.play()
+		await _wait(0.25)
+		await _shot(dir + "/launcher_leaving.png")
+		await _wait(1.2)
+		await _shot(dir + "/launcher_after_play.png")
+		print("LAUNCHER closed=%s stage=%s" % [not launcher_open(), stage.visible])
+		get_tree().quit()
+		return
 	if "--scroll-test" in OS.get_cmdline_user_args():
 		await _scroll_test(dir)
 		get_tree().quit()
@@ -2460,7 +2517,7 @@ func _coach_next(step: int) -> void:
 
 func _coach_show() -> void:
 	if _coach == null: return
-	_coach.visible = COACH_TEXT.has(VF.tutorial)
+	_coach.visible = COACH_TEXT.has(VF.tutorial) and not launcher_open()
 	if _coach.visible:
 		_coach_label.text = COACH_TEXT[VF.tutorial]
 		move_child(_coach, get_child_count() - 1)
@@ -2477,7 +2534,7 @@ func _coach_target() -> Vector2:
 
 func _process_coach(delta: float) -> void:
 	if _coach == null or not COACH_TEXT.has(VF.tutorial): return
-	_coach.visible = not overlay.visible or VF.tutorial == 3
+	_coach.visible = (not overlay.visible or VF.tutorial == 3) and not launcher_open()
 	if not _coach.visible: return
 	_coach_t += delta
 	var tgt := _coach_target()
@@ -2780,7 +2837,7 @@ func _on_update_status() -> void:
 		"downloading": update_pill.text = "Updating %d%%" % int(Updater.progress * 100.0)
 		"ready": update_pill.text = "Restart to update"
 		_: update_pill.text = "Update available"
-	if st in ["available", "full_needed"] and not _update_announced:
+	if st in ["available", "full_needed"] and not _update_announced and not launcher_open():
 		_update_announced = true
 		_banner("Update available!", "fosh&fish %s is out — tap the Update button" % String(Updater.latest.get("version", "")),
 			icon_for("ui", "xp"), Color("#2f8f9e"))
