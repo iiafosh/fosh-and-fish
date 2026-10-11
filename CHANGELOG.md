@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.12 — in-game update
+
+- The web version downloads about 5 MB less (store and social cover images aren't packed into the game any more).
+
 ## 0.5.11 — in-game update: a new look
 
 - **Rebrand.** fosh&fish has a new logo: chunky white letters, a little leaping fish and a splash, in deep-sea teal and mint. There's a new app icon (a fish leaping out of the waves), a deep-sea loading screen, and new store / social covers. The title screen uses the new logo.
