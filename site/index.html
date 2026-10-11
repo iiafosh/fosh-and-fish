@@ -3,201 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>fosh&amp;fish: a cozy fishing game</title>
-  <meta name="description" content="fosh&amp;fish is a free, cozy fishing game. Cast, catch, sail between biomes, play the Reel it in! mini-game and climb the leaderboard. Play in your browser or download for Windows, Android and Linux.">
+  <title>fosh&amp;fish: download the cozy fishing game</title>
+  <meta name="description" content="fosh&amp;fish is a free, cozy fishing game. Download it for Windows, Linux or Android, or play right in your browser on iPhone, iPad and any computer.">
   <meta name="theme-color" content="#0b2930">
   <link rel="canonical" href="https://foshfish.xyz/">
   <link rel="icon" type="image/png" sizes="64x64" href="img/icon-64.png">
   <link rel="apple-touch-icon" href="img/icon-180.png">
   <meta property="og:type" content="website">
   <meta property="og:title" content="fosh&amp;fish: a cozy fishing game">
-  <meta property="og:description" content="Cast, catch, sail and chill. Free on web, Windows, Android and Linux.">
+  <meta property="og:description" content="Free on Windows, Linux, Android and in your browser. Same fish, every device.">
   <meta property="og:image" content="https://foshfish.xyz/img/og.jpg">
   <meta property="og:url" content="https://foshfish.xyz/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preload" href="fonts/Fredoka.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="img/hero.webp" as="image">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <a class="skip" href="#main">Skip to content</a>
+<body class="home">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="leafg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fe05a"/><stop offset="1" stop-color="#2f9a3c"/></linearGradient>
+      <symbol id="leaf" viewBox="0 0 80 52"><path d="M2 30C16 10 44 4 70 10 58 34 32 48 2 30z" fill="url(#leafg)"/><path d="M5 30C24 23 46 16 68 11" stroke="#1f7a33" stroke-width="2" fill="none" stroke-linecap="round" opacity=".55"/><path d="M18 34C30 26 52 26 78 36 62 50 38 52 18 34z" fill="url(#leafg)" opacity=".92"/><path d="M21 34C38 33 56 34 75 36" stroke="#1f7a33" stroke-width="1.8" fill="none" stroke-linecap="round" opacity=".5"/></symbol>
+    </defs>
+  </svg>
 
-  <header class="nav" id="top">
-    <a class="brand" href="#top" aria-label="fosh&amp;fish home">
-      <img src="img/icon-64.png" alt="" width="36" height="36">
-      <span>fosh&amp;fish</span>
-    </a>
-    <nav aria-label="Sections">
-      <a href="#features">Features</a>
-      <a href="#download">Download</a>
-      <a href="#leaderboard">Leaderboard</a>
-      <a href="#faq">FAQ</a>
+  <div class="scene" aria-hidden="true">
+    <div class="art"></div>
+    <div class="shade"></div>
+    <div class="bubbles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <main class="stage">
+    <header class="sign">
+      <h1><img class="logo" src="img/logo.png" alt="fosh&amp;fish" width="640" height="430"></h1>
+      <p class="ribbon"><span>Download now</span></p>
+    </header>
+
+    <p class="pitch">Play fosh&amp;fish on your favorite platform.<br><span>Same fish, every device. Free, and your progress comes with you.</span></p>
+
+    <nav class="dl" aria-label="Download fosh&amp;fish">
+      <a class="pill win" data-os="windows" data-asset="-windows.zip" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zm8.5-1.2L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z"/></svg>
+        <span class="txt"><small>Download for</small><b>Windows</b><em>Get the full experience on PC</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="pill lin" data-os="linux" data-asset="-linux.tar.gz" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="24" cy="29" rx="14" ry="16" fill="#fff"/><circle cx="24" cy="13" r="10" fill="#fff"/><ellipse cx="24" cy="31" rx="8.5" ry="11" fill="#ffe9c7"/><circle cx="20.5" cy="12" r="2.4" fill="#5b3a1a"/><circle cx="27.5" cy="12" r="2.4" fill="#5b3a1a"/><path d="M19.5 17.2c2.6-1.6 6.4-1.6 9 0-1.4 2.6-3 3.6-4.5 3.6s-3.1-1-4.5-3.6z" fill="#ffc83d"/><path d="M11 41c3.5-3.4 8.5-3 11 .8-3.5 2.6-8.4 2.6-11-.8zM37 41c-3.5-3.4-8.5-3-11 .8 3.5 2.6 8.4 2.6 11-.8z" fill="#ffc83d"/></svg>
+        <span class="txt"><small>Download for</small><b>Linux</b><em>For all your favorite distros</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="pill and" data-os="android" data-asset="-android.apk" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.5l1.7-3a.5.5 0 1 0-.9-.5l-1.7 3a10.4 10.4 0 0 0-9.4 0L5.6 6a.5.5 0 1 0-.9.5l1.7 3A9 9 0 0 0 2 17h20a9 9 0 0 0-4.4-7.5zM7.5 14.2a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2zm9 0a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2z"/></svg>
+        <span class="txt"><small>Download for</small><b>Android</b><em>Play on your phone or tablet</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="pill web" data-os="web" data-play href="play/">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <span class="flower" aria-hidden="true"></span>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15.7 15.7 0 0 0-1.4-3.8A8 8 0 0 1 18.9 8zM12 4a13.6 13.6 0 0 1 1.9 4h-3.8A13.6 13.6 0 0 1 12 4zM4.3 14a8.2 8.2 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h3a15.7 15.7 0 0 0 1.4 3.8A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.4-3.8A15.7 15.7 0 0 0 8.1 8zM12 20a13.6 13.6 0 0 1-1.9-4h3.8A13.6 13.6 0 0 1 12 20zm2.3-6H9.7a14.6 14.6 0 0 1 0-4h4.6a14.6 14.6 0 0 1 0 4zm.2 5.8a15.7 15.7 0 0 0 1.4-3.8h3a8 8 0 0 1-4.4 3.8zM16.3 14a16.5 16.5 0 0 0 0-4h3.4a8.2 8.2 0 0 1 0 4z"/></svg>
+        <span class="txt"><small>Play instantly on</small><b>iPhone &amp; web</b><em>Right in your browser, nothing to install</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
     </nav>
-    <a class="btn btn-mint btn-sm" data-play href="play/">Play free</a>
-  </header>
 
-  <main id="main">
-    <!-- hero -->
-    <section class="hero">
-      <div class="hero-bg" aria-hidden="true"></div>
-      <div class="bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="hero-inner">
-        <div class="hero-copy">
-          <h1><img class="hero-logo" src="img/logo.png" alt="fosh&amp;fish" width="640" height="430"></h1>
-          <p class="tagline">A cozy fishing game. Cast your line, catch something silly, sail to new waters and just chill.</p>
-          <div class="cta">
-            <a class="btn btn-mint btn-lg" data-play href="play/">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
-              Play in your browser
-            </a>
-            <a class="btn btn-ghost btn-lg" href="#download" id="hero-download">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4l3.3 3.3V4a1 1 0 0 1 1-1zM5 19h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z"/></svg>
-              <span>Download</span>
-            </a>
-          </div>
-          <p class="chips"><span>Free</span><span>Web</span><span>Windows</span><span>Android</span><span>Linux</span><span class="ver" id="ver-chip">beta</span></p>
-        </div>
-        <figure class="screen">
-          <video autoplay muted loop playsinline preload="metadata" poster="media/gameplay.jpg" aria-label="fosh&amp;fish gameplay">
-            <source src="media/gameplay.mp4" type="video/mp4">
-          </video>
-        </figure>
-      </div>
-      <svg class="wave" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70c120-30 240-46 360-28s240 62 360 58 240-50 360-62 240 14 360 34v48H0z"/></svg>
-    </section>
+    <p class="hint" id="hint"></p>
 
-    <!-- features -->
-    <section class="features" id="features">
-      <div class="wrap">
-        <h2>Cast a line. Catch something silly.</h2>
-        <p class="lead">Easy to pick up, hard to put down. Fish at your own pace, or make every catch a little game.</p>
-        <div class="grid">
-          <article class="card">
-            <img src="img/feat-minigame.webp" alt="The Reel it in! mini-game with a PERFECT! catch" loading="lazy" width="960" height="540">
-            <h3>Reel it in!</h3>
-            <p>Switch on the catch mini-game and keep the cheeky fish in the zone. Win for <b>+75% fish</b>. Lose and it blows a raspberry at you.</p>
-          </article>
-          <article class="card">
-            <img src="img/feat-captain.webp" alt="The captain fishing from his rowboat" loading="lazy" width="960" height="540">
-            <h3>Meet the captain</h3>
-            <p>A chunky old sea dog who naps on his cooler, sips his mug and dances when you land something rare.</p>
-          </article>
-          <article class="card">
-            <img src="img/feat-sail.webp" alt="Sailing into the red waters of the Volcanic biome" loading="lazy" width="960" height="540">
-            <h3>Sail to new waters</h3>
-            <p>Steer off the edge of the map into the next world: a calm river, volcanic seas, the ocean, the sky, space and the abyss.</p>
-          </article>
-          <article class="card">
-            <img src="img/feat-fishtok.webp" alt="FishTok on the in-game phone: today's trending fish sells for +50%" loading="lazy" width="960" height="540">
-            <h3>FishTok</h3>
-            <p>A phone in your pocket with a daily trending fish that sells for <b>+50%</b>, challenges, followers and rewards.</p>
-          </article>
-          <article class="card">
-            <img src="img/feat-online.webp" alt="The online leaderboard in the game" loading="lazy" width="960" height="540">
-            <h3>Cloud saves &amp; leaderboard</h3>
-            <p>Make a free account to keep your fish on every device, and climb the worldwide leaderboard.</p>
-          </article>
-          <article class="card">
-            <img src="img/feat-boats.webp" alt="The Sky Cruiser, a flying boat, in the Sky biome" loading="lazy" width="960" height="540">
-            <h3>17 boats</h3>
-            <p>From a little rowboat to a sky cruiser and a space shuttle. Every boat fishes faster and catches more.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- download -->
-    <section class="download" id="download">
-      <svg class="wave top" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50c160 40 320 52 480 30s320-70 480-62 320 52 480 48V0H0z"/></svg>
-      <div class="wrap">
-        <h2>Get fosh&amp;fish</h2>
-        <p class="lead">Free. Download once: new versions install from inside the game with one button.</p>
-        <div class="platforms">
-          <a class="plat" data-os="web" data-play href="play/">
-            <span class="badge">Your device</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15.7 15.7 0 0 0-1.4-3.8A8 8 0 0 1 18.9 8zM12 4a13.6 13.6 0 0 1 1.9 4h-3.8A13.6 13.6 0 0 1 12 4zM4.3 14a8.2 8.2 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h3a15.7 15.7 0 0 0 1.4 3.8A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.4-3.8A15.7 15.7 0 0 0 8.1 8zM12 20a13.6 13.6 0 0 1-1.9-4h3.8A13.6 13.6 0 0 1 12 20zm2.3-6H9.7a14.6 14.6 0 0 1 0-4h4.6a14.6 14.6 0 0 1 0 4zm.2 5.8a15.7 15.7 0 0 0 1.4-3.8h3a8 8 0 0 1-4.4 3.8zM16.3 14a16.5 16.5 0 0 0 0-4h3.4a8.2 8.2 0 0 1 0 4z"/></svg>
-            <b>Play in browser</b>
-            <small>No install. Phone, tablet or computer.</small>
-          </a>
-          <a class="plat" data-os="windows" data-asset="-windows.zip" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
-            <span class="badge">Your device</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zm8.5-1.2L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z"/></svg>
-            <b>Windows</b>
-            <small class="size">.zip</small>
-          </a>
-          <a class="plat" data-os="android" data-asset="-android.apk" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
-            <span class="badge">Your device</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.5l1.7-3a.5.5 0 1 0-.9-.5l-1.7 3a10.4 10.4 0 0 0-9.4 0L5.6 6a.5.5 0 1 0-.9.5l1.7 3A9 9 0 0 0 2 17h20a9 9 0 0 0-4.4-7.5zM7.5 14.2a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2zm9 0a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2z"/></svg>
-            <b>Android</b>
-            <small class="size">.apk</small>
-          </a>
-          <a class="plat" data-os="linux" data-asset="-linux.tar.gz" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
-            <span class="badge">Your device</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-2.3 0-3.6 1.9-3.6 4.6 0 1.6.4 2.7-.6 4.3-1.2 1.9-3 3.6-3 6.3 0 .7.2 1.3.5 1.8-.6.4-1 .9-1 1.5 0 1.2 1.6 1.5 3.4 1.5 1 0 1.9-.3 2.5-.8.5.1 1.1.2 1.8.2s1.3-.1 1.8-.2c.6.5 1.5.8 2.5.8 1.8 0 3.4-.3 3.4-1.5 0-.6-.4-1.1-1-1.5.3-.5.5-1.1.5-1.8 0-2.7-1.8-4.4-3-6.3-1-1.6-.6-2.7-.6-4.3C15.6 3.9 14.3 2 12 2zm-1.5 4a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8zm3 0a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8zM12 8.6c.8 0 1.6.4 1.6.8s-.8 1-1.6 1-1.6-.6-1.6-1 .8-.8 1.6-.8z"/></svg>
-            <b>Linux</b>
-            <small class="size">.tar.gz</small>
-          </a>
-        </div>
-        <ol class="howto">
-          <li><b>Windows:</b> unzip and run <code>fosh_fish.exe</code>. If Windows SmartScreen warns you, choose <i>More info → Run anyway</i> (the game isn't code-signed yet).</li>
-          <li><b>Android:</b> open the <code>.apk</code> and allow installs from your browser when asked.</li>
-          <li><b>Linux:</b> extract, then run <code>fosh_fish.x86_64</code>.</li>
-        </ol>
-      </div>
-    </section>
-
-    <!-- leaderboard -->
-    <section class="board" id="leaderboard" hidden>
-      <div class="wrap narrow">
-        <h2>Top fishers right now</h2>
-        <p class="lead">Live from the game. Make a free account in the game to join.</p>
-        <ol class="ranks" id="ranks"></ol>
-      </div>
-    </section>
-
-    <!-- what's new -->
-    <section class="news" id="news">
-      <div class="wrap narrow">
-        <h2>What's new</h2>
-        <div class="news-card">
-          <p class="news-ver" id="news-ver">fosh&amp;fish 0.5 beta</p>
-          <ul id="news-notes">
-            <li>A new title screen and a whole new look</li>
-            <li>The Reel it in! catch mini-game, the captain, sailing between biomes and FishTok</li>
-            <li>Online accounts, cloud saves and a leaderboard</li>
-          </ul>
-          <a class="link" href="https://github.com/iiafosh/fosh-and-fish/blob/master/CHANGELOG.md">Full changelog →</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- faq -->
-    <section class="faq" id="faq">
-      <div class="wrap narrow">
-        <h2>Questions</h2>
-        <details><summary>Is it really free?</summary><p>Yes. No ads, no purchases. fosh&amp;fish is a hobby project by afosh.</p></details>
-        <details><summary>Do I need an account?</summary><p>No. Your progress is saved on your device. A free account adds cloud saves (play on your phone and your PC with the same fish) and a spot on the leaderboard.</p></details>
-        <details><summary>How do updates work?</summary><p>Download once. When there's a new version the game tells you on its title screen. Press <i>Update</i> and it installs in seconds, with your progress kept. The browser version is always up to date.</p></details>
-        <details><summary>Windows says it protected my PC. Is the game safe?</summary><p>That warning appears for new games that aren't code-signed yet. Choose <i>More info → Run anyway</i>. The game's code is open on GitHub, and every update is signed and checked by the game before it installs.</p></details>
-        <details><summary>I found a bug / I have an idea</summary><p>Great! Use <i>Guide → Feedback</i> in the game, or <a href="https://github.com/iiafosh/fosh-and-fish/issues/new">open an issue on GitHub</a>.</p></details>
-      </div>
-    </section>
+    <footer class="mini">
+      <span class="ver" id="ver-chip">beta</span>
+      <span>Made by afosh</span>
+      <a href="privacy.html">Privacy</a>
+    </footer>
   </main>
-
-  <footer class="foot">
-    <div class="wrap foot-inner">
-      <div class="foot-brand">
-        <img src="img/icon-64.png" alt="" width="40" height="40">
-        <div><b>fosh&amp;fish</b><br><small>Made with Godot and Blender by afosh</small></div>
-      </div>
-      <nav aria-label="Links">
-        <a href="https://github.com/iiafosh/fosh-and-fish">GitHub</a>
-        <a href="https://www.linkedin.com/in/mostafa-kmal-3731453a9/">LinkedIn</a>
-        <a href="https://github.com/iiafosh/fosh-and-fish/issues/new">Report a bug</a>
-        <a href="privacy.html">Privacy</a>
-      </nav>
-    </div>
-    <p class="copy">© 2026 afosh · fosh&amp;fish is free to play</p>
-  </footer>
 
   <script src="app.js" defer></script>
 </body>
