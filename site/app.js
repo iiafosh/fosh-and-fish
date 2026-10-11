@@ -2,22 +2,19 @@
 // Everything falls back to plain links (the GitHub releases page) if a request fails.
 (() => {
   const REPO = "iiafosh/fosh-and-fish";
-  // where the web game and update.json live: foshfish.xyz/play/ when live, ../ for the /site/ preview
-  const preview = location.pathname.includes("/site/");
-  const GAME = preview ? "../" : "play/";
-  const ROOT = preview ? "../" : "./";
-  document.querySelectorAll("[data-play]").forEach((a) => (a.href = GAME));
+  // where update.json lives: the site root when live, ../ for the /site/ preview
+  const ROOT = location.pathname.includes("/site/") ? "../" : "./";
 
-  // your platform (anything else: the browser version)
+  // your platform
   const ua = navigator.userAgent.toLowerCase();
-  const os = /android/.test(ua) ? "android" : /windows/.test(ua) ? "windows" : /linux|x11|cros/.test(ua) ? "linux" : "web";
+  const os = /android/.test(ua) ? "android" : /windows/.test(ua) ? "windows" : /linux|x11|cros/.test(ua) ? "linux" : "other";
   const mine = document.querySelector(`.pill[data-os="${os}"]`);
   if (mine) mine.classList.add("mine");
   const hints = {
     windows: "Unzip, then run <b>fosh_fish.exe</b>. If Windows says it protected your PC, choose <b>More info → Run anyway</b> (the game isn't code-signed yet).",
     android: "Open the downloaded <b>.apk</b> and allow installs from your browser when your phone asks.",
     linux: "Extract, then run <b>fosh_fish.x86_64</b>.",
-    web: "No download needed: the web version runs right in your browser.",
+    other: "fosh&fish is available for <b>Windows</b>, <b>Linux</b> and <b>Android</b>.",
   };
   document.getElementById("hint").innerHTML = hints[os];
 
