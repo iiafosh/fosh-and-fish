@@ -8,7 +8,7 @@ extends Control
 
 const BG := "res://assets/launcher/launcher_bg.jpg"
 const MASKS := "res://assets/launcher/launcher_masks.png"
-const WORDMARK := "res://assets/brand/wordmark.png"
+const LOGO := "res://assets/brand/logo.png"          # tools/art/make_brand.py
 const ICON := "res://assets/brand/icon_256.png"
 const BOBBER := Vector2(0.3772, 0.6885)                     # points in the picture (fractions)
 const LANTERNS := [Vector2(0.1356, 0.2862), Vector2(0.2663, 0.4296)]
@@ -237,12 +237,13 @@ func _process(delta: float) -> void:
 # ------------------------------------------------------------------ layout
 func _build_logo() -> void:
 	logo = TextureRect.new()
-	logo.texture = load(WORDMARK)
+	logo.texture = load(LOGO)
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(logo)
-	var tg := PanelContainer.new()
+	var tg := PanelContainer.new()                           # (hidden: the stacked logo stands alone, like the brand art)
+	tg.visible = false
 	tg.add_theme_stylebox_override("panel", _box(Color(0.06, 0.2, 0.26, 0.5), 999, Color.TRANSPARENT, 14, 5))
 	tg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var tl := _text("a cozy fishing game  ·  by afosh", 15, Color(1, 1, 1, 0.95))
@@ -270,10 +271,11 @@ func _place() -> void:
 	var room := foot.position.y - 8.0                         # centred in the space above the footer
 	col.position = Vector2(x0 + pad, maxf(10.0, (room - col.size.y) * 0.5))
 	# the logo over the sky, centred on the picture's visible part
-	var lw := minf(size.x * 0.32, 520.0) if not _short() else minf(size.x * 0.34, 400.0)
-	var lh := lw * 167.0 / 779.0
+	var ts := Vector2(logo.texture.get_size())
+	var lw := minf(size.x * 0.25, 470.0) if not _short() else minf(size.x * 0.24, 330.0)
+	var lh := lw * ts.y / ts.x
 	logo.size = Vector2(lw, lh)
-	logo.position = Vector2((size.x - pw) * 0.5 - lw * 0.5, size.y * 0.07)
+	logo.position = Vector2((size.x - pw) * 0.42 - lw * 0.5, size.y * (0.05 if not _short() else 0.035))
 	tagline.reset_size()
 	tagline.position = Vector2(lw * 0.5 - tagline.size.x * 0.5, lh + 6.0)
 

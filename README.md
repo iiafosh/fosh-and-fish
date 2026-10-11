@@ -49,7 +49,7 @@ scripts/         audio_manager.gd (music, sounds, settings)
 scenes/          vf_main.tscn (main scene)
 shaders/         water caustics
 assets/vf/       sprites and scenes rendered by Blender
-assets/brand/    icon, cover, splash
+assets/brand/    logo, icons, covers, splash (made by tools/art/make_brand.py)
 assets/third_party/   Kenney / Quaternius / OpenGameArt assets and the Fredoka font (see CREDITS.md)
 data/vf/         XP-per-level table (25,000 levels)
 tests/           headless mechanics and balance checks

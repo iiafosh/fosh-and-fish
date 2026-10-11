@@ -2,6 +2,11 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.11 — in-game update: a new look
+
+- **Rebrand.** fosh&fish has a new logo: chunky white letters, a little leaping fish and a splash, in deep-sea teal and mint. There's a new app icon (a fish leaping out of the waves), a deep-sea loading screen, and new store / social covers. The title screen uses the new logo.
+- The web version shows the new icon and loading screen right away. On Windows and Android the in-game logo changes now; the app icon and the first loading screen change with the next full download.
+
 ## 0.5.10 — in-game update
 
 - **A new title screen design.** The picture is sharper (upscaled art) and the right side is now a deep-sea panel with a gently moving wave edge, drifting bubbles and fish shadows. It greets you ("Welcome back, afosh!"), puts a big **Play** first, and you can **sign in or create an account right there** (email and password fields open in the panel, no extra window). Updates show as one line, or a highlighted strip with a button when there's something new.
