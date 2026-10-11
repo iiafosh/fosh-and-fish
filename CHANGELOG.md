@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.10 — in-game update
+
+- **A new title screen design.** The picture is sharper (upscaled art) and the right side is now a deep-sea panel with a gently moving wave edge, drifting bubbles and fish shadows. It greets you ("Welcome back, afosh!"), puts a big **Play** first, and you can **sign in or create an account right there** (email and password fields open in the panel, no extra window). Updates show as one line, or a highlighted strip with a button when there's something new.
+
 ## 0.5.9 — in-game update
 
 - Web: the title screen's update check no longer says "Can't reach the update server" when the game has just started (it now waits a moment, and retries once on its own).

@@ -2014,10 +2014,23 @@ func _check_capture() -> void:
 		Updater.check()
 		await _wait(3.0)
 		await _shot(dir + "/launcher.png")
-		launcher._account("sign_in")
+		launcher._open_form("sign_in")
 		await _wait(0.6)
 		await _shot(dir + "/launcher_signin.png")
-		_close_panel()
+		launcher._open_form("sign_up")
+		await _wait(0.4)
+		await _shot(dir + "/launcher_signup.png")
+		if Backend.configured() and "--launcher-signup" in OS.get_cmdline_user_args():
+			# create an account right in the panel (against tools/mock_supabase.py) -> "Welcome back"
+			launcher._typed = {"name": "Tester", "email": "t%d@example.com" % (Time.get_ticks_usec() % 100000), "password": "hunter22"}
+			launcher._submit()
+			var t0 := Time.get_ticks_msec()
+			while Backend.state != "signed_in" and Time.get_ticks_msec() - t0 < 8000:
+				await get_tree().process_frame
+			await _wait(0.6)
+			print("LAUNCHER signed_in=%s form='%s' sync=%s" % [Backend.state == "signed_in", launcher.form, Backend.sync_state])
+			await _shot(dir + "/launcher_signed_in.png")
+		launcher._open_form("")
 		await _wait(0.3)
 		launcher.play()
 		await _wait(0.25)

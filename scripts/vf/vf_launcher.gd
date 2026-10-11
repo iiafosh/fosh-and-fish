@@ -1,14 +1,24 @@
 extends Control
-## Title screen ("launcher"): the first thing players see. Account + cloud save, game updates and
-## Play, over the owner's title illustration brought to life (water shimmer and glints, swaying leaves,
-## bobber ripples, lantern glow, a passing gull, a slow camera drift). Art: tools/art/make_launcher.py.
-## vf_main shows it at start (not in captures / recordings, unless --launcher) and hides it on Play.
+## Title screen ("launcher"): the first thing players see. The owner's title illustration, brought to life
+## (water shimmer and glints, swaying leaves, bobber ripples, lantern glow, a passing gull, a slow camera
+## drift), with a deep-sea side panel on the right (a softly moving wave edge, drifting bubbles and fish
+## shadows): a greeting, Play, signing in / creating an account right there, and the update status.
+## Art: tools/art/make_launcher.py. vf_main shows it at start (not in captures / recordings unless
+## --launcher) and hides it on Play.
 
 const BG := "res://assets/launcher/launcher_bg.jpg"
 const MASKS := "res://assets/launcher/launcher_masks.png"
 const WORDMARK := "res://assets/brand/wordmark.png"
+const ICON := "res://assets/brand/icon_256.png"
 const BOBBER := Vector2(0.3772, 0.6885)                     # points in the picture (fractions)
 const LANTERNS := [Vector2(0.1356, 0.2862), Vector2(0.2663, 0.4296)]
+
+const MINT := Color("#5fe0bd")
+const SEA := Color("#12454f")
+const DEEP := Color("#0a2930")
+const INK := Color("#0b3138")
+const SOFT := Color("#a9d6d8")
+const FAINT := Color("#7fb0b5")
 
 const SHADER := """
 shader_type canvas_item;
@@ -33,21 +43,28 @@ void fragment() {
 
 var main
 var art: Control
+var fx: Control
+var wave: Control
 var tex: Texture2D
 var glow: Texture2D
-var _t := 0.0
-var _gull_t := -4.0                                          # seconds into the current gull flight (<0: waiting)
+var bold: FontVariation
 var logo: TextureRect
 var tagline: Control
-var card: PanelContainer
-var acct_box: VBoxContainer
-var upd_box: VBoxContainer
+var col: VBoxContainer                  # the panel's content column
+var foot: HBoxContainer
 var play_btn: Button
-var play_sub: Label
-var corner: HBoxContainer
+var form := ""                          # "" | sign_in | sign_up: the account form open in the panel
+var _fields := {}
+var _typed := {}                        # what was typed in the form (kept across rebuilds)
+var _t := 0.0
+var _gull_t := -4.0
+var _slide := 1.0                       # 1 = the panel is off to the right (entrance / exit)
 var _leaving := false
+var _leave_t := 0.0
 var _key := ""
-var _retried := false            # one quiet automatic retry if the first update check fails
+var _retried := false                   # one quiet automatic retry if the first update check fails
+var _bubbles := []
+var _fish := []
 
 func setup(m) -> void:
 	main = m
@@ -56,10 +73,11 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP                  # nothing reaches the game underneath
 	theme = main.theme
+	bold = FontVariation.new()
+	bold.base_font = load("res://assets/third_party/fonts/Fredoka.ttf")
+	bold.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 680}
 	tex = load(BG)
-	art = Control.new()
-	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art = _layer(_draw_art)
 	var mat := ShaderMaterial.new()
 	mat.shader = Shader.new()
 	mat.shader.code = SHADER
@@ -73,13 +91,7 @@ func _ready() -> void:
 	nt.noise = fn
 	mat.set_shader_parameter("noise", nt)
 	art.material = mat
-	art.draw.connect(_draw_art)
-	add_child(art)
-	var fx := Control.new()                                   # ripples, glows and the gull (no shader)
-	fx.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fx.draw.connect(_draw_fx.bind(fx))
-	add_child(fx)
+	fx = _layer(_draw_fx)
 	var g := GradientTexture2D.new()
 	g.fill = GradientTexture2D.FILL_RADIAL
 	g.fill_from = Vector2(0.5, 0.5)
@@ -88,36 +100,35 @@ func _ready() -> void:
 	g.gradient.set_color(0, Color(1, 0.86, 0.5, 0.85))
 	g.gradient.set_color(1, Color(1, 0.7, 0.3, 0.0))
 	glow = g
-	var vig := TextureRect.new()                              # soft edges + a darker right side for the card
-	var vg := GradientTexture2D.new()
-	vg.fill_from = Vector2(0.45, 0.5)
-	vg.fill_to = Vector2(1.0, 0.5)
-	vg.gradient = Gradient.new()
-	vg.gradient.set_color(0, Color(0.02, 0.1, 0.16, 0.0))
-	vg.gradient.set_color(1, Color(0.02, 0.1, 0.16, 0.38))
-	vig.texture = vg
-	vig.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	vig.stretch_mode = TextureRect.STRETCH_SCALE
-	vig.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(vig)
 	_build_logo()
-	_build_card()
-	_build_corner()
+	wave = _layer(_draw_wave)
+	col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	add_child(col)
+	foot = HBoxContainer.new()
+	foot.add_theme_constant_override("separation", 8)
+	add_child(foot)
+	for i in 14:
+		_bubbles.append({"x": randf(), "y": randf() * 1200.0, "r": randf_range(1.5, 4.5), "s": randf_range(10.0, 26.0)})
+	for i in 4:
+		_fish.append({"x": randf(), "y": randf_range(0.1, 0.95), "s": randf_range(0.006, 0.014) * (1 if randf() < 0.5 else -1), "k": randf_range(0.7, 1.3)})
 	Backend.status_changed.connect(_refresh)
 	Updater.status_changed.connect(_refresh)
 	resized.connect(_layout)
-	_layout()
 	_refresh()
-	# entrance
+	# entrance: the panel glides in, the logo fades up
 	logo.modulate.a = 0.0
-	card.modulate.a = 0.0
 	var tw := create_tween().set_parallel()
-	tw.tween_property(logo, "modulate:a", 1.0, 0.6).set_delay(0.15)
-	tw.tween_property(card, "modulate:a", 1.0, 0.5).set_delay(0.35)
-	var sp := create_tween().set_loops()                      # Play breathes a little
-	sp.tween_property(play_btn, "scale", Vector2(1.03, 1.03), 0.9).set_trans(Tween.TRANS_SINE)
-	sp.tween_property(play_btn, "scale", Vector2.ONE, 0.9).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(self, "_slide", 0.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(logo, "modulate:a", 1.0, 0.8).set_delay(0.25)
+
+func _layer(cb: Callable) -> Control:
+	var c := Control.new()
+	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.draw.connect(cb)
+	add_child(c)
+	return c
 
 # ------------------------------------------------------------------ picture
 func _cover_rect() -> Rect2:
@@ -137,41 +148,89 @@ func to_screen(p: Vector2) -> Vector2:
 func _draw_art() -> void:
 	art.draw_texture_rect(tex, _cover_rect(), false)
 
-func _draw_fx(c: Control) -> void:
+func _draw_fx() -> void:
 	var r := _cover_rect()
 	var k := r.size.x / 1920.0
-	# bobber ripples (flattened rings: we look at the water at an angle)
-	var bp := to_screen(BOBBER)
-	c.draw_set_transform(bp, 0.0, Vector2(1.0, 0.42))
+	var bp := to_screen(BOBBER)                               # bobber ripples (flattened: we look at an angle)
+	fx.draw_set_transform(bp, 0.0, Vector2(1.0, 0.42))
 	for i in 3:
 		var ph := fmod(_t * 0.45 + i / 3.0, 1.0)
-		c.draw_arc(Vector2.ZERO, (10.0 + 70.0 * ph) * k, 0.0, TAU, 48, Color(1, 1, 1, 0.55 * (1.0 - ph)), 2.0 * k, true)
-	c.draw_set_transform(Vector2.ZERO)
-	# lanterns
+		fx.draw_arc(Vector2.ZERO, (10.0 + 70.0 * ph) * k, 0.0, TAU, 48, Color(1, 1, 1, 0.55 * (1.0 - ph)), 2.0 * k, true)
+	fx.draw_set_transform(Vector2.ZERO)
 	for i in LANTERNS.size():
 		var lp := to_screen(LANTERNS[i])
 		var fl := 0.75 + 0.15 * sin(_t * 7.3 + i * 2.1) + 0.1 * sin(_t * 13.7 + i)
 		var gs := 120.0 * k * (0.95 + 0.08 * fl)
-		c.draw_texture_rect(glow, Rect2(lp - Vector2(gs, gs) * 0.5, Vector2(gs, gs)), false, Color(1, 1, 1, 0.55 * fl))
-	# a gull crossing the sky now and then
-	if _gull_t >= 0.0:
+		fx.draw_texture_rect(glow, Rect2(lp - Vector2(gs, gs) * 0.5, Vector2(gs, gs)), false, Color(1, 1, 1, 0.55 * fl))
+	if _gull_t >= 0.0:                                        # a gull crossing the sky now and then
 		var f := _gull_t / 11.0
-		var gp := Vector2(r.position.x + r.size.x * (1.08 - 1.25 * f), r.position.y + r.size.y * (0.16 + 0.05 * sin(f * 5.0)))
+		var gp := Vector2(r.position.x + r.size.x * (0.75 - 0.9 * f), r.position.y + r.size.y * (0.12 + 0.04 * sin(f * 5.0)))
 		var flap := sin(_t * 9.0)
 		var w := 15.0 * k
 		var pts := PackedVector2Array([gp + Vector2(-w, -w * 0.35 * flap - 2 * k), gp + Vector2(-w * 0.45, -w * 0.2 * flap - 5 * k * flap),
 			gp, gp + Vector2(w * 0.45, -w * 0.2 * flap - 5 * k * flap), gp + Vector2(w, -w * 0.35 * flap - 2 * k)])
-		c.draw_polyline(pts, Color(0.2, 0.25, 0.3, 0.35), 4.0 * k, true)
-		c.draw_polyline(pts, Color(1, 1, 1, 0.95), 2.4 * k, true)
+		fx.draw_polyline(pts, Color(0.2, 0.25, 0.3, 0.35), 4.0 * k, true)
+		fx.draw_polyline(pts, Color(1, 1, 1, 0.95), 2.4 * k, true)
 
-var _leave_t := 0.0
+# ------------------------------------------------------------------ the deep-sea panel
+func _short() -> bool:
+	return size.y < 600.0
+
+func _panel_w() -> float:
+	return clampf(size.x * 0.42, 340.0, 440.0) if _short() else clampf(size.x * 0.36, 390.0, 500.0)
+
+func _panel_x() -> float:
+	return size.x - _panel_w() * (1.0 - _slide) + 40.0 * _slide
+
+func _edge(y: float) -> float:
+	var a := 13.0
+	return _panel_x() - a + a * sin(y * 0.0105 + _t * 0.6) + a * 0.45 * sin(y * 0.027 - _t * 0.95)
+
+func _draw_wave() -> void:
+	var n := 56
+	var edge := PackedVector2Array()
+	for i in n + 1:
+		var y := size.y * float(i) / n
+		edge.append(Vector2(_edge(y), y))
+	for s in 3:                                               # a soft shadow on the picture
+		var sh := PackedVector2Array()
+		for p in edge: sh.append(p - Vector2(5.0 + s * 6.0, 0.0))
+		wave.draw_polyline(sh, Color(0.02, 0.1, 0.14, 0.09 - s * 0.025), 10.0, true)
+	var right := maxf(size.x, _panel_x() + 40.0) + 4.0       # (strips: always convex, even while sliding off-screen)
+	for i in n:
+		var c0 := SEA.lerp(DEEP, float(i) / n)
+		var c1 := SEA.lerp(DEEP, float(i + 1) / n)
+		wave.draw_polygon(PackedVector2Array([edge[i], edge[i + 1], Vector2(right, edge[i + 1].y), Vector2(right, edge[i].y)]),
+			PackedColorArray([c0, c1, c1, c0]))
+	wave.draw_polyline(edge, Color(0.6, 0.97, 0.88, 0.32), 2.0, true)       # rim light
+	var x0 := _panel_x()
+	var pw := _panel_w()
+	for f in _fish:                                           # fish shadows drifting by
+		var fp := Vector2(x0 + 30.0 + fmod(f.x, 1.0) * (pw - 60.0), size.y * f.y)
+		var d: float = signf(f.s)
+		var sz: float = 14.0 * f.k
+		var body := PackedVector2Array()
+		for a in 12:
+			var ang := TAU * a / 12.0
+			body.append(fp + Vector2(cos(ang) * sz, sin(ang) * sz * 0.42))
+		wave.draw_colored_polygon(body, Color(0.62, 0.95, 0.9, 0.07))
+		var tail := fp - Vector2(d * sz * 0.95, 0)
+		wave.draw_colored_polygon(PackedVector2Array([tail, tail - Vector2(d * sz * 0.6, sz * 0.4), tail - Vector2(d * sz * 0.6, -sz * 0.4)]),
+			Color(0.62, 0.95, 0.9, 0.07))
+	for b in _bubbles:                                        # bubbles rising
+		var bp := Vector2(x0 + 20.0 + b.x * (pw - 40.0) + sin(_t * 1.3 + b.r * 3.0) * 4.0, size.y - fmod(b.y, size.y + 40.0) + 20.0)
+		wave.draw_arc(bp, b.r, 0.0, TAU, 14, Color(0.75, 1.0, 0.95, 0.11), 1.2, true)
 
 func _process(delta: float) -> void:
 	_t += delta
 	_gull_t += delta
 	if _gull_t > 11.0: _gull_t = -randf_range(6.0, 12.0)
+	for b in _bubbles: b.y += b.s * delta
+	for f in _fish: f.x += f.s * delta
 	art.queue_redraw()
-	get_child(1).queue_redraw()
+	fx.queue_redraw()
+	wave.queue_redraw()
+	_place()
 	if Engine.get_process_frames() % 20 == 0:
 		_refresh()                                            # (cheap: only rebuilds when something changed)
 
@@ -184,228 +243,356 @@ func _build_logo() -> void:
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(logo)
 	var tg := PanelContainer.new()
-	tg.add_theme_stylebox_override("panel", main.sbox(Color(0.06, 0.2, 0.26, 0.55), 999, 0, Color.TRANSPARENT, 14, 0))
+	tg.add_theme_stylebox_override("panel", _box(Color(0.06, 0.2, 0.26, 0.5), 999, Color.TRANSPARENT, 14, 5))
 	tg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tl: Label = main.lbl("a cozy fishing game  ·  by afosh", 15, Color(1, 1, 1, 0.95))
+	var tl := _text("a cozy fishing game  ·  by afosh", 15, Color(1, 1, 1, 0.95))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tg.add_child(tl)
 	tagline = tg
 	logo.add_child(tg)
 
-func _build_card() -> void:
-	card = PanelContainer.new()
-	var sb: StyleBoxFlat = main.sbox(Color(main.C_PANEL, 0.94), 26, 1, Color.WHITE, 20, 24)
-	sb.shadow_offset = Vector2(0, 10)
-	sb.shadow_color = Color(0.02, 0.1, 0.16, 0.35)
-	card.add_theme_stylebox_override("panel", sb)
-	add_child(card)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
-	card.add_child(v)
-	acct_box = VBoxContainer.new()
-	acct_box.add_theme_constant_override("separation", 8)
-	v.add_child(acct_box)
-	v.add_child(_line())
-	upd_box = VBoxContainer.new()
-	upd_box.add_theme_constant_override("separation", 8)
-	v.add_child(upd_box)
-	var gap := Control.new()
-	gap.custom_minimum_size.y = 2
-	v.add_child(gap)
-	play_btn = main.btn("Play", main.C_GOLD, 26, 0)
-	play_btn.custom_minimum_size.y = 60
-	play_btn.icon = main.ph("play")
-	play_btn.add_theme_constant_override("icon_max_width", 22)
-	play_btn.add_theme_constant_override("h_separation", 10)
-	for k in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color",
-			"font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		play_btn.add_theme_color_override(k, Color.WHITE)
-	var bold := FontVariation.new()
-	bold.base_font = load("res://assets/third_party/fonts/Fredoka.ttf")
-	bold.variation_opentype = {"wght": 700}
-	play_btn.add_theme_font_override("font", bold)
-	play_btn.add_theme_constant_override("outline_size", 4)
-	play_btn.add_theme_color_override("font_outline_color", Color(0.45, 0.27, 0.0, 0.45))
-	play_btn.pressed.connect(play)
-	play_btn.resized.connect(func(): play_btn.pivot_offset = play_btn.size * 0.5)
-	v.add_child(play_btn)
-	play_sub = main.lbl("", 13, main.C_MUTED)
-	play_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(play_sub)
-
-func _build_corner() -> void:
-	corner = HBoxContainer.new()
-	corner.add_theme_constant_override("separation", 10)
-	add_child(corner)
-	var st: Button = main.pill_button("gear-six", "Settings", "", true)
-	st.pressed.connect(func(): main._open_panel("settings"))
-	corner.add_child(st)
-	if OS.get_name() in ["Windows", "Linux", "macOS"]:
-		var q: Button = main.pill_button("x", "Quit", "", true)
-		q.pressed.connect(func(): get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST))
-		corner.add_child(q)
-
-func _line() -> Control:
-	var l := ColorRect.new()
-	l.color = Color(0.12, 0.2, 0.25, 0.1)
-	l.custom_minimum_size.y = 1
-	return l
-
 func _layout() -> void:
-	var sz := size
-	if sz.x < 10: return
-	var short := sz.y < 600.0                                 # phones
-	var lw := minf(560.0 if not short else 420.0, sz.x * 0.42)
+	_place()
+
+## positions follow the moving panel every frame (it slides in and out)
+func _place() -> void:
+	if size.x < 10: return
+	var pw := _panel_w()
+	var x0 := _panel_x()
+	var pad := 34.0 if not _short() else 26.0
+	var cw := pw - pad * 2.0
+	col.custom_minimum_size.x = cw
+	col.add_theme_constant_override("separation", 12 if not _short() else 8)
+	col.size = Vector2(cw, 0)
+	col.reset_size()
+	foot.reset_size()
+	foot.position = Vector2(x0 + pad, size.y - foot.size.y - (16.0 if not _short() else 8.0))
+	var room := foot.position.y - 8.0                         # centred in the space above the footer
+	col.position = Vector2(x0 + pad, maxf(10.0, (room - col.size.y) * 0.5))
+	# the logo over the sky, centred on the picture's visible part
+	var lw := minf(size.x * 0.32, 520.0) if not _short() else minf(size.x * 0.34, 400.0)
 	var lh := lw * 167.0 / 779.0
-	var card_w := 370.0 if not short else 350.0
-	var margin := 32.0 if not short else 18.0
-	# the logo sits over the sky, centred between the left edge and the card
-	var free_w := sz.x - card_w - margin * 2.0
 	logo.size = Vector2(lw, lh)
-	logo.position = Vector2(clampf(free_w * 0.5 - lw * 0.5 + margin * 0.5, margin, sz.x - lw - margin), (26.0 if not short else 14.0))
-	tagline.position = Vector2(lw * 0.5 - tagline.size.x * 0.5, lh + 6.0)
+	logo.position = Vector2((size.x - pw) * 0.5 - lw * 0.5, size.y * 0.07)
 	tagline.reset_size()
 	tagline.position = Vector2(lw * 0.5 - tagline.size.x * 0.5, lh + 6.0)
-	card.anchor_left = 1.0
-	card.anchor_right = 1.0
-	card.anchor_top = 1.0
-	card.anchor_bottom = 1.0
-	card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	card.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	card.offset_right = -margin
-	card.offset_bottom = -margin
-	card.offset_left = -margin - card_w
-	card.offset_top = -margin
-	corner.reset_size()
-	corner.position = Vector2(margin, sz.y - corner.size.y - margin * 0.8)
+
+# ------------------------------------------------------------------ widgets
+func _box(bg: Color, radius: int, border: Color, pad_h := 12, pad_v := 8) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.set_corner_radius_all(radius)
+	if border.a > 0:
+		s.set_border_width_all(2)
+		s.border_color = border
+	s.content_margin_left = pad_h
+	s.content_margin_right = pad_h
+	s.content_margin_top = pad_v
+	s.content_margin_bottom = pad_v
+	s.anti_aliasing = true
+	return s
+
+func _text(t: String, size_ := 15, color := SOFT) -> Label:
+	var l := Label.new()
+	l.text = t
+	l.add_theme_font_size_override("font_size", size_)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+func _wrap(t: String, size_ := 15, color := SOFT) -> Label:
+	var l := _text(t, size_, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+func _button(t: String, primary: bool, cb: Callable, icon_name := "", height := 44) -> Button:
+	var b := Button.new()
+	b.text = t
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.custom_minimum_size.y = height
+	b.add_theme_font_size_override("font_size", 17 if primary else 15)
+	if primary: b.add_theme_font_override("font", bold)
+	var fg := INK if primary else Color.WHITE
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color",
+			"icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+		b.add_theme_color_override(k, fg)
+	b.add_theme_color_override("font_disabled_color", Color(fg, 0.5))
+	var n := _box(MINT if primary else Color(1, 1, 1, 0.05), 999, Color.TRANSPARENT if primary else Color(MINT, 0.5), 16, 6)
+	var h := _box(MINT.lightened(0.15) if primary else Color(1, 1, 1, 0.1), 999, Color.TRANSPARENT if primary else MINT, 16, 6)
+	var p := _box(MINT.darkened(0.12) if primary else Color(1, 1, 1, 0.02), 999, Color.TRANSPARENT if primary else MINT, 16, 6)
+	b.add_theme_stylebox_override("normal", n)
+	b.add_theme_stylebox_override("hover", h)
+	b.add_theme_stylebox_override("pressed", p)
+	b.add_theme_stylebox_override("disabled", n)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	if icon_name != "":
+		b.icon = main.ph(icon_name)
+		b.add_theme_constant_override("icon_max_width", 20 if primary else 16)
+		b.add_theme_constant_override("h_separation", 9)
+	b.pressed.connect(func(): AudioManager.play_click())
+	b.pressed.connect(cb)
+	return b
+
+func _link(t: String, cb: Callable, color := MINT) -> Button:
+	var b := Button.new()
+	b.text = t
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.add_theme_font_size_override("font_size", 14)
+	for k in ["font_color", "font_focus_color"]: b.add_theme_color_override(k, color)
+	b.add_theme_color_override("font_hover_color", color.lightened(0.25))
+	b.add_theme_color_override("font_pressed_color", color.darkened(0.15))
+	b.pressed.connect(cb)
+	return b
+
+func _field(key: String, placeholder: String, secret := false, kb := LineEdit.KEYBOARD_TYPE_DEFAULT) -> LineEdit:
+	var e := LineEdit.new()
+	e.placeholder_text = placeholder
+	e.secret = secret
+	e.secret_character = "•"
+	e.virtual_keyboard_type = kb
+	e.custom_minimum_size.y = 44
+	e.add_theme_font_size_override("font_size", 16)
+	e.add_theme_color_override("font_color", Color.WHITE)
+	e.add_theme_color_override("font_placeholder_color", Color(FAINT, 0.85))
+	e.add_theme_color_override("caret_color", MINT)
+	e.add_theme_stylebox_override("normal", _box(Color(0.02, 0.13, 0.16, 0.6), 999, Color("#2d6d76"), 18, 6))
+	e.add_theme_stylebox_override("focus", _box(Color(0.02, 0.13, 0.16, 0.75), 999, MINT, 18, 6))
+	e.text = str(_typed.get(key, ""))
+	e.text_changed.connect(func(t): _typed[key] = t)
+	e.text_submitted.connect(func(_t): _submit())
+	_fields[key] = e
+	return e
+
+func _row(items: Array) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	for it in items:
+		it.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(it)
+	return h
 
 # ------------------------------------------------------------------ state
 func _refresh() -> void:
 	var B = Backend
 	var U = Updater
-	var key := str([B.state, B.op, B.display_name, B.sync_state, B.sync_error, B.conflict.is_empty(), U.state,
-		int(U.progress * 50.0), U.error, VF.level, VF.biome])
+	var key := str([B.state, B.op, B.display_name, B.sync_state, B.sync_error, B.conflict.is_empty(), B.message, U.state,
+		int(U.progress * 50.0), U.error, VF.level, VF.biome, form, _short()])
 	if key == _key: return
 	_key = key
+	if B.state == "signed_in" and form != "": form = ""         # signed in from the form: back to Play
 	if U.state == "error" and not _retried:
 		_retried = true
 		get_tree().create_timer(2.5).timeout.connect(func():
 			if Updater.state == "error":
 				Updater.state = "idle"
 				Updater.check())
-	_fill_account()
-	_fill_update()
-	var fresh: bool = VF.level <= 1 and VF.stats.trips == 0
-	play_sub.text = "New game: welcome aboard!" if fresh else "Continue  ·  Lv %s  ·  %s  ·  %s" % [VF.commas(VF.level), VF.biome, main.money_str(VF.money)]
-	_layout.call_deferred()
+	_rebuild()
 
-func _row(icon_name: String, color: Color, title: String, sub: String, sub_color := Color(0, 0, 0, 0)) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 12)
-	var b := PanelContainer.new()
-	b.add_theme_stylebox_override("panel", main.sbox(color, 999, 0, Color.TRANSPARENT, 9, 0))
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var ic: TextureRect = main.icon(main.ph(icon_name), 22)
-	b.add_child(ic)
-	h.add_child(b)
-	var tv := VBoxContainer.new()
-	tv.add_theme_constant_override("separation", 0)
-	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tv.add_child(main.lbl(title, 18))
-	var sl: Label = main.lbl(sub, 13, sub_color if sub_color.a > 0 else main.C_MUTED)
-	sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sl.custom_minimum_size.x = 220
-	tv.add_child(sl)
-	h.add_child(tv)
-	return h
-
-func _buttons(items: Array) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	for it in items:                                          # [text, color, callable, expand]
-		var b: Button = main.btn(it[0], it[1], 14, 0)
-		b.custom_minimum_size.y = 36
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(it[2])
-		h.add_child(b)
-	return h
-
-func _fill_account() -> void:
-	for c in acct_box.get_children(): c.queue_free()
+func _rebuild() -> void:
+	for k in _fields:
+		if is_instance_valid(_fields[k]): _typed[k] = _fields[k].text      # (typed text survives a rebuild)
+	for c in col.get_children(): c.queue_free()
+	for c in foot.get_children(): c.queue_free()
+	_fields.clear()
 	var B = Backend
+	var short := _short()
+	var open := form != ""
+	# greeting
+	var hello := "Welcome, fisher!"
+	var sub := "Your fish are saved on this device. Sign in to keep them safe in the cloud too."
+	var sub_col := SOFT
 	if not B.configured():
-		acct_box.add_child(_row("user-circle", main.C_MUTED, "Playing on this device", "Your progress is saved here."))
-		return
+		sub = "Your progress is saved on this device."
 	match B.state:
-		"busy":
-			acct_box.add_child(_row("cloud-arrow-up", main.C_TEAL, "Signing in…", "Getting your cloud save ready."))
 		"signed_in":
-			var name: String = B.display_name if B.display_name != "" else B.email
-			var sub := "Cloud save on  ·  synced"
-			var col := Color(0, 0, 0, 0)
+			hello = "Welcome back, %s!" % (B.display_name if B.display_name != "" else "fisher")
 			match B.sync_state:
-				"syncing": sub = "Saving to the cloud…"
+				"syncing": sub = "Saving your fish to the cloud…"
 				"error":
 					sub = B.sync_error
-					col = main.C_BAD
+					sub_col = Color("#ff9d8f")
 				"conflict":
-					sub = "This device and your cloud save differ: pick one."
-					col = main.C_GOLD
-			acct_box.add_child(_row("user-circle", main.C_GOOD, name, sub, col))
-			if not B.conflict.is_empty():
-				acct_box.add_child(_buttons([["Choose my save", main.C_GOLD, func(): main._open_panel("account", "Account"), true]]))
-			else:
-				acct_box.add_child(_buttons([["Account", main.C_NEUTRAL, func(): main._open_panel("account", "Account"), true],
-					["Leaderboard", main.C_NEUTRAL, func(): main._open_panel("account", "Leaderboard"), true]]))
+					sub = "This device and your cloud save differ. Pick the one to keep."
+					sub_col = Color("#ffd27a")
+				_: sub = "Your cloud save is synced."
+		"busy":
+			sub = "Signing in…"
 		"offline":
-			acct_box.add_child(_row("cloud-arrow-up", main.C_MUTED, B.display_name if B.display_name != "" else "Offline",
-				"Offline: your progress is kept here and syncs when you're back."))
-		_:
-			acct_box.add_child(_row("user-circle", main.C_TEAL, "Not signed in", "Sign in to back up your fish and play on any device."))
-			acct_box.add_child(_buttons([["Sign in", main.C_TEAL, func(): _account("sign_in"), true],
-				["Create account", main.C_NEUTRAL, func(): _account("sign_up"), true]]))
+			hello = "Welcome back!"
+			sub = "You're offline. Your progress is kept here and syncs when you're back."
+	if open:
+		hello = "Sign in" if form == "sign_in" else "Create your account"
+		sub = "Your progress comes with you to any device." if form == "sign_in" else "Free. Keeps your fish safe and puts you on the leaderboard."
+	if not (short and open):
+		var tile := CenterContainer.new()
+		var tp := PanelContainer.new()
+		tp.add_theme_stylebox_override("panel", _box(Color(1, 1, 1, 0.08), 22, Color(MINT, 0.35), 8, 8))
+		var ic: TextureRect = main.icon(load(ICON), 64 if not short else 42)
+		tp.add_child(ic)
+		tile.add_child(tp)
+		col.add_child(tile)
+	var title := _text(hello, 30 if not short else 25, Color.WHITE)
+	title.add_theme_font_override("font", bold)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(title)
+	var sl := _wrap(sub, 15, sub_col)
+	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(sl)
+	col.add_child(_gap(4))
+	if open:
+		_form_rows()
+	else:
+		play_btn = _button("Play", true, play, "play", 58 if not short else 52)
+		play_btn.add_theme_font_size_override("font_size", 24)
+		col.add_child(play_btn)
+		var fresh: bool = VF.level <= 1 and VF.stats.trips == 0
+		var ps := _text("New game: welcome aboard!" if fresh else "Continue  ·  Lv %s  ·  %s  ·  %s" % [VF.commas(VF.level), VF.biome, main.money_str(VF.money)], 13, FAINT)
+		ps.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(ps)
+		if B.configured():
+			col.add_child(_gap(2))
+			match B.state:
+				"signed_in":
+					if not B.conflict.is_empty():
+						col.add_child(_row([_button("Choose my save", false, func(): main._open_panel("account", "Account"), "cloud-arrow-up", 40)]))
+					else:
+						col.add_child(_row([_button("Account", false, func(): main._open_panel("account", "Account"), "user-circle", 40),
+							_button("Leaderboard", false, func(): main._open_panel("account", "Leaderboard"), "trophy", 40)]))
+				"signed_out":
+					col.add_child(_row([_button("Sign in", false, func(): _open_form("sign_in"), "sign-in", 40),
+						_button("Create account", false, func(): _open_form("sign_up"), "user-circle", 40)]))
+	col.add_child(_gap(4))
+	col.add_child(_update_strip())
+	# footer: settings (and quit on desktop) + version
+	foot.add_child(_link("Settings", func(): main._open_panel("settings"), FAINT))
+	if OS.get_name() in ["Windows", "Linux", "macOS"]:
+		foot.add_child(_link("Quit", func(): get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST), FAINT))
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	foot.add_child(sp)
+	var v := _text("fosh&fish %s" % main.VERSION, 13, Color(FAINT, 0.8))
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	foot.add_child(v)
+	foot.custom_minimum_size.x = _panel_w() - (68.0 if not short else 52.0)
 
-func _account(mode: String) -> void:
-	main._open_panel("account", "Account")
-	if main.account_ui and main.account_ui.mode != mode:
-		main.account_ui._set_mode(mode)
+func _gap(h: float) -> Control:
+	var g := Control.new()
+	g.custom_minimum_size.y = h
+	return g
 
-func _fill_update() -> void:
-	for c in upd_box.get_children(): c.queue_free()
+func _form_rows() -> void:
+	var B = Backend
+	if form == "sign_up":
+		col.add_child(_field("name", "Fisher name (on the leaderboard)"))
+	col.add_child(_field("email", "Email", false, LineEdit.KEYBOARD_TYPE_EMAIL_ADDRESS))
+	col.add_child(_field("password", "Password" if form == "sign_in" else "Password (6+ characters)", true, LineEdit.KEYBOARD_TYPE_PASSWORD))
+	var busy: bool = B.state == "busy"
+	var go := _button(("Signing in…" if form == "sign_in" else "Creating…") if busy else ("Sign in" if form == "sign_in" else "Create account"),
+		true, _submit, "sign-in" if form == "sign_in" else "user-circle", 48)
+	go.disabled = busy
+	col.add_child(go)
+	if B.message != "":
+		var m := _wrap(B.message, 14, Color("#ff9d8f") if B.message_kind == "error" else (MINT if B.message_kind == "good" else SOFT))
+		m.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(m)
+	var links := HBoxContainer.new()
+	links.alignment = BoxContainer.ALIGNMENT_CENTER
+	links.add_theme_constant_override("separation", 18)
+	links.add_child(_link("Back", func(): _open_form("")))
+	if form == "sign_in":
+		links.add_child(_link("Forgot password?", func():
+			main._open_panel("account", "Account")
+			if main.account_ui: main.account_ui._set_mode("forgot")))
+		links.add_child(_link("Create account", func(): _open_form("sign_up")))
+	else:
+		links.add_child(_link("I have an account", func(): _open_form("sign_in")))
+	col.add_child(links)
+	var first: LineEdit = _fields.get("name" if form == "sign_up" else "email")
+	if first and first.text == "" and not main.is_touch():
+		first.call_deferred("grab_focus")
+
+func _open_form(f: String) -> void:
+	form = f
+	_typed.erase("password")
+	Backend.message = ""
+	_key = ""
+	_refresh()
+
+func _submit() -> void:
+	var B = Backend
+	if B.state == "busy": return
+	var mail := str(_typed.get("email", ""))
+	var pw := str(_typed.get("password", ""))
+	if form == "sign_in":
+		B.sign_in(mail, pw)
+	elif form == "sign_up":
+		B.sign_up(mail, pw, str(_typed.get("name", "")))
+	_key = ""
+	_refresh()
+
+func _update_strip() -> Control:
 	var U = Updater
 	var newest: String = String(U.latest.get("version", ""))
-	var ver := "Version %s" % main.VERSION
+	var box := PanelContainer.new()
+	var hot: bool = U.state in ["available", "full_needed", "ready"]
+	box.add_theme_stylebox_override("panel", _box(Color(MINT, 0.12) if hot else Color(1, 1, 1, 0.04), 16,
+		Color(MINT, 0.45) if hot else Color.TRANSPARENT, 14, 10))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	box.add_child(v)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	v.add_child(h)
+	var icon_name := "arrow-circle-up"
+	var line := "Checking for updates…"
+	var action: Button = null
 	match U.state:
-		"idle", "checking":
-			upd_box.add_child(_row("arrow-circle-up", main.C_MUTED, ver, "Checking for updates…"))
 		"up_to_date":
-			upd_box.add_child(_row("check", main.C_GOOD, ver, "You have the newest version."))
+			icon_name = "check"
+			line = "Up to date  ·  version %s" % main.VERSION
 		"available":
 			var web: bool = U.platform() == "web"
 			var mb := float(U.patch_info().get("size", 0)) / 1048576.0
-			upd_box.add_child(_row("arrow-circle-up", Color("#3fae6a"), "Update %s is out!" % newest,
-				"Reload to play it." if web else "%.1f MB · your progress is kept." % mb))
-			upd_box.add_child(_buttons([["Reload now" if web else "Update now", Color("#3fae6a"), U.download, true]]))
+			line = "Version %s is out!" % newest + ("" if web else "  (%.1f MB)" % mb)
+			action = _button("Reload" if web else "Update", true, U.download, "", 34)
 		"full_needed":
-			upd_box.add_child(_row("arrow-circle-up", main.C_TEAL, "Version %s is out" % newest, "It needs a new download (one time). Your progress is kept."))
-			upd_box.add_child(_buttons([["Open downloads", main.C_TEAL, U.open_downloads, true]]))
+			line = "Version %s needs a new download" % newest
+			action = _button("Get it", true, U.open_downloads, "", 34)
 		"downloading":
-			upd_box.add_child(_row("arrow-circle-up", Color("#3fae6a"), "Updating to %s" % newest, "Downloading… %d%%" % int(U.progress * 100.0)))
-			var bar := ProgressBar.new()
-			bar.show_percentage = false
-			bar.custom_minimum_size.y = 10
-			bar.value = U.progress * 100.0
-			upd_box.add_child(bar)
+			line = "Updating to %s…  %d%%" % [newest, int(U.progress * 100.0)]
 		"ready":
+			icon_name = "check"
 			var android: bool = U.platform() == "android"
-			upd_box.add_child(_row("check", main.C_GOOD, "Update %s is ready" % newest,
-				"Close the game and open it again." if android else "Restart to play it."))
-			upd_box.add_child(_buttons([["Close game" if android else "Restart now", Color("#3fae6a"), U.restart, true]]))
+			line = "Update %s is ready" % newest
+			action = _button("Close game" if android else "Restart", true, U.restart, "", 34)
 		"error":
-			upd_box.add_child(_row("arrow-circle-up", main.C_BAD, ver, U.error, main.C_BAD))
-			upd_box.add_child(_buttons([["Try again", main.C_NEUTRAL, func():
+			line = "Couldn't check for updates"
+			action = _button("Retry", false, func():
 				U.state = "idle"
-				U.check(), true]]))
+				U.check(), "", 34)
+	var ic: TextureRect = main.icon(main.ph(icon_name), 18)
+	ic.modulate = MINT if U.state in ["up_to_date", "available", "ready"] else FAINT
+	h.add_child(ic)
+	var l := _wrap(line, 14, Color.WHITE if hot else SOFT)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	h.add_child(l)
+	if action:
+		action.add_theme_font_size_override("font_size", 14)
+		action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(action)
+	if U.state == "downloading":
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.custom_minimum_size.y = 6
+		bar.value = U.progress * 100.0
+		bar.add_theme_stylebox_override("background", _box(Color(1, 1, 1, 0.1), 999, Color.TRANSPARENT, 0, 0))
+		bar.add_theme_stylebox_override("fill", _box(MINT, 999, Color.TRANSPARENT, 0, 0))
+		v.add_child(bar)
+	return box
 
 # ------------------------------------------------------------------ play
 func play() -> void:
@@ -414,12 +601,13 @@ func play() -> void:
 	_leave_t = _t
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	main._launcher_closing()
-	var tw := create_tween()
-	tw.tween_property(self, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE).set_delay(0.12)
-	tw.tween_callback(queue_free)
+	var tw := create_tween().set_parallel()
+	tw.tween_property(self, "_slide", 1.0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_property(self, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE).set_delay(0.15)
+	tw.chain().tween_callback(queue_free)
 
 func _unhandled_key_input(e: InputEvent) -> void:
-	if _leaving or main.overlay.visible: return
+	if _leaving or main.overlay.visible or form != "": return
 	if e is InputEventKey and e.pressed and not e.echo and e.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 		get_viewport().set_input_as_handled()
 		play()

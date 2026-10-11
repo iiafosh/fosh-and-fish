@@ -1,4 +1,5 @@
-"""Title-screen (launcher) art from tools/art/launcher_source.webp (the owner's illustration).
+"""Title-screen (launcher) art from tools/art/launcher_source_hq.webp (the owner's illustration,
+upscaled by the owner with Topaz to 3342x1882).
 
     python tools/art/make_launcher.py
 
@@ -18,7 +19,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-SRC = os.path.join(ROOT, "tools", "art", "launcher_source.webp")
+SRC = os.path.join(ROOT, "tools", "art", "launcher_source_hq.webp")
 OUT = os.path.join(ROOT, "assets", "launcher")
 FONT = os.path.join(ROOT, "assets", "third_party", "fonts", "Fredoka.ttf")
 W, H = 1920, 1080
@@ -30,9 +31,8 @@ def background(src: Image.Image) -> Image.Image:
     sw, sh = src.size
     th = round(sw * 9 / 16)
     top = max(0, (sh - th) // 2)
-    im = src.crop((0, top, sw, top + min(th, sh))).resize((W, H), Image.LANCZOS)
-    im = im.filter(ImageFilter.SMOOTH_MORE)                                   # soften compression blocks
-    im = im.filter(ImageFilter.UnsharpMask(radius=1.8, percent=85, threshold=2))
+    im = src.crop((0, top, sw, top + min(th, sh))).resize((W, H), Image.LANCZOS)    # (a clean 1.74x downscale)
+    im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=45, threshold=2))
     im = ImageEnhance.Color(im).enhance(1.07)
     im = ImageEnhance.Contrast(im).enhance(1.05)
     a = np.asarray(im).astype(np.float32) / 255.0
