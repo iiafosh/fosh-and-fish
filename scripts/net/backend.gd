@@ -370,7 +370,7 @@ func _upload(overwrite: bool) -> void:
 	var body := {"user_id": user_id, "data": d, "level": s.level, "prestige": s.prestige, "money_earned": s.money_earned,
 		"overwrite": overwrite}
 	var r: Dictionary
-	if not overwrite and _synced_at != "":
+	if not overwrite and _synced_at != "" and _races == 0:
 		# Only replace the cloud save this device last saw. If another device (or tab) saved since, nothing is
 		# written: look again, then download, upload or ask - instead of the last upload silently winning.
 		body.erase("user_id")
@@ -386,8 +386,8 @@ func _upload(overwrite: bool) -> void:
 				sync_error = "Another device keeps saving at the same time. Close the game there, then press Save now."
 				status_changed.emit()
 				return
-			await _reconcile()
-			return
+			await _reconcile()                      # (if it decides "upload", the cloud still holds what we last
+			return                                  #  synced, so that upload goes through the plain upsert below)
 	else:
 		r = await _authed(POST, "/rest/v1/saves?select=updated_at", body,
 			PackedStringArray(["Prefer: resolution=merge-duplicates,return=representation"]))
@@ -727,6 +727,7 @@ func _load_sync_marks() -> void:
 	_synced_at = str(c.get_value("sync", "cloud_at", "")) if same else ""
 
 func _mark_synced(fp: String, at: String) -> void:
+	_races = 0
 	_synced_fp = fp
 	if at != "": _synced_at = at
 	var c := ConfigFile.new()

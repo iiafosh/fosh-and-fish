@@ -186,6 +186,12 @@ func run(main, out_dir: String) -> void:
 	VF.changed.emit()
 	await B.sync_now()
 	check(B.sync_state == "ok" and not B.dirty, "uploads continue after the choice (sync %s)" % B.sync_state)
+	B._synced_at = "2000-01-01T00:00:00+00:00"        # a timestamp that never matches (format drift on a real server)
+	VF.xp += 5
+	VF.changed.emit()
+	await B.sync_now()
+	c = await cloud()
+	check(B.sync_state == "ok" and int(c.get("data", {}).get("xp", -1)) == int(VF.xp), "a stale sync mark can't wedge uploads (falls back after one check)")
 	var dev_b2: Dictionary = (await cloud()).get("data", {}).duplicate(true)
 	dev_b2["xp"] = int(dev_b2.get("xp", 0)) + 999      # device B saves again; this device has nothing new
 	await B._http(HTTPClient.METHOD_POST, "/rest/v1/saves?select=updated_at",
