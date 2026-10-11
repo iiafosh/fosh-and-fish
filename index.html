@@ -1,221 +1,80 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
-		<title>fosh&fish</title>
-		<style>
-html, body, #canvas {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fosh&amp;fish: download the cozy fishing game</title>
+  <meta name="description" content="fosh&amp;fish is a free, cozy fishing game. Download it for Windows, Linux or Android.">
+  <meta name="theme-color" content="#0b2930">
+  <link rel="canonical" href="https://foshfish.xyz/">
+  <link rel="icon" type="image/png" sizes="64x64" href="img/icon-64.png">
+  <link rel="apple-touch-icon" href="img/icon-180.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="fosh&amp;fish: a cozy fishing game">
+  <meta property="og:description" content="Free on Windows, Linux and Android. Same fish, every device.">
+  <meta property="og:image" content="https://foshfish.xyz/img/og.jpg">
+  <meta property="og:url" content="https://foshfish.xyz/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preload" href="fonts/Fredoka.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="img/hero.webp" as="image">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="home">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="leafg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fe05a"/><stop offset="1" stop-color="#2f9a3c"/></linearGradient>
+      <symbol id="leaf" viewBox="0 0 80 52"><path d="M2 30C16 10 44 4 70 10 58 34 32 48 2 30z" fill="url(#leafg)"/><path d="M5 30C24 23 46 16 68 11" stroke="#1f7a33" stroke-width="2" fill="none" stroke-linecap="round" opacity=".55"/><path d="M18 34C30 26 52 26 78 36 62 50 38 52 18 34z" fill="url(#leafg)" opacity=".92"/><path d="M21 34C38 33 56 34 75 36" stroke="#1f7a33" stroke-width="1.8" fill="none" stroke-linecap="round" opacity=".5"/></symbol>
+    </defs>
+  </svg>
 
-body {
-	color: white;
-	background-color: black;
-	overflow: hidden;
-	touch-action: none;
-}
+  <div class="scene" aria-hidden="true">
+    <div class="art"></div>
+    <div class="shade"></div>
+    <div class="bubbles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
 
-#canvas {
-	display: block;
-}
+  <main class="stage">
+    <header class="sign">
+      <h1><img class="logo" src="img/logo.png" alt="fosh&amp;fish" width="640" height="430"></h1>
+      <p class="ribbon"><span>Download now</span></p>
+    </header>
 
-#canvas:focus {
-	outline: none;
-}
+    <p class="pitch">Play fosh&amp;fish on your favorite platform.<br><span>Same fish, every device. Free, and your progress comes with you.</span></p>
 
-#status, #status-splash, #status-progress {
-	position: absolute;
-	left: 0;
-	right: 0;
-}
+    <nav class="dl" aria-label="Download fosh&amp;fish">
+      <a class="pill win" data-os="windows" data-asset="-windows.zip" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zm8.5-1.2L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z"/></svg>
+        <span class="txt"><small>Download for</small><b>Windows</b><em>Get the full experience on PC</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="pill lin" data-os="linux" data-asset="-linux.tar.gz" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="24" cy="29" rx="14" ry="16" fill="#fff"/><circle cx="24" cy="13" r="10" fill="#fff"/><ellipse cx="24" cy="31" rx="8.5" ry="11" fill="#ffe9c7"/><circle cx="20.5" cy="12" r="2.4" fill="#5b3a1a"/><circle cx="27.5" cy="12" r="2.4" fill="#5b3a1a"/><path d="M19.5 17.2c2.6-1.6 6.4-1.6 9 0-1.4 2.6-3 3.6-4.5 3.6s-3.1-1-4.5-3.6z" fill="#ffc83d"/><path d="M11 41c3.5-3.4 8.5-3 11 .8-3.5 2.6-8.4 2.6-11-.8zM37 41c-3.5-3.4-8.5-3-11 .8 3.5 2.6 8.4 2.6 11-.8z" fill="#ffc83d"/></svg>
+        <span class="txt"><small>Download for</small><b>Linux</b><em>For all your favorite distros</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="pill and" data-os="android" data-asset="-android.apk" href="https://github.com/iiafosh/fosh-and-fish/releases/latest">
+        <svg class="leaf a"><use href="#leaf"/></svg><svg class="leaf b"><use href="#leaf"/></svg>
+        <span class="flower" aria-hidden="true"></span>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.5l1.7-3a.5.5 0 1 0-.9-.5l-1.7 3a10.4 10.4 0 0 0-9.4 0L5.6 6a.5.5 0 1 0-.9.5l1.7 3A9 9 0 0 0 2 17h20a9 9 0 0 0-4.4-7.5zM7.5 14.2a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2zm9 0a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2z"/></svg>
+        <span class="txt"><small>Download for</small><b>Android</b><em>Play on your phone or tablet</em></span>
+        <span class="mine-tag">Your device</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </nav>
 
-#status, #status-splash {
-	top: 0;
-	bottom: 0;
-}
+    <p class="hint" id="hint"></p>
 
-#status {
-	background-color: #0b2930;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	visibility: hidden;
-}
+    <footer class="mini">
+      <span class="ver" id="ver-chip">beta</span>
+      <span>Made by afosh</span>
+      <a href="privacy.html">Privacy</a>
+    </footer>
+  </main>
 
-#status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
-}
-
-#status-splash.show-image--false {
-	display: none;
-}
-
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
-	object-fit: contain;
-}
-
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
-}
-
-#status-progress, #status-notice {
-	display: none;
-}
-
-#status-progress {
-	bottom: 10%;
-	width: 50%;
-	margin: 0 auto;
-}
-
-#status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
-	overflow: hidden;
-	padding: 1rem;
-	text-align: center;
-	z-index: 1;
-}
-		</style>
-		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
-<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
-<link rel="manifest" href="index.manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-	</head>
-	<body>
-		<canvas id="canvas">
-			Your browser does not support the canvas tag.
-		</canvas>
-
-		<noscript>
-			Your browser does not support JavaScript.
-		</noscript>
-
-		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
-			<progress id="status-progress"></progress>
-			<div id="status-notice"></div>
-		</div>
-
-		<script src="index.js"></script>
-		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":25676892,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
-const GODOT_THREADS_ENABLED = false;
-const engine = new Engine(GODOT_CONFIG);
-
-(function () {
-	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
-	const statusNotice = document.getElementById('status-notice');
-
-	let initializing = true;
-	let statusMode = '';
-
-	function setStatusMode(mode) {
-		if (statusMode === mode || !initializing) {
-			return;
-		}
-		if (mode === 'hidden') {
-			statusOverlay.remove();
-			initializing = false;
-			return;
-		}
-		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
-		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
-		statusMode = mode;
-	}
-
-	function setStatusNotice(text) {
-		while (statusNotice.lastChild) {
-			statusNotice.removeChild(statusNotice.lastChild);
-		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
-			statusNotice.appendChild(document.createTextNode(line));
-			statusNotice.appendChild(document.createElement('br'));
-		});
-	}
-
-	function displayFailureNotice(err) {
-		console.error(err);
-		if (err instanceof Error) {
-			setStatusNotice(err.message);
-		} else if (typeof err === 'string') {
-			setStatusNotice(err);
-		} else {
-			setStatusNotice('An unknown error occurred.');
-		}
-		setStatusMode('notice');
-		initializing = false;
-	}
-
-	const missing = Engine.getMissingFeatures({
-		threads: GODOT_THREADS_ENABLED,
-	});
-
-	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
-			}
-			// There's a chance that installing the service worker would fix the issue
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				// Reload if there was no error.
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			// Display the message as usual
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
-	} else {
-		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
-			setStatusMode('hidden');
-		}, displayFailureNotice);
-	}
-}());
-		</script>
-	</body>
+  <script src="app.js" defer></script>
+</body>
 </html>
-
