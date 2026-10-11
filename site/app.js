@@ -8,7 +8,7 @@
   const ROOT = preview ? "../" : "./";
   document.querySelectorAll("[data-play]").forEach((a) => (a.href = GAME));
 
-  // your platform (iPhone / iPad / Mac: the browser version)
+  // your platform (anything else: the browser version)
   const ua = navigator.userAgent.toLowerCase();
   const os = /android/.test(ua) ? "android" : /windows/.test(ua) ? "windows" : /linux|x11|cros/.test(ua) ? "linux" : "web";
   const mine = document.querySelector(`.pill[data-os="${os}"]`);
@@ -17,7 +17,7 @@
     windows: "Unzip, then run <b>fosh_fish.exe</b>. If Windows says it protected your PC, choose <b>More info → Run anyway</b> (the game isn't code-signed yet).",
     android: "Open the downloaded <b>.apk</b> and allow installs from your browser when your phone asks.",
     linux: "Extract, then run <b>fosh_fish.x86_64</b>.",
-    web: "On iPhone or iPad, tap <b>Share → Add to Home Screen</b> to play full screen like an app.",
+    web: "No download needed: the web version runs right in your browser.",
   };
   document.getElementById("hint").innerHTML = hints[os];
 
