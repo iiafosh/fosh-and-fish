@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.6 — in-game update
+
+- **Web: no more empty boxes.** Symbols like ✓, ✗, ★, arrows and a few emoji aren't in the game's font. Windows and Android quietly filled them in from system fonts, but browsers showed empty squares (in the catch card, goals, quests, prestige, updates and FishTok). They're now icons or plain text everywhere.
+
 ## 0.5.5 — in-game update
 
 - **Two devices, one account:** if your phone saved while your PC was also playing, the PC's next cloud save used to replace it silently (coins and fish from the phone were lost). Now the game only replaces the cloud save it last saw; if another device saved in between it checks again and loads it, or asks you which one to keep.

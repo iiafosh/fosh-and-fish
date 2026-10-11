@@ -517,7 +517,7 @@ func refresh_live() -> void:
 			c2.position.x = (size.x - c2.size.x) * 0.5
 		var done := prog >= goal
 		if VF.tok_ch_claimed:
-			ch_btn.text = "Claimed  ✓"
+			ch_btn.text = "Claimed"
 			ch_btn.disabled = true
 		elif done:
 			ch_btn.text = "Claim  %s" % VF.goal_reward_text(c.reward)

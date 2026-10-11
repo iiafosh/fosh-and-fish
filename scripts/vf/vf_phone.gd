@@ -188,7 +188,7 @@ func _build_hints() -> void:
 	hints.add_theme_constant_override("separation", 10)
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.visible = not main.is_touch()
-	for h in [["Wheel / ↑ ↓", "next post"], ["Double-click", "like"], ["Space", "pause"], ["C", "comments"],
+	for h in [["Wheel / arrows", "next post"], ["Double-click", "like"], ["Space", "pause"], ["C", "comments"],
 			["H", "home screen"], ["Esc", "put the phone away"]]:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
@@ -1480,7 +1480,7 @@ func _challenge_card() -> Control:
 	v.add_child(pr)
 	var b: Button
 	if VF.tok_ch_claimed:
-		b = pill("Claimed  ✓", Color("#cfe9ee"), C_TEAL, 34, 0)
+		b = pill("Claimed", Color("#cfe9ee"), C_TEAL, 34, 0)
 		b.disabled = true
 	elif prog >= goal:
 		b = pill("Claim reward", C_GOLD, C_INK, 36, 0)
@@ -1674,7 +1674,7 @@ func _profile_live() -> void:
 		row.add_child(_milestone_chip(m))
 	v.add_child(row)
 	if nxt > 0:
-		var nr := lbl("Next: %s followers → %s" % [Tok.count(nxt), VF.goal_reward_text(VF.tok_milestone_reward(nxt))], 11, C_SUB, "bold")
+		var nr := lbl("Next: %s followers » %s" % [Tok.count(nxt), VF.goal_reward_text(VF.tok_milestone_reward(nxt))], 11, C_SUB, "bold")
 		nr.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		nr.custom_minimum_size.x = SCR.x - 60
 		v.add_child(nr)

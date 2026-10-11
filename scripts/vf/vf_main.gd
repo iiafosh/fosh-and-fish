@@ -257,6 +257,12 @@ func icon(t: Texture2D, size := 40) -> TextureRect:
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return r
 
+## a green tick for done things (an icon: the game font has no ✓, which showed as a box on the web)
+func _tick() -> TextureRect:
+	var t := icon(ph("check"), 24)
+	t.modulate = C_GOOD
+	return t
+
 func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -1190,7 +1196,7 @@ func _card_intro() -> void:
 func _show_catch(res: Dictionary) -> void:
 	_show_card()
 	card_accent.color = accent()
-	card_title.text = "🎣 You caught %d fish!" % res.count if res.count > 0 else "🎣 Nothing bit this time..."
+	card_title.text = "You caught %d fish!" % res.count if res.count > 0 else "Nothing bit this time..."
 	_clear(card_body)
 	var names: Array = res.fish.keys()
 	names.sort_custom(func(a, b): return VFData.FISH[a].price > VFData.FISH[b].price)
@@ -1260,7 +1266,7 @@ func _refresh() -> void:
 	sell_btn.reset_size()
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
-	rod_chip.text = "Shop" if VF.rod_usable() else "⚠ Shop"
+	rod_chip.text = "Shop" if VF.rod_usable() else "Shop (!)"
 	rod_chip.tooltip_text = "%s — %s\nClick to change rods" % [VF.rod, "ready" if VF.rod_usable() else "can't be used in %s!" % VF.biome]
 	var bait_chip: Button = chips.bait
 	bait_chip.icon = icon_for("bait", VF.bait) if VF.has_bait() else icon_for("bait", "Worms")
@@ -1291,7 +1297,7 @@ func _refresh_goal() -> void:
 		goal_box.visible = true
 		_goal = {"starter": true, "goal": sg}
 		var prog: int = mini(VF.goal_progress(sg), int(sg.goal))
-		goal_label.text = "★ %s   %s/%s\n    Reward: %s" % [sg.text, VF.commas(prog), VF.commas(sg.goal), VF.goal_reward_text(sg.reward)]
+		goal_label.text = "%s   %s/%s\nReward: %s" % [sg.text, VF.commas(prog), VF.commas(sg.goal), VF.goal_reward_text(sg.reward)]
 		goal_bar.max_value = sg.goal
 		goal_bar.value = prog
 		return
@@ -1548,7 +1554,7 @@ func _panel_shop() -> void:
 				var b: String = VFData.BOAT_ORDER[i]
 				var d: Dictionary = VFData.BOATS[b]
 				var right: Control
-				if i < VF.boats_owned: right = lbl("✓ Owned", 15, C_GOOD)
+				if i < VF.boats_owned: right = lbl("Owned", 15, C_GOOD)
 				elif i == VF.boats_owned:
 					right = lbl("Level %d" % d.level, 14, C_MUTED) if VF.level < d.level else \
 						_act("Buy %s" % money_str(d.cost), Color("#3fae6a"), func(): return VF.buy_boat(), VF.money >= d.cost)
@@ -1699,18 +1705,21 @@ func _panel_quests() -> void:
 		var goal: int = q.goals[mini(claimed, q.goals.size() - 1)]
 		var done: bool = claimed >= q.goals.size()
 		panel_body.add_child(_card(icon_for("ui", "quests"), "%s  (%d/%d)" % [q.name, claimed, q.goals.size()],
-			"Done for today!" if done else "%s / %s" % [VF.commas(prog), VF.commas(goal)], lbl("✓" if done else "", 20, C_GOOD), done, 48))
+			"Done for today!" if done else "%s / %s" % [VF.commas(prog), VF.commas(goal)], _tick() if done else null, done, 48))
 	var sq: Dictionary = VF.special_quest()
 	var sp := int(VF.quest_progress.get(sq.stat, 0))
-	panel_body.add_child(_card(icon_for("ui", "hooks"), "League quest: %s" % sq.name, "%s / %s  →  +10 Hooks" % [VF.commas(mini(sp, sq.goal)), VF.commas(sq.goal)],
-		lbl("✓" if VF.quest_claimed.get("special", false) else "", 20, C_GOOD), false, 48))
+	panel_body.add_child(_card(icon_for("ui", "hooks"), "League quest: %s" % sq.name, "%s / %s  ·  +10 Hooks" % [VF.commas(mini(sp, sq.goal)), VF.commas(sq.goal)],
+		_tick() if VF.quest_claimed.get("special", false) else null, false, 48))
 	panel_body.add_child(_card(icon_for("ui", "hooks"), "Weekly trips: %s" % VF.commas(VF.week_trips), "+10 Hooks every 500 trips (max 100/week). Earned this week: %d" % VF.week_hooks, null, false, 48))
 
 func _req_row(name: String, have: float, need: float, money := false) -> Control:
 	var ok := have >= need
 	var h := HBoxContainer.new()
-	var l := lbl(("✓ " if ok else "✗ ") + name, 16, C_GOOD if ok else C_BAD)
-	l.custom_minimum_size.x = 160
+	var mark := icon(ph("check" if ok else "x"), 18)         # (the game font has no ✓ / ✗: boxes on the web)
+	mark.modulate = C_GOOD if ok else C_BAD
+	h.add_child(mark)
+	var l := lbl(name, 16, C_GOOD if ok else C_BAD)
+	l.custom_minimum_size.x = 138
 	h.add_child(l)
 	var bar := ProgressBar.new()
 	bar.show_percentage = false
@@ -1732,7 +1741,7 @@ func _panel_prestige() -> void:
 	match _panel_tab:
 		"Prestige":
 			var c: Dictionary = VF.prestige_check()
-			panel_body.add_child(lbl("Prestige %d → %d" % [VF.prestige, VF.prestige + 1], 20, C_GOLD))
+			panel_body.add_child(lbl("Prestige %d » %d" % [VF.prestige, VF.prestige + 1], 20, C_GOLD))
 			panel_body.add_child(_req_row("Level", c.level[0], c.level[1]))
 			panel_body.add_child(_req_row("Money", c.money[0], c.money[1], true))
 			panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
@@ -1791,7 +1800,7 @@ func _panel_stats() -> void:
 		p.add_child(v)
 		_add_to(g, p)
 	if VF.beginner_mult() > 1.0:
-		panel_body.add_child(lbl("🍀 Beginner's Luck: ×%.1f XP (included above) — fades out by level %d" % [VF.beginner_mult(), VFData.BEGINNER_END], 14, C_GOOD))
+		panel_body.add_child(lbl("Beginner's Luck: ×%.1f XP (included above) — fades out by level %d" % [VF.beginner_mult(), VFData.BEGINNER_END], 14, C_GOOD))
 	panel_body.add_child(lbl("Catch odds: %s in %s" % [VF.rod, VF.biome], 17))
 	if not VF.rod_usable():
 		panel_body.add_child(lbl("This rod can't be used here.", 14, C_BAD))
@@ -2050,7 +2059,12 @@ func _build_version_label() -> void:
 	v.offset_bottom = -8
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	update_pill = btn("⬆  Update available", Color("#2f8f9e"), 14, 0)
+	update_pill = btn("Update available", Color("#2f8f9e"), 14, 0)
+	update_pill.icon = ph("arrow-circle-up")
+	update_pill.add_theme_constant_override("icon_max_width", 18)
+	update_pill.add_theme_constant_override("h_separation", 6)
+	for k in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+		update_pill.add_theme_color_override(k, Color.WHITE)
 	update_pill.custom_minimum_size = Vector2(0, 34)
 	update_pill.anchor_left = 1.0
 	update_pill.anchor_right = 1.0
@@ -2166,7 +2180,7 @@ func _panel_credits() -> void:
 	row.add_theme_constant_override("separation", 10)
 	for s in VFGuide.SOCIALS:
 		var url: String = s[1]
-		var b := btn("%s  ↗" % s[0], Color("#0a66c2") if s[0] == "LinkedIn" else Color("#24292f"), 16, 170)
+		var b := btn("%s  »" % s[0], Color("#0a66c2") if s[0] == "LinkedIn" else Color("#24292f"), 16, 170)
 		b.tooltip_text = url
 		b.pressed.connect(func(): OS.shell_open(url))
 		row.add_child(b)
@@ -2312,11 +2326,11 @@ func _next_banner() -> void:
 	tw.tween_callback(_next_banner)
 
 func _on_goal_done(text: String, reward: String, chest: Dictionary) -> void:
-	_banner("Goal complete!", "%s  →  %s" % [text, reward], icon_for("ui", "xp"), Color("#c9861a"))
+	_banner("Goal complete!", "%s  ·  %s" % [text, reward], icon_for("ui", "xp"), Color("#c9861a"))
 	stage.burst("confetti", stage.boat.position + stage.boat.pivot_offset)
 	if not chest.is_empty():
 		_show_catch({"count": 0, "fish": {}, "xp": 0, "chest": chest, "pet": "", "bait_used": "", "new_species": []})
-		card_title.text = "🎁 Goal reward!"
+		card_title.text = "Goal reward!"
 
 # ---- tutorial coach: a bouncing pointer + speech bubble that waits for you
 var _coach: Control
@@ -2594,9 +2608,9 @@ func _on_update_status() -> void:
 	var st: String = Updater.state
 	update_pill.visible = st in ["available", "full_needed", "downloading", "ready"]
 	match st:
-		"downloading": update_pill.text = "⬇  Updating %d%%" % int(Updater.progress * 100.0)
-		"ready": update_pill.text = "↻  Restart to update"
-		_: update_pill.text = "⬆  Update available"
+		"downloading": update_pill.text = "Updating %d%%" % int(Updater.progress * 100.0)
+		"ready": update_pill.text = "Restart to update"
+		_: update_pill.text = "Update available"
 	if st in ["available", "full_needed"] and not _update_announced:
 		_update_announced = true
 		_banner("Update available!", "fosh&fish %s is out — tap the Update button" % String(Updater.latest.get("version", "")),
@@ -2614,7 +2628,7 @@ func _panel_update() -> void:
 		"idle", "checking":
 			status = "Checking for updates…"
 		"up_to_date":
-			status = "✓ You're on the newest version."
+			status = "You're on the newest version."
 			action = btn("Check again", C_NEUTRAL, 15, 180)
 			action.pressed.connect(U.check)
 		"available":

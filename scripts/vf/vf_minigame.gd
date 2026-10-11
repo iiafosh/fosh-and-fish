@@ -236,7 +236,7 @@ func _build_labels() -> void:
 	rp.add_child(main.icon(main.icon_for("rod", VF.rod), 22))
 	var pips := ""
 	var lvl := int(round(reel_power * 10.0))
-	for i in 10: pips += "●" if i < lvl else "○"
+	for i in 10: pips += "•" if i < lvl else "·"
 	rp.add_child(main.lbl("%s  reel power %d/10" % [VF.rod, lvl], 13, Color("#1d9bb0")))
 	rp.position = Vector2(RING.x - 130, RING.y + RING_R + 74)   # under the timer bar, above the hint
 	rp.size = Vector2(260, 24)
