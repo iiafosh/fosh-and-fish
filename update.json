@@ -1,25 +1,25 @@
 {
-  "version": "0.5.13",
-  "build": 15,
+  "version": "0.5.14",
+  "build": 16,
   "base": 2,
   "notes": [
-    "Cleaner logo (no underline) and a smaller logo on the title screen"
+    "fosh&fish has a home: foshfish.xyz (the web version is at foshfish.xyz/play)"
   ],
   "date": "2026-10-12",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.13/fosh_fish-0.5.13-patch-desktop.pck",
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.14/fosh_fish-0.5.14-patch-desktop.pck",
         "size": 5736452,
-        "sha256": "f6689752064e8d5b76ab8237e2f2a3a73812e8ab0a14ce3b55588004a31c5341",
-        "sig": "XC2T8P889nLN8RInxNmTRlPssGXoyFQ/r7fNDX5ONWWNMVcNgieorbe6qrymTbSCND3SPcCOebtGNqjQF940Z3DdVY9lwL5Gt7u3nQsK2LlAJntV50Z+R4JWyNduKsI9MlMXoYAcGNMIu47h3g5wd1GyoIfeJhgdbqelrVnLX6VkIHIWTkDnE70gu1dx8ST7EzbuexGfAGN/ta8et5bMNVPfcPP6hll2RavoIMFLEqylRd3aVsCBeZSDhh7aSikJBphJTzRXpG2rTuG6Kw/wZZ80VaKT35kLiZ3Se1U0Wjr0Bp+dOr50lv3fPXuD1BxGL+0Cc83FAVdlOlRIZXSVyA=="
+        "sha256": "c6068a2f70369e46af5849535e4b6dbfc1b64bcc6422e448485ea7114cf1e7e3",
+        "sig": "dHBokWjxjgvdeD7wrt32aH/8BNxVodRF9ux/aP0hrhJs95vgfvon0dEu+jzddBs7oiNh5ElDvsPXcxsqqGmJuyUIHLMv7mf/Eg9a3jfSt8UaExCYPVDQnb8nkOp4/dKeEKHRklM9SS5GtS0ZeJ3F7vwyVe/at66h8FrycX6FSS+yTdy5pXBpzF91Mo46syIl572M6CHKfMIMENkX9UcmoO81tIf0/fijlB2YWoxGXZSYLIFZrgjy5JprCjLxbqEAJUZpHKBB+IjLO/tFUubvyTiKWnP1faFVG3LIE1OTVkQ+/8Ujk/dk0d8VPV2jgsRBE428/KrfGLCgWczUbrJuVg=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.13/fosh_fish-0.5.13-patch-android.pck",
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.14/fosh_fish-0.5.14-patch-android.pck",
         "size": 5736452,
-        "sha256": "f6689752064e8d5b76ab8237e2f2a3a73812e8ab0a14ce3b55588004a31c5341",
-        "sig": "XC2T8P889nLN8RInxNmTRlPssGXoyFQ/r7fNDX5ONWWNMVcNgieorbe6qrymTbSCND3SPcCOebtGNqjQF940Z3DdVY9lwL5Gt7u3nQsK2LlAJntV50Z+R4JWyNduKsI9MlMXoYAcGNMIu47h3g5wd1GyoIfeJhgdbqelrVnLX6VkIHIWTkDnE70gu1dx8ST7EzbuexGfAGN/ta8et5bMNVPfcPP6hll2RavoIMFLEqylRd3aVsCBeZSDhh7aSikJBphJTzRXpG2rTuG6Kw/wZZ80VaKT35kLiZ3Se1U0Wjr0Bp+dOr50lv3fPXuD1BxGL+0Cc83FAVdlOlRIZXSVyA=="
+        "sha256": "c6068a2f70369e46af5849535e4b6dbfc1b64bcc6422e448485ea7114cf1e7e3",
+        "sig": "dHBokWjxjgvdeD7wrt32aH/8BNxVodRF9ux/aP0hrhJs95vgfvon0dEu+jzddBs7oiNh5ElDvsPXcxsqqGmJuyUIHLMv7mf/Eg9a3jfSt8UaExCYPVDQnb8nkOp4/dKeEKHRklM9SS5GtS0ZeJ3F7vwyVe/at66h8FrycX6FSS+yTdy5pXBpzF91Mo46syIl572M6CHKfMIMENkX9UcmoO81tIf0/fijlB2YWoxGXZSYLIFZrgjy5JprCjLxbqEAJUZpHKBB+IjLO/tFUubvyTiKWnP1faFVG3LIE1OTVkQ+/8Ujk/dk0d8VPV2jgsRBE428/KrfGLCgWczUbrJuVg=="
       }
     }
   }
