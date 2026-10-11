@@ -87,6 +87,10 @@ var tabs_track: PanelContainer
 var _update_announced := false
 var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
 var panel_box: PanelContainer
+var panel_scroll: ScrollContainer
+var _drag := {}                # finger drag-to-scroll on a menu (phones), see _input
+var _fling := 0.0              # px/s the menu keeps scrolling after a flick
+var _drag_cancel := false      # while sending the synthetic "pointer left" events
 var ui_k := 1.0                # interface scale (bigger on phones, see _update_ui_scale)
 var _sim_touch := false        # --touch: behave like a phone (captures on a desktop)
 var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N dp (captures)
@@ -133,6 +137,59 @@ func _process(delta: float) -> void:
 		_refresh_boosts()
 		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
 	_process_coach(delta)
+	if _fling != 0.0:
+		if panel_scroll and overlay.visible:
+			panel_scroll.scroll_vertical += int(_fling * delta)
+			_fling *= exp(-4.5 * delta)
+		if absf(_fling) < 40.0 or not overlay.visible: _fling = 0.0
+
+## Phones: a finger drag anywhere on a menu scrolls it, with a flick at the end. (Cards and buttons used to
+## swallow the drag, so only the thin scrollbar moved it.) A drag that becomes a scroll cancels the button
+## it started on, so scrolling never presses anything.
+func _input(event: InputEvent) -> void:
+	if _drag_cancel or not is_touch() or panel_scroll == null or not overlay.visible: return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_fling = 0.0
+			_drag = {}
+			if panel_scroll.get_global_rect().has_point(event.position):
+				_drag = {"y": event.position.y, "v": panel_scroll.scroll_vertical, "on": false,
+					"t": Time.get_ticks_msec(), "last": event.position.y, "vel": 0.0}
+		elif not _drag.is_empty():
+			if _drag.on:
+				_fling = clampf(_drag.vel, -4000.0, 4000.0)
+				get_viewport().set_input_as_handled()     # (the press was already let go when the scroll began)
+			_drag = {}
+	elif event is InputEventMouseMotion and not _drag.is_empty():
+		var dy: float = event.position.y - _drag.y
+		if not _drag.on and absf(dy) > 12.0:
+			_drag.on = true
+			_release_press()
+		if _drag.on:
+			panel_scroll.scroll_vertical = int(_drag.v - dy)
+			var now := Time.get_ticks_msec()
+			var dt := maxf(0.008, (now - int(_drag.t)) / 1000.0)
+			_drag.vel = lerpf(float(_drag.vel), -(event.position.y - float(_drag.last)) / dt, 0.6)
+			_drag.t = now
+			_drag.last = event.position.y
+			get_viewport().set_input_as_handled()
+
+## the finger turned a press into a scroll: tell the pressed control the pointer left it and let go,
+## so its click is cancelled (buttons fire on release only while the pointer is still on them)
+func _release_press() -> void:
+	_drag_cancel = true
+	var away := InputEventMouseMotion.new()
+	away.position = Vector2(-10000, -10000)
+	away.global_position = away.position
+	away.button_mask = MOUSE_BUTTON_MASK_LEFT
+	get_viewport().push_input(away)
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = away.position
+	up.global_position = away.position
+	get_viewport().push_input(up)
+	_drag_cancel = false
 
 ## hold the FISH button, Space/F, or a finger on the water to keep casting
 func _process_hold() -> void:
@@ -311,7 +368,7 @@ func is_touch() -> bool:
 ## finger), so there the whole interface is scaled up to read like it does on a desktop. The stage
 ## covers whatever size it gets, so the world is framed the same either way.
 func _update_ui_scale() -> void:
-	var k := VFData.ui_scale_for(_short_side_dp()) if is_touch() else 1.0
+	var k := (VFData.ui_scale_for(_short_side_dp()) if is_touch() else 1.0) * AudioManager.ui_size
 	if not is_equal_approx(get_window().content_scale_factor, k):
 		get_window().content_scale_factor = k
 	ui_k = k
@@ -998,6 +1055,7 @@ func _build_overlay() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(scroll)
+	panel_scroll = scroll
 	panel_body = VBoxContainer.new()
 	panel_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel_body.add_theme_constant_override("separation", 8)
@@ -1910,6 +1968,10 @@ func _check_capture() -> void:
 		await _phone_test(dir)
 		get_tree().quit()
 		return
+	if "--scroll-test" in OS.get_cmdline_user_args():
+		await _scroll_test(dir)
+		get_tree().quit()
+		return
 	if "--onboarding" in OS.get_cmdline_user_args():
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 0
@@ -2258,6 +2320,31 @@ func _panel_settings() -> void:
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
 		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
+	# interface size: text, buttons and menus (the game world is framed the same)
+	var us := PanelContainer.new()
+	us.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 12))
+	var uh := HBoxContainer.new()
+	uh.add_theme_constant_override("separation", 10)
+	us.add_child(uh)
+	var uv := VBoxContainer.new()
+	uv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	uv.add_child(lbl("Interface size", 18))
+	var usub := lbl("Text, buttons and menus", 13, C_MUTED)
+	usub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	uv.add_child(usub)
+	uh.add_child(uv)
+	for o in [[0.85, "Smaller"], [1.0, "Normal"], [1.15, "Bigger"]]:
+		var on := is_equal_approx(A.ui_size, o[0])
+		var b := btn(o[1], C_TEAL if on else C_NEUTRAL, 15, 96)
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var size_k: float = o[0]
+		b.pressed.connect(func():
+			A.ui_size = size_k
+			A.save_settings()
+			_update_ui_scale()
+			_render_panel.call_deferred())
+		uh.add_child(b)
+	panel_body.add_child(us)
 	var keys := lbl("Shortcuts: Space/F cast · WASD/arrows sail · E sell · 1-9 menus · G guide · O settings · Esc close", 13, C_MUTED)
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel_body.add_child(keys)
@@ -2457,6 +2544,88 @@ var _cap_label: Label
 
 func _wait(t: float) -> void:
 	await get_tree().create_timer(t).timeout
+
+## godot --path . -- --capture=DIR --scroll-test --touch [--ui-dp=390] : a finger drag that starts on a
+## Shop button scrolls the menu and presses nothing; a flick keeps it moving; a plain tap still presses.
+## Prints SCROLL PASS/FAIL lines.
+func _scroll_test(dir: String) -> void:
+	_veteran("Ocean")
+	VF.rod = VFData.ROD_ORDER[0]
+	VF.changed.emit()
+	await _wait(0.6)
+	_open_panel("shop", "Rods")
+	await _wait(0.5)
+	var screen := get_viewport().get_final_transform()    # layout -> window pixels (phones scale the layout)
+	var equip: Button = null
+	for b in panel_body.find_children("*", "Button", true, false):
+		if (b as Button).text == "Equip" and panel_scroll.get_global_rect().encloses((b as Button).get_global_rect()):
+			equip = b
+			break
+	var ok := equip != null
+	print("SCROLL %s an Equip button is on screen" % ("PASS" if ok else "FAIL"))
+	if not ok: return
+	var rod_before := VF.rod
+	var start := equip.get_global_rect().get_center()
+	await _shot(dir + "/scroll0_before.png")
+	_finger(screen * start, true)
+	for i in 12:                                         # drag up 240 px in 12 steps (a slow scroll)
+		await get_tree().process_frame
+		_finger_move(screen * (start - Vector2(0, 20 * (i + 1))))
+	await get_tree().process_frame
+	_finger(screen * (start - Vector2(0, 240)), false)
+	await _wait(0.3)
+	print("SCROLL %s drag on a button scrolls the menu (scroll %d)" % ["PASS" if panel_scroll.scroll_vertical > 150 else "FAIL", panel_scroll.scroll_vertical])
+	print("SCROLL %s ... and presses nothing (rod %s)" % ["PASS" if VF.rod == rod_before else "FAIL", VF.rod])
+	await _shot(dir + "/scroll1_dragged.png")
+	# a quick flick keeps coasting after the finger lifts
+	var y0 := panel_scroll.scroll_vertical
+	var mid := panel_scroll.get_global_rect().get_center()
+	_finger(screen * mid, true)
+	for i in 4:
+		await get_tree().process_frame
+		_finger_move(screen * (mid - Vector2(0, 30 * (i + 1))))
+	_finger(screen * (mid - Vector2(0, 120)), false)
+	var y_lift := panel_scroll.scroll_vertical
+	await _wait(0.6)
+	print("SCROLL %s a flick coasts on (%d -> lift %d -> %d)" % ["PASS" if panel_scroll.scroll_vertical > y_lift + 40 else "FAIL", y0, y_lift, panel_scroll.scroll_vertical])
+	# a plain tap on a button still presses it (back at the top, where Equip buttons are on screen)
+	await _wait(0.8)
+	panel_scroll.scroll_vertical = 0
+	await _wait(0.2)
+	equip = null
+	for b in panel_body.find_children("*", "Button", true, false):
+		if (b as Button).text == "Equip" and panel_scroll.get_global_rect().encloses((b as Button).get_global_rect()):
+			equip = b
+			break
+	if equip == null:
+		print("SCROLL FAIL no Equip button on screen to tap")
+		return
+	var target_rod := VF.rod
+	var hits := [0]
+	equip.pressed.connect(func(): hits[0] += 1)
+	var c := equip.get_global_rect().get_center()
+	_finger(screen * c, true)
+	await get_tree().process_frame
+	_finger(screen * c, false)
+	await _wait(0.3)
+	print("SCROLL %s a tap still presses (pressed signal x%d, rod %s -> %s)" % ["PASS" if hits[0] > 0 else "FAIL", hits[0], target_rod, VF.rod])
+	await _shot(dir + "/scroll2_tapped.png")
+
+func _finger(at: Vector2, down: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = down
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
+	ev.position = at
+	ev.global_position = at
+	Input.parse_input_event(ev)
+
+func _finger_move(at: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	ev.position = at
+	ev.global_position = at
+	Input.parse_input_event(ev)
 
 func _tap(at: Vector2) -> void:
 	for pressed in [true, false]:

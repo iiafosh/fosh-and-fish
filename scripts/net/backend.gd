@@ -883,6 +883,8 @@ static func friendly_error(r: Dictionary) -> String:
 		return "Your cloud save has more progress than this device."
 	if "implausible" in t:
 		return "The server didn't accept this save: " + msg.get_slice(":", 1).strip_edges()
+	if "error sending" in t:                            # the mail server refused (e.g. SMTP login): a 500 from /recover
+		return "We couldn't send the email right now. Please try again in a few minutes."
 	if "database error saving new user" in t:
 		return "Couldn't create the account. Please try a different name."
 	if code == 401 or code == 403:

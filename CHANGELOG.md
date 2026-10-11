@@ -2,6 +2,13 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.7 — in-game update
+
+- **Phones: menus scroll with your finger.** Drag anywhere on a menu, even on a card or a button, and flick to keep it moving. Before, cards swallowed the drag and only the thin scrollbar worked. A drag never presses the button it started on; a tap still does.
+- **Phones: a less giant interface** (about 10% smaller by default), and a new **Settings → Interface size** (Smaller / Normal / Bigger) on every device.
+- **Phones: the Account form fills the screen** (the "Your fish, everywhere" column is hidden there), so signing in needs no scrolling.
+- If a reset-password email can't be sent, the game now says so instead of "The server is having trouble".
+
 ## 0.5.6 — in-game update
 
 - **Web: no more empty boxes.** Symbols like ✓, ✗, ★, arrows and a few emoji aren't in the game's font. Windows and Android quietly filled them in from system fonts, but browsers showed empty squares (in the catch card, goals, quests, prestige, updates and FishTok). They're now icons or plain text everywhere.

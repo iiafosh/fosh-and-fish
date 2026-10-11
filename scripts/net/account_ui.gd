@@ -132,6 +132,7 @@ func _signed_out() -> void:
 	# left: why
 	var info := _box(C_PANEL2, 20)
 	info.custom_minimum_size.x = 330
+	info.visible = not m.compact()               # phones: the form gets the whole width (no scrolling to reach it)
 	h.add_child(info)
 	var iv := _vbox(10)
 	info.add_child(iv)

@@ -15,6 +15,7 @@ var music_volume := 0.6      # 0..1
 var sfx_on := true
 var sfx_volume := 0.8
 var fullscreen := false
+var ui_size := 1.0           # interface size: 0.85 smaller, 1.0 normal, 1.15 bigger (Settings)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -62,6 +63,7 @@ func load_settings() -> void:
 	sfx_on = cf.get_value("audio", "sfx_on", sfx_on)
 	sfx_volume = cf.get_value("audio", "sfx_volume", sfx_volume)
 	fullscreen = cf.get_value("display", "fullscreen", fullscreen)
+	ui_size = clampf(float(cf.get_value("display", "ui_size", ui_size)), 0.7, 1.4)
 
 func save_settings() -> void:
 	var cf := ConfigFile.new()
@@ -70,6 +72,7 @@ func save_settings() -> void:
 	cf.set_value("audio", "sfx_on", sfx_on)
 	cf.set_value("audio", "sfx_volume", sfx_volume)
 	cf.set_value("display", "fullscreen", fullscreen)
+	cf.set_value("display", "ui_size", ui_size)
 	cf.save(SETTINGS_PATH)
 
 func apply_settings() -> void:

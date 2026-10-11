@@ -249,6 +249,8 @@ func _init() -> void:
 	check(B.parse_config({"url": " https://abc.supabase.co/rest/v1/ ", "anon_key": " k "}).url == "https://abc.supabase.co"
 		and B.parse_config({"anon_key": " k "}).anon_key == "k", "config URL/key are cleaned up")
 	check(B.friendly_error({"net": true, "code": 0}).begins_with("Can't reach the server"), "offline -> friendly message")
+	check(B.friendly_error({"code": 500, "data": {"code": 500, "error_code": "unexpected_failure", "msg": "Error sending recovery email"}}).begins_with("We couldn't send the email"),
+		"mail server refused -> says the email couldn't be sent")
 	check(B.friendly_error({"code": 400, "data": {"code": 400, "error_code": "invalid_credentials", "msg": "Invalid login credentials"}}) == "Wrong email or password."
 		and B.friendly_error({"code": 400, "data": {"error": "invalid_grant", "error_description": "Invalid login credentials"}}) == "Wrong email or password.",
 		"wrong password (new + old GoTrue errors)")
@@ -293,10 +295,10 @@ func _init() -> void:
 	check(B.is_newer_save({"v": B.SAVE_VERSION + 1}) and not B.is_newer_save({"v": B.SAVE_VERSION}) and not B.is_newer_save(null),
 		"newer-version cloud save is recognised (and left alone)")
 
-	# phone interface scale: phones get a bigger UI (>= 460 px of layout height), tablets/desktops stay 1:1
+	# phone interface scale: phones get a bigger UI (>= 500 px of layout height), tablets/desktops stay 1:1
 	var k_phone := VFData.ui_scale_for(390.0)
-	check(k_phone > 1.5 and absf(720.0 / k_phone - 460.0) < 1.0, "iPhone (390 dp) -> UI x%.2f, 460 px tall" % k_phone)
-	check(VFData.ui_scale_for(412.0) > 1.4, "Pixel (412 dp) -> bigger UI")
+	check(k_phone > 1.35 and absf(720.0 / k_phone - 500.0) < 1.0, "iPhone (390 dp) -> UI x%.2f, 500 px tall" % k_phone)
+	check(VFData.ui_scale_for(412.0) > 1.3 and VFData.ui_scale_for(412.0) < k_phone, "Pixel (412 dp) -> bigger UI, a bit less")
 	check(VFData.ui_scale_for(800.0) == 1.0 and VFData.ui_scale_for(0.0) == 1.0, "tablet / unknown -> desktop layout")
 	check(VFData.ui_scale_for(200.0) <= 1.6, "tiny screens are capped")
 
