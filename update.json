@@ -1,25 +1,25 @@
 {
-  "version": "0.5.9",
-  "build": 11,
+  "version": "0.5.10",
+  "build": 12,
   "base": 2,
   "notes": [
-    "Web: the title screen's update check works right away"
+    "New title screen design: sharper art and a deep-sea panel with Play, sign in right there, and updates"
   ],
-  "date": "2026-10-11",
+  "date": "2026-10-12",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.9/fosh_fish-0.5.9-patch-desktop.pck",
-        "size": 4424780,
-        "sha256": "3b86d20791ed00661f1000b2f9aba6e808e538d5140ae36447480f0f9531656f",
-        "sig": "pmdAFDp9DPsQpSd5WQ1/EwvRiqoQvmrIY0Spqb/U1XQNSaci1H6q+RtYsu059LTWiWFojsnWDwnnfoL3kFKGa+c0mMEYGfGeG27GPITX9IuGTRI4oydkRyUMdo2puBZ68jLVd26qhd5yccGSw6TAzqRJ7Ts/85GeoD3+bloTdMv/T+hWHV87ZAivVeVAW6tBlMs58y7rZyfTuI692WkTNamuqcR5/zn1OEe9B/s0oXiEgv666qxaYWg1pNQtz1iPsmX65h+oYCgc8n15TTwgQ9DWvQI1Pm86ERiv/hsDclaROI7E3PegnVsscWVZUlj18jfK7KbQz3nK1cN+EXlrBw=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.10/fosh_fish-0.5.10-patch-desktop.pck",
+        "size": 4564924,
+        "sha256": "5a3930de23e8ef040f55d9c0747a91b34b78dbb635113e0938acc02081131c54",
+        "sig": "npHVpM6LKGulOzKkOH/vfnpoyUh6koatVz/wVX6H5cSaaYD/pY3QmCGXjR6WytfwAbN5oLHzXS+IwHxDoeEThjidv7A85W+YofjikZp4CBuFaSr8CowRXJ0KtC7gdNibJPyn52VQ78HwVgwANUm/sj7lqH41b38VDg1bzOV3yFk+7fngMq739w9RodAbImKSCPSaHYVYPModK01ADBgkwg02gpyYNuY7NtekZhdsMDoVz5GC69LFoRyWSR3y89xi2q751uaDtCMLkE4ZFPsXBFm/X5DBIwPdj3CVWuUcIC+l3xKxdA2GhRzU/TiFRiEJPLu66Y6JZGxg5cbN/hx/Pw=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.9/fosh_fish-0.5.9-patch-android.pck",
-        "size": 4424780,
-        "sha256": "3b86d20791ed00661f1000b2f9aba6e808e538d5140ae36447480f0f9531656f",
-        "sig": "pmdAFDp9DPsQpSd5WQ1/EwvRiqoQvmrIY0Spqb/U1XQNSaci1H6q+RtYsu059LTWiWFojsnWDwnnfoL3kFKGa+c0mMEYGfGeG27GPITX9IuGTRI4oydkRyUMdo2puBZ68jLVd26qhd5yccGSw6TAzqRJ7Ts/85GeoD3+bloTdMv/T+hWHV87ZAivVeVAW6tBlMs58y7rZyfTuI692WkTNamuqcR5/zn1OEe9B/s0oXiEgv666qxaYWg1pNQtz1iPsmX65h+oYCgc8n15TTwgQ9DWvQI1Pm86ERiv/hsDclaROI7E3PegnVsscWVZUlj18jfK7KbQz3nK1cN+EXlrBw=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.10/fosh_fish-0.5.10-patch-android.pck",
+        "size": 4564924,
+        "sha256": "5a3930de23e8ef040f55d9c0747a91b34b78dbb635113e0938acc02081131c54",
+        "sig": "npHVpM6LKGulOzKkOH/vfnpoyUh6koatVz/wVX6H5cSaaYD/pY3QmCGXjR6WytfwAbN5oLHzXS+IwHxDoeEThjidv7A85W+YofjikZp4CBuFaSr8CowRXJ0KtC7gdNibJPyn52VQ78HwVgwANUm/sj7lqH41b38VDg1bzOV3yFk+7fngMq739w9RodAbImKSCPSaHYVYPModK01ADBgkwg02gpyYNuY7NtekZhdsMDoVz5GC69LFoRyWSR3y89xi2q751uaDtCMLkE4ZFPsXBFm/X5DBIwPdj3CVWuUcIC+l3xKxdA2GhRzU/TiFRiEJPLu66Y6JZGxg5cbN/hx/Pw=="
       }
     }
   }
