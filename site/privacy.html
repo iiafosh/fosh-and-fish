@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy · fosh&amp;fish</title>
+  <meta name="description" content="What fosh&amp;fish stores about you, and how to delete it.">
+  <meta name="theme-color" content="#0b2930">
+  <link rel="icon" type="image/png" sizes="64x64" href="img/icon-64.png">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .doc { width: min(760px, 100% - 32px); margin: 0 auto; padding: 110px 0 80px; }
+    .doc h1 { font-size: clamp(32px, 5vw, 44px); margin-bottom: 8px; }
+    .doc h2 { text-align: left; font-size: 24px; margin: 34px 0 8px; }
+    .doc p, .doc li { color: var(--soft); }
+    .doc .updated { color: var(--faint); margin: 0 0 24px; }
+  </style>
+</head>
+<body>
+  <header class="nav scrolled">
+    <a class="brand" href="./"><img src="img/icon-64.png" alt="" width="36" height="36"><span>fosh&amp;fish</span></a>
+    <nav aria-label="Sections"><a href="./#download">Download</a><a href="./#faq">FAQ</a></nav>
+  </header>
+  <main class="doc">
+    <h1>Privacy</h1>
+    <p class="updated">Last updated: October 12, 2026</p>
+    <p>fosh&amp;fish is a free hobby game by afosh. It has no ads, no tracking and nothing to buy. This page explains the little it stores.</p>
+
+    <h2>Playing without an account</h2>
+    <p>Your progress is saved on your own device only. Nothing about you is sent anywhere.</p>
+
+    <h2>If you make an account</h2>
+    <ul>
+      <li><b>Your email address</b>: to sign in and to send you a code if you forget your password.</li>
+      <li><b>Your fisher name</b>: shown on the public leaderboard.</li>
+      <li><b>Your game save</b> (level, fish, boats and so on): so you can play on several devices. Your level, prestige and total money earned appear on the leaderboard next to your fisher name.</li>
+      <li><b>Your password</b> is never stored by the game. The sign-in service keeps only a secure hash of it.</li>
+    </ul>
+    <p>Accounts and saves are kept with <a href="https://supabase.com/privacy">Supabase</a> (servers in the EU). Other players can only ever see your fisher name and your leaderboard numbers.</p>
+
+    <h2>Deleting your data</h2>
+    <p>In the game, open <i>Menu → Account → Delete account</i>. That removes your login, your fisher name and your cloud save right away. To clear what's on your device, use <i>Settings → Reset save</i> or uninstall the game.</p>
+
+    <h2>Updates</h2>
+    <p>The game checks for new versions by downloading a small file from this website and GitHub. No personal data is sent with that check.</p>
+
+    <h2>Questions</h2>
+    <p>Open an issue on <a href="https://github.com/iiafosh/fosh-and-fish/issues/new">GitHub</a> and afosh will get back to you.</p>
+  </main>
+  <footer class="foot"><p class="copy">© 2026 afosh · <a href="./">foshfish.xyz</a></p></footer>
+</body>
+</html>
