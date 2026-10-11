@@ -289,6 +289,10 @@ func _init() -> void:
 	check(B.decide(played, cloud_sum, "", "") == "ask", "first sign-in on a device with progress -> ask")
 	check(B.worse({"prestige": 2, "level": 900}, {"prestige": 3, "level": 1}) and not B.worse({"prestige": 3, "level": 5}, {"prestige": 3, "level": 5}), "prestige outranks level")
 
+	# a cloud save from a newer game version is never mistaken for a damaged one (that path replaces it)
+	check(B.is_newer_save({"v": B.SAVE_VERSION + 1}) and not B.is_newer_save({"v": B.SAVE_VERSION}) and not B.is_newer_save(null),
+		"newer-version cloud save is recognised (and left alone)")
+
 	# phone interface scale: phones get a bigger UI (>= 460 px of layout height), tablets/desktops stay 1:1
 	var k_phone := VFData.ui_scale_for(390.0)
 	check(k_phone > 1.5 and absf(720.0 / k_phone - 460.0) < 1.0, "iPhone (390 dp) -> UI x%.2f, 460 px tall" % k_phone)

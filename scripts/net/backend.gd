@@ -72,6 +72,7 @@ var _since_retry := 0.0
 var _quitting := false
 var _applying := false
 var _uploading := false
+var _cloud_newer := false       # the cloud save was written by a newer game version: never upload over it
 var _synced_fp := ""            # fingerprint of the save this device last uploaded / downloaded
 var _synced_at := ""            # the cloud row's updated_at at that moment
 
@@ -98,13 +99,21 @@ func _load_config() -> void:
 	url = cfg.url
 	anon_key = cfg.anon_key
 	var capturing := false
+	var url_given := false
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--backend-url="): url = clean_url(a.substr(14))
+		if a.begins_with("--backend-url="):
+			url = clean_url(a.substr(14))
+			url_given = true
 		elif a.begins_with("--backend-key="): anon_key = a.substr(14).strip_edges()
 		elif a.begins_with("--account-file="): account_file = a.substr(15)
 		elif a.begins_with("--capture=") or a in RECORDING_FLAGS: capturing = true
 	if capturing and account_file == ACCOUNT_FILE:
 		account_file = TEST_ACCOUNT_FILE
+	# captures and recordings play with fake saves: they only ever talk to a server named on the command
+	# line (tools/mock_supabase.py), never the live project. (A 0.5 trailer recording once restored the
+	# real session and uploaded its demo save - Lv 120, P1 - over the owner's real cloud save.)
+	if capturing and not url_given:
+		url = ""
 
 func _vf():                     # untyped: VF's own methods (to_dict, _apply, ...)
 	return get_node_or_null("/root/VF")
@@ -296,6 +305,13 @@ func _reconcile() -> void:
 		return
 	var row: Dictionary = rows[0]
 	var data: Variant = row.get("data")
+	if is_newer_save(data):
+		# saved by a newer version of the game: this copy can't read it, and must never replace it
+		_cloud_newer = true
+		sync_state = "error"
+		sync_error = "Your cloud save is from a newer version of fosh&fish. Update the game to keep syncing (your cloud progress is safe)."
+		status_changed.emit()
+		return
 	if not save_valid(data):
 		sync_error = "The cloud save was damaged, so this device's save replaced it."
 		await _upload(true)
@@ -336,7 +352,7 @@ func _fetch_cloud() -> Dictionary:
 	return await _authed(GET, "/rest/v1/saves?select=data,updated_at,level,prestige,money_earned&user_id=eq." + user_id.uri_encode())
 
 func _upload(overwrite: bool) -> void:
-	if _uploading: return
+	if _uploading or _cloud_newer: return
 	var vf = _vf()
 	if vf == null or user_id == "": return
 	_uploading = true
@@ -571,6 +587,7 @@ func _forget() -> void:
 	sync_state = ""
 	sync_error = ""
 	dirty = false
+	_cloud_newer = false
 	need_new_password = false
 	_save_account()
 
@@ -726,6 +743,10 @@ static func decide(local: Dictionary, cloud: Dictionary, synced_fp: String, sync
 	return "ask"
 
 ## a cloud save we can load (VF._apply reads these keys directly)
+## a save written by a newer game (higher save format): not "damaged", just not readable by this copy
+static func is_newer_save(d: Variant) -> bool:
+	return d is Dictionary and int(float(d.get("v", 0))) > SAVE_VERSION
+
 static func save_valid(d: Variant) -> bool:
 	if not (d is Dictionary): return false
 	if int(float(d.get("v", 0))) != SAVE_VERSION: return false
