@@ -1,25 +1,25 @@
 {
-  "version": "0.5.11",
-  "build": 13,
+  "version": "0.5.12",
+  "build": 14,
   "base": 2,
   "notes": [
-    "A new look: new fosh&fish logo, icon, loading screen and covers"
+    "The web version downloads about 5 MB less"
   ],
   "date": "2026-10-12",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.11/fosh_fish-0.5.11-patch-desktop.pck",
-        "size": 9780388,
-        "sha256": "af18e4f958bca5deb0d73b5baa245dc64fa80fbf1ad837d91bd22307d2623638",
-        "sig": "JOHlaOgy//R62OU1nc/uAgEtiriauqMgtBSlIbEkTM/jk1zQ/Zg+rbwucYL6Lb/Fsg1dzFECzbUrp4h2IXbIQ8z99QL0MYUaepKfGWmKfdzqFmMxJsWCh4sioPZ1kw7lEVhjKtNkVfRfQJOAd27hlRLck1hL4OHKeMQXwngDHuKNuBPRfK5IF4xs66n1SgFfWfQvKJlV7FEa7nA6GYuB6ImUTtBdxyjTzdweyaqm5NDD+EACcmN8AAP3Oe1hGxz0Tgwc2lYN1e0+gcOq/WOV125sU32FS65nrKspicYMa2jl9QynVB+gY++TfbaoaXBsBa0QMW32qqRknf3Dh2tSnA=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.12/fosh_fish-0.5.12-patch-desktop.pck",
+        "size": 5740548,
+        "sha256": "632cc64ee619e5ac3bc1c6df92b90b2fcacef813e2efe220859e61bc06953cca",
+        "sig": "s9H2RIkawGYy+08rHXkj2gZ1n0ke+n+KAGQyU8AMMwpdT8jUjMVRClPpDxFxKcdIiyT0jdl69nqPNshR+CNlCmeqey9tc1cT43kk7M4nFigHCGvTfSnw596VJsa3kjBmx6DbM7c6wqk3da9fi3GpEhLF1FohLesAFklI1Xh5ApXYbjKkrbpmgZuy/Xw6+e9U/FEfwdiNKw175nDzG8Hn1VeHuXb0WCRvk2Di4IIppRt4a5z1i0CyGGWTiwKPPq0KodXOnBTMkBS5BR8ai2JTG88wyaLNmZh3T/eai2Pc4ypoRi68F/01DAm+619TnAnLQG+vABlOORv8saixZ0IpvQ=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.11/fosh_fish-0.5.11-patch-android.pck",
-        "size": 9780388,
-        "sha256": "af18e4f958bca5deb0d73b5baa245dc64fa80fbf1ad837d91bd22307d2623638",
-        "sig": "JOHlaOgy//R62OU1nc/uAgEtiriauqMgtBSlIbEkTM/jk1zQ/Zg+rbwucYL6Lb/Fsg1dzFECzbUrp4h2IXbIQ8z99QL0MYUaepKfGWmKfdzqFmMxJsWCh4sioPZ1kw7lEVhjKtNkVfRfQJOAd27hlRLck1hL4OHKeMQXwngDHuKNuBPRfK5IF4xs66n1SgFfWfQvKJlV7FEa7nA6GYuB6ImUTtBdxyjTzdweyaqm5NDD+EACcmN8AAP3Oe1hGxz0Tgwc2lYN1e0+gcOq/WOV125sU32FS65nrKspicYMa2jl9QynVB+gY++TfbaoaXBsBa0QMW32qqRknf3Dh2tSnA=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.12/fosh_fish-0.5.12-patch-android.pck",
+        "size": 5740548,
+        "sha256": "632cc64ee619e5ac3bc1c6df92b90b2fcacef813e2efe220859e61bc06953cca",
+        "sig": "s9H2RIkawGYy+08rHXkj2gZ1n0ke+n+KAGQyU8AMMwpdT8jUjMVRClPpDxFxKcdIiyT0jdl69nqPNshR+CNlCmeqey9tc1cT43kk7M4nFigHCGvTfSnw596VJsa3kjBmx6DbM7c6wqk3da9fi3GpEhLF1FohLesAFklI1Xh5ApXYbjKkrbpmgZuy/Xw6+e9U/FEfwdiNKw175nDzG8Hn1VeHuXb0WCRvk2Di4IIppRt4a5z1i0CyGGWTiwKPPq0KodXOnBTMkBS5BR8ai2JTG88wyaLNmZh3T/eai2Pc4ypoRi68F/01DAm+619TnAnLQG+vABlOORv8saixZ0IpvQ=="
       }
     }
   }
