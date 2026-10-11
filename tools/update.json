@@ -1,27 +1,25 @@
 {
-  "version": "0.5.5",
-  "build": 7,
+  "version": "0.5.6",
+  "build": 8,
   "base": 2,
   "notes": [
-    "Two devices on one account: no more silent overwrites of the other device's progress",
-    "No more random sign-outs with two tabs or windows open",
-    "A cloud save from a newer game version is never replaced by an older copy"
+    "Web: symbols that showed as empty boxes are now icons or plain text"
   ],
   "date": "2026-10-11",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.5/fosh_fish-0.5.5-patch-desktop.pck",
-        "size": 2679900,
-        "sha256": "60a41678d38a1938b623e1a22821fa7a43831c8a66fd6ddd3540d9aa149c36bd",
-        "sig": "G6IrDPQNl227I28QrpUHRLnxLIk0UzJB3eTnqjYDfSLVyNCobUsSqBWXpB6chr7PISu8L6k1UcIkB/apzrjEG0M+O24WkCPj6ZecCLzMsw41qebkA+exzBPS36r0eCpvLQt5NntWSfUFyKzeYP4ZccQsGhinrRdDJsRgHHlNp/yEEE0bVfhbBGkJ6JOmXXOTfQulY8XiwfN5vpiAyGtZ7XZwCAfngIKITPpPcuTm3G3KCyqv3AX7fS00vIV0+ww4u11GdKt4tCV+Hzy+EwnXz481UVv/n0Kz33vDH4rNQMJid7GwC5uA6+Xam1/TBLzoVvfQ2DaHuAjkRnCGRKzgvQ=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.6/fosh_fish-0.5.6-patch-desktop.pck",
+        "size": 2736132,
+        "sha256": "9ac6999293ba49c2d4fac3cb4c254b62506315c1537093d647a3b83a60e26813",
+        "sig": "pM6QLQZf/Ph/XRzn9ubhv0VkLbX5gV1HaSBvw/9yT7Y4HaIoul4e9Esbv1O6Iqr9RsYzGkVg+rEwokAHWTT5GfoWUnZJs6ewWnZPfc7eUzt+v7wzgKPEprcqlxXvPbhLkSX0LTSkOkVLCG/H/DRoiYpl2JPj6Th/I7QSMdCJ4w+cj+tB6auECQBAM+S03iifK2CljMJcCIhAYWrpmwGlBb8dgaVTk5hkv85fWQ+NXrJxhrL20qkX+UIHjSQKRqo8oAPrUWQES2PuYkZPpYldfjJMUjbX6DgYhMzV01zMgaYngEpZQieW9+iKoGSnXdcCPtrk0Y7jn2nMc3F8r4sWuQ=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.5/fosh_fish-0.5.5-patch-android.pck",
-        "size": 2679900,
-        "sha256": "60a41678d38a1938b623e1a22821fa7a43831c8a66fd6ddd3540d9aa149c36bd",
-        "sig": "G6IrDPQNl227I28QrpUHRLnxLIk0UzJB3eTnqjYDfSLVyNCobUsSqBWXpB6chr7PISu8L6k1UcIkB/apzrjEG0M+O24WkCPj6ZecCLzMsw41qebkA+exzBPS36r0eCpvLQt5NntWSfUFyKzeYP4ZccQsGhinrRdDJsRgHHlNp/yEEE0bVfhbBGkJ6JOmXXOTfQulY8XiwfN5vpiAyGtZ7XZwCAfngIKITPpPcuTm3G3KCyqv3AX7fS00vIV0+ww4u11GdKt4tCV+Hzy+EwnXz481UVv/n0Kz33vDH4rNQMJid7GwC5uA6+Xam1/TBLzoVvfQ2DaHuAjkRnCGRKzgvQ=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.6/fosh_fish-0.5.6-patch-android.pck",
+        "size": 2736132,
+        "sha256": "9ac6999293ba49c2d4fac3cb4c254b62506315c1537093d647a3b83a60e26813",
+        "sig": "pM6QLQZf/Ph/XRzn9ubhv0VkLbX5gV1HaSBvw/9yT7Y4HaIoul4e9Esbv1O6Iqr9RsYzGkVg+rEwokAHWTT5GfoWUnZJs6ewWnZPfc7eUzt+v7wzgKPEprcqlxXvPbhLkSX0LTSkOkVLCG/H/DRoiYpl2JPj6Th/I7QSMdCJ4w+cj+tB6auECQBAM+S03iifK2CljMJcCIhAYWrpmwGlBb8dgaVTk5hkv85fWQ+NXrJxhrL20qkX+UIHjSQKRqo8oAPrUWQES2PuYkZPpYldfjJMUjbX6DgYhMzV01zMgaYngEpZQieW9+iKoGSnXdcCPtrk0Y7jn2nMc3F8r4sWuQ=="
       }
     }
   }
