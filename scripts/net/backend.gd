@@ -73,6 +73,7 @@ var _quitting := false
 var _applying := false
 var _uploading := false
 var _cloud_newer := false       # the cloud save was written by a newer game version: never upload over it
+var _races := 0                 # uploads in a row that found the cloud changed by another device
 var _synced_fp := ""            # fingerprint of the save this device last uploaded / downloaded
 var _synced_at := ""            # the cloud row's updated_at at that moment
 
@@ -163,7 +164,7 @@ func sign_in(mail: String, password: String) -> void:
 func restore_session() -> void:
 	if _refresh_token == "" or not configured(): return
 	if not _begin("restore"): return
-	var r := await _http(POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": _refresh_token})
+	var r := await _refresh_call()
 	var d: Variant = r.data
 	if r.ok and d is Dictionary and d.has("access_token"):
 		await _signed_in(d, "")
@@ -301,6 +302,7 @@ func _reconcile() -> void:
 	var vf = _vf()
 	var local := summarize(vf.to_dict())
 	if not (rows is Array) or rows.is_empty() or not (rows[0] is Dictionary):
+		_synced_at = ""                          # no cloud row to compare with: a plain insert
 		await _upload(false)                     # first sign-in anywhere: the cloud gets this save
 		return
 	var row: Dictionary = rows[0]
@@ -323,6 +325,7 @@ func _reconcile() -> void:
 			_mark_synced(local.fp, cloud.updated_at)
 			_sync_ok()
 		"upload":
+			_synced_at = cloud.updated_at        # the cloud still holds what we last synced: replace exactly that row
 			await _upload(false)
 		"download":
 			_apply_cloud(data, cloud.updated_at, "Loaded your cloud save (Lv %s, P%d)." % [_commas(cloud.level), cloud.prestige])
@@ -366,10 +369,31 @@ func _upload(overwrite: bool) -> void:
 	# always sent: true only when the player chose to replace a cloud save that has more progress.
 	var body := {"user_id": user_id, "data": d, "level": s.level, "prestige": s.prestige, "money_earned": s.money_earned,
 		"overwrite": overwrite}
-	var r := await _authed(POST, "/rest/v1/saves?select=updated_at", body,
-		PackedStringArray(["Prefer: resolution=merge-duplicates,return=representation"]))
+	var r: Dictionary
+	if not overwrite and _synced_at != "":
+		# Only replace the cloud save this device last saw. If another device (or tab) saved since, nothing is
+		# written: look again, then download, upload or ask - instead of the last upload silently winning.
+		body.erase("user_id")
+		r = await _authed(PATCH, "/rest/v1/saves?user_id=eq.%s&updated_at=eq.%s&select=updated_at" % [user_id.uri_encode(),
+			_synced_at.uri_encode()], body, PackedStringArray(["Prefer: return=representation"]))
+		if r.ok and r.data is Array and (r.data as Array).is_empty():
+			_uploading = false
+			dirty = true
+			_races += 1
+			if _races > 2:                          # keeps happening: stop and say so instead of looping
+				_races = 0
+				sync_state = "error"
+				sync_error = "Another device keeps saving at the same time. Close the game there, then press Save now."
+				status_changed.emit()
+				return
+			await _reconcile()
+			return
+	else:
+		r = await _authed(POST, "/rest/v1/saves?select=updated_at", body,
+			PackedStringArray(["Prefer: resolution=merge-duplicates,return=representation"]))
 	_uploading = false
 	if r.ok:
+		_races = 0
 		var at := ""
 		var rows: Variant = r.data
 		if rows is Array and not rows.is_empty() and rows[0] is Dictionary: at = str(rows[0].get("updated_at", ""))
@@ -544,7 +568,12 @@ func _do_refresh() -> bool:
 	if _refreshing:
 		return await _refresh_done
 	_refreshing = true
-	var r := await _http(POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": _refresh_token})
+	# another tab / window may have refreshed already: then its access token is still good
+	if _adopt_shared() and _access != "" and Time.get_unix_time_from_system() < _expires - 30.0:
+		_refreshing = false
+		_refresh_done.emit(true)
+		return true
+	var r := await _refresh_call()
 	var d: Variant = r.data
 	var ok := false
 	if r.ok and d is Dictionary and d.has("access_token"):
@@ -591,6 +620,56 @@ func _forget() -> void:
 	need_new_password = false
 	_save_account()
 
+
+# --------------------------------------------------------- shared session
+## Supabase refresh tokens are single-use. Two tabs (or two game windows) that each refresh with the same
+## token would get one of them rejected, and that used to sign the player out everywhere. So every tab /
+## window keeps the newest session in one shared place - the account file on desktop and phones,
+## localStorage on the web (each web tab has its own copy of user://) - and takes it from there first.
+const SHARED_KEY := "fosh_session"
+
+func _read_shared() -> Dictionary:
+	if OS.has_feature("web"):
+		var raw: Variant = JavaScriptBridge.eval("localStorage.getItem('%s')" % SHARED_KEY, true)
+		if raw is String and raw != "":
+			var d: Variant = JSON.parse_string(raw)
+			if d is Dictionary: return d
+		return {}
+	var c := ConfigFile.new()
+	if c.load(account_file) != OK: return {}
+	return {"refresh": str(c.get_value("session", "refresh_token", "")), "access": str(c.get_value("session", "access_token", "")),
+		"expires": float(c.get_value("session", "expires", 0.0)), "user": str(c.get_value("session", "user_id", ""))}
+
+func _write_shared() -> void:
+	if not OS.has_feature("web"): return            # elsewhere the account file is the shared copy
+	if _refresh_token == "":
+		JavaScriptBridge.eval("localStorage.removeItem('%s')" % SHARED_KEY, true)
+		return
+	var s := JSON.stringify({"refresh": _refresh_token, "access": _access, "expires": _expires, "user": user_id})
+	JavaScriptBridge.eval("localStorage.setItem('%s', %s)" % [SHARED_KEY, JSON.stringify(s)], true)
+
+## Take a newer session another tab / window saved (same account only). True if anything changed.
+func _adopt_shared() -> bool:
+	var sh := _read_shared()
+	var rt := str(sh.get("refresh", ""))
+	if rt == "" or rt == _refresh_token: return false
+	if user_id != "" and str(sh.get("user", "")) != user_id: return false
+	_refresh_token = rt
+	var exp := float(sh.get("expires", 0.0))
+	if str(sh.get("access", "")) != "" and exp > Time.get_unix_time_from_system() + 30.0:
+		_access = str(sh.get("access", ""))
+		_expires = exp
+	return true
+
+## Refresh the session. If the server turns our token down because another tab / window used it first,
+## try once more with the token that one saved.
+func _refresh_call() -> Dictionary:
+	_adopt_shared()
+	var r := await _http(POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": _refresh_token})
+	if not r.ok and not r.net and int(r.code) < 500 and _adopt_shared():
+		r = await _http(POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": _refresh_token})
+	return r
+
 # ------------------------------------------------------------------ state
 func _begin(what: String) -> bool:
 	if state == "busy": return false
@@ -624,6 +703,7 @@ func _load_account() -> void:
 	user_id = str(c.get_value("session", "user_id", ""))
 	email = str(c.get_value("session", "email", ""))
 	display_name = str(c.get_value("session", "display_name", ""))
+	_adopt_shared()                     # web: another tab may hold a newer session than this tab's copy
 
 func _save_account() -> void:
 	var c := ConfigFile.new()
@@ -631,10 +711,13 @@ func _save_account() -> void:
 	if c.has_section("session"): c.erase_section("session")
 	if _refresh_token != "":
 		c.set_value("session", "refresh_token", _refresh_token)
+		c.set_value("session", "access_token", _access)
+		c.set_value("session", "expires", _expires)
 		c.set_value("session", "user_id", user_id)
 		c.set_value("session", "email", email)
 		c.set_value("session", "display_name", display_name)
 	c.save(account_file)
+	_write_shared()
 
 func _load_sync_marks() -> void:
 	var c := ConfigFile.new()

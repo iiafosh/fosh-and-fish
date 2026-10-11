@@ -142,6 +142,58 @@ func run(main, out_dir: String) -> void:
 	await B.sync_now()
 	check(B.sync_state == "ok" and B.state == "signed_in", "expired access token refreshed transparently")
 
+	# ---- another window of the game refreshed the session first (refresh tokens are single-use)
+	var other_rt: Dictionary = await B._http(HTTPClient.METHOD_POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": B._refresh_token})
+	check(other_rt.ok, "another window refreshed the session (our refresh token is now used up)")
+	if other_rt.ok:
+		var cf := ConfigFile.new()                    # ... and saved its tokens where every window looks
+		cf.load(B.account_file)
+		cf.set_value("session", "refresh_token", other_rt.data.refresh_token)
+		cf.set_value("session", "access_token", other_rt.data.access_token)
+		cf.set_value("session", "expires", Time.get_unix_time_from_system() + 3600.0)
+		cf.save(B.account_file)
+	B._expires = 0.0                                  # our access token "expired": we must refresh now
+	VF.xp += 5
+	VF.changed.emit()
+	await B.sync_now()
+	check(B.state == "signed_in" and B.sync_state == "ok" and B._refresh_token == str(other_rt.get("data", {}).get("refresh_token", "")),
+		"took the other window's session instead of signing out (state %s, sync %s)" % [B.state, B.sync_state])
+	B._expires = 0.0
+	await mock(HTTPClient.METHOD_POST, "/__mock/expire_tokens")   # the shared access token is dead too: refresh with the shared refresh token
+	VF.xp += 5
+	VF.changed.emit()
+	await B.sync_now()
+	check(B.state == "signed_in" and B.sync_state == "ok", "then refreshed with the shared token (state %s, sync %s)" % [B.state, B.sync_state])
+
+	# ---- another device saved in between: this device's next upload must not silently replace it
+	var dev_b: Dictionary = (await cloud()).get("data", {}).duplicate(true)
+	dev_b["money"] = float(dev_b.get("money", 0)) + 777777.0   # same level: the server's no-downgrade rule can't catch this
+	var put_b: Dictionary = await B._http(HTTPClient.METHOD_POST, "/rest/v1/saves?select=updated_at",
+		{"user_id": B.user_id, "data": dev_b, "level": 131, "prestige": 1, "money_earned": 0, "overwrite": false},
+		PackedStringArray(["Prefer: resolution=merge-duplicates,return=representation"]), B._access)
+	check(put_b.ok, "device B saved +777,777 coins (same level) to the same account")
+	VF.xp += 50                                       # meanwhile this device played on too
+	VF.changed.emit()
+	await B.sync_now()
+	c = await cloud()
+	check(B.sync_state == "conflict" and float(c.get("data", {}).get("money", 0)) == float(dev_b.money),
+		"both devices moved -> this device asks instead of overwriting device B's coins (sync %s)" % B.sync_state)
+	await shot("account_4b_two_devices")
+	await B.resolve_conflict(false)                    # the player keeps this device's save
+	c = await cloud()
+	check(B.sync_state == "ok" and float(c.get("data", {}).get("money", 0)) == float(VF.money), "player kept this device -> its save is in the cloud")
+	VF.xp += 5                                        # and plain syncing carries on afterwards
+	VF.changed.emit()
+	await B.sync_now()
+	check(B.sync_state == "ok" and not B.dirty, "uploads continue after the choice (sync %s)" % B.sync_state)
+	var dev_b2: Dictionary = (await cloud()).get("data", {}).duplicate(true)
+	dev_b2["xp"] = int(dev_b2.get("xp", 0)) + 999      # device B saves again; this device has nothing new
+	await B._http(HTTPClient.METHOD_POST, "/rest/v1/saves?select=updated_at",
+		{"user_id": B.user_id, "data": dev_b2, "level": 131, "prestige": 1, "money_earned": 0, "overwrite": false},
+		PackedStringArray(["Prefer: resolution=merge-duplicates,return=representation"]), B._access)
+	await B._reconcile()                              # (what happens on the next start / sign-in)
+	check(B.sync_state == "ok" and int(VF.xp) == int(dev_b2.xp), "only the other device moved -> its save downloads (xp %s)" % VF.xp)
+
 	# ---- leaderboard
 	m._open_panel("account", "Leaderboard")
 	await wait(0.1)                              # the stale board reloads on the next frame

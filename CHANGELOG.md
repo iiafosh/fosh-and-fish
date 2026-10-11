@@ -2,6 +2,12 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.5 — in-game update
+
+- **Two devices, one account:** if your phone saved while your PC was also playing, the PC's next cloud save used to replace it silently (coins and fish from the phone were lost). Now the game only replaces the cloud save it last saw; if another device saved in between it checks again and loads it, or asks you which one to keep.
+- **No more random sign-outs with two tabs or windows open:** logins are single-use behind the scenes, so the second tab used to get signed out. Tabs and windows now share the newest login.
+- A cloud save made by a newer version of the game is never replaced by an older copy; the older copy asks you to update instead.
+
 ## 0.5.4 — in-game update
 
 Get it in the game: **Menu → Updates → Update now** (the web version updates on reload).
