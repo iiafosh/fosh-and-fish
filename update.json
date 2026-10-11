@@ -1,25 +1,25 @@
 {
-  "version": "0.5.8",
-  "build": 10,
+  "version": "0.5.9",
+  "build": 11,
   "base": 2,
   "notes": [
-    "A title screen: sign in, cloud save status, updates and Play in one place before you enter the game"
+    "Web: the title screen's update check works right away"
   ],
   "date": "2026-10-11",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.8/fosh_fish-0.5.8-patch-desktop.pck",
-        "size": 4424828,
-        "sha256": "2ce11831169785af9dd9e75df77618601eb6a0456fb8b315d10142e10461b19f",
-        "sig": "Wvq6FSv2nv32kpShjCA0mC9fmBu2tXm8chocizXMFyJqjMS22wA7HqfGSfGQEmFLzx5arK5kacXSJJp5aCqlVvQbtO86yvcnTw0D1PPDrhcJDgIcXOr+87ZyuRF8aEjEGjIdu0YqHN5jhrHXI/5um7UGm3lpNdzmR3zgHxvDKVa/dXvF+rQ8qs8H6bxVg6hXPN3OeCM65S4gWlu0z2QpL0jSj7mIr/Sf9QjOUJV0fTn4PzpvnqX0D0T7BUZuNTd4n2au7/Tc32EmQxsIOrMeLyszcu8aiyib6yd7F22EED4RrtHE+fwzPXzuuR+t5jCiZgIHZvAyzgkYlq08DFYRCA=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.9/fosh_fish-0.5.9-patch-desktop.pck",
+        "size": 4424780,
+        "sha256": "3b86d20791ed00661f1000b2f9aba6e808e538d5140ae36447480f0f9531656f",
+        "sig": "pmdAFDp9DPsQpSd5WQ1/EwvRiqoQvmrIY0Spqb/U1XQNSaci1H6q+RtYsu059LTWiWFojsnWDwnnfoL3kFKGa+c0mMEYGfGeG27GPITX9IuGTRI4oydkRyUMdo2puBZ68jLVd26qhd5yccGSw6TAzqRJ7Ts/85GeoD3+bloTdMv/T+hWHV87ZAivVeVAW6tBlMs58y7rZyfTuI692WkTNamuqcR5/zn1OEe9B/s0oXiEgv666qxaYWg1pNQtz1iPsmX65h+oYCgc8n15TTwgQ9DWvQI1Pm86ERiv/hsDclaROI7E3PegnVsscWVZUlj18jfK7KbQz3nK1cN+EXlrBw=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.8/fosh_fish-0.5.8-patch-android.pck",
-        "size": 4424828,
-        "sha256": "2ce11831169785af9dd9e75df77618601eb6a0456fb8b315d10142e10461b19f",
-        "sig": "Wvq6FSv2nv32kpShjCA0mC9fmBu2tXm8chocizXMFyJqjMS22wA7HqfGSfGQEmFLzx5arK5kacXSJJp5aCqlVvQbtO86yvcnTw0D1PPDrhcJDgIcXOr+87ZyuRF8aEjEGjIdu0YqHN5jhrHXI/5um7UGm3lpNdzmR3zgHxvDKVa/dXvF+rQ8qs8H6bxVg6hXPN3OeCM65S4gWlu0z2QpL0jSj7mIr/Sf9QjOUJV0fTn4PzpvnqX0D0T7BUZuNTd4n2au7/Tc32EmQxsIOrMeLyszcu8aiyib6yd7F22EED4RrtHE+fwzPXzuuR+t5jCiZgIHZvAyzgkYlq08DFYRCA=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.9/fosh_fish-0.5.9-patch-android.pck",
+        "size": 4424780,
+        "sha256": "3b86d20791ed00661f1000b2f9aba6e808e538d5140ae36447480f0f9531656f",
+        "sig": "pmdAFDp9DPsQpSd5WQ1/EwvRiqoQvmrIY0Spqb/U1XQNSaci1H6q+RtYsu059LTWiWFojsnWDwnnfoL3kFKGa+c0mMEYGfGeG27GPITX9IuGTRI4oydkRyUMdo2puBZ68jLVd26qhd5yccGSw6TAzqRJ7Ts/85GeoD3+bloTdMv/T+hWHV87ZAivVeVAW6tBlMs58y7rZyfTuI692WkTNamuqcR5/zn1OEe9B/s0oXiEgv666qxaYWg1pNQtz1iPsmX65h+oYCgc8n15TTwgQ9DWvQI1Pm86ERiv/hsDclaROI7E3PegnVsscWVZUlj18jfK7KbQz3nK1cN+EXlrBw=="
       }
     }
   }
