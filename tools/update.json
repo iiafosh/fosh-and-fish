@@ -1,27 +1,25 @@
 {
-  "version": "0.5.7",
-  "build": 9,
+  "version": "0.5.8",
+  "build": 10,
   "base": 2,
   "notes": [
-    "Phones: drag anywhere on a menu to scroll, flick to keep it moving",
-    "Phones: smaller default interface + Settings > Interface size (Smaller / Normal / Bigger)",
-    "Phones: the Account form fills the screen"
+    "A title screen: sign in, cloud save status, updates and Play in one place before you enter the game"
   ],
   "date": "2026-10-11",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.7/fosh_fish-0.5.7-patch-desktop.pck",
-        "size": 2745528,
-        "sha256": "e5bfb5af126c43f14fa8bcf7b87041e818272d39dbc21cf03e776c0c8a5a7526",
-        "sig": "LqzCLEkvKA0Os3Oua1ow5b7pyu5XWwGVH/EITNfzfHTU/FOMTIcSG+QsrY0qntXco2zxFD451R5VKz4HKbKNxjILF/Z4w5THQN0B6G+rmQ5cQ0Y2KIXPuAXKCuZHPk2z6uSnbmq441OhORdccmCnRSxoZQ0MkerqXoFPSgYFbuLgnNwwB6ccSseGS/mHqoB+hgcNczrpJPCUABgHG1v4pOLTPdsG/iw+vpnjgeFhUN87gIm7VHrqXmTMV1TtEjPEUTMqUs8i3mul1szAgLspyoHlMDLwtTYJ3q+vcQDMHORiTJ/0TZSV6bYw3cPrCl0aMBV15oZ/kM/yepXXibdH6w=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.8/fosh_fish-0.5.8-patch-desktop.pck",
+        "size": 4424828,
+        "sha256": "2ce11831169785af9dd9e75df77618601eb6a0456fb8b315d10142e10461b19f",
+        "sig": "Wvq6FSv2nv32kpShjCA0mC9fmBu2tXm8chocizXMFyJqjMS22wA7HqfGSfGQEmFLzx5arK5kacXSJJp5aCqlVvQbtO86yvcnTw0D1PPDrhcJDgIcXOr+87ZyuRF8aEjEGjIdu0YqHN5jhrHXI/5um7UGm3lpNdzmR3zgHxvDKVa/dXvF+rQ8qs8H6bxVg6hXPN3OeCM65S4gWlu0z2QpL0jSj7mIr/Sf9QjOUJV0fTn4PzpvnqX0D0T7BUZuNTd4n2au7/Tc32EmQxsIOrMeLyszcu8aiyib6yd7F22EED4RrtHE+fwzPXzuuR+t5jCiZgIHZvAyzgkYlq08DFYRCA=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.7/fosh_fish-0.5.7-patch-android.pck",
-        "size": 2745528,
-        "sha256": "e5bfb5af126c43f14fa8bcf7b87041e818272d39dbc21cf03e776c0c8a5a7526",
-        "sig": "LqzCLEkvKA0Os3Oua1ow5b7pyu5XWwGVH/EITNfzfHTU/FOMTIcSG+QsrY0qntXco2zxFD451R5VKz4HKbKNxjILF/Z4w5THQN0B6G+rmQ5cQ0Y2KIXPuAXKCuZHPk2z6uSnbmq441OhORdccmCnRSxoZQ0MkerqXoFPSgYFbuLgnNwwB6ccSseGS/mHqoB+hgcNczrpJPCUABgHG1v4pOLTPdsG/iw+vpnjgeFhUN87gIm7VHrqXmTMV1TtEjPEUTMqUs8i3mul1szAgLspyoHlMDLwtTYJ3q+vcQDMHORiTJ/0TZSV6bYw3cPrCl0aMBV15oZ/kM/yepXXibdH6w=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.8/fosh_fish-0.5.8-patch-android.pck",
+        "size": 4424828,
+        "sha256": "2ce11831169785af9dd9e75df77618601eb6a0456fb8b315d10142e10461b19f",
+        "sig": "Wvq6FSv2nv32kpShjCA0mC9fmBu2tXm8chocizXMFyJqjMS22wA7HqfGSfGQEmFLzx5arK5kacXSJJp5aCqlVvQbtO86yvcnTw0D1PPDrhcJDgIcXOr+87ZyuRF8aEjEGjIdu0YqHN5jhrHXI/5um7UGm3lpNdzmR3zgHxvDKVa/dXvF+rQ8qs8H6bxVg6hXPN3OeCM65S4gWlu0z2QpL0jSj7mIr/Sf9QjOUJV0fTn4PzpvnqX0D0T7BUZuNTd4n2au7/Tc32EmQxsIOrMeLyszcu8aiyib6yd7F22EED4RrtHE+fwzPXzuuR+t5jCiZgIHZvAyzgkYlq08DFYRCA=="
       }
     }
   }
