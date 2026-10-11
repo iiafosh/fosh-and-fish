@@ -1,11 +1,13 @@
 # foshfish.xyz: website, web game and email
 
-The domain is registered with Hostinger (nameservers `*.dns-parking.com`). Everything below is done in
-**Hostinger hPanel → Domains → foshfish.xyz → DNS / Nameservers → DNS records**.
+The domain is registered with Hostinger; its DNS is on **Cloudflare** (nameservers `*.ns.cloudflare.com`). DNS records are edited in
+**Cloudflare → foshfish.xyz → DNS → Records** (always "DNS only", not proxied: GitHub issues the HTTPS certificate).
 
 ## 1. Point the domain at GitHub Pages (the website)
 
-1. Delete the parking records: the `A` record for `@` (`2.57.91.91`) and any `CNAME` for `www`.
+**Done on 2026-10-12** (A records + www CNAME, DNS only; the site went live the same day, HTTPS enforced).
+
+1. Remove any parking records.
 2. Add these records:
 
 | Type  | Name | Points to             |
@@ -46,7 +48,7 @@ emails a month).
 1. Make an account at resend.com.
 2. **Domains → Add domain** → `foshfish.xyz`, region **EU (Ireland)** (the same region as the Supabase project).
 3. Resend shows 3–4 DNS records (an `MX` and a `TXT` for `send`, a `TXT` for `resend._domainkey`, and
-   optionally a `TXT` for `_dmarc`). Add each one in Hostinger **exactly** as shown, then press **Verify**.
+   optionally a `TXT` for `_dmarc`). Add each one in Cloudflare **exactly** as shown (DNS only), then press **Verify**.
 4. **API Keys → Create** (permission: sending access). Copy the key: it's shown only once.
 5. Supabase → Authentication → Emails → **SMTP Settings**:
 

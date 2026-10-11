@@ -13,7 +13,7 @@ extends Node
 
 signal status_changed
 
-const MANIFEST_URL := "https://iiafosh.github.io/fosh-and-fish/update.json"
+const MANIFEST_URL := "https://foshfish.xyz/update.json"     # (was iiafosh.github.io/fosh-and-fish: it redirects here)
 const RELEASES_URL := "https://github.com/iiafosh/fosh-and-fish/releases/latest"
 const BUILD_FILE := "res://data/build.json"
 const DIR := "user://patches/"

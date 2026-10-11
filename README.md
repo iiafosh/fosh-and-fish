@@ -12,7 +12,7 @@ Made with **Godot 4**; all the art is rendered in **Blender**.
 
 | Device | How |
 |---|---|
-| 🌐 **Browser / iPhone** | Play instantly at **https://iiafosh.github.io/fosh-and-fish/** (Safari: Share → Add to Home Screen) |
+| 🌐 **Browser** | Play instantly at **https://foshfish.xyz/play/** |
 | 🖥️ **Windows** | [Releases](https://github.com/iiafosh/fosh-and-fish/releases/latest) → `fosh_fish-0.5-windows.zip` → extract → `fosh_fish.exe` |
 | 📱 **Android** | [Releases](https://github.com/iiafosh/fosh-and-fish/releases/latest) → `fosh_fish-0.5-android.apk` → allow *Install unknown apps* |
 | 🐧 **Linux** | [Releases](https://github.com/iiafosh/fosh-and-fish/releases/latest) → `fosh_fish-0.5-linux.tar.gz` → `./fosh_fish.x86_64` |

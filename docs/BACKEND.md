@@ -60,9 +60,9 @@ Open **Authentication**.
   <p>Enter it in the game (Menu → Account → Forgot password?) together with your new password.
      It expires in one hour. If you didn't ask for this, ignore this email.</p>
   ```
-- **URL Configuration → Site URL**: `https://iiafosh.github.io/fosh-and-fish/` (or
-  `https://fosh.fish/` once the domain points there). Links in emails ("confirm your email") open
-  the web game, which then signs in on its own.
+- **URL Configuration → Site URL**: `https://foshfish.xyz/play/` (the web game on the game's domain,
+  see `docs/DOMAIN.md`). Links in emails ("confirm your email") open the web game, which then signs
+  in on its own.
 - **Passwords**: the game asks for at least 6 characters, which is Supabase's default. If you
   raise the minimum in Supabase, also raise `PASSWORD_MIN` in `scripts/net/backend.gd`.
 

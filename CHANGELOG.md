@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5.14 — in-game update
+
+- **fosh&fish has a home: https://foshfish.xyz** (downloads for Windows, Linux and Android). The web version moved to **https://foshfish.xyz/play/**. The game now checks for updates there.
+
 ## 0.5.13 — in-game update
 
 - Logo tidy-up: the splash line under "fish" is gone (it looked like an underline), and the logo on the title screen is smaller.
