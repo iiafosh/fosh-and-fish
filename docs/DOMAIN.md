@@ -45,7 +45,8 @@ in again and their cloud save comes back.
 Supabase sends the reset code through an email service. With the domain, use **Resend** (free: 3,000
 emails a month).
 
-**Steps 1–3 done on 2026-10-12** (Resend account `mk1440165`, domain verified, region Ireland).
+**Done.** Resend account `mk1440165`, domain verified 2026-10-12 (region Ireland); Supabase sends through
+Resend, and the owner confirmed reset emails arrive (2026-10-14).
 
 1. Make an account at resend.com.
 2. **Domains → Add domain** → `foshfish.xyz`, region **EU (Ireland)** (the same region as the Supabase project).
@@ -67,3 +68,6 @@ emails a month).
 
 6. Save, then try **Menu → Account → Forgot password?** in the game. The email contains the code
    (the Reset password template already has `{{ .Token }}`).
+   If the game says "We couldn't send the email", open Supabase → **Logs → Auth** and click the failed
+   `/recover`: `535 "Authentication credentials invalid"` means the key in the Password field is wrong
+   (copy it from the dialog when you create it: the keys list only shows its first characters).
