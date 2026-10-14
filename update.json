@@ -1,25 +1,30 @@
 {
-  "version": "0.5.14",
-  "build": 16,
-  "base": 2,
+  "version": "0.5",
+  "build": 17,
+  "base": 17,
   "notes": [
-    "fosh&fish has a home: foshfish.xyz (the web version is at foshfish.xyz/play)"
+    "fosh&fish 0.5, the full release: everything from the 0.5 updates in one download",
+    "New downloads at foshfish.xyz have the new app icon and loading screen",
+    "A title screen: sign in, updates and Play in one place",
+    "Sail between biomes, the FishTok phone, online accounts with cloud save and a worldwide leaderboard",
+    "Phones: menus scroll with your finger and the interface fits better",
+    "Play in your browser at foshfish.xyz/play"
   ],
-  "date": "2026-10-12",
+  "date": "2026-10-14",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "2": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.14/fosh_fish-0.5.14-patch-desktop.pck",
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/dev-base-b17/fosh_fish-0.5-patch-desktop.pck",
         "size": 5736452,
-        "sha256": "c6068a2f70369e46af5849535e4b6dbfc1b64bcc6422e448485ea7114cf1e7e3",
-        "sig": "dHBokWjxjgvdeD7wrt32aH/8BNxVodRF9ux/aP0hrhJs95vgfvon0dEu+jzddBs7oiNh5ElDvsPXcxsqqGmJuyUIHLMv7mf/Eg9a3jfSt8UaExCYPVDQnb8nkOp4/dKeEKHRklM9SS5GtS0ZeJ3F7vwyVe/at66h8FrycX6FSS+yTdy5pXBpzF91Mo46syIl572M6CHKfMIMENkX9UcmoO81tIf0/fijlB2YWoxGXZSYLIFZrgjy5JprCjLxbqEAJUZpHKBB+IjLO/tFUubvyTiKWnP1faFVG3LIE1OTVkQ+/8Ujk/dk0d8VPV2jgsRBE428/KrfGLCgWczUbrJuVg=="
+        "sha256": "da7a1c5bd84dc55fc0f8ac80e60c10bcb45441c5304ca3ba51d80e60622fa421",
+        "sig": "j46rBrithHIebvTcPg9BwviYeI06H0Ypk87DKDuFzS6HBhSd70e0IQwIgCDZdAegaDjoB1caxfVREoWiqdnfhv0GvTphPXTBpDTMhwZpKiiA5mz2vR2tyn3WXujpBC+6MEQZTp3Id22xuOeWlt1z4GRuYqpjQrtV9hy4eCJRHuczZ3XmoVjjRkM6qj3IOtSbYTEIIXp2cBFJS7JL0AcNLb2qARI9fENIihJqe8J9xzoPgoN9m7UwPThcAjv9jFaX8kxh0xDOccQMdCoqsp8odGJLUrxQmZXGRU9xOkt1sn53ZIH9aZwWI5kVxnMWMS0f980ydmZGd6MXwvlgTQgRjQ=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v0.5.14/fosh_fish-0.5.14-patch-android.pck",
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/dev-base-b17/fosh_fish-0.5-patch-android.pck",
         "size": 5736452,
-        "sha256": "c6068a2f70369e46af5849535e4b6dbfc1b64bcc6422e448485ea7114cf1e7e3",
-        "sig": "dHBokWjxjgvdeD7wrt32aH/8BNxVodRF9ux/aP0hrhJs95vgfvon0dEu+jzddBs7oiNh5ElDvsPXcxsqqGmJuyUIHLMv7mf/Eg9a3jfSt8UaExCYPVDQnb8nkOp4/dKeEKHRklM9SS5GtS0ZeJ3F7vwyVe/at66h8FrycX6FSS+yTdy5pXBpzF91Mo46syIl572M6CHKfMIMENkX9UcmoO81tIf0/fijlB2YWoxGXZSYLIFZrgjy5JprCjLxbqEAJUZpHKBB+IjLO/tFUubvyTiKWnP1faFVG3LIE1OTVkQ+/8Ujk/dk0d8VPV2jgsRBE428/KrfGLCgWczUbrJuVg=="
+        "sha256": "da7a1c5bd84dc55fc0f8ac80e60c10bcb45441c5304ca3ba51d80e60622fa421",
+        "sig": "j46rBrithHIebvTcPg9BwviYeI06H0Ypk87DKDuFzS6HBhSd70e0IQwIgCDZdAegaDjoB1caxfVREoWiqdnfhv0GvTphPXTBpDTMhwZpKiiA5mz2vR2tyn3WXujpBC+6MEQZTp3Id22xuOeWlt1z4GRuYqpjQrtV9hy4eCJRHuczZ3XmoVjjRkM6qj3IOtSbYTEIIXp2cBFJS7JL0AcNLb2qARI9fENIihJqe8J9xzoPgoN9m7UwPThcAjv9jFaX8kxh0xDOccQMdCoqsp8odGJLUrxQmZXGRU9xOkt1sn53ZIH9aZwWI5kVxnMWMS0f980ydmZGd6MXwvlgTQgRjQ=="
       }
     }
   }
