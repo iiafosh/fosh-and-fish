@@ -2,6 +2,10 @@
 
 FULL release (players download new files once; becomes the new base for patches):
     python tools/release.py full 0.5 -n "Sailing between biomes" -n "FishTok" --publish
+Installs of the previous full release also get it as an in-game update (a patch against the old
+base), unless --no-old-patch (needed when the release adds autoloads, class_name scripts or project
+settings). Releasing a version that already has a release (e.g. rolling 0.5.1-0.5.14 into a fresh
+"0.5") replaces its downloads, keeps its other files (trailers) and moves its tag here.
 
 PATCH (an in-game update: players press "Update now"; only changed files are sent):
     python tools/release.py patch 0.5.1 -n "Faster early levels" --publish
@@ -117,6 +121,30 @@ def export_games(version):
     return files
 
 
+def build_patches(version, base, build, url_base):
+    """Signed patch .pcks (desktop, android) that turn an install of full release `base` into this build."""
+    base_dir = os.path.join(B, "base", f"b{base}")
+    if not all(os.path.exists(os.path.join(base_dir, f"{p}.pck")) for p in PLATFORMS):
+        os.makedirs(base_dir, exist_ok=True)
+        run(["gh", "release", "download", f"dev-base-b{base}", "-R", REPO, "-D", base_dir, "--clobber"])
+    out = os.path.join(B, "patches", f"b{build}")
+    os.makedirs(out, exist_ok=True)
+    entry, files = {}, []
+    for plat, preset in PLATFORMS.items():
+        name = f"fosh_fish-{version}-patch-{plat}.pck"
+        path = os.path.join(out, name)
+        godot("--export-patch", preset, os.path.relpath(path, ROOT), "--patches", os.path.join(base_dir, f"{plat}.pck"))
+        sha, sig = sign(path)
+        entry[plat] = {"url": url_base.rstrip("/") + "/" + name, "size": os.path.getsize(path), "sha256": sha, "sig": sig}
+        files.append(path)
+        print(f"  {plat} (from b{base}): {os.path.getsize(path) / 1048576:.2f} MB")
+    return entry, files
+
+
+def release_exists(tag):
+    return subprocess.run(["gh", "release", "view", tag, "-R", REPO], cwd=ROOT, capture_output=True).returncode == 0
+
+
 SITE_DOMAIN = "foshfish.xyz"
 GAME_FILE = re.compile(r"^index\.")     # the web export's files: index.html, .js, .wasm, .pck, icons, worker, ...
 
@@ -180,6 +208,7 @@ def main():
     ap.add_argument("-n", "--note", action="append", default=[], help="a line for 'What's new' (repeat)")
     ap.add_argument("--publish", action="store_true")
     ap.add_argument("--local", help="test manifest: download links point at this base URL")
+    ap.add_argument("--no-old-patch", action="store_true", help="full: no in-game update for installs of the previous full release")
     a = ap.parse_args()
 
     manifest = load(STATE, {"build": 1, "version": "0.1.0", "base": 1, "patches": {}})
@@ -190,35 +219,30 @@ def main():
     print(f"== {a.kind} release {a.version} (build {build})")
     godot("--import")
 
-    assets = []
+    assets = []           # files for the player-facing release
+    dev_assets = []       # files for the "dev base" pre-release (full releases)
     if a.kind == "full":
+        old_base = int(manifest["base"])
         stamp_presets(a.version, build)
         assets = export_games(a.version)
         base_dir = os.path.join(B, "base", f"b{build}")
         os.makedirs(base_dir, exist_ok=True)
         for plat, preset in PLATFORMS.items():
             godot("--export-pack", preset, os.path.relpath(os.path.join(base_dir, f"{plat}.pck"), ROOT))
+        dev_assets = [os.path.join(base_dir, f"{p}.pck") for p in PLATFORMS]
+        patches = {}
+        if not a.no_old_patch and old_base != build:
+            # players on the previous full release update in-game; the patch files sit with the dev base files
+            entry, files = build_patches(a.version, old_base, build,
+                                         a.local or f"https://github.com/{REPO}/releases/download/dev-base-b{build}")
+            patches[str(old_base)] = entry
+            dev_assets += files
         manifest = {"version": a.version, "build": build, "base": build, "notes": a.note,
                     "date": time.strftime("%Y-%m-%d"), "full_url": f"https://github.com/{REPO}/releases/latest",
-                    "patches": {}}
+                    "patches": patches}
     else:
         base = int(manifest["base"])
-        base_dir = os.path.join(B, "base", f"b{base}")
-        if not all(os.path.exists(os.path.join(base_dir, f"{p}.pck")) for p in PLATFORMS):
-            os.makedirs(base_dir, exist_ok=True)
-            run(["gh", "release", "download", f"dev-base-b{base}", "-R", REPO, "-D", base_dir, "--clobber"])
-        out = os.path.join(B, "patches", f"b{build}")
-        os.makedirs(out, exist_ok=True)
-        entry = {}
-        for plat, preset in PLATFORMS.items():
-            name = f"fosh_fish-{a.version}-patch-{plat}.pck"
-            path = os.path.join(out, name)
-            godot("--export-patch", preset, os.path.relpath(path, ROOT), "--patches", os.path.join(base_dir, f"{plat}.pck"))
-            sha, sig = sign(path)
-            url = (a.local.rstrip("/") + "/" + name) if a.local else f"https://github.com/{REPO}/releases/download/{tag}/{name}"
-            entry[plat] = {"url": url, "size": os.path.getsize(path), "sha256": sha, "sig": sig}
-            assets.append(path)
-            print(f"  {plat}: {os.path.getsize(path) / 1048576:.2f} MB")
+        entry, assets = build_patches(a.version, base, build, a.local or f"https://github.com/{REPO}/releases/download/{tag}")
         shutil.rmtree(os.path.join(B, "web"), ignore_errors=True)
         os.makedirs(os.path.join(B, "web"))
         godot("--export-release", "Web", "build/web/index.html")
@@ -240,8 +264,16 @@ def main():
     save(STATE, manifest)
     print("manifest saved:", STATE)
     notes = "\n".join("- " + n for n in a.note) or "See CHANGELOG.md"
+    relaunch = False
     if a.kind == "full":
-        run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes])
+        relaunch = release_exists(tag)
+        if relaunch:
+            # this version already has a release: new downloads (same file names), its other files stay
+            run(["gh", "release", "upload", tag, *assets, "-R", REPO, "--clobber"])
+            run(["gh", "release", "edit", tag, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes,
+                 "--prerelease=false", "--latest"])
+        else:
+            run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes])
     else:
         # an in-game update: players get it from Menu -> Updates. Keep "latest" pointing at the full download.
         notes += ("\n\n**How to get it:** open the game and press *Update now* (Menu -> Updates). "
@@ -249,13 +281,18 @@ def main():
         run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version} (in-game update)",
              "--notes", notes, "--latest=false"])
     if a.kind == "full":
-        run(["gh", "release", "create", f"dev-base-b{build}", *[os.path.join(base_dir, f"{p}.pck") for p in PLATFORMS],
-             "-R", REPO, "--prerelease", "--title", f"dev base b{build} (not for players)",
-             "--notes", "Developer files used to build in-game update patches. Players: download the latest fosh&fish release instead."])
+        run(["gh", "release", "create", f"dev-base-b{build}", *dev_assets,
+             "-R", REPO, "--prerelease", "--latest=false", "--title", f"dev base b{build} (not for players)",
+             "--notes", "Developer files: the base .pck files in-game update patches are built against, and the "
+                        "in-game update for installs of the previous full release. Players: download the latest fosh&fish release instead."])
     deploy_pages(STATE)
     run(["git", "add", BUILD_JSON, STATE, os.path.join(ROOT, "export_presets.cfg")])
     run(["git", "commit", "-qm", f"release {a.version} (build {build})"])
     run(["git", "push", "-q", "origin", "HEAD"])
+    if relaunch:
+        # the release's tag (and its "Source code" downloads) now point at this release commit
+        run(["git", "tag", "-f", tag])
+        run(["git", "push", "-q", "-f", "origin", f"refs/tags/{tag}"])
     print("published", tag)
 
 

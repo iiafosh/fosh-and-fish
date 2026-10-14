@@ -45,10 +45,14 @@ in again and their cloud save comes back.
 Supabase sends the reset code through an email service. With the domain, use **Resend** (free: 3,000
 emails a month).
 
+**Steps 1–3 done on 2026-10-12** (Resend account `mk1440165`, domain verified, region Ireland).
+
 1. Make an account at resend.com.
 2. **Domains → Add domain** → `foshfish.xyz`, region **EU (Ireland)** (the same region as the Supabase project).
-3. Resend shows 3–4 DNS records (an `MX` and a `TXT` for `send`, a `TXT` for `resend._domainkey`, and
-   optionally a `TXT` for `_dmarc`). Add each one in Cloudflare **exactly** as shown (DNS only), then press **Verify**.
+   Choose **Manual setup** (not "Auto configure", which asks for access to the Cloudflare account).
+3. Resend shows 4 DNS records: a `TXT` for `resend._domainkey` (DKIM), `CNAME`s for `send` and `rsend`
+   (sending), and a `TXT` for `_dmarc` (`v=DMARC1; p=none;`). Add each one in Cloudflare **exactly** as
+   shown (DNS only), then press **Verify DNS Records**. It took about a minute to show "Verified".
 4. **API Keys → Create** (permission: sending access). Copy the key: it's shown only once.
 5. Supabase → Authentication → Emails → **SMTP Settings**:
 

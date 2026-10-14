@@ -2,6 +2,12 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 0.5 — the full release (14 October 2026)
+
+- **Everything from the 0.5 updates (0.5.1 to 0.5.14) in one download**, for Windows, Linux and Android at **https://foshfish.xyz**. New downloads start on the newest version straight away, no update needed.
+- **The new look all the way through:** the leaping-fish app icon and the deep-sea loading screen are now in the Windows and Android apps too (an in-game update can't change those).
+- Already playing 0.5.x? Menu → Updates (or the title screen) installs it in-game, and your game then shows **0.5**. The web version updates itself.
+
 ## 0.5.14 — in-game update
 
 - **fosh&fish has a home: https://foshfish.xyz** (downloads for Windows, Linux and Android). The web version moved to **https://foshfish.xyz/play/**. The game now checks for updates there.
