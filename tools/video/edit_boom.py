@@ -3,6 +3,7 @@ soundtrack (tools/video/music_boom.py), adds the hits (camera shake, zoom punche
 split), the comic words, speed lines and the captions, and encodes the MP4s.
 
     python tools/video/edit_boom.py [OUT_DIR] [--formats 16x9,9x16] [--thumb]
+    python tools/video/edit_boom.py OUT_DIR --remux build/boom/sfx.wav sfx     (same videos, another soundtrack)
 
 Needs build/boom/frames/0000-1139.png, build/boom/overlays/word_*/ and build/boom/music.wav.
 16x9 is the YouTube cut; 9x16 (Shorts / TikTok / Reels) puts the same picture in a tall frame with a
@@ -438,6 +439,18 @@ def main():
         thumbnail(out)
 
 
+def remux(out, audio, suffix):
+    """the same pictures with another soundtrack (e.g. sound effects only): copies the video streams"""
+    for fmt in ("16x9", "9x16"):
+        src = os.path.join(out, "fosh-and-fish-kaboom-%s.mp4" % fmt)
+        if not os.path.exists(src):
+            continue
+        dst = os.path.join(out, "fosh-and-fish-kaboom-%s-%s.mp4" % (suffix, fmt))
+        subprocess.run([FF, "-v", "error", "-y", "-i", src, "-i", audio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
+                        "-c:a", "aac", "-b:a", "256k", "-shortest", "-movflags", "+faststart", dst], check=True)
+        print("remuxed", dst)
+
+
 def thumb_only():
     thumbnail(sys.argv[sys.argv.index("--thumb-only") + 1] if len(sys.argv) > sys.argv.index("--thumb-only") + 1 else WORK)
 
@@ -455,4 +468,10 @@ def thumbnail(out):
 
 
 if __name__ == "__main__":
-    thumb_only() if "--thumb-only" in sys.argv else main()
+    if "--remux" in sys.argv:
+        i = sys.argv.index("--remux")
+        remux(sys.argv[1] if not sys.argv[1].startswith("--") else WORK, sys.argv[i + 1], sys.argv[i + 2])
+    elif "--thumb-only" in sys.argv:
+        thumb_only()
+    else:
+        main()

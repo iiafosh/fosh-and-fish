@@ -90,6 +90,9 @@ python tools/video/boom_prep.py
 blender -b --factory-startup --python tools/blender/boom_video.py -- all words
 python tools/video/music_boom.py build/boom/music.wav
 python tools/video/edit_boom.py build/boom --formats 16x9,9x16 --thumb
+# the sound-effects-only version (no music): same pictures, another soundtrack
+python tools/video/music_boom.py build/boom/sfx.wav --sfx-only
+python tools/video/edit_boom.py build/boom --remux build/boom/sfx.wav sfx
 ```
 `boom_prep.py` makes static Fredoka instances for Blender and cuts the gameplay clips. Add
 `--pct 50 --still 120,240` to `boom_video.py` for quick test frames.
