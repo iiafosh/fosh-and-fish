@@ -80,6 +80,20 @@ python tools/video/music_yt.py WORK/music.wav
 python tools/video/edit_yt.py WORK OUT_DIR --thumb
 ```
 
+The **KABOOM** marketing video is a 3D cartoon rendered in Blender from the game's own models (the
+cozy river blows up, seven worlds, the real game on floating screens, 17 boats, the logo), with a
+beat-synced soundtrack. Timing lives in `tools/video/boom_timeline.py`; work files go to `build/boom/`.
+After a `--reelyt` recording into `build/boom/footage/` (as above):
+```bash
+pip install fonttools skia-pathops
+python tools/video/boom_prep.py
+blender -b --factory-startup --python tools/blender/boom_video.py -- all words
+python tools/video/music_boom.py build/boom/music.wav
+python tools/video/edit_boom.py build/boom --formats 16x9,9x16 --thumb
+```
+`boom_prep.py` makes static Fredoka instances for Blender and cuts the gameplay clips. Add
+`--pct 50 --still 120,240` to `boom_video.py` for quick test frames.
+
 **Re-render the art** (Blender 4.2)
 ```bash
 blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes
