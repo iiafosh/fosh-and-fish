@@ -297,6 +297,59 @@ func _set_ambient(biome: String) -> void:
 	_ambient.preprocess = 5.0
 	_ambient.emitting = true
 
+var event_fx_id := ""
+var _event_fx: Array = []
+
+## the water during a 1.0 event (VFData.EVENTS): golden motes, fish dashing past, treasure glints, meteors,
+## the boss's red bubbles. "" lets the current one fade out.
+func set_event_fx(id: String) -> void:
+	event_fx_id = id
+	for p in _event_fx:
+		if is_instance_valid(p):
+			p.emitting = false
+			get_tree().create_timer(p.lifetime + 0.2).timeout.connect(p.queue_free)
+	_event_fx.clear()
+	match id:
+		"golden_hour":
+			var p := _event_area("star_06", 46, 4.0, Color(1.0, 0.8, 0.3, 0.85), 0.04, 0.1)
+			p.gravity = Vector2(0, -30)
+		"frenzy":
+			var p := _event_area("trace_02", 16, 0.9, Color(0.5, 1.0, 0.95, 0.55), 0.22, 0.4)
+			p.direction = Vector2(1, 0.15)
+			p.spread = 12.0
+			p.initial_velocity_min = 380.0
+			p.initial_velocity_max = 640.0
+			p.particle_flag_align_y = true
+		"treasure_tide":
+			var p := _event_area("twirl_02", 18, 3.0, Color(0.8, 0.5, 1.0, 0.7), 0.08, 0.16)
+			p.angular_velocity_min = 60.0
+			p.angular_velocity_max = 160.0
+			_event_area("star_04", 24, 2.0, Color(1.0, 0.85, 0.4, 0.9), 0.05, 0.1)
+		"meteor_shower":
+			var p := _event_area("trace_02", 7, 1.3, Color(0.78, 0.78, 1.0, 0.95), 0.35, 0.6)
+			p.direction = Vector2(-0.55, 1.0)
+			p.spread = 4.0
+			p.initial_velocity_min = 900.0
+			p.initial_velocity_max = 1300.0
+			p.particle_flag_align_y = true
+			_event_area("star_06", 30, 2.5, Color(0.7, 0.75, 1.0, 0.8), 0.03, 0.07)
+		"boss":
+			var p := _event_area("circle_05", 30, 4.5, Color(0.55, 0.05, 0.12, 0.45), 0.03, 0.08)
+			p.gravity = Vector2(0, -25)
+			(p.material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_MIX
+
+func _event_area(texname: String, amount: int, life: float, col: Color, s0: float, s1: float) -> CPUParticles2D:
+	var p := _particles(texname, amount, life, col, s0, s1)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = SCENE * 0.5
+	p.position = SCENE * 0.5
+	p.spread = 180.0
+	p.initial_velocity_max = 20.0
+	p.preprocess = life
+	p.emitting = true
+	_event_fx.append(p)
+	return p
+
 # ---------------------------------------------------------------- setup
 func set_biome(name: String) -> void:
 	if name == _biome: return

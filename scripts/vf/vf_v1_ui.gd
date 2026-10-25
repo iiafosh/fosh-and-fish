@@ -168,6 +168,8 @@ func tick(delta: float) -> void:
 		event_pill.add_theme_stylebox_override("panel", m.pill_box(false, 10, 5))
 	event_sub.visible = on or m.overlay.visible == false and not m.compact()
 	event_pill.visible = VF.level >= 3 or on                     # not in the very first minutes
+	var fx_id: String = VF.ev_id if on else ""
+	if m.stage.event_fx_id != fx_id: m.stage.set_event_fx(fx_id)
 	_glow_k = move_toward(_glow_k, 1.0 if on else 0.0, delta * 1.5)
 	(glow.material as ShaderMaterial).set_shader_parameter("strength", _glow_k)
 	glow.visible = _glow_k > 0.001
@@ -698,6 +700,12 @@ func capture_test(dir: String) -> void:
 	m._close_panel()
 	await m._wait(0.3)
 	await m._shot(dir + "/v1_hud.png")
+	for id in VFData.EVENT_ORDER:
+		VF._ev_end(true)
+		VF.start_event(id)
+		await m._wait(1.2)
+		await m._shot(dir + "/v1_fx_%s.png" % id)
+	VF._ev_end(true)
 	var before: int = VF.money
 	m._do_sell()
 	await m._wait(0.3)
