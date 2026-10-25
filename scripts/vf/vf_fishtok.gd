@@ -172,7 +172,7 @@ static func tips(vf) -> Array:
 	# the next rod to save for
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
-		if r in vf.owned_rods or r == "Supporter Rod" or d.level > vf.level: continue
+		if r in vf.owned_rods or VFData.is_exclusive_rod(r) or d.level > vf.level: continue
 		out.append({"text": "Saving up? %s" % r, "body": "%d-%d fish per cast, %s%% treasure. %s Costs $%s." % [d.min, d.max, str(snappedf(d.tc * 100.0, 0.1)), d.desc, VF.fmt(d.cost)],
 			"tags": "#rods #upgrade", "icon": ["rod", r], "min": 1, "max": 99999})
 		break
@@ -294,7 +294,7 @@ static func ads(vf) -> Array:
 		"cta": "Shop bait", "tags": "#bait #%s" % tag(best)})
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
-		if r in vf.owned_rods or r == "Supporter Rod" or d.level > vf.level: continue
+		if r in vf.owned_rods or VFData.is_exclusive_rod(r) or d.level > vf.level: continue
 		out.append({"head": r, "slogan": "%d-%d fish per cast. Your old rod will understand." % [d.min, d.max], "fx": d.desc,
 			"price": "$" + VF.fmt(d.cost), "icon": ["rod", r], "panel": ["shop", "Rods"], "cta": "See the rod", "tags": "#rods #upgrade"})
 		break

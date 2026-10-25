@@ -14,6 +14,7 @@ extends Node
 
 signal status_changed           # anything the account panel shows changed
 signal leaderboard_changed
+signal shiny_changed            # the shiny stock board, the latest finds or your shinies loaded
 signal conflict_found           # this device and the cloud have different progress: the player picks one
 signal _refresh_done(ok: bool)
 
@@ -57,6 +58,11 @@ var sync_error := ""
 var last_sync := 0.0            # unix time of the last successful upload / download
 var conflict := {}              # {"cloud": summary, "local": summary, "data": cloud save}
 var dirty := false              # progress changed since the last upload
+
+var shiny_board := {}           # species -> {"left", "supply"} (shiny stock left worldwide)
+var shiny_feed: Array = []      # the latest finds: [{display_name, species, serial, caught_at}]
+var shiny_state := ""           # "" | loading | ok | error
+var _shiny_busy := false
 
 var leaderboard: Array = []
 var lb_state := ""              # "" | loading | ok | error
@@ -280,6 +286,7 @@ func _signed_in(session: Dictionary, greet: String) -> void:
 	if greet != "": _say(greet, "good")
 	elif message_kind == "error": _say("", "")
 	await _reconcile()
+	load_shinies()                      # your shinies (the server's list), the stock board, the latest finds
 
 func _load_profile() -> void:
 	var r := await _authed(GET, "/rest/v1/profiles?select=display_name&id=eq." + user_id.uri_encode())
@@ -514,6 +521,48 @@ func my_rank() -> int:
 		if row is Dictionary and str(row.get("display_name", "")).to_lower() == display_name.to_lower():
 			return i
 	return -1
+
+# ---------------------------------------------------------------- shinies
+## A catch earned a shiny roll: the server decides (schema.sql try_shiny). Returns its answer:
+## {ok, species, serial, left} or {ok: false, reason: cooldown | sold_out | max_each | max_day | no_luck | ...}.
+func try_shiny(species: String) -> Dictionary:
+	if state != "signed_in": return {"ok": false, "reason": "signed_out"}
+	if _shiny_busy: return {"ok": false, "reason": "busy"}
+	_shiny_busy = true
+	var r := await _authed(POST, "/rest/v1/rpc/try_shiny", {"p_species": species})
+	_shiny_busy = false
+	if not r.ok or not (r.data is Dictionary): return {"ok": false, "reason": "error"}
+	var d: Dictionary = r.data
+	if d.has("left"):
+		var row: Dictionary = shiny_board.get(species, {"supply": 3000})
+		row["left"] = int(d.left)
+		shiny_board[species] = row
+	if bool(d.get("ok", false)):
+		_vf().add_shiny(species, int(d.serial))
+		shiny_changed.emit()
+	return d
+
+## The stock board and the latest finds (anyone), and your own shinies (signed in: the server's list
+## replaces this device's mirror).
+func load_shinies() -> void:
+	if not configured() or shiny_state == "loading": return
+	shiny_state = "loading"
+	shiny_changed.emit()
+	var b := await _http(GET, "/rest/v1/shiny_board?select=species,supply,left")
+	if b.ok and b.data is Array:
+		shiny_board = {}
+		for row in b.data:
+			if row is Dictionary:
+				shiny_board[str(row.get("species", ""))] = {"left": int(row.get("left", 0)), "supply": int(row.get("supply", 0))}
+	var f := await _http(GET, "/rest/v1/shiny_feed?select=display_name,species,serial,caught_at")
+	if f.ok and f.data is Array:
+		shiny_feed = f.data
+	if state == "signed_in":
+		var m := await _authed(GET, "/rest/v1/shinies?select=species,serial&order=caught_at.asc")
+		if m.ok and m.data is Array:
+			_vf().set_shinies(m.data)
+	shiny_state = "ok" if b.ok else "error"
+	shiny_changed.emit()
 
 # ------------------------------------------------------------------- HTTP
 ## One call to Supabase. Returns {ok, code, data, net}; net = the server couldn't be reached.

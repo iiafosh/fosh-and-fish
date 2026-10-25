@@ -302,5 +302,121 @@ func _init() -> void:
 	check(VFData.ui_scale_for(800.0) == 1.0 and VFData.ui_scale_for(0.0) == 1.0, "tablet / unknown -> desktop layout")
 	check(VFData.ui_scale_for(200.0) <= 1.6, "tiny screens are capped")
 
+	_test_v1()
+
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
+
+
+## 1.0: easier economy, events, packs & Pearls, ads, shinies, exclusive rods, saves
+func _test_v1() -> void:
+	print("== 1.0")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g.rng.seed = 777
+	g._apply(g._defaults.duplicate(true))
+	g.level = 30
+	check(absf(g.sell_mult() - 1.1) < 1e-6 and absf(g.extra_money_mult() - 1.1) < 1e-6, "10% easier: a new fisher sells for x1.10")
+	var xp_before: float = g.xp_mult()
+	check(absf(xp_before - 1.1) < 1e-6, "10% easier: XP x1.10 (no beginner bonus at level 30)")
+
+	# events
+	check(g.start_event("golden_hour") == "" and g.event_active() and absf(g.sell_mult() - 2.2) < 1e-6,
+		"Golden Hour doubles the sell price")
+	check(g.start_event("frenzy") != "", "only one event at a time")
+	g._ev_end(false)
+	check(not g.event_active() and g.event_mult("money") == 1.0, "event over -> normal prices")
+	var cd0: float = g.cooldown()
+	g.start_event("frenzy")
+	check(absf(g.cooldown() - cd0 * 0.5) < 1e-6, "Fish Frenzy halves the cooldown")
+	var stars0: int = g.stars
+	g._last_cast_ms = -100000
+	var r: Dictionary = g.cast()
+	check(r.stars >= 1 and g.stars >= stars0 + 1, "every catch in an event gives an Event Star")
+	g._ev_end(false)
+	g.start_event("boss")
+	var caught := false
+	for i in 40:
+		g._last_cast_ms = -100000
+		r = g.cast()
+		if r.boss_caught:
+			caught = true
+			break
+	check(caught and not g.event_active() and int(g.event_fish.get("Leviathan", 0)) == 1 and not r.chest.is_empty(),
+		"the boss: 25 catches wear the Leviathan down, it's caught with a legendary chest, the event ends")
+	g.ev_last = "boss"
+	g.ev_play = 0.0
+	g._last_active = Time.get_unix_time_from_system()
+	g._ev_tick(599.0)
+	check(not g.event_active() and g.event_next_in() < 2.0, "the event clock counts active play")
+	g._ev_tick(2.0)
+	check(g.event_active() and g.ev_id != "boss", "after 10 minutes of play an event starts (never the same twice)")
+	g._ev_end(false)
+	g._last_active = -1000.0
+	g._ev_tick(700.0)
+	check(not g.event_active() and g.ev_play == 0.0, "idle time doesn't count toward events")
+
+	# packs, pearls, exclusive rods
+	var gr: Dictionary = g.grant_purchase("pack_fisher", "tok-1")
+	check(gr.get("ok", false) and g.pearls == 600 and "Supporter Rod" in g.owned_rods and "Pearl Rod" in g.owned_rods,
+		"Fisher Pack: 600 Pearls, the Supporter Rod and the Pearl Rod")
+	check(g.grant_purchase("pack_fisher", "tok-1").has("error") and g.pearls == 600, "the same purchase is never granted twice")
+	check(g.grant_purchase("pack_fisher", "tok-2").has("error"), "a Supporter Pack is bought once")
+	g.grant_purchase("pack_starter", "tok-3")
+	check(absf(g.perk("money") - 0.15) < 1e-6 and absf(g.sell_mult() - 1.1 * 1.15) < 1e-6, "pack perks stack (+5% and +10% money)")
+	check(g.buy_rod("Legend Rod") != "", "exclusive rods aren't sold for money")
+	check(VFData.rod_reel_power("Dark Rod") == 1.0 and VFData.rod_reel_power("Plastic Rod") == 0.0
+		and VFData.rod_reel_power("Pearl Rod") <= 1.0, "reel power unchanged for regular rods")
+	g.grant_purchase("pearls_550", "tok-4")
+	check(g.pearls == 1300, "Pearl pack adds Pearls")
+	var got: Dictionary = g.buy_pearl_item("mega1h")
+	check(not got.has("error") and g.pearls == 1220 and g.is_boost_active("fish") and g.is_boost_active("worker"),
+		"Mega Boost: 80 Pearls, every boost on")
+	check(g.buy_pearl_item("pearl_rod").has("error"), "can't buy a rod you already own")
+	g.pearls = 10
+	check(g.buy_pearl_item("chest").has("error") and g.pearls == 10, "not enough Pearls -> nothing happens")
+	g.prestige = 0; g.level = 250; g.money = 5000000000
+	g.charms = {}
+	for id in VFData.CHARM_ORDER: g.charms[id] = 55
+	g.do_prestige()
+	check("Pearl Rod" in g.owned_rods and "Supporter Rod" in g.owned_rods and g.owned_rods.size() == 3,
+		"exclusive rods survive prestige")
+
+	# ads
+	var n := 0
+	while not g.grant_ad("ad_pearls").has("error"): n += 1
+	check(n == 3, "+10 Pearls: 3 ads a day")
+	var m := 0
+	while not g.grant_ad("ad_money2x").has("error"): m += 1
+	check(m == VFData.AD_DAILY_MAX - 3 and g.money2x_left() <= 3600.5, "8 ads a day in all, Double Money capped at an hour")
+	check(absf(g.extra_money_mult() / (1.1 * 1.15) - 2.0) < 1e-6, "Double Money doubles sales")
+
+	# shinies
+	var base: float = g.shiny_ticket_chance()
+	g.shiny_lure = 2
+	g.start_event("meteor_shower")
+	check(absf(g.shiny_ticket_chance() / base - 15.0) < 1e-6, "Meteor Shower x5 and a Shiny Lure x3")
+	g._ev_end(false)
+	g.add_shiny("Cod", 41)
+	g.add_shiny("Cod", 41)
+	g.add_shiny("Squid", 7)
+	check(g.shiny_species_owned() == 2 and g.shinies["Cod"] == [41] and absf(g.shiny_bonus() - 0.04) < 1e-6,
+		"shinies: one copy per serial, +2% per species")
+	g.set_shinies([{"species": "Turtle", "serial": 3000}, {"species": "Nope", "serial": 1}])
+	check(g.shinies.keys() == ["Turtle"], "the server's list replaces the mirror (unknown species dropped)")
+
+	# save / load
+	g.stars = 77
+	g.event_fish = {"Golden Koi": 2}
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var h = load("res://scripts/vf/vf_game.gd").new()
+	h.autosave = false
+	root.add_child(h)
+	h._apply(d)
+	check(h.pearls == g.pearls and h.packs == g.packs and h.stars == 77 and h.event_fish == {"Golden Koi": 2}
+		and h.shinies == {"Turtle": [3000]} and h.purchases == ["tok-1", "tok-3", "tok-4"], "1.0 state survives save -> load")
+	var old: Dictionary = d.duplicate(true)
+	old.erase("v1")
+	h._apply(old)
+	check(h.pearls == 0 and h.packs.is_empty() and h.ev_id == "", "a save from before 1.0 loads with fresh 1.0 state")

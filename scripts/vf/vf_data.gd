@@ -62,9 +62,13 @@ static func ui_scale_for(short_dp: float) -> float:
 ## Rod "reel power" for the Reel it in! mini-game (not in the bot): 0 for the starter rod,
 ## 1.0 for the best rods. More power = a bigger catch zone, a faster reel and slower slipping.
 static func rod_reel_power(r: String) -> float:
+	if RODS.has(r) and RODS[r].has("reel"): return float(RODS[r].reel)       # exclusive rods
 	var i := ROD_ORDER.find(r)
 	if i < 0: return 0.0
-	return clampf(float(i) / float(ROD_ORDER.size() - 2), 0.0, 1.0)   # the Supporter Rod counts as top
+	var regular := 0
+	for x in ROD_ORDER:
+		if not RODS[x].has("reel"): regular += 1
+	return clampf(float(i) / float(regular - 1), 0.0, 1.0)
 
 ## Mini-game difficulty for a fish tier (0 common .. 4 rarest), the rod's reel power (0..1)
 ## and the device. Rarer fish: smaller zone, faster fish, slower reel. Better rod: bigger zone,
@@ -186,19 +190,50 @@ const RODS := {
 							"tables": {"Abyss": [42, 42, 14, 2, 0.01]}, "desc": "A magnetic rod capable of attracting the highest quality treasure."},
 	"Dark Rod":            {"cost": 1000000000000000,  "level": 2500, "min": 42, "max": 50, "tc": 0.07,  "tq": 0.10, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
 							"tables": {"Alien": [15, 25, 46, 11, 3], "Abyss": [40, 40, 17, 2.7, 0.3]}, "desc": "The ultimate fishing rod."},
-	"Supporter Rod":       {"cost": 0,                 "level": 0,    "min": 7,  "max": 10, "tc": 0.065, "tq": 0.10, "prestige": 5,
+	# exclusive rods (1.0): never sold for money, kept through prestige. "exclusive" says where they come from,
+	# "reel" is their Reel it in! power (regular rods get it from their place in ROD_ORDER)
+	"Supporter Rod":       {"cost": 0,                 "level": 0,    "min": 7,  "max": 10, "tc": 0.065, "tq": 0.10,
+							"exclusive": "pack", "reel": 1.0,
 							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
 							"biome_mult": {"River": 1.0, "Volcanic": 1.2, "Ocean": 1.4, "Sky": 2.0, "Space": 3.2, "Alien": 4.0, "Abyss": 4.6},
 							"tables": {"River": [14, 32, 47, 6.3, 0.7], "Volcanic": [10, 24, 42, 20, 4], "Ocean": [30, 40, 23, 6.8, 0.2],
 									   "Sky": [39.8, 39.8, 12.7, 6.7, 1], "Space": [40, 32.7, 20, 7.05, 0.25], "Alien": [30, 30, 36, 5, 1],
 									   "Abyss": [60, 26.4, 12.303, 1.29, 0.007]},
-							"desc": "Given as thanks for supporting Virtual Fisher. Scales with every biome."},
+							"desc": "Comes with every Supporter Pack. Scales with every biome."},
+	"Starfall Rod":        {"cost": 0,                 "level": 0,    "min": 8,  "max": 11, "tc": 0.075, "tq": 0.20,
+							"exclusive": "event", "reel": 0.9,
+							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
+							"biome_mult": {"River": 1.1, "Volcanic": 1.3, "Ocean": 1.55, "Sky": 2.2, "Space": 3.5, "Alien": 4.4, "Abyss": 5.0},
+							"tables": {"River": [12, 30, 48, 8.6, 1.4], "Volcanic": [9, 22, 42, 22, 5], "Ocean": [27, 40, 24, 8.5, 0.5],
+									   "Sky": [36, 39, 14, 9, 2], "Space": [37, 32, 21, 9.4, 0.6], "Alien": [27, 30, 37, 4.5, 1.5],
+									   "Abyss": [56, 28, 14, 1.98, 0.02]},
+							"desc": "Event Shop exclusive: forged from fallen stars. Scales with every biome."},
+	"Pearl Rod":           {"cost": 0,                 "level": 0,    "min": 9,  "max": 12, "tc": 0.08,  "tq": 0.25,
+							"exclusive": "pearl", "reel": 0.95,
+							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
+							"biome_mult": {"River": 1.15, "Volcanic": 1.4, "Ocean": 1.65, "Sky": 2.35, "Space": 3.7, "Alien": 4.6, "Abyss": 5.3},
+							"tables": {"River": [11, 29, 49, 9.2, 1.8], "Volcanic": [8, 21, 42, 23, 6], "Ocean": [25, 40, 25, 9.3, 0.7],
+									   "Sky": [34, 39, 15, 9.5, 2.5], "Space": [35, 32, 22, 10.2, 0.8], "Alien": [25, 30, 38, 5, 2],
+									   "Abyss": [53, 29, 15.5, 2.47, 0.03]},
+							"desc": "Pearl exclusive: lustrous and strong. Scales with every biome."},
+	"Legend Rod":          {"cost": 0,                 "level": 0,    "min": 11, "max": 15, "tc": 0.09,  "tq": 0.35,
+							"exclusive": "pack", "reel": 1.0,
+							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
+							"biome_mult": {"River": 1.3, "Volcanic": 1.6, "Ocean": 1.9, "Sky": 2.7, "Space": 4.2, "Alien": 5.2, "Abyss": 6.0},
+							"tables": {"River": [9, 27, 50, 11, 3], "Volcanic": [6, 19, 42, 25, 8], "Ocean": [22, 40, 26, 11, 1],
+									   "Sky": [30, 39, 17, 10.5, 3.5], "Space": [32, 32, 23, 11.8, 1.2], "Alien": [22, 30, 39, 6, 3],
+									   "Abyss": [48, 31, 17.5, 3.45, 0.05]},
+							"desc": "Legend Pack exclusive: the best rod in the game. Scales with every biome."},
 }
 
 const ROD_ORDER := ["Plastic Rod", "Improved Rod", "Steel Rod", "Fiberglass Rod", "Heavy Rod",
 	"Alloy Rod", "Lava Rod", "Magma Rod", "Oceanium Rod", "Golden Rod", "Superium Rod",
 	"Infinity Rod", "Floating Rod", "Sky Rod", "Meteor Rod", "Space Rod", "Alien Rod",
-	"Ultimate Depths Rod", "Abyssal Supermagnet", "Dark Rod", "Supporter Rod"]
+	"Ultimate Depths Rod", "Abyssal Supermagnet", "Dark Rod", "Supporter Rod", "Starfall Rod", "Pearl Rod", "Legend Rod"]
+
+## Rods that are never sold for money (packs, pearls, events) and survive prestige.
+static func is_exclusive_rod(r: String) -> bool:
+	return RODS.has(r) and RODS[r].has("exclusive")
 
 ## Every boat: -0.25s cooldown and +1 fish per cast (wiki Boat page).
 const BOATS := {
@@ -475,3 +510,100 @@ const STARTER_GOALS := [
 	{"id": "boat", "text": "Buy your first boat (Rowboat)", "stat": "boats", "goal": 1, "reward": {"money": 1500}},
 	{"id": "lv10", "text": "Reach level 10 — chests & boosts unlock", "stat": "level", "goal": 10, "reward": {"chest": "epic", "gold": 12, "emerald": 6}},
 ]
+
+
+# ====================================================================== 1.0
+## Everything a little easier: money and XP earned x EASE (progress about 10% faster).
+const EASE := 1.10
+
+# ------------------------------------------------------------------ events
+## One event starts after every EVENT_EVERY seconds of active play (casting in the last
+## EVENT_IDLE seconds) and lasts its "secs". Effects multiply the normal rules.
+const EVENT_EVERY := 600.0
+const EVENT_IDLE := 90.0
+const EVENTS := {
+	"golden_hour":   {"name": "Golden Hour",   "secs": 120, "color": Color("#ffb627"), "icon": "sun-horizon",
+		"desc": "Every fish sells for double", "money": 2.0, "fish_id": "Golden Koi"},
+	"frenzy":        {"name": "Fish Frenzy",   "secs": 90,  "color": Color("#14b8a6"), "icon": "lightning",
+		"desc": "Casts recharge twice as fast and bring +50% fish", "cooldown": 0.5, "fish": 1.5, "fish_id": "Frenzy Piranha"},
+	"treasure_tide": {"name": "Treasure Tide", "secs": 120, "color": Color("#a855f7"), "icon": "treasure-chest",
+		"desc": "Triple treasure chance and better chests", "treasure": 3.0, "tq": 1.5, "fish_id": "Treasure Crab"},
+	"meteor_shower": {"name": "Meteor Shower", "secs": 120, "color": Color("#6366f1"), "icon": "shooting-star",
+		"desc": "Shiny fish turn up five times as often", "shiny": 5.0, "fish_id": "Meteor Fish"},
+	"boss":          {"name": "Boss Fish!",    "secs": 150, "color": Color("#ef4444"), "icon": "skull",
+		"desc": "The Leviathan is near: every catch wears it down", "boss_hp": 25, "fish_id": "Leviathan"},
+}
+const EVENT_ORDER := ["golden_hour", "frenzy", "treasure_tide", "meteor_shower", "boss"]
+## Event fish only bite during their event; each one pays money (scaled to your level) and Event Stars.
+## You also get 1 Star for every catch during an event.
+const EVENT_FISH := {
+	"Golden Koi":     {"event": "golden_hour",   "chance": 0.10, "money": 6.0,  "stars": 3},
+	"Frenzy Piranha": {"event": "frenzy",        "chance": 0.12, "money": 4.0,  "stars": 2},
+	"Treasure Crab":  {"event": "treasure_tide", "chance": 0.10, "money": 5.0,  "stars": 3},
+	"Meteor Fish":    {"event": "meteor_shower", "chance": 0.08, "money": 8.0,  "stars": 4},
+	"Leviathan":      {"event": "boss",          "chance": 0.0,  "money": 40.0, "stars": 25},
+}
+const EVENT_FISH_ORDER := ["Golden Koi", "Frenzy Piranha", "Treasure Crab", "Meteor Fish", "Leviathan"]
+## The Event Shop: exclusive things for Event Stars.
+const EVENT_SHOP := {
+	"starfall_rod": {"name": "Starfall Rod",  "cost": 400, "rod": "Starfall Rod", "desc": "Exclusive rod: +treasure, scales with every biome"},
+	"event_chest":  {"name": "Event Chest",   "cost": 40,  "chest": "legendary",  "desc": "A legendary chest"},
+	"shiny_lure":   {"name": "Shiny Lure",    "cost": 80,  "lure": 25,            "desc": "Your next 25 catches: shiny fish 3x as often"},
+	"star_boost":   {"name": "Frenzy Boost",  "cost": 30,  "boost": [["fish", 1800]], "desc": "30 minutes of Fish Boost"},
+}
+const EVENT_SHOP_ORDER := ["starfall_rod", "shiny_lure", "event_chest", "star_boost"]
+
+# ------------------------------------------------------------------ shinies
+## Shiny fish: a rare sparkling version of every species, only SHINY_SUPPLY numbered copies of each
+## worldwide. The game asks the server for a roll on SHINY_TICKET of your catches (signed in only);
+## the server decides (supabase/schema.sql try_shiny: stock left, a cooldown, per-player caps, odds that
+## fall for every copy you own), so nobody can collect a whole stock.
+const SHINY_SUPPLY := 3000
+const SHINY_TICKET := 1.0 / 50.0
+const SHINY_LURE_MULT := 3.0
+const SHINY_MAX_EACH := 3            # copies of one species a player can own (enforced by the server)
+const SHINY_SELL_BONUS := 0.02       # +2% sell price for every shiny species you own
+
+# --------------------------------------------------------- pearls & packs
+## Pearls: the premium currency (Supporter Packs, Pearl Packs, ads), spent in the Pearl Shop.
+## Prices here are only fallbacks: the store shows Google Play's real, local price.
+const PACKS := {
+	"pack_starter": {"name": "Starter Pack", "price": "$1.49", "pearls": 150, "color": Color("#22c55e"),
+		"perks": {"money": 0.05}, "boost": [["fish", 2400]]},
+	"pack_fisher":  {"name": "Fisher Pack",  "price": "$4.99", "pearls": 600, "color": Color("#0ea5e9"),
+		"perks": {"money": 0.10, "xp": 0.05}, "rods": ["Pearl Rod"]},
+	"pack_captain": {"name": "Captain Pack", "price": "$9.99", "pearls": 1500, "color": Color("#a855f7"),
+		"perks": {"money": 0.20, "xp": 0.10, "worker": 0.25}, "boost": [["fish", 7200], ["treasure", 7200], ["worker", 7200]]},
+	"pack_legend":  {"name": "Legend Pack",  "price": "$19.99", "pearls": 3500, "color": Color("#f59e0b"),
+		"perks": {"money": 0.35, "xp": 0.15, "shiny": 0.25}, "rods": ["Legend Rod"],
+		"boost": [["fish", 18000], ["treasure", 18000], ["worker", 18000]]},
+}
+const PACK_ORDER := ["pack_starter", "pack_fisher", "pack_captain", "pack_legend"]
+const PEARL_PACKS := {
+	"pearls_100":  {"pearls": 100,  "price": "$0.99"},
+	"pearls_550":  {"pearls": 550,  "price": "$4.99"},
+	"pearls_1200": {"pearls": 1200, "price": "$9.99"},
+	"pearls_2600": {"pearls": 2600, "price": "$19.99"},
+}
+const PEARL_PACK_ORDER := ["pearls_100", "pearls_550", "pearls_1200", "pearls_2600"]
+const PEARL_SHOP := {
+	"fish1h":      {"name": "Fish Boost 1h",     "cost": 30,   "boost": [["fish", 3600]], "icon": "fish"},
+	"treasure1h":  {"name": "Treasure Boost 1h", "cost": 30,   "boost": [["treasure", 3600]], "icon": "treasure-chest"},
+	"worker1h":    {"name": "Worker 1h",         "cost": 40,   "boost": [["worker", 3600]], "icon": "robot"},
+	"mega1h":      {"name": "Mega Boost 1h",     "cost": 80,   "boost": [["fish", 3600], ["treasure", 3600], ["worker", 3600]], "icon": "rocket-launch"},
+	"money_bag":   {"name": "Bag of Money",      "cost": 40,   "money_levels": 20, "icon": "money"},
+	"xp_potion":   {"name": "XP Potion",         "cost": 50,   "xp_frac": 0.5, "icon": "flask"},
+	"chest":       {"name": "Legendary Chest",   "cost": 60,   "chest": "legendary", "icon": "treasure-chest"},
+	"event_now":   {"name": "Start an Event",    "cost": 100,  "event": true, "icon": "confetti"},
+	"shiny_lure":  {"name": "Shiny Lure",        "cost": 150,  "lure": 50, "icon": "sparkle"},
+	"pearl_rod":   {"name": "Pearl Rod",         "cost": 1200, "rod": "Pearl Rod", "icon": "crown"},
+}
+const PEARL_SHOP_ORDER := ["mega1h", "fish1h", "treasure1h", "worker1h", "money_bag", "xp_potion", "chest", "event_now", "shiny_lure", "pearl_rod"]
+## Rewarded ads (Android): watch one, get the reward. AD_DAILY_MAX ads a day in all.
+const AD_REWARDS := {
+	"ad_money2x": {"name": "Double Money",  "desc": "x2 money from selling for 10 minutes (stacks up to an hour)", "money2x": 600, "icon": "coins"},
+	"ad_fish":    {"name": "Free Fish Boost", "desc": "15 minutes of Fish Boost", "boost": [["fish", 900]], "icon": "fish"},
+	"ad_pearls":  {"name": "+10 Pearls",    "desc": "Up to 3 times a day", "pearls": 10, "max": 3, "icon": "circle"},
+}
+const AD_ORDER := ["ad_money2x", "ad_fish", "ad_pearls"]
+const AD_DAILY_MAX := 8

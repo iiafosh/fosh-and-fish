@@ -13,6 +13,7 @@ It implements exactly what scripts/net/backend.gd calls:
   GET|PUT /auth/v1/user
   GET|POST(upsert: Prefer: resolution=merge-duplicates)|PATCH /rest/v1/saves
   GET|PATCH /rest/v1/profiles                  GET /rest/v1/leaderboard   POST /rest/v1/rpc/delete_my_account
+  POST /rest/v1/rpc/try_shiny   GET /rest/v1/shinies   GET /rest/v1/shiny_board   GET /rest/v1/shiny_feed
 and mirrors supabase/schema.sql: row level security (players only see / write their own rows), unique
 case-insensitive names ("#1234" suffix when a new player's name is taken), and the saves guard (level /
 prestige / money_earned are copied from the save, no downgrades unless "overwrite": true, prestige speed
@@ -23,6 +24,8 @@ Test helpers (not part of Supabase):
   POST /__mock/expire_tokens    expire every access token (the client must refresh)
   POST /__mock/confirm?email=E  confirm an email (with --confirm-email)
   GET  /__mock/state            counts of users / saves / sessions (never tokens)
+  POST /__mock/shiny?force=1|0|&wait=S&supply=Cod:2   shiny test knobs: force the roll's luck, the cooldown,
+                                a species' supply
 Nothing is written to disk; tokens are random strings, never printed.
 """
 import argparse
@@ -46,6 +49,15 @@ SAVES = {}        # user_id -> {user_id, data, level, prestige, money_earned, up
 ACCESS = {}       # token -> {uid, sid, exp}
 REFRESH = {}      # token -> {uid, sid, used}
 OUTBOX = {}       # email -> {code, exp}
+
+# shinies (schema.sql "shinies"): numbered copies per species, the server rolls
+SHINY_SPECIES = ["Raw Fish", "Raw Salmon", "Cod", "Tropical Fish", "Pufferfish", "Fiery Pufferfish", "Hot Cod", "Squid",
+                 "Turtle", "Dolphin", "Guardian", "Emerald Squid", "Rainbow Fish", "Space Fish", "Galactic Crab", "Shark",
+                 "Alien Fish", "Artifact Fish", "Dark Puffer", "Dark Tuna"]
+SHINY = {"base": 1.0 / 70.0, "each": 3, "day": 3, "wait": 30.0, "force": None}
+STOCK = {sp: {"species": sp, "supply": 3000, "minted": 0} for sp in SHINY_SPECIES}
+SHINIES = []      # {owner, species, serial, caught_at, _ts}
+ROLLS = {}        # user id -> time of the last roll
 
 MAX_LEVEL = 25000
 MAX_PRESTIGE = 10000
@@ -389,10 +401,55 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/rest/v1/rpc/delete_my_account" and m == "POST":
             uid = self._uid()
             revoke(uid)
-            for store in (USERS, PROFILES, SAVES):
+            for store in (USERS, PROFILES, SAVES, ROLLS):
                 store.pop(uid, None)
+            SHINIES[:] = [x for x in SHINIES if x["owner"] != uid]
             return 204, None
+        if path == "/rest/v1/rpc/try_shiny" and m == "POST":
+            return 200, self._try_shiny(self._uid(), str(body.get("p_species", "")))
+        if path == "/rest/v1/shinies" and m == "GET":
+            uid = self._uid()
+            rows = [x for x in SHINIES if x["owner"] == uid and matches(x, filters(params))]
+            return 200, [project(x, q.get("select")) for x in rows]
+        if path == "/rest/v1/shiny_board" and m == "GET":
+            rows = [dict(st, left=st["supply"] - st["minted"]) for st in STOCK.values()]
+            return 200, [project(r, q.get("select")) for r in rows]
+        if path == "/rest/v1/shiny_feed" and m == "GET":
+            rows = []
+            for x in sorted(SHINIES, key=lambda x: -x["_ts"])[:30]:
+                prof = PROFILES.get(x["owner"])
+                if prof and not prof.get("banned"):
+                    rows.append({"display_name": prof["display_name"], "species": x["species"], "serial": x["serial"],
+                                 "caught_at": x["caught_at"]})
+            return 200, [project(r, q.get("select")) for r in rows]
         raise pg_error(404, "PGRST205", "mock: no route for %s %s" % (m, path))
+
+    def _try_shiny(self, uid, species):
+        """schema.sql try_shiny(): cooldown, stock, per-player caps, odds that fall per copy and as stock runs out"""
+        if PROFILES.get(uid, {}).get("banned"):
+            return {"ok": False, "reason": "banned"}
+        st = STOCK.get(species)
+        if not st:
+            return {"ok": False, "reason": "unknown"}
+        now = time.time()
+        if now - ROLLS.get(uid, 0.0) < SHINY["wait"]:
+            return {"ok": False, "reason": "cooldown"}
+        ROLLS[uid] = now
+        left = st["supply"] - st["minted"]
+        if left <= 0:
+            return {"ok": False, "reason": "sold_out", "left": 0}
+        owned = sum(1 for x in SHINIES if x["owner"] == uid and x["species"] == species)
+        if owned >= SHINY["each"]:
+            return {"ok": False, "reason": "max_each", "left": left}
+        if sum(1 for x in SHINIES if x["owner"] == uid and now - x["_ts"] < 86400) >= SHINY["day"]:
+            return {"ok": False, "reason": "max_day", "left": left}
+        odds = SHINY["base"] / (1 + owned) ** 2 * (left / st["supply"]) ** 0.5
+        lucky = SHINY["force"] if SHINY["force"] is not None else random.random() < odds
+        if not lucky:
+            return {"ok": False, "reason": "no_luck", "left": left}
+        st["minted"] += 1
+        SHINIES.append({"owner": uid, "species": species, "serial": st["minted"], "caught_at": now_iso(now), "_ts": now})
+        return {"ok": True, "species": species, "serial": st["minted"], "left": st["supply"] - st["minted"]}
 
     def _saves(self, m, params, q, body):
         uid = self._uid()                                  # anon has no access to saves at all
@@ -441,6 +498,15 @@ class Handler(BaseHTTPRequestHandler):
                 raise Fail(404, {"message": "no such user"})
             USERS[uid]["confirmed"] = True
             return 200, {"confirmed": True}
+        if what == "shiny":
+            if "force" in q:
+                SHINY["force"] = None if q["force"] == "" else q["force"] == "1"
+            if "wait" in q:
+                SHINY["wait"] = float(q["wait"])
+            if "supply" in q:
+                sp, n = q["supply"].rsplit(":", 1)
+                STOCK[sp]["supply"] = int(n)
+            return 200, {"force": SHINY["force"], "wait": SHINY["wait"]}
         if what == "state":
             return 200, {"users": len(USERS), "saves": len(SAVES), "sessions": len(ACCESS),
                          "players": [{"name": PROFILES[u]["display_name"], "level": s["level"], "prestige": s["prestige"]}

@@ -1402,7 +1402,7 @@ func _refresh_goal() -> void:
 	var best := {}
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
-		if r in VF.owned_rods or r == "Supporter Rod" or VF.level < d.level: continue
+		if r in VF.owned_rods or VFData.is_exclusive_rod(r) or VF.level < d.level: continue
 		if d.cost > VF.money:
 			best = {"name": r, "cost": d.cost, "panel": ["shop", "Rods"]}
 			break
@@ -2591,7 +2591,7 @@ func _veteran(demo: String) -> void:
 	for b in VFData.BOAT_ORDER:
 		if VFData.BOATS[b].level <= VF.level: VF.boats_owned += 1
 	for r in VFData.ROD_ORDER:
-		if VFData.RODS[r].level <= VF.level and r != "Supporter Rod": VF.owned_rods.append(r)
+		if VFData.RODS[r].level <= VF.level and not VFData.is_exclusive_rod(r): VF.owned_rods.append(r)
 	for r in VFData.ROD_ORDER:
 		if r in VF.owned_rods and VF.rod_usable(r, demo): VF.rod = r
 	VF.bait_stock = {"Magic Bait": 850, "Wise Bait": 120, "Leeches": 40}
