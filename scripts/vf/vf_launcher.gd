@@ -560,6 +560,9 @@ func _update_strip() -> Control:
 			var mb := float(U.patch_info().get("size", 0)) / 1048576.0
 			line = "Version %s is out!" % newest + ("" if web else "  (%.1f MB)" % mb)
 			action = _button("Reload" if web else "Update", true, U.download, "", 34)
+		"store":
+			icon_name = "check"
+			line = "Version %s  ·  updates come from Google Play" % main.VERSION
 		"full_needed":
 			line = "Version %s needs a new download" % newest
 			action = _button("Get it", true, U.open_downloads, "", 34)
@@ -576,7 +579,7 @@ func _update_strip() -> Control:
 				U.state = "idle"
 				U.check(), "", 34)
 	var ic: TextureRect = main.icon(main.ph(icon_name), 18)
-	ic.modulate = MINT if U.state in ["up_to_date", "available", "ready"] else FAINT
+	ic.modulate = MINT if U.state in ["up_to_date", "available", "ready", "store"] else FAINT
 	h.add_child(ic)
 	var l := _wrap(line, 14, Color.WHITE if hot else SOFT)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL

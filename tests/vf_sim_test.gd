@@ -420,3 +420,11 @@ func _test_v1() -> void:
 	old.erase("v1")
 	h._apply(old)
 	check(h.pearls == 0 and h.packs.is_empty() and h.ev_id == "", "a save from before 1.0 loads with fresh 1.0 state")
+
+	# odds shown on random items bought with Pearls (Google Play's loot box rule)
+	var odds: String = VFData.chest_odds("legendary")
+	var total := 0
+	for hit in RegEx.create_from_string("([0-9]+)%").search_all(odds): total += int(hit.get_string(1))
+	check(odds.begins_with("Charms 40%") and "Emerald Fish 10%" in odds and total == 100,
+		"the Legendary Chest's odds are shown and add up to 100%: " + odds)
+	check("1 in 3,500 catches" in VFData.shiny_odds() and "1 in 1,167 with the lure" in VFData.shiny_odds(), "shiny odds: " + VFData.shiny_odds())

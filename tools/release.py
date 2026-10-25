@@ -13,6 +13,11 @@ PATCH (an in-game update: players press "Update now"; only changed files are sen
 Without --publish everything is built and signed locally (build/release, build/patches) and
 nothing is uploaded. --local URL writes a test manifest whose download links point at URL.
 
+GOOGLE PLAY (the .aab you upload in Play Console; set up once with docs/PLAY_STORE.md):
+    python tools/release.py play
+builds build/play/fosh_fish-<version>-b<build>.aab from the "Android Play" preset (Gradle build with the
+billing and AdMob plugins, export feature "play"), signed with your upload key from the environment.
+
 Needs: Godot 4.7 (env GODOT), gh CLI, the update signing key (tools/update_sign.gd --keygen).
 Patches can't add autoloads, class_name scripts or project settings: use a full release.
 """
@@ -37,6 +42,9 @@ B = os.path.join(ROOT, "build")
 SITE = os.path.join(ROOT, "site")         # the website (foshfish.xyz)
 DOCS = ["GUIDE.md", "CHANGELOG.md", "CREDITS.md"]
 PLATFORMS = {"desktop": "Windows Desktop", "android": "Android"}
+PLAY_PRESET = "Android Play"
+PLAY_NEEDS = ["android/build/build.gradle", "addons/GodotGooglePlayBilling", "addons/admob"]
+KEY_VARS = ["GODOT_ANDROID_KEYSTORE_RELEASE_PATH", "GODOT_ANDROID_KEYSTORE_RELEASE_USER", "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD"]
 
 
 def run(cmd, **kw):
@@ -121,6 +129,27 @@ def export_games(version):
     return files
 
 
+def play_bundle():
+    """The Google Play .aab for the version in data/build.json (a full release stamps it first)."""
+    missing = [p for p in PLAY_NEEDS if not os.path.exists(os.path.join(ROOT, p))]
+    if missing:
+        sys.exit("not set up for Google Play yet (missing %s): see docs/PLAY_STORE.md" % ", ".join(missing))
+    unset = [k for k in KEY_VARS if not os.environ.get(k)]
+    if unset:
+        sys.exit("set your upload key first (%s): see docs/PLAY_STORE.md" % ", ".join(unset))
+    bj = load(BUILD_JSON, {})
+    stamp_presets(bj["version"], int(bj["build"]))
+    godot("--import")
+    os.makedirs(os.path.join(B, "play"), exist_ok=True)
+    out = os.path.join(B, "play", f"fosh_fish-{bj['version']}-b{bj['build']}.aab")
+    # (output shown: the first Gradle build downloads its tools, and its errors are worth reading)
+    run([GODOT, "--headless", "--path", ROOT, "--export-release", PLAY_PRESET, os.path.relpath(out, ROOT)])
+    if not os.path.exists(out):
+        sys.exit("no .aab was made: read the Gradle output above")
+    print(f"Google Play bundle: {out} ({os.path.getsize(out) / 1048576:.1f} MB) - upload it in Play Console "
+          f"(Testing -> Internal testing first). versionCode {bj['build']}, versionName {bj['version']}.")
+
+
 def build_patches(version, base, build, url_base):
     """Signed patch .pcks (desktop, android) that turn an install of full release `base` into this build."""
     base_dir = os.path.join(B, "base", f"b{base}")
@@ -201,6 +230,9 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "site":
         # python tools/release.py site [--live]: only the website (site/); --live moves to foshfish.xyz
         deploy_pages(None, web=False, live=True if "--live" in sys.argv else None)
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "play":
+        play_bundle()
         return
     ap = argparse.ArgumentParser()
     ap.add_argument("kind", choices=["full", "patch"])

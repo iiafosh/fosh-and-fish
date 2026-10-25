@@ -2,12 +2,12 @@ extends Node
 ## Rewarded ads (autoload "Ads"): watch an ad to the end, get its reward (VFData.AD_REWARDS, given by
 ## VF.grant_ad, AD_DAILY_MAX a day). AdMob through addons/admob (poingstudios, Android only).
 ##
-## mode "admob": Android. At start: Google's consent form where the law needs one (UMP; EEA/UK), then
+## mode "admob": the Google Play build (export feature "play", which has the AdMob plugin). At start: Google's consent form where the law needs one (UMP; EEA/UK), then
 ##   MobileAds.initialize() and one rewarded ad loaded ahead, so "Watch" plays at once.
 ##   The ad unit is data/monetization.json "admob_rewarded_android" (Google's test unit until you put
 ##   yours there); the AdMob App ID is a project setting (see docs/PLAY_STORE.md).
 ## mode "test": debug builds and --test-ads: a fake 2.5 s "ad", then the reward (for testing).
-## mode "none": PC / web release builds: no ads.
+## mode "none": PC / web / GitHub APK release builds: no ads.
 
 signal changed
 
@@ -28,7 +28,7 @@ var _earned := false
 func _ready() -> void:
 	var cfg := Store._config()
 	unit_id = String(cfg.get("admob_rewarded_android", TEST_UNIT))
-	if OS.get_name() == "Android" and Store.class_by_name("RewardedAdLoader") != null:
+	if OS.has_feature("play") and Store.class_by_name("RewardedAdLoader") != null:
 		mode = "admob"
 		_consent_then_start()
 	elif "--test-ads" in OS.get_cmdline_user_args() or (OS.is_debug_build() and bool(cfg.get("test_store_in_debug", true))):

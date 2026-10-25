@@ -563,6 +563,7 @@ const SHINY_TICKET := 1.0 / 50.0
 const SHINY_LURE_MULT := 3.0
 const SHINY_MAX_EACH := 3            # copies of one species a player can own (enforced by the server)
 const SHINY_SELL_BONUS := 0.02       # +2% sell price for every shiny species you own
+const SHINY_SERVER_ODDS := 1.0 / 70.0  # = base_odds in supabase/schema.sql try_shiny (shown to players as odds)
 
 # --------------------------------------------------------- pearls & packs
 ## Pearls: the premium currency (Supporter Packs, Pearl Packs, ads), spent in the Pearl Shop.
@@ -607,3 +608,37 @@ const AD_REWARDS := {
 }
 const AD_ORDER := ["ad_money2x", "ad_fish", "ad_pearls"]
 const AD_DAILY_MAX := 8
+
+## Odds shown next to random things you can get with bought currency (Google Play's loot box rule).
+## A chest's prizes: "Charms 40%, Diamond Fish 20%, ..." (what your level can't use yet comes as XP + money)
+static func chest_odds(tier: String) -> String:
+	var names := {"charm": "Charms", "gold": "Gold Fish", "emerald": "Emerald Fish", "lava": "Lava Fish",
+		"diamond": "Diamond Fish", "xpmoney": "XP + money"}
+	for c in CHESTS:
+		if c.id != tier: continue
+		var total := 0.0
+		for k in c.drops: total += float(c.drops[k])
+		var keys: Array = c.drops.keys()
+		keys.sort_custom(func(a, b): return c.drops[a] > c.drops[b])
+		var bits := []
+		for k in keys:
+			var pct := 100.0 * float(c.drops[k]) / total
+			bits.append("%s %s%%" % [names.get(k, k), ("%d" % int(round(pct))) if absf(pct - round(pct)) < 0.05 else ("%.1f" % pct)])
+		return ", ".join(bits) + " (what you can't use yet comes as XP + money)"
+	return ""
+
+
+## the chance of a shiny on one catch, before and with the lure (a species you don't have yet)
+static func shiny_odds() -> String:
+	var base := SHINY_TICKET * SHINY_SERVER_ODDS
+	return "Odds of a shiny: about 1 in %s catches, 1 in %s with the lure (lower for species you already have, and as the %s run out)" % [
+		_commas(int(round(1.0 / base))), _commas(int(round(1.0 / (base * SHINY_LURE_MULT)))), _commas(SHINY_SUPPLY)]
+
+
+static func _commas(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if n < 0 else "") + s + out

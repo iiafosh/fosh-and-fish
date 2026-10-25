@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy · fosh&amp;fish</title>
-  <meta name="description" content="What fosh&amp;fish stores about you, and how to delete it.">
+  <meta name="description" content="What fosh&amp;fish stores and shares, ads and purchases in the Google Play version, and how to delete your data.">
   <meta name="theme-color" content="#0b2930">
   <link rel="icon" type="image/png" sizes="64x64" href="img/icon-64.png">
   <link rel="stylesheet" href="style.css">
@@ -24,29 +24,61 @@
   </header>
   <main class="doc">
     <h1>Privacy</h1>
-    <p class="updated">Last updated: October 12, 2026</p>
-    <p>fosh&amp;fish is a free hobby game by afosh. It has no ads, no tracking and nothing to buy. This page explains the little it stores.</p>
+    <p class="updated">Last updated: October 25, 2026 (version 1.0)</p>
+    <p>fosh&amp;fish is a fishing game by afosh. This page explains what it stores and shares, and how to delete it.
+      In short: without an account nothing about you leaves your device, except in the Google Play version, which shows
+      ads you choose to watch and sells optional packs through Google Play.</p>
 
     <h2>Playing without an account</h2>
-    <p>Your progress is saved on your own device only. Nothing about you is sent anywhere.</p>
+    <p>Your progress is saved on your own device only.</p>
 
     <h2>If you make an account</h2>
     <ul>
       <li><b>Your email address</b>: to sign in and to send you a code if you forget your password.</li>
-      <li><b>Your fisher name</b>: shown on the public leaderboard.</li>
-      <li><b>Your game save</b> (level, fish, boats and so on): so you can play on several devices. Your level, prestige and total money earned appear on the leaderboard next to your fisher name.</li>
+      <li><b>Your fisher name</b>: shown on the public leaderboard, and next to the shiny fish you catch in the public
+        "latest shinies" list.</li>
+      <li><b>Your game save</b> (level, fish, boats, Pearls, the packs you bought and so on): so you can play on several
+        devices and keep what you bought. Your level, prestige and total money earned appear on the leaderboard next to
+        your fisher name.</li>
+      <li><b>Your shiny fish</b>: which numbered shiny fish you own and when you caught them. The server hands out the
+        3,000 shinies of each species, so it keeps this to make the count fair for everyone.</li>
       <li><b>Your password</b> is never stored by the game. The sign-in service keeps only a secure hash of it.</li>
     </ul>
-    <p>Accounts and saves are kept with <a href="https://supabase.com/privacy">Supabase</a> (servers in the EU). Other players can only ever see your fisher name and your leaderboard numbers.</p>
+    <p>Accounts and saves are kept with <a href="https://supabase.com/privacy">Supabase</a> (servers in the EU). Other
+      players can only ever see your fisher name, your leaderboard numbers and your shiny fish.</p>
+
+    <h2>Purchases (Google Play version)</h2>
+    <p>Supporter Packs and Pearls are sold through <a href="https://payments.google.com/payments/apis-secure/u/0/get_legal_document?ldo=0&amp;ldt=privacynotice">Google Play</a>,
+      which handles the payment: the game never sees your card or bank details. The game receives what you bought and
+      a purchase code, and keeps them in your save so you get each purchase exactly once. If you are signed in, the
+      game also tells Google Play a scrambled (hashed) version of your account number, which Google uses to spot fraud.</p>
+
+    <h2>Ads (Google Play version)</h2>
+    <p>The Google Play version has optional ads: you only see one when you press <i>Watch ad</i> for a reward. The ads
+      come from <a href="https://policies.google.com/privacy">Google AdMob</a>, which may collect your device's
+      advertising ID, your IP address and how you interact with ads, to show ads, measure them and prevent fraud.
+      Where the law asks for it (for example in the EU and the UK), Google's consent form asks you first, and you can
+      say no. You can also reset or delete your advertising ID in your phone's settings. More about this:
+      <a href="https://policies.google.com/technologies/partner-sites">how Google uses information from apps that use its services</a>.
+      The PC and web versions have no ads.</p>
+
+    <h2>Children</h2>
+    <p>fosh&amp;fish is meant for players aged 13 and up, and we don't knowingly collect data from younger children.
+      If you think a child under 13 made an account, write to us (below) and we'll delete it.</p>
 
     <h2>Deleting your data</h2>
-    <p>In the game, open <i>Menu → Account → Delete account</i>. That removes your login, your fisher name and your cloud save right away. To clear what's on your device, use <i>Settings → Reset save</i> or uninstall the game.</p>
+    <p>In the game, open <i>Menu → Account → Delete account</i>. That removes your login, your fisher name, your cloud
+      save and your shiny fish right away. If you can't open the game, email
+      <a href="mailto:support@foshfish.xyz">support@foshfish.xyz</a> from the address of your account and we'll delete it
+      within 30 days. To clear what's on your device, use <i>Settings → Reset save</i> or uninstall the game.</p>
 
     <h2>Updates</h2>
-    <p>The game checks for new versions by downloading a small file from this website and GitHub. No personal data is sent with that check.</p>
+    <p>The PC version checks for new versions by downloading a small file from this website and GitHub; the Google Play
+      version gets its updates from Google Play. No personal data is sent with those checks.</p>
 
     <h2>Questions</h2>
-    <p>Open an issue on <a href="https://github.com/iiafosh/fosh-and-fish/issues/new">GitHub</a> and afosh will get back to you.</p>
+    <p>Email <a href="mailto:support@foshfish.xyz">support@foshfish.xyz</a>, or open an issue on
+      <a href="https://github.com/iiafosh/fosh-and-fish/issues/new">GitHub</a>, and afosh will get back to you.</p>
   </main>
   <footer class="foot"><p class="copy">© 2026 afosh · <a href="./">foshfish.xyz</a></p></footer>
 </body>

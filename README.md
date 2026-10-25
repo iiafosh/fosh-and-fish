@@ -106,9 +106,15 @@ blender -b --factory-startup --python tools/blender/render_v1.py -- shiny event 
 the exclusive rods are in `vf_models.ROD_SPECS` (`render_assets.py -- rods rods_hand`). Run
 `Godot_console.exe --headless --path . --import` afterwards so Godot picks up new images.
 
-**Export** (presets in `export_presets.cfg`: Web, Windows Desktop, Linux, Android)
+**Export** (presets in `export_presets.cfg`: Web, Windows Desktop, Linux, Android, Android Play)
 ```bash
 Godot_console.exe --headless --path . --export-release "Windows Desktop" build/windows/fosh_fish.exe
+```
+
+**Google Play** (purchases, rewarded ads, the `.aab`): the steps are in [docs/PLAY_STORE.md](docs/PLAY_STORE.md),
+the listing texts and art in `store/play/` (`python tools/art/make_play_kit.py` remakes the art and screenshots).
+```bash
+python tools/release.py play
 ```
 
 Saves live in `%APPDATA%/Godot/app_userdata/fosh&fish` on desktop and in browser storage on the web.

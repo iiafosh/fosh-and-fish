@@ -2,14 +2,14 @@ extends Node
 ## Real-money purchases (autoload "Store"): the Supporter Packs and Pearl packs (VFData.PACKS /
 ## PEARL_PACKS) through Google Play Billing (addons/GodotGooglePlayBilling, Android only).
 ##
-## mode "play": Google Play. Prices are Play's own local prices. A finished purchase is given to the
+## mode "play": the Google Play build (export feature "play", which has the billing plugin). Prices are Play's own local prices. A finished purchase is given to the
 ##   game with VF.grant_purchase(product, token) (the token makes sure it's never given twice), then
 ##   Pearl packs are consumed (they can be bought again) and Supporter Packs acknowledged (kept forever).
 ##   At start we also ask Play for anything bought but not finished (the game closed mid-purchase, a
 ##   slow payment, a reinstall).
 ## mode "test": debug builds and --test-store: every purchase succeeds at once (for testing the flow).
-## mode "none": PC / web release builds: purchases are in the Android app; what you bought there comes
-##   with your account's cloud save.
+## mode "none": PC / web / GitHub APK release builds: purchases are in the Google Play version; what
+##   you bought there comes with your account's cloud save.
 
 signal changed
 
@@ -25,7 +25,7 @@ var _billing = null                # its script (for the enums)
 func _ready() -> void:
 	var cfg := _config()
 	_billing = class_by_name("BillingClient")
-	if OS.get_name() == "Android" and _billing != null:
+	if OS.has_feature("play") and _billing != null:
 		mode = "play"
 		_connect_play()
 	elif "--test-store" in OS.get_cmdline_user_args() or (OS.is_debug_build() and bool(cfg.get("test_store_in_debug", true))):
@@ -89,7 +89,7 @@ func buy(id: String) -> void:
 					busy = ""
 					message = _friendly(int(r.get("response_code", 6)))
 		_:
-			message = "Purchases are in the Android app (Google Play). What you buy there shows up here when you sign in to the same account."
+			message = "Purchases are in the Google Play version of fosh&fish. What you buy there shows up here when you sign in to the same account."
 	changed.emit()
 
 

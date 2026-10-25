@@ -318,7 +318,7 @@ func panel_store(tab: String) -> void:
 	_balance_row()
 	match Store.mode:
 		"test": _note("Test store: purchases are free and nothing is charged (debug build).", Color("#b45309"))
-		"none": _note("Packs and Pearls are bought in the Android app (Google Play). Sign in there and here with the same account: what you buy comes with your cloud save.")
+		"none": _note("Packs and Pearls are bought in fosh&fish from Google Play. Sign in there and here with the same account: what you buy comes with your cloud save.")
 	if Store.message != "": _note(Store.message, Color("#b45309"))
 	match tab:
 		"Packs": _store_packs()
@@ -405,9 +405,9 @@ func _item_desc(d: Dictionary) -> String:
 		bits.append("%s boost%s for %s" % [" + ".join(kinds), "s" if kinds.size() > 1 else "", dur(secs)])
 	if d.has("money_levels"): bits.append("%s right now" % m.money_str(int(maxf(1000.0, VF.levelup_money(VF.level)) * float(d.money_levels))))
 	if d.has("xp_frac"): bits.append("+%s XP (half a level)" % VF.fmt(VF.xp_to_next() * float(d.xp_frac)))
-	if d.has("chest"): bits.append("A %s chest" % String(d.chest))
-	if d.has("event"): bits.append("A random event starts now")
-	if d.has("lure"): bits.append("Your next %d catches: shiny fish 3x as often" % int(d.lure))
+	if d.has("chest"): bits.append("A %s chest. Odds: %s" % [String(d.chest), VFData.chest_odds(String(d.chest))])
+	if d.has("event"): bits.append("A random event starts now (each one equally likely)")
+	if d.has("lure"): bits.append("Your next %d catches: shiny fish 3x as often. %s" % [int(d.lure), VFData.shiny_odds()])
 	if d.has("rod"): bits.append(VFData.RODS[d.rod].desc)
 	if d.has("money2x"): bits.append("x2 money from selling for %d minutes" % int(float(d.money2x) / 60.0))
 	if d.has("pearls"): bits.append("+%d Pearls" % int(d.pearls))
@@ -417,7 +417,7 @@ func _item_desc(d: Dictionary) -> String:
 
 func _store_free() -> void:
 	if not Ads.available():
-		_note("Free rewards for watching a short ad are in the Android app.")
+		_note("Free rewards for watching a short ad are in fosh&fish from Google Play.")
 		return
 	_note("Watch a short ad, get a reward. %d ads a day." % VFData.AD_DAILY_MAX)
 	if Ads.mode == "test": _note("Test ads: a pretend 2-second ad (debug build).", Color("#b45309"))
@@ -448,7 +448,7 @@ func panel_events(tab: String) -> void:
 				m._render_panel()
 				return ""
 			var right: Control = m.lbl("Owned", 15, C_GOOD) if owned else m._act("%s ★" % VF.commas(int(d.cost)), C_STAR.darkened(0.2), buy, VF.stars >= int(d.cost))
-			m._add_to(g, _card(item_tex(d), d.name, d.desc, right, false, 48, C_STAR))
+			m._add_to(g, _card(item_tex(d), d.name, _item_desc(d), right, false, 48, C_STAR))
 		return
 	if VF.event_active():
 		var e: Dictionary = VFData.EVENTS[VF.ev_id]
@@ -714,3 +714,91 @@ func capture_test(dir: String) -> void:
 	await m._shot(dir + "/v1_sell_landed.png")
 	print("V1 sold=%s shown='%s' now='%s'" % [VF.money > before, m.money_label.text, m.money_str(VF.money)])
 	print("V1 pearls=%d packs=%s stars=%d money2x=%.0f rods=%s" % [VF.pearls, VF.packs, VF.stars, VF.money2x_left(), VF.owned_rods])
+
+
+## godot --path . --fullscreen -- --capture=DIR --play-shots (on a 1920x1080 screen): the Google Play screenshots
+## (tools/art/make_play_kit.py runs it). Never saves.
+func play_shots(dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.player_name = "Fisher"
+	m._veteran("Ocean")
+	m._coach_show()
+	for f in ["Rainbow Fish", "Cod", "Tropical Fish", "Space Fish", "Shark", "Pufferfish", "Turtle", "Galactic Crab"]:
+		VF.add_shiny(f, 37 + f.length() * 97)
+	VF.stars = 180
+	VF.pearls = 650
+	VF.event_fish = {"Golden Koi": 4, "Frenzy Piranha": 2, "Meteor Fish": 1, "Treasure Crab": 3}
+	VF.changed.emit()
+	var got := []
+	var on_trip := func(res: Dictionary):
+		if String(res.get("event_fish", "")) != "": got.append(res.event_fish)
+	VF.trip_done.connect(on_trip)
+	for l in m.find_children("*", "Label", true, false):
+		if l.text.begins_with("fosh&fish "): l.visible = false          # the version label (these are store art)
+	await m._wait(1.0)
+	# 1. an event on, an event fish on the line
+	VF.start_event("golden_hour")
+	await m._wait(3.2)                                   # (the event's banner goes by first)
+	VF.rng.seed = 4
+	for i in 12:
+		VF._last_cast_ms = -100000
+		m._do_cast()
+		await m._wait(1.1)
+		if not got.is_empty(): break
+	await m._wait(0.5)
+	await m._shot(dir + "/1_event_fish.png")
+	VF._ev_end(true)
+	# 2. a shiny
+	await m._wait(3.0)
+	celebrate("Rainbow Fish", 42, 2958)
+	await m._wait(0.9)
+	await m._shot(dir + "/2_shiny.png")
+	await m._wait(4.5)
+	# 3. the boss, somewhere dramatic
+	m._veteran("Volcanic")
+	await m._wait(1.0)
+	VF.start_event("boss")
+	await m._wait(3.2)
+	VF.ev_boss_hp = 17
+	for i in 2:
+		VF._last_cast_ms = -100000
+		m._do_cast()
+		await m._wait(1.2)
+	await m._shot(dir + "/3_boss.png")
+	VF._ev_end(true)
+	# 4. a meteor shower in space
+	m._veteran("Space")
+	await m._wait(3.0)
+	VF.start_event("meteor_shower")
+	await m._wait(3.2)
+	VF._last_cast_ms = -100000
+	m._do_cast()
+	await m._wait(1.3)
+	await m._shot(dir + "/4_meteor_shower.png")
+	VF._ev_end(true)
+	m._veteran("Ocean")
+	await m._wait(3.0)
+	# 5. the shiny collection, as a signed-in player sees it (captures never talk to a server)
+	var bs: String = Backend.state
+	Backend.state = "signed_in"
+	m._open_panel("inventory", "Shiny")
+	await m._wait(0.6)
+	await m._shot(dir + "/5_shiny_book.png")
+	Backend.state = bs
+	# 6. events and their fish
+	m._open_panel("events", "Events")
+	await m._wait(0.6)
+	await m._shot(dir + "/6_events.png")
+	# 7. the Store as it looks in the Google Play build (no test-mode notes)
+	var was: String = Store.mode
+	Store.mode = "play"
+	Store.online = true
+	Store.message = ""
+	m._open_panel("store", "Packs")
+	await m._wait(0.6)
+	await m._shot(dir + "/7_store.png")
+	Store.mode = was
+	m._close_panel()
+	VF.trip_done.disconnect(on_trip)
+	print("PLAY SHOTS done (event fish: %s)" % [got])

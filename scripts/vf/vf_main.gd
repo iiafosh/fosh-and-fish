@@ -5,7 +5,7 @@ extends Control
 ## tools/blender/render_assets.py).
 
 const ART := "res://assets/vf/"
-var VERSION: String = Updater.version + " beta"
+var VERSION: String = Updater.version + (" beta" if Updater.version.begins_with("0.") else "")    # 1.0+: no "beta"
 const FEEDBACK_URL := "https://github.com/iiafosh/fosh-and-fish/issues/new"
 const C_BG := Color("#cfe8ec")
 const C_PANEL := Color("#fbfdfe")          # frosted white
@@ -2079,6 +2079,10 @@ func _check_capture() -> void:
 		await v1.capture_test(dir)
 		get_tree().quit()
 		return
+	if "--play-shots" in OS.get_cmdline_user_args():
+		await v1.play_shots(dir)
+		get_tree().quit()
+		return
 	if "--scroll-test" in OS.get_cmdline_user_args():
 		await _scroll_test(dir)
 		get_tree().quit()
@@ -2923,6 +2927,10 @@ func _panel_update() -> void:
 				status = "fosh&fish %s is ready to download (%.1f MB). Your progress is kept." % [newest, mb]
 				action = btn("Update now", Color("#3fae6a"), 17, 220)
 			action.pressed.connect(U.download)
+		"store":
+			status = "Google Play keeps fosh&fish up to date: new versions install by themselves."
+			action = btn("Open Google Play", C_NEUTRAL, 15, 220)
+			action.pressed.connect(U.open_store)
 		"full_needed":
 			status = "fosh&fish %s is a big update and needs a new download (one time). Your progress is kept." % newest
 			action = btn("Open downloads", Color("#2f8f9e"), 17, 220)

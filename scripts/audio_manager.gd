@@ -52,6 +52,8 @@ func _ready() -> void:
 		add_child(p)
 		sfx_players.append(p)
 	load_settings()
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		fullscreen = true          # only `--fullscreen` starts the window like this: the command line wins (not saved)
 	apply_settings()
 	if amb: ambient_player.play()
 

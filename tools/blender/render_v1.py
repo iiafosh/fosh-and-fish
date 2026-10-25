@@ -379,12 +379,21 @@ def do_packs(only):
 
 
 def main():
+    """... -- [categories] [--only a,b] [--size PX] [--out DIR]  (bigger renders elsewhere, e.g. for store art)"""
+    global SIZE, OUT
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     only = []
-    if "--only" in argv:
-        i = argv.index("--only")
-        only = [x.strip() for x in argv[i + 1].split(",")]
-        argv = argv[:i] + argv[i + 2:]
+    for flag in ("--only", "--size", "--out"):
+        if flag in argv:
+            i = argv.index(flag)
+            v = argv[i + 1]
+            argv = argv[:i] + argv[i + 2:]
+            if flag == "--only":
+                only = [x.strip() for x in v.split(",")]
+            elif flag == "--size":
+                SIZE = int(v)
+            else:
+                OUT = os.path.abspath(v)
     for c in argv or ["shiny", "event", "ui", "packs"]:
         print("== rendering", c, flush=True)
         {"shiny": do_shiny, "event": do_event, "ui": do_ui, "packs": do_packs}[c](only)
