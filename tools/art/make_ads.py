@@ -210,7 +210,7 @@ def make(idea, size_key):
         if size_key == "1080x1080":
             y = column(c, ow / 2, 40, ow * 0.92)
             card = framed(pic, 960, 540, focus if not painted else (0.5, 0.5), zoom if not painted else 1.0)
-            put(c, card, ow / 2, y + card.size[1] / 2 - 26)
+            put(c, card, ow / 2, y + card.size[1] / 2 - 8)
             lg = logo_w(250)
             put(c, lg, 60 + lg.size[0] / 2, oh - 30 - lg.size[1] / 2)
             put(c, btn, ow - 70 - btn.size[0] / 2, oh - 30 - lg.size[1] / 2)
