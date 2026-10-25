@@ -228,6 +228,7 @@ func _on_shiny_ticket(species: String) -> void:
 
 ## the big moment: a white flash, sparkles, and the numbered shiny
 func celebrate(species: String, serial: int, left: int) -> void:
+	AudioManager.play_bell()
 	AudioManager.play_levelup()
 	var flash := ColorRect.new()
 	flash.color = Color(1, 1, 1, 0.0)
@@ -532,6 +533,104 @@ func tab_event_fish() -> void:
 		m._add_to(g, cell)
 
 
+# =================================================================== juice
+## Small motion that makes the game feel alive: every button squashes while pressed, panels pop open,
+## the catch card pops in, and a sale's coins fly into the money counter, which rolls up as they land.
+
+var _roll: Tween
+
+
+func setup_juice() -> void:
+	for b in m.find_children("*", "BaseButton", true, false):
+		_squash(b)
+	m.get_tree().node_added.connect(_on_node_added)
+
+
+func _on_node_added(n: Node) -> void:
+	if n is BaseButton: _squash(n)
+
+
+func _squash(b: BaseButton) -> void:
+	if b.has_meta("squash"): return
+	b.set_meta("squash", true)
+	var down := func():
+		b.pivot_offset = b.size * 0.5
+		b.create_tween().tween_property(b, "scale", Vector2(0.94, 0.94), 0.05)
+	var up := func():
+		b.create_tween().tween_property(b, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	b.button_down.connect(down)
+	b.button_up.connect(up)
+
+
+## only when the panel opens, not on every tab switch
+func pop_panel() -> void:
+	var p: Control = m.panel_box
+	p.pivot_offset = p.size * 0.5
+	p.scale = Vector2(0.95, 0.95)
+	m.overlay.modulate.a = 0.0
+	var tw := p.create_tween().set_parallel(true)
+	tw.tween_property(p, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(m.overlay, "modulate:a", 1.0, 0.12)
+
+
+## the catch card, when it wasn't showing: it grows out of its top-right corner
+func pop_card() -> void:
+	var c: Control = m.card
+	c.pivot_offset = Vector2(c.size.x, 0.0)
+	c.scale = Vector2(0.88, 0.88)
+	c.create_tween().tween_property(c, "scale", Vector2.ONE, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func coins_to_wallet(from: Vector2, earned: int) -> void:
+	var pill: Control = m.money_label.get_parent().get_parent()
+	var to: Vector2 = pill.get_global_rect().position + Vector2(22.0, pill.size.y * 0.5) - Vector2(14, 14)
+	var t: Texture2D = m.tex("ui/coin.png")
+	var tint := t == null
+	if tint: t = m.ph("coins")
+	var n := clampi(2 + int(log(maxf(1.0, float(earned))) / log(10.0)), 4, 10)
+	var land := 0.0
+	for i in n:
+		var c: TextureRect = m.icon(t, 28)
+		if tint: c.modulate = Color("#ffcf4a")
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.pivot_offset = Vector2(14, 14)
+		c.position = from - Vector2(14, 14)
+		c.scale = Vector2(0.2, 0.2)
+		m.fx_layer.add_child(c)
+		var burst := from - Vector2(14, 14) + Vector2(randf_range(-80.0, 80.0), randf_range(-90.0, -20.0))
+		var wait := 0.025 * i
+		var fly := 0.38 + 0.03 * i
+		var tw := c.create_tween()
+		tw.tween_interval(wait)
+		tw.tween_property(c, "position", burst, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(c, "position", to, fly).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(c, "scale", Vector2(0.55, 0.55), fly)
+		if i % 3 == 0: tw.tween_callback(AudioManager.play_coin)
+		tw.tween_callback(c.queue_free)
+		if i == 0: land = wait + 0.2 + fly
+	roll_money(float(VF.money - earned), land, 0.25 + 0.03 * n)
+	var bump := pill.create_tween()
+	bump.tween_interval(land)
+	bump.tween_callback(func(): pill.pivot_offset = pill.size * 0.5)
+	bump.tween_property(pill, "scale", Vector2(1.12, 1.12), 0.07)
+	bump.tween_property(pill, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func money_rolling() -> bool:
+	return _roll != null and _roll.is_valid() and _roll.is_running()
+
+
+## the money counter counts up from `from` to what you have now
+func roll_money(from: float, delay: float, secs: float) -> void:
+	if _roll: _roll.kill()
+	m.money_label.text = m.money_str(from)
+	_roll = m.create_tween()
+	_roll.tween_interval(delay)
+	_roll.tween_method(func(x: float): m.money_label.text = m.money_str(x), from, float(VF.money), secs).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_roll.tween_callback(func(): m.money_label.text = m.money_str(VF.money))
+
+
 # ============================================================== capture test
 ## godot --path . -- --capture=DIR --v1-test : events, an event fish, the boss, a shiny celebration, a test
 ## purchase, the Pearl Shop, an ad reward, and every 1.0 panel, as screenshots in DIR (never saves).
@@ -599,4 +698,11 @@ func capture_test(dir: String) -> void:
 	m._close_panel()
 	await m._wait(0.3)
 	await m._shot(dir + "/v1_hud.png")
+	var before: int = VF.money
+	m._do_sell()
+	await m._wait(0.3)
+	await m._shot(dir + "/v1_sell_coins.png")
+	await m._wait(1.2)
+	await m._shot(dir + "/v1_sell_landed.png")
+	print("V1 sold=%s shown='%s' now='%s'" % [VF.money > before, m.money_label.text, m.money_str(VF.money)])
 	print("V1 pearls=%d packs=%s stars=%d money2x=%.0f rods=%s" % [VF.pearls, VF.packs, VF.stars, VF.money2x_left(), VF.owned_rods])

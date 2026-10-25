@@ -111,6 +111,7 @@ func _ready() -> void:
 	account_ui = load("res://scripts/net/account_ui.gd").new(self)
 	v1 = load("res://scripts/vf/vf_v1_ui.gd").new(self)
 	v1.build_hud()
+	v1.setup_juice()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
@@ -858,8 +859,10 @@ func _build_card() -> void:
 	add_child(toast_box)
 
 func _show_card() -> void:
+	var popping := not card.visible or card.modulate.a < 0.35
 	card.modulate.a = 1.0
 	card.visible = true
+	if popping: v1.pop_card()
 	if _card_tw: _card_tw.kill()
 	_card_tw = card.create_tween()
 	_card_tw.tween_interval(6.0)
@@ -1162,6 +1165,7 @@ func _do_sell() -> void:
 	if earned > 0:
 		AudioManager.play_success()
 		_float_text("+%s" % money_str(earned), sell_btn.get_global_rect().get_center() + Vector2(0, -40), C_GOLD)
+		v1.coins_to_wallet(sell_btn.get_global_rect().get_center(), earned)
 
 func _on_trip(res: Dictionary) -> void:
 	_show_catch(res)
@@ -1356,7 +1360,7 @@ func _refresh() -> void:
 	xp_bar.value = VF.xp
 	xp_label.text = "%s / %s XP" % [VF.fmt(VF.xp), VF.fmt(need)]
 	xp_ring.queue_redraw()
-	money_label.text = money_str(VF.money)
+	if v1 == null or not v1.money_rolling(): money_label.text = money_str(VF.money)    # (a sale's coins roll it up)
 	for k in exotic_labels:
 		exotic_labels[k].text = VF.fmt(VF.exotics.get(k, 0))
 	hooks_label.text = str(VF.hooks)
@@ -1494,9 +1498,11 @@ func _open_panel(kind: String, tab: String = "") -> void:
 		_coach_next(3)
 	_panel_kind = kind
 	_panel_tab = tab if tab != "" else (PANEL_TABS[kind][0] if PANEL_TABS.has(kind) else "")
+	var opening := not overlay.visible
 	overlay.visible = true
 	if launcher_open(): move_child(overlay, get_child_count() - 1)    # over the title screen
 	_render_panel()
+	if opening: v1.pop_panel()
 
 func _close_panel() -> void:
 	if VF.tutorial == 3 and _panel_kind == "shop":

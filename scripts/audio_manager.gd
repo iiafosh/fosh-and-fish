@@ -30,6 +30,7 @@ func _ready() -> void:
 		"levelup": "maximize_006", "strike": "pluck_001", "error": "error_004",
 		"splash": ["splash_02", "splash_05", "splash_09"], "splash_big": "splash_12",
 		"bubble": ["bubble_01", "bubble_02"],
+		"coin": ["impactMetal_light_000", "impactMetal_light_001", "impactMetal_light_002"], "bell": "impactBell_heavy_000",
 	}
 	for k in files:
 		var v = files[k]
@@ -115,3 +116,5 @@ func play_reel() -> void: play_sfx("bubble", -6.0, randf_range(0.9, 1.1))
 func play_strike() -> void: play_sfx("strike", -2.0, 1.0)
 func play_success() -> void: play_sfx("success", -3.0, 1.0)
 func play_levelup() -> void: play_sfx("levelup", -2.0, 1.0)
+func play_coin() -> void: play_sfx("coin", -12.0, randf_range(1.45, 1.75))     # a metal tap, pitched up into a coin
+func play_bell() -> void: play_sfx("bell", -6.0, 1.15)

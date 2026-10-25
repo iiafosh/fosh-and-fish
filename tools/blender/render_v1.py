@@ -9,7 +9,7 @@ whale (CC0, scratch/downloads/glb, see CREDITS.md), recoloured.
   blender -b --factory-startup --python tools/blender/render_v1.py -- [shiny event ui packs] [--only NAME,...]
 
 Output (256 px, transparent): assets/vf/shiny/<fish>.png, assets/vf/event/<fish>.png,
-assets/vf/ui/pearl.png + star.png, assets/vf/packs/<pack id>.png
+assets/vf/ui/pearl.png, star.png + coin.png, assets/vf/packs/<pack id>.png
 """
 import math
 import os
@@ -262,8 +262,19 @@ def event_star():
     return [st, face]
 
 
+def gold_coin():
+    """one coin, for the coins that fly into the money counter when you sell"""
+    coin = cyl(r=1.0, depth=0.24, verts=48, rot=(90, 0, 0), mat=toon("#ffd23f", spec=0.5, rim=0.3, emit=0.18))
+    ring = torus(loc=(0, -0.12, 0), R=0.8, r=0.05, rot=(90, 0, 0), mat=toon("#e39b12"))
+    star = extrude_poly(M.star_pts(0.46, 0.2, 5), 0.06, loc=(0, -0.13, 0), mat=toon("#e9a514"))
+    star.rotation_euler = (math.radians(90), 0, 0)
+    ring["no_outline"] = star["no_outline"] = True
+    return [coin, ring, star]
+
+
 def do_ui(only):
-    for name, build, rot in [("pearl", big_pearl, (70, 0, 16)), ("star", event_star, (84, 0, 12))]:
+    for name, build, rot in [("pearl", big_pearl, (70, 0, 16)), ("star", event_star, (84, 0, 12)),
+                             ("coin", gold_coin, (80, 0, 22))]:
         if only and name not in only:
             continue
         scene(rot=rot, light=(40, 10, 30))
