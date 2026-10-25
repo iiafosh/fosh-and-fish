@@ -9,7 +9,7 @@
 
     godot --path . --fullscreen --write-movie WORK/reel.avi --fixed-fps 30 -- --reel10 > WORK/reel_log.txt
         (on a 1920x1080 screen)
-    python tools/video/edit10.py WORK OUT [trailer,shiny,boss,events,bumper] [--thumb]
+    python tools/video/edit10.py WORK OUT [trailer,shiny,boss,events,bumper] [--thumb | --thumb-only]
 
 Sound: the game's own audio from the recording, a water bed under everything, and CC0 effects
 (tools/video/music.py / music_boom.py synths, Kenney Impact + Interface Sounds, rubberduck's water SFX).
@@ -730,7 +730,7 @@ def render(cut):
         path = os.path.join(OUT, f"fosh-and-fish-1.0-{cut.name}-{fmt}.mp4")
         procs[fmt] = subprocess.Popen(
             [FF, "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{ow}x{oh}", "-r", str(FPS),
-             "-i", "-", "-i", audio, "-af", "loudnorm=I=-14:TP=-1.5:LRA=9",
+             "-i", "-", "-i", audio, "-af", "loudnorm=I=-14:TP=-1.5:LRA=9,alimiter=limit=0.89",
              "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", "-profile:v", "high",
              "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-shortest", "-movflags", "+faststart", path],
             stdin=subprocess.PIPE)
@@ -754,7 +754,7 @@ def thumbnail():
     tw, th = 1280, 720
     s = mk("shiny")
     frame = read_frames(s["f"] + 30 + FRAME_OFFSET, 1)[0]
-    c = camera(frame, 1.5, (W * 0.56, H * 0.36), tw, th).convert("RGBA")
+    c = camera(frame, 1.5, (W * 0.34, H * 0.42), tw, th).convert("RGBA")       # the card on the right
     c.alpha_composite(vignette((tw, th)))
     shade = Image.linear_gradient("L").rotate(-90).resize((tw, th)).point(lambda p: int(min(255, p * 1.4) * 0.85))
     dark = Image.new("RGBA", (tw, th), (6, 26, 34, 0))
@@ -773,10 +773,12 @@ def thumbnail():
 if __name__ == "__main__":
     args = [a for a in sys.argv[3:] if not a.startswith("--")]
     names = args[0].split(",") if args else list(CUTS)
+    if "--thumb-only" in sys.argv:
+        names = []
     for name in names:
         cut = CUTS[name]()
         print(name, cut.total, "frames", round(cut.total / FPS, 1), "s", cut.formats, flush=True)
         if "--plan" not in sys.argv:
             render(cut)
-    if "--thumb" in sys.argv:
+    if "--thumb" in sys.argv or "--thumb-only" in sys.argv:
         thumbnail()
