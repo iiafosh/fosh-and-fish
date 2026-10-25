@@ -27,6 +27,8 @@ Updater="*res://scripts/updater.gd"
 VF="*res://scripts/vf/vf_game.gd"
 AudioManager="*res://scripts/audio_manager.gd"
 Backend="*res://scripts/net/backend.gd"
+Store="*res://scripts/net/store.gd"
+Ads="*res://scripts/net/ads.gd"
 
 [display]
 

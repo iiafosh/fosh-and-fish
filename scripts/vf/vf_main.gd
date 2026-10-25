@@ -86,6 +86,9 @@ var panel_back: Button
 var tabs_track: PanelContainer
 var _update_announced := false
 var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
+var v1                         # scripts/vf/vf_v1_ui.gd (1.0: Store, Events, shinies, the event pill)
+var hud_row: HBoxContainer     # level / money / wallet pills (top left)
+var hud_col: VBoxContainer     # the top-left column under them
 var panel_box: PanelContainer
 var panel_scroll: ScrollContainer
 var _drag := {}                # finger drag-to-scroll on a menu (phones), see _input
@@ -106,6 +109,8 @@ func _ready() -> void:
 	get_window().size_changed.connect(_update_ui_scale)
 	_build()
 	account_ui = load("res://scripts/net/account_ui.gd").new(self)
+	v1 = load("res://scripts/vf/vf_v1_ui.gd").new(self)
+	v1.build_hud()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
@@ -167,6 +172,7 @@ func _process(delta: float) -> void:
 	var left: float = VF.cooldown_left()
 	cast_ring.queue_redraw()
 	_process_hold()
+	if v1: v1.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
@@ -668,6 +674,8 @@ func _build_hud() -> void:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(row)
+	hud_row = row
+	hud_col = col
 	# level: XP ring around the number
 	var lv := PanelContainer.new()
 	lv.add_theme_stylebox_override("panel", pill_box(false, 6, 4))
@@ -1446,6 +1454,12 @@ func _refresh_boosts() -> void:
 	if Time.get_unix_time_from_system() < VF.personal_until:
 		names.append("Personal")
 		tips.append("Personal booster: %s left" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
+	if VF.money2x_left() > 0.0:
+		names.append("x2 Money")
+		tips.append("Double Money: %s left" % _clock(VF.money2x_left()))
+	if VF.shiny_lure > 0:
+		names.append("Shiny Lure %d" % VF.shiny_lure)
+		tips.append("Shiny Lure: shiny fish 3x as often for %d more catches" % VF.shiny_lure)
 	boost_label.text = "  ·  ".join(names)
 	boost_pill.visible = not names.is_empty()
 	boost_icon.texture = ph("clover") if names.size() == 1 and VF.beginner_mult() > 1.0 else ph("lightning")
@@ -1466,6 +1480,9 @@ func _avg_fish() -> float:
 # ================================================================= panels
 const PANEL_TABS := {
 	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League"],
+	"store": ["Packs", "Pearls", "Pearl Shop", "Free"],
+	"events": ["Events", "Event Shop"],
+	"inventory": ["Fish", "Shiny", "Event fish"],
 	"prestige": ["Prestige", "Shop", "Guide"],
 	"quests": ["Quests", "Daily"],
 	"guide": VFGuide.TAB_ORDER,
@@ -1491,7 +1508,8 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
+		"store": "Store", "events": "Events"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1526,6 +1544,8 @@ func _render_panel() -> void:
 		"update": _panel_update()
 		"menu": _panel_menu()
 		"account": _panel_account()
+		"store": v1.panel_store(_panel_tab)
+		"events": v1.panel_events(_panel_tab)
 
 ## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -1575,6 +1595,12 @@ func _add_to(g: Node, c: Control) -> void:
 	g.add_child(c)
 
 func _panel_inventory() -> void:
+	if _panel_tab == "Shiny":
+		v1.tab_shiny()
+		return
+	if _panel_tab == "Event fish":
+		v1.tab_event_fish()
+		return
 	var total: int = VF.inventory_value()
 	var head := HBoxContainer.new()
 	var l := lbl("Hold value: %s   (sell multiplier ×%.2f)" % [money_str(total), VF.sell_mult()], 16)
@@ -1620,8 +1646,11 @@ func _panel_shop() -> void:
 				if r in VF.owned_rods:
 					right = _act("Equipped" if VF.rod == r else "Equip", C_GOOD if VF.rod == r else Color("#2f8f9e"),
 						func(): VF.select_rod(r); return "", VF.rod != r)
-				elif r == "Supporter Rod":
-					right = lbl("Prestige 5", 14, C_MUTED)
+				elif VFData.is_exclusive_rod(r):
+					var src: String = {"pack": "Store", "pearl": "Store", "event": "Events"}[d.exclusive]
+					var where: String = {"pack": "Packs", "pearl": "Pearl Shop", "event": "Event Shop"}[d.exclusive]
+					right = _act({"pack": "Supporter Packs", "pearl": "Pearl Shop", "event": "Event Shop"}[d.exclusive], C_GOLD,
+						func(): _open_panel(src.to_lower(), where); return "")
 				elif VF.level < d.level:
 					right = lbl("Level %d" % d.level, 14, C_MUTED)
 				else:
@@ -2038,6 +2067,10 @@ func _check_capture() -> void:
 		await _wait(1.2)
 		await _shot(dir + "/launcher_after_play.png")
 		print("LAUNCHER closed=%s stage=%s" % [not launcher_open(), stage.visible])
+		get_tree().quit()
+		return
+	if "--v1-test" in OS.get_cmdline_user_args():
+		await v1.capture_test(dir)
 		get_tree().quit()
 		return
 	if "--scroll-test" in OS.get_cmdline_user_args():
@@ -2465,7 +2498,10 @@ func _next_banner() -> void:
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
-	if b[2]: h.add_child(icon(b[2], 72))
+	if b[2]:
+		var bi := icon(b[2], 72)
+		if String(b[2].resource_path).find("/phosphor/") >= 0: bi.modulate = b[3]    # white UI icons on the white banner
+		h.add_child(bi)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(lbl(b[0], 24, b[3].darkened(0.15)))
@@ -2953,13 +2989,15 @@ const MENU_TILES := [
 	["settings", "Settings", "gear-six", "O", "Sound, screen, save"],
 	["update", "Updates", "arrow-circle-up", "", "Get the newest version"],
 	["account", "Account", "user-circle", "", "Cloud save & leaderboard"],
+	["store", "Store", "shopping-bag-open", "", "Packs, Pearls & free rewards"],
+	["events", "Events", "confetti", "", "What's on & the Event Shop"],
 ]
 
 const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
 	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
 	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
-	"account": Color("#6366f1"),
+	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"),
 }
 
 func _panel_menu() -> void:
