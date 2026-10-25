@@ -94,7 +94,7 @@ def hp_at(f):
     return max(0.0, 4.0 - 4.0 * (f - T.BOSS_JUMP) / float(T.BIG_KABOOM - 4 - T.BOSS_JUMP))
 
 
-def hp_bar(c, f, cx, y, scale=1.0):
+def hp_bar(c, f, cx, y, scale=1.0, alpha=1.0):
     """the boss's health bar: LEVIATHAN, a red bar that drains, n / 25"""
     w, h = int(620 * scale), int(34 * scale)
     lay = Image.new("RGBA", (w + 20, h + int(70 * scale)), (0, 0, 0, 0))
@@ -108,7 +108,12 @@ def hp_bar(c, f, cx, y, scale=1.0):
     lay.alpha_composite(brand_text("LEVIATHAN", int(40 * scale), edge=RED, depth=4), (10, 0))
     num = brand_text("%d / 25" % int(math.ceil(hp)), int(34 * scale), edge=RED, depth=3)
     lay.alpha_composite(num, (w + 10 - num.width, 4))
-    place(c, lay, cx, y, 1.0, 1.0)
+    place(c, lay, cx, y, 1.0, alpha)
+
+
+def fit(im, s, cw):
+    """a scale no bigger than s that keeps im inside 94% of the width"""
+    return min(s, cw * 0.94 / max(1, im.width)) if s else s
 
 
 def captions(c, f, layout):
@@ -120,6 +125,8 @@ def captions(c, f, layout):
 
     def at_bottom(dy=0.86):
         return ch * 0.5 + band_h * 0.5 + 170 if tall else ch * dy
+
+    top_slot = band_top - 58 if tall else 66          # headers: above the picture (vertical), at the top (16x9)
 
     if tall and 10 <= f < T.BREACH - 2:                          # (vertical) a hook above the picture
         s, a = pop(f, 10, T.BREACH - 2)
@@ -158,13 +165,13 @@ def captions(c, f, layout):
         y = at_bottom(0.83)
         big = brand_text("ONLY 3,000", int(118 * k), edge=GOLD, depth=10)
         place(c, big, cw / 2, y, s, a)
-        place(c, brand_text("OF EACH SPECIES  ·  EVERY ONE NUMBERED", int(36 * k), edge=GOLD, depth=3), cw / 2,
-              y + big.height * 0.5 * s + 14, s, a)
+        sub = brand_text("OF EACH SPECIES  ·  EVERY ONE NUMBERED", int(36 * k), edge=GOLD, depth=3)
+        place(c, sub, cw / 2, y + big.height * 0.5 * s + 14, fit(sub, s, cw), a)
     # the events
     s, a = pop(f, T.EVENTS[0][1] + 2, T.RODS[0] - 4)
     if s:
-        y = (below + 150 if tall else 64)
-        place(c, brand_text("AN EVENT EVERY 10 MINUTES", int(50 * k), edge=MINT, depth=5), cw / 2, y, s, a)
+        hd = brand_text("AN EVENT EVERY 10 MINUTES", int(50 * k), edge=MINT, depth=5)
+        place(c, hd, cw / 2, top_slot, fit(hd, s, cw), a)
     for i, (name, f0) in enumerate(T.EVENTS):
         f1 = T.EVENTS[i + 1][1] if i + 1 < len(T.EVENTS) else 600
         s, a = pop(f, f0 + 2, f1 + 1, out=4)
@@ -172,37 +179,42 @@ def captions(c, f, layout):
             label, sub, col = EVENT_NAMES[name]
             big = brand_text(label, int(112 * k), edge=col, depth=10)
             y = at_bottom(0.82)
-            place(c, big, cw / 2, y, s, a)
-            place(c, brand_text(sub, int(42 * k), edge=col, depth=3), cw / 2, y - big.height * 0.5 * s - 6, s, a)
+            sb = fit(big, s, cw)
+            place(c, big, cw / 2, y, sb, a)
+            place(c, brand_text(sub, int(42 * k), edge=col, depth=3), cw / 2, y - big.height * 0.5 * sb - 6, s, a)
     # the rods
     s, a = pop(f, T.RODS[0] + 2, 718)
     if s:
-        y = (below + 150 if tall else 66)
-        place(c, brand_text("EXCLUSIVE RODS", int(76 * k), edge=GOLD, depth=7), cw / 2, y, s, a)
+        place(c, brand_text("EXCLUSIVE RODS", int(76 * k), edge=GOLD, depth=7), cw / 2, top_slot, s, a)
     for i, ((name, col), fr) in enumerate(zip(ROD_NAMES, T.RODS)):
+        if tall:                                             # (vertical: one at a time, big, under the picture)
+            s, a = pop(f, fr + 4, T.RODS[i + 1] + 2 if i + 1 < len(T.RODS) else 718)
+            if s:
+                big = brand_text(name, int(100 * k), edge=col, depth=8)
+                place(c, big, cw / 2, at_bottom(0.82), fit(big, s, cw), a)
+            continue
         s, a = pop(f, fr + 4, 718)
         if s:
-            x = (0.21 + 0.29 * i) * cw
-            y = at_bottom(0.93) if not tall else below - 30
-            place(c, brand_text(name, int(40 * k), edge=col, depth=4), x, y, s, a)
+            place(c, brand_text(name, int(40 * k), edge=col, depth=4), (0.21 + 0.29 * i) * cw, at_bottom(0.93), s, a)
     # the boss
     s, a = pop(f, T.BOSS_SURFACE + 2, T.HOOKED + 2)
     if s:
         y = at_bottom(0.82)
         big = brand_text("BOSS FISH!", int(120 * k), edge=RED, depth=10)
-        place(c, big, cw / 2, y, s, a)
+        place(c, big, cw / 2, y, fit(big, s, cw), a)
         place(c, brand_text("THE LEVIATHAN", int(42 * k), edge=RED, depth=3), cw / 2, y - big.height * 0.5 * s - 6, s, a)
     if T.BOSS_SURFACE + 6 <= f < T.BIG_KABOOM:
         a = min(1.0, (f - T.BOSS_SURFACE - 6) / 6.0)
-        y = (below + 160 if tall else 74)
-        hp_bar(c, f, cw / 2, y, k * a if a < 1 else k)
+        hp_bar(c, f, cw / 2, top_slot + (0 if tall else 8), k, a)
     s, a = pop(f, T.HOOKED + 6, T.REEL)
     if s:
-        place(c, brand_text("every catch wears it down", int(58 * k), edge=RED, depth=5), cw / 2, at_bottom(0.87), s, a)
+        cap = brand_text("every catch wears it down", int(58 * k), edge=RED, depth=5)
+        place(c, cap, cw / 2, at_bottom(0.87), fit(cap, s, cw), a)
     if T.REEL + 2 <= f < T.BIG_KABOOM - 6:
         s, a = pop(f, T.REEL + 2, T.BIG_KABOOM - 6)
         beat = 1.0 + 0.08 * max(0.0, 1 - ((f - T.REEL) % 15) / 6.0)
-        place(c, brand_text("REEL IT IN!", int(118 * k), edge=GOLD, depth=10), cw / 2, at_bottom(0.83), s * beat, a)
+        rl = brand_text("REEL IT IN!", int(118 * k), edge=GOLD, depth=10)
+        place(c, rl, cw / 2, at_bottom(0.83), fit(rl, s * beat, cw), a)
     # the end card
     if f >= 1012:
         s, a = pop(f, 1012, 10 ** 6)
