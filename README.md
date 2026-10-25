@@ -97,7 +97,17 @@ python tools/video/edit_boom.py build/boom --remux build/boom/sfx.wav sfx
 `boom_prep.py` makes static Fredoka instances for Blender and cuts the gameplay clips. Add
 `--pct 50 --still 120,240` to `boom_video.py` for quick test frames.
 
-**1.0 marketing videos and ads** (sound effects only): a launch trailer (16:9, 9:16), three 15-second ads
+**The 1.0 trailer, "THE LEVIATHAN"** (3D like KABOOM, with music): a calm sunset, a giant shadow, the Leviathan
+breaches; shiny fish, the four events, the exclusive rods, the boss fight, CAUGHT!. The logo and finale shots are
+KABOOM's own (their frames are copied from `build/boom/frames`, so run KABOOM's `boom_prep.py` first for the fonts).
+```bash
+blender -b --factory-startup --python tools/blender/boom10_video.py -- all words
+python tools/video/music10.py build/boom10/music.wav
+python tools/video/edit_boom10.py --thumb          # trailer 16x9 + 9x16, thumbnail
+python tools/video/edit_boom10.py --ads            # 15-second vertical ads cut from it
+```
+
+**1.0 gameplay videos and static ads** (sound effects only): a launch trailer (16:9, 9:16), three 15-second ads
 (shiny, boss, events; 9:16 and 1:1), a 6-second bumper and a thumbnail, cut from a `--reel10` recording; and
 static ads in four sizes. Ad texts are in `store/ads/ad_copy.md`.
 ```bash
