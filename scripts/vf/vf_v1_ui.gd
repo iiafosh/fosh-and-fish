@@ -802,3 +802,160 @@ func play_shots(dir: String) -> void:
 	m._close_panel()
 	VF.trip_done.disconnect(on_trip)
 	print("PLAY SHOTS done (event fish: %s)" % [got])
+
+
+## godot --path . --fullscreen --write-movie WORK/reel.avi --fixed-fps 30 -- --reel10 > WORK/reel_log.txt
+## The 1.0 footage for the marketing videos and ads (tools/video/edit10.py): every 1.0 moment, with the
+## same MARK lines as the other reels. Never saves; plays on the test account file (Backend.RECORDING_FLAGS).
+func reel10() -> void:
+	VF.autosave = false
+	AudioManager.music_on = true
+	AudioManager.sfx_on = true
+	AudioManager.apply_settings()
+	VF.sail_hint = true
+	m._veteran("Ocean")
+	VF.sail_hint = true
+	VF.tutorial = 99
+	VF.player_name = "Fisher"
+	for f in ["Rainbow Fish", "Cod", "Tropical Fish", "Space Fish", "Shark", "Pufferfish", "Turtle", "Galactic Crab"]:
+		VF.add_shiny(f, 37 + f.length() * 97)
+	VF.stars = 420
+	VF.pearls = 650
+	VF.event_fish = {"Golden Koi": 4, "Frenzy Piranha": 2, "Meteor Fish": 1, "Treasure Crab": 3}
+	VF.changed.emit()
+	m._coach_show()
+	for l in m.find_children("*", "Label", true, false):
+		if l.text.begins_with("fosh&fish "): l.visible = false          # the version label
+	var got := []
+	var on_trip := func(res: Dictionary):
+		if String(res.get("event_fish", "")) != "": got.append(res.event_fish)
+	VF.trip_done.connect(on_trip)
+	await m._wait(1.2)
+	# calm opening
+	for i in 2:
+		await m._wait(0.3)
+		m._mark("hero")
+		m._cast_tap()
+		await m._wait(1.8)
+	# Golden Hour, until a Golden Koi bites
+	m._mark("golden_start")
+	VF.start_event("golden_hour")
+	await m._wait(2.8)
+	VF.rng.seed = 4
+	for i in 16:
+		m._mark("golden_cast")
+		m._cast_tap()
+		await m._wait(1.3)
+		if not got.is_empty():
+			m._mark("koi")
+			break
+	await m._wait(2.2)
+	# sell: the coins fly into the money
+	m._mark("sell")
+	m._do_sell()
+	await m._wait(2.2)
+	VF._ev_end(true)
+	await m._wait(2.0)
+	# a shiny
+	m._mark("shiny")
+	celebrate("Rainbow Fish", 42, 2958)
+	await m._wait(4.8)
+	# Fish Frenzy
+	m._mark("frenzy_start")
+	VF.start_event("frenzy")
+	await m._wait(2.8)
+	for i in 4:
+		m._mark("frenzy_cast")
+		m._cast_tap()
+		await m._wait(1.0)
+	VF._ev_end(true)
+	await m._wait(1.0)
+	# Treasure Tide
+	m._mark("treasure_start")
+	VF.start_event("treasure_tide")
+	await m._wait(2.8)
+	for i in 3:
+		m._mark("treasure_cast")
+		m._cast_tap()
+		await m._wait(1.5)
+	VF._ev_end(true)
+	# Meteor Shower, in space
+	m._veteran("Space")
+	await m._wait(2.5)
+	m._mark("meteor_start")
+	VF.start_event("meteor_shower")
+	await m._wait(2.8)
+	for i in 2:
+		m._mark("meteor_cast")
+		m._cast_tap()
+		await m._wait(1.6)
+	VF._ev_end(true)
+	# the boss, in the Volcanic sea: two catches wear it down, a reel-in win lands it
+	m._veteran("Volcanic")
+	await m._wait(2.5)
+	m._mark("boss_start")
+	VF.start_event("boss")
+	await m._wait(3.2)
+	VF.ev_boss_hp = 4
+	for i in 2:
+		m._mark("boss_hit")
+		m._cast_tap()
+		await m._wait(1.7)
+	VF.set_catch_mode("reel")
+	m._refresh_mode_pill()
+	await m._wait(0.5)
+	m._mark("boss_cast")
+	m._cast_tap()
+	while m.minigame == null:
+		await m.get_tree().process_frame
+	var mg = m.minigame
+	mg.auto = "win"
+	await m._wait(0.4)
+	m._mark("boss_mg")
+	while is_instance_valid(mg) and mg.phase != "end":
+		await m.get_tree().process_frame
+	m._mark("boss_win")
+	while m.minigame != null:
+		await m.get_tree().process_frame
+	m._mark("boss_caught")
+	await m._wait(3.5)
+	VF.set_catch_mode("relax")
+	m._refresh_mode_pill()
+	# the Ocean again: the shops and the book
+	m._veteran("Ocean")
+	await m._wait(2.5)
+	var was: String = Store.mode
+	Store.mode = "play"
+	Store.online = true
+	Store.message = ""
+	m._open_panel("store", "Packs")
+	m._mark("store")
+	await m._wait(2.6)
+	m._open_panel("store", "Pearl Shop")
+	m._mark("pearlshop")
+	await m._wait(2.2)
+	Store.mode = was
+	m._open_panel("events", "Event Shop")
+	m._mark("eventshop")
+	await m._wait(2.2)
+	var bs: String = Backend.state
+	Backend.state = "signed_in"
+	m._open_panel("inventory", "Shiny")
+	m._mark("book")
+	await m._wait(2.6)
+	Backend.state = bs
+	m._close_panel()
+	await m._wait(0.8)
+	# the Starfall Rod in hand
+	if not "Starfall Rod" in VF.owned_rods: VF.owned_rods.append("Starfall Rod")
+	VF.rod = "Starfall Rod"
+	VF.changed.emit()
+	await m._wait(0.6)
+	for i in 2:
+		m._mark("starfall")
+		m._cast_tap()
+		await m._wait(1.8)
+	m._mark("end")
+	await m._wait(4.0)
+	VF.trip_done.disconnect(on_trip)
+	m.get_tree().quit()

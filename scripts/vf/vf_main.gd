@@ -1967,6 +1967,9 @@ func _check_capture() -> void:
 	if "--reelyt" in OS.get_cmdline_user_args():
 		_reel_yt()
 		return
+	if "--reel10" in OS.get_cmdline_user_args():
+		v1.reel10()
+		return
 	if "--reel05" in OS.get_cmdline_user_args():
 		_reel05()
 		return

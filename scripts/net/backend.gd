@@ -21,7 +21,7 @@ signal _refresh_done(ok: bool)
 const CONFIG_FILE := "res://data/backend.json"
 const ACCOUNT_FILE := "user://account.cfg"
 const TEST_ACCOUNT_FILE := "user://account_test.cfg"   # capture/test runs never touch the real session
-const RECORDING_FLAGS := ["--trailer", "--reel", "--reel05", "--reelyt"]   # video recordings count as captures
+const RECORDING_FLAGS := ["--trailer", "--reel", "--reel05", "--reelyt", "--reel10"]   # video recordings count as captures
 const SYNC_EVERY := 60.0        # seconds between automatic uploads (only when progress changed)
 const RETRY_EVERY := 60.0       # offline with a saved session: try to reconnect this often
 const TIMEOUT := 15.0

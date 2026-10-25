@@ -97,6 +97,16 @@ python tools/video/edit_boom.py build/boom --remux build/boom/sfx.wav sfx
 `boom_prep.py` makes static Fredoka instances for Blender and cuts the gameplay clips. Add
 `--pct 50 --still 120,240` to `boom_video.py` for quick test frames.
 
+**1.0 marketing videos and ads** (sound effects only): a launch trailer (16:9, 9:16), three 15-second ads
+(shiny, boss, events; 9:16 and 1:1), a 6-second bumper and a thumbnail, cut from a `--reel10` recording; and
+static ads in four sizes. Ad texts are in `store/ads/ad_copy.md`.
+```bash
+# record at 1920x1080 (a temporary override.cfg with window_width/height_override 1920x1080, then delete it)
+Godot_console.exe --path . --write-movie build/ads10/reel.avi --fixed-fps 30 -- --reel10 > build/ads10/reel_log.txt
+python tools/video/edit10.py build/ads10 build/ads10/out trailer,shiny,boss,events,bumper --thumb
+python tools/art/make_ads.py
+```
+
 **Re-render the art** (Blender 4.2)
 ```bash
 blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes
