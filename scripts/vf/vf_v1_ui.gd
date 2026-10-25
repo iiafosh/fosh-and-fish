@@ -68,6 +68,18 @@ func rod_tex(r: String) -> Texture2D:
 	var t: Texture2D = m.icon_for("rod", r)
 	return t if t else m.ph("crown")
 
+## a Pearl Shop / Event Shop / ad item: the game's own art where there is some, else its Phosphor icon
+func item_tex(d: Dictionary) -> Texture2D:
+	var t: Texture2D = null
+	if d.has("rod"): t = rod_tex(d.rod)
+	elif d.has("chest"): t = m.icon_for("chest", String(d.chest))
+	elif d.has("money_levels") or d.has("money2x"): t = m.icon_for("ui", "money")
+	elif d.has("xp_frac"): t = m.icon_for("ui", "xp")
+	elif d.has("pearls"): t = pearl_tex()
+	elif d.has("lure"): t = shiny_tex("Tropical Fish")
+	elif d.has("event"): t = star_tex()
+	return t if t else m.ph(String(d.get("icon", "lightning")))
+
 
 # ===================================================================== HUD
 ## the Pearls pill next to your money, the event pill under your buffs, the event glow over the water
@@ -375,8 +387,7 @@ func _store_shop() -> void:
 				m._render_panel()
 				return ""
 			right = m._act("%s Pearls" % VF.commas(int(d.cost)), C_PEARL.darkened(0.25), buy, VF.pearls >= int(d.cost))
-		var ic: Texture2D = rod_tex(d.rod) if d.has("rod") else m.ph(String(d.get("icon", "sparkle")))
-		m._add_to(g, _card(ic, d.name, _item_desc(d), right, false, 48, C_PEARL.darkened(0.2)))
+		m._add_to(g, _card(item_tex(d), d.name, _item_desc(d), right, false, 48, C_PEARL.darkened(0.2)))
 
 
 ## what a Pearl Shop / Event Shop / ad item does, in words
@@ -414,7 +425,7 @@ func _store_free() -> void:
 		var left: int = VF.ad_left(id)
 		var label := "Watching..." if Ads.watching == id else ("Watch ad" if left > 0 else "Done today")
 		var right: Button = m._act(label, Color("#2563eb"), func(): Ads.watch(id); return "", Ads.can_watch(id))
-		m._add_to(g, _card(m.ph(String(d.icon)), d.name, "%s\n%d left today" % [d.desc, left], right, left <= 0, 44, Color("#2563eb")))
+		m._add_to(g, _card(item_tex(d), d.name, "%s\n%d left today" % [d.desc, left], right, left <= 0, 44, Color("#2563eb")))
 
 
 ## Menu -> Events
@@ -434,8 +445,7 @@ func panel_events(tab: String) -> void:
 				m._render_panel()
 				return ""
 			var right: Control = m.lbl("Owned", 15, C_GOOD) if owned else m._act("%s ★" % VF.commas(int(d.cost)), C_STAR.darkened(0.2), buy, VF.stars >= int(d.cost))
-			var ic: Texture2D = rod_tex(d.rod) if d.has("rod") else m.ph("gift")
-			m._add_to(g, _card(ic, d.name, d.desc, right, false, 48, C_STAR))
+			m._add_to(g, _card(item_tex(d), d.name, d.desc, right, false, 48, C_STAR))
 		return
 	if VF.event_active():
 		var e: Dictionary = VFData.EVENTS[VF.ev_id]

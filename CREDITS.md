@@ -11,7 +11,7 @@ built and animated from primitives in `tools/blender/vf_fisher.py`.
 
 | Asset | Author | License | Used for |
 |---|---|---|---|
-| [Animated Fish](https://poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g) (fish ×3, dolphin, shark, whale, manta ray) | [Quaternius](https://quaternius.com/packs/animatedfish.html) | CC0 | Swimming fish sprite sheets (`assets/vf/swim/`) |
+| [Animated Fish](https://poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g) (fish ×3, dolphin, shark, whale, manta ray) | [Quaternius](https://quaternius.com/packs/animatedfish.html) | CC0 | Swimming fish sprite sheets (`assets/vf/swim/`); the Leviathan boss (`assets/vf/event/leviathan.png`) |
 | [Animated Woman](https://poly.pizza/m/qJ2gsTUBHL) | Quaternius | CC0 | Market merchant (`assets/vf/merchant/`) |
 | [Chest](https://poly.pizza/m/O72u4Drp8k) | Quaternius | CC0 | Sunken chests in the Ocean / Abyss scenes |
 | [Flying gull](https://poly.pizza/m/eMNhHDZakYp) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Seagulls (`assets/vf/critters/gull.png`) |

@@ -100,7 +100,11 @@ python tools/video/edit_boom.py build/boom --remux build/boom/sfx.wav sfx
 **Re-render the art** (Blender 4.2)
 ```bash
 blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes
+blender -b --factory-startup --python tools/blender/render_v1.py -- shiny event ui packs
 ```
+`render_v1.py` is the 1.0 art (shiny fish, event fish, Pearl and Event Star icons, Supporter Pack icons);
+the exclusive rods are in `vf_models.ROD_SPECS` (`render_assets.py -- rods rods_hand`). Run
+`Godot_console.exe --headless --path . --import` afterwards so Godot picks up new images.
 
 **Export** (presets in `export_presets.cfg`: Web, Windows Desktop, Linux, Android)
 ```bash
