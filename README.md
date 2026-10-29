@@ -107,6 +107,17 @@ python tools/video/edit_boom10.py --thumb          # trailer 16x9 + 9x16, thumbn
 python tools/video/edit_boom10.py --ads            # 15-second vertical ads cut from it
 ```
 
+**The 1.0 ad "STARFALL"** (a 24-second vertical mobile-game ad, rendered 1080x1920): the hook first (a shiny
+bursts out of the night sea: ONLY 3,000 EXIST), the Meteor Shower under the aurora, shinies leaping, a hand that
+taps to cast and holds to reel, the game's shiny card (No. 0042 of 3,000), the collection grid, three event bands
+cut from the Leviathan trailer (render that first), and the end card with PLAY FREE being tapped. Use Blender 4.2
+(the scripts use Eevee Next).
+```bash
+blender -b --factory-startup --python tools/blender/starfall_video.py -- all
+python tools/video/music_starfall.py build/starfall/music.wav
+python tools/video/edit_starfall.py                # build/starfall/fosh-and-fish-1.0-ad-starfall-9x16.mp4
+```
+
 **1.0 gameplay videos and static ads** (sound effects only): a launch trailer (16:9, 9:16), three 15-second ads
 (shiny, boss, events; 9:16 and 1:1), a 6-second bumper and a thumbnail, cut from a `--reel10` recording; and
 static ads in four sizes. Ad texts are in `store/ads/ad_copy.md`.
