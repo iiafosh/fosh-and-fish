@@ -16,6 +16,7 @@ var sfx_on := true
 var sfx_volume := 0.8
 var fullscreen := false
 var ui_size := 1.0           # interface size: 0.85 smaller, 1.0 normal, 1.15 bigger (Settings)
+var notify_on := false       # reminders while the game is in the background (vf_notify.gd; asks the browser first)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -67,6 +68,7 @@ func load_settings() -> void:
 	sfx_volume = cf.get_value("audio", "sfx_volume", sfx_volume)
 	fullscreen = cf.get_value("display", "fullscreen", fullscreen)
 	ui_size = clampf(float(cf.get_value("display", "ui_size", ui_size)), 0.7, 1.4)
+	notify_on = bool(cf.get_value("game", "notify_on", notify_on))
 
 func save_settings() -> void:
 	var cf := ConfigFile.new()
@@ -76,6 +78,7 @@ func save_settings() -> void:
 	cf.set_value("audio", "sfx_volume", sfx_volume)
 	cf.set_value("display", "fullscreen", fullscreen)
 	cf.set_value("display", "ui_size", ui_size)
+	cf.set_value("game", "notify_on", notify_on)
 	cf.save(SETTINGS_PATH)
 
 func apply_settings() -> void:

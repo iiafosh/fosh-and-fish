@@ -303,6 +303,7 @@ func _init() -> void:
 	check(VFData.ui_scale_for(200.0) <= 1.6, "tiny screens are capped")
 
 	_test_v1()
+	_test_idle()
 
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
@@ -428,3 +429,147 @@ func _test_v1() -> void:
 	check(odds.begins_with("Charms 40%") and "Emerald Fish 10%" in odds and total == 100,
 		"the Legendary Chest's odds are shown and add up to 100%: " + odds)
 	check("1 in 3,500 catches" in VFData.shiny_odds() and "1 in 1,167 with the lure" in VFData.shiny_odds(), "shiny odds: " + VFData.shiny_odds())
+
+
+## idle: the fleet and its catch while you're away, auto casts, the 7-day calendar, the daily spin, saves
+func _test_idle() -> void:
+	print("== idle")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g.rng.seed = 4242
+	g._apply(g._defaults.duplicate(true))
+	check(g.crew_cost(1) == 250 and g.crew_cost(2) == 1500 and g.crew_cost(17) == int(round(250.0 * pow(6.0, 16))),
+		"crew prices: $250, then x6 for every next one")
+	g.money = 1000
+	check(g.hire_crew() != "" and g.crews == 0, "the fleet unlocks at level %d" % VFData.FLEET_LEVEL)
+	g.level = VFData.FLEET_LEVEL
+	check(g.hire_crew() == "" and g.crews == 1 and g.money == 750, "hiring a crew costs its price")
+	check(g.hire_crew() != "" and g.crews == 1, "not enough money: no second crew")
+
+	# crew trips: worker trips with your gear (crew_trip_fish is their average)
+	var avg: float = g.crew_trip_fish()
+	g.fleet_fish_total = 0
+	g._crew_trips(600)
+	var per: float = g.fleet_fish_total / 600.0
+	check(absf(per / avg - 1.0) < 0.15, "a crew trip lands about crew_trip_fish() fish (%.2f vs %.2f)" % [per, avg])
+
+	# the catch while you're away
+	g.inventory = {}
+	g.offline = {}
+	g.crews = 2
+	var now := Time.get_unix_time_from_system()
+	g.idle_seen = now - 60.0
+	g.offline_check()
+	check(g.offline.is_empty(), "away a minute: nothing to report")
+	g.idle_seen = now - 3600.0
+	g.offline_check()
+	var want: float = 2 * 3600.0 / g.crew_trip_secs() * g.offline_rate() * g.crew_trip_fish()
+	check(not g.offline.is_empty() and absf(g.offline.n / want - 1.0) < 0.02,
+		"an hour away: crews x trips x %d%% (%d fish, expected %.0f)" % [int(g.offline_rate() * 100), int(g.offline.get("n", 0)), want])
+	g.idle_seen = now - 48.0 * 3600.0
+	g.offline_check()
+	check(absf(float(g.offline.secs) - 3600.0 - g.offline_cap_secs()) < 1.0 and float(g.offline.away) > 49.0 * 3600.0 - 5.0,
+		"two days away fish only the cooler's %d hours (added to the hour before)" % int(g.offline_cap_secs() / 3600.0))
+	var waiting: int = g.offline.n
+	var col: Dictionary = g.collect_offline(1.0)
+	var held := 0
+	for f in g.inventory: held += int(g.inventory[f])
+	check(col.n == waiting and held == waiting and g.offline.is_empty(), "collect: the catch goes into the hold")
+	check(g.collect_offline().has("error"), "nothing waiting: nothing to collect")
+	g.idle_seen = now - 3600.0
+	g.offline_check()
+	var n2: int = g.offline.n
+	var got: Dictionary = g.grant_ad("ad_offline2x")
+	check(absi(int(got.get("offline", {}).get("n", 0)) - 2 * n2) <= 5 and g.offline.is_empty(), "the x2 ad doubles the catch")
+	g.idle_seen = now - 1800.0
+	g._idle_tick(0.016)
+	check(not g.offline.is_empty() and g.idle_seen >= now, "the game slept 30 minutes while open: the crews' catch waits too")
+	g.collect_offline()
+	g.crews = 0
+	g.idle_seen = now - 3600.0
+	g.offline_check()
+	check(g.offline.is_empty(), "no crews: nothing caught while away")
+	g.crews = 2
+
+	# fleet upgrades
+	g.money = 1000000000000
+	var t0: float = g.crew_trip_secs()
+	check(g.buy_fleet_up("speed") == "" and g.crew_trip_secs() < t0, "Faster Crews: shorter trips")
+	for i in 10: g.buy_fleet_up("cooler")
+	check(g.fleet_lv("cooler") == 4 and absf(g.offline_cap_secs() - (VFData.OFFLINE_HOURS + 4.0) * 3600.0) < 1.0,
+		"Bigger Cooler: 4 levels, an hour each")
+	check(absf(g.offline_rate() - VFData.OFFLINE_RATE) < 1e-6 and g.buy_fleet_up("sealegs") == "" and g.offline_rate() > VFData.OFFLINE_RATE,
+		"Sea Legs: a bigger share while you're away")
+
+	# auto casts: no shiny tickets, not active play
+	g.auto_cast = true
+	g._last_active = -1000.0
+	g.shiny_lure = 3
+	g._last_cast_ms = -100000
+	var ar: Dictionary = g.cast()
+	g.auto_cast = false
+	check(ar.ok and g._last_active == -1000.0 and ar.shiny_ticket == "" and g.shiny_lure == 3,
+		"an auto cast rolls no shiny ticket, uses no lure and isn't active play (events)")
+
+	# the 7-day calendar on the daily reward
+	g.level = VFData.DAILY_LEVEL
+	g.daily_last = 0.0
+	g.daily_streak = 0
+	var d: Dictionary = g.claim_daily()
+	check(not d.has("error") and d.day == 1 and g.calendar_done() == 1 and g.calendar_next() == 2, "calendar: the first claim is day 1")
+	var p0: int = g.pearls
+	for i in 6:
+		g.daily_last -= 86400.0
+		d = g.claim_daily()
+	check(d.day == 7 and g.pearls >= p0 + 125 and String(d.bonus.get("chest", {}).get("tier", "")) == "legendary",
+		"day 7: the jackpot (Pearls and a legendary chest)")
+	g.daily_last -= 86400.0
+	check(g.calendar_done() == 0 and g.calendar_next() == 1, "after day 7 it starts again")
+	d = g.claim_daily()
+	g.daily_last -= 49.0 * 3600.0
+	check(g.calendar_done() == 0 and g.claim_daily().day == 1, "a missed day (48 hours) starts the calendar over")
+
+	# the daily spin
+	var w := 0
+	for x in VFData.SPIN: w += int(x.w)
+	check(w == 100, "the wheel's odds add up to 100%")
+	g.spin_day = ""
+	g.spins = 0
+	var s1: Dictionary = g.spin()
+	check(not s1.has("error") and int(s1.index) >= 0 and int(s1.index) < VFData.SPIN.size(), "the free spin of the day")
+	check(g.spin().has("error"), "one free spin a day")
+	g.grant_ad("ad_spin")
+	check(g.spins == 1 and not g.spin().has("error") and g.spins == 0, "an ad buys an extra spin")
+	g.spins = 4000
+	var money_hits := 0
+	for i in 4000:
+		if int(g.spin().index) == 0: money_hits += 1
+	check(absf(money_hits / 4000.0 - 0.26) < 0.03, "the wheel lands as its odds say (Money %.1f%%, listed 26%%)" % (money_hits / 40.0))
+
+	# prestige starts the fleet over
+	g.prestige = 0; g.level = 250; g.money = 5000000000
+	g.charms = {}
+	for id in VFData.CHARM_ORDER: g.charms[id] = 55
+	g.crews = 5
+	g.fleet_up = {"nets": 3}
+	g.do_prestige()
+	check(g.crews == 0 and g.fleet_up.is_empty(), "prestige starts the fleet over, like the boats")
+
+	# save / load
+	g.crews = 3
+	g.fleet_up = {"speed": 2}
+	g.auto_on = true
+	g.spins = 2
+	g.idle_seen = Time.get_unix_time_from_system()
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var h = load("res://scripts/vf/vf_game.gd").new()
+	h.autosave = false
+	root.add_child(h)
+	h._apply(sd)
+	check(h.crews == 3 and h.fleet_up == {"speed": 2} and h.auto_on and h.spins == 2 and h.spin_day == g.spin_day,
+		"the fleet, auto-fish and spins survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("idle")
+	h._apply(old)
+	check(h.crews == 0 and not h.auto_on and h.offline.is_empty() and h.idle_seen > 0.0, "a save from before idle play loads with no fleet")

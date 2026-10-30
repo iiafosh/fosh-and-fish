@@ -47,6 +47,10 @@ These download from Google and GitHub (ask Claude, or do it yourself):
 - [ ] **Godot Google Play Billing** 3.3.0 (godot-sdk-integrations) into `addons/`.
 - [ ] **AdMob plugin** 5.1.0 (Poing Studios) and its Android library for Godot 4.7.2, into `addons/`.
 - [ ] Project → Project Settings → Plugins: enable both.
+- [ ] Optional: a **local notifications** plugin, for reminders on the phone while the game is closed (the crews
+  filled the cooler, the daily reward is ready). `scripts/vf/vf_notify.gd` already decides what to say and when
+  (`reminders()`); only the web version shows them today. Add the plugin, then a branch in `schedule()` /
+  `cancel()` that calls it (and ask for Android 13's notification permission when the player turns Reminders on).
 - [ ] The first Gradle build downloads Gradle and the Android libraries (a few hundred MB, once).
 
 ## 5. Your upload key (keep it secret, keep a backup)

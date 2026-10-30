@@ -31,6 +31,8 @@ Bugs, balance, ideas and art notes are all welcome.
 - **20 fish, 21 rods, 17 boats, 8 baits, 7 biomes**, with the bot's prices, levels, cooldowns and catch odds
 - **Chests**, **Gold / Emerald / Lava / Diamond** fish, **8 charms**, **5 pets**
 - Shop, special and league **upgrades**, **boosts & workers**, daily reward, daily and weekly quests
+- **Idle play**: auto-fish, a **fleet** of crews that fish for you (even while the game is closed, with a
+  "Welcome back!" catch), a 7-day reward calendar and a daily spin
 - **Prestige** with the Prestige Shop and the community P1–P160 buy-order guide
 - A guided start: a pointer for the first steps, starter goals with rewards, and a fish collection
 - Settings for music, sound and fullscreen; progress saves automatically
@@ -45,6 +47,7 @@ Open the folder in **Godot 4.7** (or run `launch_game.bat`).
 
 ```
 scripts/vf/      vf_game.gd (simulation, autoload VF) · vf_main.gd (UI) · vf_stage.gd (scene) · vf_data.gd (data) · vf_guide.gd
+                 vf_v1_ui.gd (1.0: Store, Events, shinies) · vf_idle_ui.gd (auto-fish, fleet, daily) · vf_notify.gd
 scripts/         audio_manager.gd (music, sounds, settings)
 scenes/          vf_main.tscn (main scene)
 shaders/         water caustics
@@ -62,6 +65,8 @@ wiki_dump/       source snapshot of the wiki and encyclopedia
 ```bash
 Godot_console.exe --headless --path . -s res://tests/vf_sim_test.gd
 Godot_console.exe --path . -- --capture=OUT_DIR --demo=Ocean
+Godot_console.exe --path . -- --capture=OUT_DIR --idle-test      # auto-fish, the fleet, welcome back, daily (add --touch --ui-dp=390 for a phone)
+Godot_console.exe --headless --path . -s res://tests/idle_balance_probe.gd   # how fast runs go with and without crews
 ```
 
 **Trailer** (original music + beat-synced edit, 16:9 / 9:16 / 1:1; needs `pip install numpy pillow imageio-ffmpeg`)

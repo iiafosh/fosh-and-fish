@@ -87,6 +87,8 @@ var tabs_track: PanelContainer
 var _update_announced := false
 var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
 var v1                         # scripts/vf/vf_v1_ui.gd (1.0: Store, Events, shinies, the event pill)
+var idle                       # scripts/vf/vf_idle_ui.gd (auto-fish, the Fleet, welcome back, daily rewards)
+var notify                     # scripts/vf/vf_notify.gd (reminders while the game is in the background)
 var hud_row: HBoxContainer     # level / money / wallet pills (top left)
 var hud_col: VBoxContainer     # the top-left column under them
 var panel_box: PanelContainer
@@ -112,6 +114,9 @@ func _ready() -> void:
 	v1 = load("res://scripts/vf/vf_v1_ui.gd").new(self)
 	v1.build_hud()
 	v1.setup_juice()
+	idle = load("res://scripts/vf/vf_idle_ui.gd").new(self)
+	idle.build_hud()
+	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
 	VF.leveled_up.connect(_on_level_up)
@@ -121,7 +126,9 @@ func _ready() -> void:
 	_refresh()
 	_apply_biome()
 	var title := _wants_launcher()
-	if not title: _card_intro()
+	if not title:
+		_card_intro()
+		idle.on_shown.call_deferred()          # (else when the title screen closes)
 	_build_version_label()
 	_build_coach()
 	if title: _open_launcher()
@@ -162,6 +169,7 @@ func _launcher_closing() -> void:
 	stage.visible = true
 	launcher.z_index = 1                       # stays on top while it fades
 	_card_intro()
+	idle.on_shown()                            # what the crews caught while you were away
 	_coach_show()
 
 func _process(delta: float) -> void:
@@ -174,6 +182,7 @@ func _process(delta: float) -> void:
 	cast_ring.queue_redraw()
 	_process_hold()
 	if v1: v1.tick(delta)
+	if idle: idle.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
@@ -245,7 +254,13 @@ func _process_hold() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		VF.save_game()
+		if notify: notify.schedule()
 		Backend.on_quit()          # signed in: upload the last progress before the window closes
+	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		VF.save_game()             # (a phone may close a game in the background without asking)
+		if notify: notify.schedule()
+	elif what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		if notify: notify.cancel()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if launcher_open():
@@ -1118,7 +1133,8 @@ func _apply_biome() -> void:
 	card_accent.color = accent()
 
 # ================================================================ actions
-func _do_cast() -> void:
+## auto: an auto-fish cast (vf_idle_ui): always a Relax cast, no mini-game
+func _do_cast(auto := false) -> void:
 	if sail.busy() or minigame != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
 	var why: String = VF.can_cast()
 	if why == "cooldown":
@@ -1129,7 +1145,7 @@ func _do_cast() -> void:
 	AudioManager.play_cast()
 	var cast_start := Time.get_ticks_msec()
 	VF._last_cast_ms = cast_start              # cooldown starts the moment you cast
-	var reel: bool = VF.catch_mode == "reel"
+	var reel: bool = VF.catch_mode == "reel" and not auto
 	if reel: _reel_wait_until = cast_start + 3000
 	stage.cast(func():
 		AudioManager.play_splash()
@@ -1138,7 +1154,9 @@ func _do_cast() -> void:
 			_start_minigame(cast_start)
 			return
 		VF._last_cast_ms = -100000
+		VF.auto_cast = auto
 		VF.cast()
+		VF.auto_cast = false
 		VF._last_cast_ms = cast_start)         # keep counting from the cast, not the catch
 
 ## "Reel it in!" mode: the fish bites -> mini-game (vf_minigame.gd) -> VF.cast_reel(won).
@@ -1354,12 +1372,7 @@ func _show_catch(res: Dictionary) -> void:
 func _refresh() -> void:
 	if mode_pill and mode_pill.text != ("Reel it in!" if VF.catch_mode == "reel" else "Relax"):
 		_refresh_mode_pill()             # catch mode changed by a loaded / cloud save
-	lvl_label.text = "Lv %s" % VF.commas(VF.level)
-	var need: int = VF.xp_to_next()
-	xp_bar.max_value = maxf(1.0, need)
-	xp_bar.value = VF.xp
-	xp_label.text = "%s / %s XP" % [VF.fmt(VF.xp), VF.fmt(need)]
-	xp_ring.queue_redraw()
+	_refresh_hold()
 	if v1 == null or not v1.money_rolling(): money_label.text = money_str(VF.money)    # (a sale's coins roll it up)
 	for k in exotic_labels:
 		exotic_labels[k].text = VF.fmt(VF.exotics.get(k, 0))
@@ -1368,12 +1381,6 @@ func _refresh() -> void:
 	wallet_btn.visible = VF.level >= 10 or VF.exotics.gold + VF.exotics.emerald + VF.exotics.lava + VF.exotics.diamond > 0
 	prestige_label.text = "P%d" % VF.prestige
 	prestige_label.visible = VF.prestige > 0
-	var inv: int = VF.inventory_value()
-	var nfish := 0
-	for f in VF.inventory: nfish += int(VF.inventory[f])
-	sell_btn.text = "Sell %s fish  ·  %s" % [VF.commas(nfish), money_str(inv)]
-	sell_btn.visible = inv > 0
-	sell_btn.reset_size()
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
 	rod_chip.text = "Shop" if VF.rod_usable() else "Shop (!)"
@@ -1398,6 +1405,21 @@ func _refresh() -> void:
 	_refresh_boosts()
 	if overlay.visible and _panel_kind != "account":   # the account forms keep their typing focus
 		_render_panel()
+
+## your level and the hold (the Sell button): all that crew trips change, so they refresh just this
+func _refresh_hold() -> void:
+	lvl_label.text = "Lv %s" % VF.commas(VF.level)
+	var need: int = VF.xp_to_next()
+	xp_bar.max_value = maxf(1.0, need)
+	xp_bar.value = VF.xp
+	xp_label.text = "%s / %s XP" % [VF.fmt(VF.xp), VF.fmt(need)]
+	xp_ring.queue_redraw()
+	var inv: int = VF.inventory_value()
+	var nfish := 0
+	for f in VF.inventory: nfish += int(VF.inventory[f])
+	sell_btn.text = "Sell %s fish  ·  %s" % [VF.commas(nfish), money_str(inv)]
+	sell_btn.visible = inv > 0
+	sell_btn.reset_size()
 
 ## The cheapest useful purchase you can't afford yet (next rod or boat),
 ## mirroring the Prestige 0 Guide's buying order.
@@ -1441,6 +1463,7 @@ func _open_goal() -> void:
 			"bait_casts": _open_panel("shop", "Bait")
 			"species": _open_panel("inventory")
 			"sells": _do_sell()
+			"crews": _open_panel("fleet")
 			_: _open_panel("guide", "Basics")
 		return
 	_open_panel(_goal.panel[0], _goal.panel[1])
@@ -1488,7 +1511,8 @@ const PANEL_TABS := {
 	"events": ["Events", "Event Shop"],
 	"inventory": ["Fish", "Shiny", "Event fish"],
 	"prestige": ["Prestige", "Shop", "Guide"],
-	"quests": ["Quests", "Daily"],
+	"fleet": ["Crews", "Upgrades"],
+	"daily": ["Calendar", "Spin"],
 	"guide": VFGuide.TAB_ORDER,
 	"account": ["Account", "Leaderboard"],
 }
@@ -1515,7 +1539,7 @@ func _render_panel() -> void:
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
-		"store": "Store", "events": "Events"}
+		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1552,6 +1576,8 @@ func _render_panel() -> void:
 		"account": _panel_account()
 		"store": v1.panel_store(_panel_tab)
 		"events": v1.panel_events(_panel_tab)
+		"fleet": idle.panel_fleet(_panel_tab)
+		"daily": idle.panel_daily(_panel_tab)
 
 ## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -1823,16 +1849,6 @@ func _panel_boosts() -> void:
 	panel_body.add_child(_card(icon_for("ui", "boosts"), "Personal Booster", "+75% fish for 10 minutes. 10% chance from /daily.", pb, false, 48))
 
 func _panel_quests() -> void:
-	if _panel_tab == "Daily":
-		var ready: float = VF.daily_ready_in()
-		var right := _act("Claim" if ready <= 0 else _clock(ready / 60.0) + "h", Color("#3fae6a"), func():
-			var r: Dictionary = VF.claim_daily()
-			if r.has("error"): return r.error
-			_toast("Daily claimed! Streak %d" % r.streak, "quest")
-			return "", VF.level >= 10 and ready <= 0)
-		panel_body.add_child(_card(icon_for("ui", "daily"), "Daily Reward  •  streak %d" % VF.daily_streak,
-			"Unlocks at level 10. Money, XP, exotic fish and a chance of a Personal Booster. Claim within 48h to keep your streak.", right))
-		return
 	for q in VFData.QUESTS:
 		var claimed := int(VF.quest_claimed.get(q.id, 0))
 		var prog := int(VF.quest_progress.get(q.stat, 0))
@@ -1845,6 +1861,8 @@ func _panel_quests() -> void:
 	panel_body.add_child(_card(icon_for("ui", "hooks"), "League quest: %s" % sq.name, "%s / %s  ·  +10 Hooks" % [VF.commas(mini(sp, sq.goal)), VF.commas(sq.goal)],
 		_tick() if VF.quest_claimed.get("special", false) else null, false, 48))
 	panel_body.add_child(_card(icon_for("ui", "hooks"), "Weekly trips: %s" % VF.commas(VF.week_trips), "+10 Hooks every 500 trips (max 100/week). Earned this week: %d" % VF.week_hooks, null, false, 48))
+	var daily := _act("Open", Color("#f59e0b"), func(): _open_panel("daily"); return "")
+	panel_body.add_child(_card(icon_for("ui", "daily"), "Daily rewards", "The 7-day calendar and the daily spin (from level %d)" % VFData.DAILY_LEVEL, daily, false, 48))
 
 func _req_row(name: String, have: float, need: float, money := false) -> Control:
 	var ok := have >= need
@@ -2080,6 +2098,10 @@ func _check_capture() -> void:
 		return
 	if "--v1-test" in OS.get_cmdline_user_args():
 		await v1.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--idle-test" in OS.get_cmdline_user_args():
+		await idle.capture_test(dir)
 		get_tree().quit()
 		return
 	if "--play-shots" in OS.get_cmdline_user_args():
@@ -2405,6 +2427,7 @@ func _setting_row(title: String, sub: String, on: bool, on_key: String, vol: flo
 	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	t.pressed.connect(func():
 		AudioManager.set_option(on_key, not on)
+		if on_key == "notify_on" and not on: notify.ask()
 		_render_panel())
 	h.add_child(t)
 	panel_body.add_child(p)
@@ -2438,6 +2461,10 @@ func _panel_settings() -> void:
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
 		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
+	if notify.supported():
+		var sub := "A note when your crews fill the cooler, or a daily reward or spin is ready (while this tab is in the background)"
+		if notify.permission() == "denied": sub = "Notifications are blocked for this site: allow them in your browser's site settings"
+		_setting_row("Reminders", sub, A.notify_on, "notify_on")
 	# interface size: text, buttons and menus (the game world is framed the same)
 	var us := PanelContainer.new()
 	us.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 12))
@@ -3008,13 +3035,16 @@ const MENU_TILES := [
 	["account", "Account", "user-circle", "", "Cloud save & leaderboard"],
 	["store", "Store", "shopping-bag-open", "", "Packs, Pearls & free rewards"],
 	["events", "Events", "confetti", "", "What's on & the Event Shop"],
+	["fleet", "Fleet", "sailboat", "", "Crews that fish for you"],
+	["daily", "Daily", "gift", "", "Calendar & the daily spin"],
 ]
 
 const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
 	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
 	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
-	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"),
+	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"), "fleet": Color("#0e7490"),
+	"daily": Color("#f97316"),
 }
 
 func _panel_menu() -> void:

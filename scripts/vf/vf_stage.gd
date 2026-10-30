@@ -208,6 +208,73 @@ func bobber_screen() -> Vector2:
 func boat_screen() -> Vector2:
 	return to_screen(boat.position + boat.pivot_offset)
 
+# ------------------------------------------------------------------ the fleet
+## The crews you hired (VF.crews) fish around your boat: the newest boats, up to FLEET_SHOWN, bobbing on
+## open water (spots picked per biome, so they don't move around), each trip a little splash by one of them.
+const FLEET_SHOWN := 6
+var fleet_layer: Control
+var _fleet: Array = []            # [{node, home, ph}]
+var _fleet_n := 0
+
+func set_fleet(n: int) -> void:
+	_fleet_n = n
+	_place_fleet()
+
+func _place_fleet() -> void:
+	if fleet_layer == null:
+		fleet_layer = Control.new()
+		fleet_layer.size = SCENE
+		fleet_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(fleet_layer)
+		root.move_child(fleet_layer, boat.get_index())        # over the water, under your boat
+	for f in _fleet: f.node.queue_free()
+	_fleet.clear()
+	if _fleet_n <= 0 or _scene.is_empty() or _mask == null: return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(_biome + ":fleet")
+	var spots := []
+	for _i in 4000:
+		if spots.size() >= mini(_fleet_n, FLEET_SHOWN): break
+		var p := Vector2(rng.randf_range(240, SCENE.x - 300), rng.randf_range(150, SCENE.y - 180))   # (not in the sea lanes)
+		if p.distance_to(boat_pos) < 340.0 or p.distance_to(_bobber_home) < 230.0 or not _in_water(p, 0.1): continue
+		var ok := true
+		for i in 8:
+			if not _in_water(p + Vector2.from_angle(TAU * i / 8.0) * 95.0, 0.05): ok = false
+		for q in spots:
+			if p.distance_to(q) < 270.0: ok = false
+		if ok: spots.append(p)
+	for i in spots.size():
+		var name: String = VFData.BOAT_ORDER[_fleet_n - 1 - i]       # the newest crews' boats
+		var t := _tex("boats_top/%s.png" % VFData.slug(name))
+		if t == null: continue
+		var info: Dictionary = manifest.get("boats_top", {}).get(name, {"origin": [0.5, 0.6], "unit_px": 100.0})
+		var r := TextureRect.new()
+		r.texture = t
+		r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		r.stretch_mode = TextureRect.STRETCH_SCALE
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		r.size = t.get_size() * float(_scene.unit_px) / float(info.unit_px) * 0.8
+		r.pivot_offset = Vector2(info.origin[0], info.origin[1]) * r.size
+		r.flip_h = rng.randf() < 0.5
+		fleet_layer.add_child(r)
+		_fleet.append({"node": r, "home": spots[i], "ph": rng.randf() * TAU})
+	_fleet_tick()
+
+func _fleet_tick() -> void:
+	for f in _fleet:
+		var n: TextureRect = f.node
+		n.position = f.home - n.pivot_offset + Vector2(sin(_t * 0.45 + f.ph) * 7.0, sin(_t * 1.2 + f.ph) * 3.0)
+		n.rotation = sin(_t * 0.8 + f.ph) * 0.03
+
+## a crew trip came in: a little splash by one of the crew boats -> its screen position (INF if none shows)
+func crew_splash() -> Vector2:
+	if _fleet.is_empty(): return Vector2.INF
+	var f: Dictionary = _fleet.pick_random()
+	var at: Vector2 = f.home + Vector2(randf_range(-70.0, 70.0), randf_range(40.0, 80.0))
+	_add_ripple(at, 34.0, 2.0)
+	burst("splash", at)
+	return to_screen(f.home)
+
 # ------------------------------------------------------------- particles
 func _particles(texname: String, amount: int, life: float, col: Color, s0: float, s1: float) -> CPUParticles2D:
 	var p := CPUParticles2D.new()
@@ -381,6 +448,7 @@ func set_biome(name: String) -> void:
 	_set_ambient(name)
 	_place_boat()
 	_place_merchant()
+	_place_fleet()
 	scene_changed.emit()
 
 func _species_entry(f: String, swim: Dictionary) -> Dictionary:
@@ -600,6 +668,7 @@ func _process(delta: float) -> void:
 		_next_anim()
 	_set_frame()
 	_tick_merchant(delta)
+	_fleet_tick()
 	for f in _fish:
 		# wander toward a target in deep enough water; turn at a limited rate
 		if f.pos.distance_to(f.target) < 40.0 or not _in_water(f.target, 0.18):

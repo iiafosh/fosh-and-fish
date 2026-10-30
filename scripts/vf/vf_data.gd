@@ -497,7 +497,8 @@ static func slug(name: String) -> String:
 
 ## Beginner goals shown one at a time under the HUD. Not part of the bot —
 ## they give new players a short-term target and speed up the first levels.
-## stat: fish | sells | rods | bait_casts | species | level | boats
+## stat: fish | sells | rods | bait_casts | species | level | boats | crews
+## (new goals go at the end: saves only count how many are done)
 const STARTER_GOALS := [
 	{"id": "first_fish", "text": "Catch your first fish", "stat": "fish", "goal": 1, "reward": {"money": 20}},
 	{"id": "sell", "text": "Sell your catch", "stat": "sells", "goal": 1, "reward": {"bait": ["Worms", 25]}},
@@ -509,6 +510,7 @@ const STARTER_GOALS := [
 	{"id": "steel", "text": "Buy the Steel Rod", "stat": "rods", "goal": 3, "reward": {"money": 1200}},
 	{"id": "boat", "text": "Buy your first boat (Rowboat)", "stat": "boats", "goal": 1, "reward": {"money": 1500}},
 	{"id": "lv10", "text": "Reach level 10 — chests & boosts unlock", "stat": "level", "goal": 10, "reward": {"chest": "epic", "gold": 12, "emerald": 6}},
+	{"id": "crew", "text": "Hire a crew: they fish for you (Menu - Fleet)", "stat": "crews", "goal": 1, "reward": {"chest": "rare"}},
 ]
 
 
@@ -605,6 +607,9 @@ const AD_REWARDS := {
 	"ad_money2x": {"name": "Double Money",  "desc": "x2 money from selling for 10 minutes (stacks up to an hour)", "money2x": 600, "icon": "coins"},
 	"ad_fish":    {"name": "Free Fish Boost", "desc": "15 minutes of Fish Boost", "boost": [["fish", 900]], "icon": "fish"},
 	"ad_pearls":  {"name": "+10 Pearls",    "desc": "Up to 3 times a day", "pearls": 10, "max": 3, "icon": "circle"},
+	# (not in the Store's Free tab: offered on the welcome-back card and by the daily spin)
+	"ad_offline2x": {"name": "Double the catch", "desc": "x2 what your crews caught while you were away", "offline2x": true, "max": 3, "icon": "anchor"},
+	"ad_spin":      {"name": "Extra spin", "desc": "One more spin of the wheel", "spin": 1, "max": 3, "icon": "star"},
 }
 const AD_ORDER := ["ad_money2x", "ad_fish", "ad_pearls"]
 const AD_DAILY_MAX := 8
@@ -642,3 +647,62 @@ static func _commas(n: int) -> String:
 		out = "," + s.substr(s.length() - 3) + out
 		s = s.substr(0, s.length() - 3)
 	return ("-" if n < 0 else "") + s + out
+
+
+# ==================================================================== idle
+## Idle play (not in the bot, numbers DERIVED): your boat can fish by itself, crews you hire fish for you
+## all the time, and they keep fishing while the game is closed.
+## Auto-fish: Relax casts on their own, AUTO_SLOW times the cooldown apart (holding the button is faster,
+## the Reel it in! mini-game faster still). Auto casts roll no shiny tickets and aren't active play (events).
+const AUTO_LEVEL := 5
+const AUTO_SLOW := 1.5
+## The Fleet: the k-th crew sails the k-th boat of BOAT_ORDER and makes a trip every CREW_TRIP seconds
+## with your rod, biome and catch buffs (like the bot's workers: Worker Motivation and Worker charms count,
+## bait doesn't). Their fish give CREW_XP of the XP (levels come from your own fishing). The first crew
+## costs CREW_COST, every next one CREW_GROWTH times the last. Prestige resets the fleet, like your boats.
+## (Tuned with tests/idle_balance_probe.gd: 4 hours away pay about 35 minutes of your own fishing at level
+## 10, an hour and a half at level 100, two and a half at level 250; the crews' XP adds a few levels early
+## on, less than one late; hiring crews as you go gets a run to level 100 about 15% sooner.)
+const FLEET_LEVEL := 5
+const CREW_TRIP := 15.0
+const CREW_XP := 0.25
+const CREW_COST := 250.0
+const CREW_GROWTH := 6.0
+## Fleet upgrades, bought with money: the price of the next level = cost * growth^level; each level adds "step"
+## (nets: fish per trip, speed: trips, cooler: seconds away, sealegs: the offline rate)
+const FLEET_UPGRADES := {
+	"nets":    {"name": "Bigger Nets",   "max": 8, "step": 0.05, "cost": 5000.0,  "growth": 5.0,  "icon": "fish", "desc": "+5% fish on every crew trip"},
+	"speed":   {"name": "Faster Crews",  "max": 6, "step": 0.05, "cost": 8000.0,  "growth": 6.0,  "icon": "lightning", "desc": "Crews make their trips 5% faster"},
+	"cooler":  {"name": "Bigger Cooler", "max": 4, "step": 3600.0, "cost": 50000.0, "growth": 12.0, "icon": "hourglass-medium", "desc": "Crews keep fishing an hour longer while you're away"},
+	"sealegs": {"name": "Sea Legs",      "max": 5, "step": 0.05, "cost": 30000.0, "growth": 10.0, "icon": "anchor", "desc": "+5% of the catch while you're away"},
+}
+const FLEET_UPGRADE_ORDER := ["nets", "speed", "cooler", "sealegs"]
+## While you're away the crews fish at OFFLINE_RATE (Sea Legs: more) for up to OFFLINE_HOURS (Bigger
+## Cooler: longer). Away for less than OFFLINE_MIN seconds: nothing to report.
+const OFFLINE_RATE := 0.35
+const OFFLINE_HOURS := 4.0
+const OFFLINE_MIN := 120.0
+
+## The daily reward (the bot's /daily, here from level DAILY_LEVEL) also pays a 7-day calendar: claim every
+## day (within 48 hours, or the streak starts over) to move along it; day 7 is the big one, then it repeats.
+const DAILY_LEVEL := 3
+const CALENDAR := [
+	{"name": "Bag of Money", "money_levels": 2, "icon": "money"},
+	{"name": "50 Best Bait", "bait_best": 50, "icon": "fish"},
+	{"name": "Fish Boost 30m", "boost": [["fish", 1800]], "icon": "lightning"},
+	{"name": "2 Spins", "spin": 2, "icon": "star"},
+	{"name": "Epic Chest", "chest": "epic", "icon": "treasure-chest"},
+	{"name": "25 Pearls", "pearls": 25, "icon": "drop"},
+	{"name": "Jackpot", "pearls": 100, "chest": "legendary", "boost": [["fish", 3600], ["treasure", 3600]], "icon": "crown"},
+]
+## The daily spin: one free spin a day, more from the calendar and ads. "w" = the chance in percent (shown).
+const SPIN := [
+	{"name": "Money",      "money_levels": 1,                "w": 26, "color": Color("#22c55e")},
+	{"name": "XP",         "xp_frac": 0.25,                  "w": 20, "color": Color("#3b82f6")},
+	{"name": "Bait",       "bait_best": 25,                  "w": 16, "color": Color("#f59e0b")},
+	{"name": "Fish Boost", "boost": [["fish", 900]],         "w": 12, "color": Color("#14b8a6")},
+	{"name": "Big Money",  "money_levels": 5,                "w": 10, "color": Color("#0e9f6e")},
+	{"name": "Rare Chest", "chest": "rare",                  "w": 8,  "color": Color("#a855f7")},
+	{"name": "10 Pearls",  "pearls": 10,                     "w": 6,  "color": Color("#6366f1")},
+	{"name": "JACKPOT",    "pearls": 50, "chest": "legendary", "w": 2, "color": Color("#ef4444")},
+]
