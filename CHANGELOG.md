@@ -21,6 +21,13 @@
   - **Daily rewards** (from level 3, the gift at the top right): the daily reward now has a **7-day calendar** with a bonus every day (bait, boosts, spins, an epic chest, Pearls, and a jackpot on day 7), and there's a **free spin of the wheel** every day (the odds are shown next to it).
   - **Reminders** (web version, Settings → Reminders): a browser notification when your crews fill the cooler or a daily reward is ready, only while the tab is in the background.
 - **The whole game is 10% easier**: +10% money and +10% XP.
+- **A new look for the whole game.**
+  - **A real view of the world**: the camera now looks across the water at an angle, so buildings show their walls, boats their hulls and trees their trunks, in every biome.
+  - **A new fish shop**: a timbered house on a wooden deck by the shore, with a stall of fish on ice, lanterns, a golden fish on the roof, smoke from the chimney and a shopkeeper who waves. It's built into each biome in its own colours and stands clear of the buttons. Tap anywhere on it to shop.
+  - **A new captain**: he sits on the deck with his legs out and really fishes, gets up to cheer, waves, yawns and nods off under his hat. He sits in a spot that fits him on every one of the 17 boats, at the same size on all of them.
+  - **New trees, bushes and rocks**, and richer colours: clearer water, hotter lava, soft clouds in the Sky biome and pink blossom on its trees.
+  - **Living water**: foam laps around every hull, each boat has a shadow on the water, thin waves and sun sparkle move across the surface, and cloud shadows drift over everything.
+  - The Alien Raft now looks like a saucer, with a canopy on it.
 - **New art**, rendered in Blender like the rest: 20 shiny fish, the 5 event fish, the Starfall, Pearl and Legend rods, the Supporter Pack icons, the Pearl and the Event Star.
 - **Livelier**: buttons squash when you press them, panels pop open, the catch card pops in, and when you sell, coins fly into your money as it counts up. Shinies ring a bell.
 - The Supporter Rod now comes with Supporter Packs (if you already have it, you keep it). Exclusive rods stay with you through prestige.

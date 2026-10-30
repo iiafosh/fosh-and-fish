@@ -135,9 +135,16 @@ python tools/art/make_ads.py
 
 **Re-render the art** (Blender 4.2)
 ```bash
-blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes
+python tools/fetch_assets.py          # the source packs, into scratch/downloads
+blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top fisher merchant
 blender -b --factory-startup --python tools/blender/render_v1.py -- shiny event ui packs
 ```
+The shop is part of each biome's backdrop (`vf_shop.py`, rendered with `scenes`), the captain and the shopkeeper are
+KayKit characters (`vf_captain.py`), and `boats_top` also finds where the captain sits on each boat and bakes the
+image the hull's foam is drawn from. To check them in the game:
+`Godot_console.exe --path . --resolution 1920x1080 -- --capture=ABSOLUTE_EMPTY_DIR --scenes-test` (every biome, and a
+test of the shop's tap area) or `--boats-test` (every boat).
+
 `render_v1.py` is the 1.0 art (shiny fish, event fish, Pearl and Event Star icons, Supporter Pack icons);
 the exclusive rods are in `vf_models.ROD_SPECS` (`render_assets.py -- rods rods_hand`). Run
 `Godot_console.exe --headless --path . --import` afterwards so Godot picks up new images.

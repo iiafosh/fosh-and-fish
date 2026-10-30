@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3gosblx0qr68"
-path="res://.godot/imported/sip.png-98f57b571a3790796e4e329c6b69c847.ctex"
+uid="uid://b3v35uknq8g7x"
+path="res://.godot/imported/alien_raft.png-cac8df04919b2c4dae1d6e3fb884cd81.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/fisher/sip.png"
-dest_files=["res://.godot/imported/sip.png-98f57b571a3790796e4e329c6b69c847.ctex"]
+source_file="res://assets/vf/boats_foam/alien_raft.png"
+dest_files=["res://.godot/imported/alien_raft.png-cac8df04919b2c4dae1d6e3fb884cd81.ctex"]
 
 [params]
 

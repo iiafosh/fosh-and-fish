@@ -4,10 +4,12 @@ signal merchant_clicked
 ## Top-down fishing stage. Everything lives in "scene space": the 1920x1080
 ## Blender render, scaled to cover the window. Fish (animated Quaternius
 ## sheets) swim under the water, seagulls fly over it, crabs walk the beach,
-## and the animated fisher sits on his cooler on the boat's deck holding the line
-## (stands up to cast / reel / react, idles with little gags in between).
+## and the captain sits on the boat's deck holding the line (gets up to cheer, idles with
+## little gags in between). The shop is part of each backdrop; the shopkeeper stands on its deck.
 
 const SCENE := Vector2(1920, 1080)
+const ATMOS := {"River": [1.0, 0.16], "Ocean": [1.0, 0.16], "Sky": [1.0, 0.09], "Volcanic": [1.5, 0.24],   # biome: water light, cloud shadows
+	"Space": [0.8, 0.0], "Alien": [1.0, 0.0], "Abyss": [0.7, 0.0]}
 const ART := "res://assets/vf/"
 const FX := "res://assets/third_party/kenney_particles/"
 
@@ -17,10 +19,12 @@ var backdrop: TextureRect
 var caustics: ColorRect
 var life_layer: Control          # fish, whales, crabs
 var boat: TextureRect
+var boat_foam: TextureRect        # foam and shadow on the water around the hull (behind the boat, moves with it)
 var fisher: TextureRect
 var sky_layer: Control           # gulls
 var over: Control                # line, bobber, ripples
 var fx: Node2D
+var atmos: ColorRect             # cloud shadows and the vignette
 var _mask: Image
 var _scene: Dictionary = {}
 var _boat_info: Dictionary = {}
@@ -29,7 +33,7 @@ var _fisher_tex := {}
 var _anim := "idle"
 var _anim_t := 0.0
 var _react := ""                  # reaction queued after the cast / reel (happy, dance, sad, shrug)
-var _idle_wait := 5.0             # seconds until the next idle gag (yawn, sip, doze...)
+var _idle_wait := 5.0             # seconds until the next idle gag (yawn, doze...)
 var _last_cheer := -100.0
 var _biome := ""
 var _rod_name := ""
@@ -61,6 +65,7 @@ var _merchant_t := 0.0
 var merchant: TextureRect
 var merchant_hit: Control
 var merchant_tag: PanelContainer
+var _smoke: CPUParticles2D
 var _glints: CPUParticles2D
 
 # ---- sailing state (driven by vf_sail.gd; see the "sailing" section below)
@@ -95,6 +100,7 @@ func _ready() -> void:
 	caustics.size = SCENE
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/vf_caustics.gdshader")
+	mat.set_shader_parameter("noise", _tex("fx/noise.png"))
 	caustics.material = mat
 	root.add_child(caustics)
 	fx = Node2D.new()
@@ -106,8 +112,18 @@ func _ready() -> void:
 	fisher.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	fisher.stretch_mode = TextureRect.STRETCH_SCALE
 	boat.add_child(fisher)
+	boat_foam = _foam_rect()
+	boat.add_child(boat_foam)
 	over = _layer(_draw_over)
 	root.add_child(fx)
+	atmos = ColorRect.new()
+	atmos.size = SCENE
+	atmos.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var am := ShaderMaterial.new()
+	am.shader = load("res://shaders/vf_atmos.gdshader")
+	am.set_shader_parameter("noise", _tex("fx/noise.png"))
+	atmos.material = am
+	root.add_child(atmos)
 	sky_layer = _layer(_draw_sky)
 	for c in [root, backdrop, caustics, boat, fisher]:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -257,6 +273,11 @@ func _place_fleet() -> void:
 		r.pivot_offset = Vector2(info.origin[0], info.origin[1]) * r.size
 		r.flip_h = rng.randf() < 0.5
 		fleet_layer.add_child(r)
+		var foam := _foam_rect()
+		r.add_child(foam)
+		_fit_foam(foam, name, info, r.size)
+		foam.flip_h = r.flip_h
+		(foam.material as ShaderMaterial).set_shader_parameter("seed", rng.randf() * 50.0)
 		_fleet.append({"node": r, "home": spots[i], "ph": rng.randf() * TAU})
 	_fleet_tick()
 
@@ -430,6 +451,8 @@ func set_biome(name: String) -> void:
 	_scene = manifest.get("scenes", {}).get(name, {"boat": [0.35, 0.62], "bobber": [0.6, 0.55], "unit_px": 56.0, "water": ["#9ff3e6", "#2a9ec4"]})
 	water_tint = Color(_scene.water[1])
 	(caustics.material as ShaderMaterial).set_shader_parameter("tint", Color(_scene.water[0]).lerp(Color.WHITE, 0.6))
+	(caustics.material as ShaderMaterial).set_shader_parameter("gain", ATMOS.get(name, [1.0, 0.0])[0])
+	(atmos.material as ShaderMaterial).set_shader_parameter("clouds", ATMOS.get(name, [1.0, 0.0])[1])
 	_bobber_home = Vector2(_scene.bobber[0], _scene.bobber[1]) * SCENE
 	_bobber = _bobber_home
 	aim = Vector2.INF
@@ -465,20 +488,43 @@ func set_boat(name: String) -> void:
 	_place_boat()
 	boat_changed.emit()
 
+## the hull's foam: an image of its blurred footprint (see render_foam in vf_topdown.py), drawn by vf_foam.gdshader
+func _foam_rect() -> TextureRect:
+	var f := TextureRect.new()
+	f.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	f.stretch_mode = TextureRect.STRETCH_SCALE
+	f.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	f.show_behind_parent = true
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/vf_foam.gdshader")
+	f.material = m
+	return f
+
+func _fit_foam(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2) -> void:
+	f.texture = _tex("boats_foam/%s.png" % VFData.slug(boat_name))
+	f.size = sprite_size * float(info.get("foam_pad", 1.5))
+	f.position = (sprite_size - f.size) * 0.5
+	var m := f.material as ShaderMaterial
+	m.set_shader_parameter("foam_amount", 0.0 if info.get("floats", false) else 1.0)
+	if not _scene.is_empty():
+		m.set_shader_parameter("foam_color", Color(_scene.water[0]).lerp(Color.WHITE, 0.75))
+		m.set_shader_parameter("shade_color", Color(_scene.water[1]).darkened(0.65))
+
 func _place_boat() -> void:
 	if _scene.is_empty() or _boat_info.is_empty() or boat.texture == null: return
 	var k: float = float(_scene.unit_px) / float(_boat_info.unit_px)
 	var tex_sz := boat.texture.get_size()
 	boat.size = tex_sz * k
+	_fit_foam(boat_foam, _boat, _boat_info, boat.size)
 	var origin := Vector2(_boat_info.origin[0], _boat_info.origin[1]) * boat.size
 	boat.pivot_offset = origin
 	if boat_pos.x < 0.0: boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
 	boat.position = boat_pos - origin
-	# fisher: his anchor (the cooler he sits on) on the boat's seat point, scaled to scene units.
+	# fisher: his anchor (where he sits) on the boat's seat point, scaled to scene units.
 	# He is a child of the boat, so he mirrors with it when the boat turns around.
 	if _fisher_info.is_empty(): return
 	var cell: float = _fisher_info.cell
-	var fk: float = float(_scene.unit_px) / float(_fisher_info.unit_px) * float(_boat_info.get("fisher_scale", 1.0))
+	var fk: float = float(_scene.unit_px) / float(_fisher_info.unit_px)
 	fisher.size = Vector2(cell, cell) * fk
 	var seat: Array = _boat_info.get("seat", _boat_info.deck)
 	fisher.position = Vector2(seat[0], seat[1]) * boat.size - Vector2(_fisher_info.feet[0], _fisher_info.feet[1]) * fisher.size
@@ -523,7 +569,7 @@ func _next_anim() -> void:
 			_react = ""
 			play_anim(r)
 		else:
-			play_anim("sit" if _fisher_tex.has("sit") else "idle")
+			play_anim("sit" if _anim in _fisher_info.get("up", []) and _fisher_tex.has("sit") else "idle")   # (he got up to cheer)
 	else:
 		play_anim("idle")
 
@@ -616,7 +662,7 @@ func _in_water(p: Vector2, min_depth := 0.12) -> bool:
 	return c.a > 0.5 and c.g >= min_depth
 
 func _on_beach(p: Vector2) -> bool:
-	if _mask_px(p).a > 0.3: return false
+	if _mask_px(p).a > 0.3 or _shop_rect().grow(100.0).has_point(p): return false
 	for d in [Vector2(0, 60), Vector2(40, 50), Vector2(-40, 50)]:
 		if _mask_px(p + d).a > 0.5: return true
 	return false
@@ -802,7 +848,7 @@ func _draw_sky() -> void:
 		var t: Texture2D = g.tex
 		if t == null: continue
 		var fi := int(g.fr) % n
-		var sc := u * 1.9 / cell
+		var sc := u * 1.4 / cell
 		var squash := 1.0 - clampf(absf(g.turn) * 0.5, 0.0, 0.2)
 		var src := Rect2(fi * cell, 0, cell, cell)
 		var dst := Rect2(-cell * 0.5, -cell * 0.5, cell, cell)
@@ -867,7 +913,7 @@ func cast(done: Callable) -> void:
 	_cast_done = done
 	cast_started.emit()
 	# release the bobber mid-swing
-	get_tree().create_timer(0.22).timeout.connect(func():
+	get_tree().create_timer(float(_fisher_info.get("cast", {}).get("release", 0.22))).timeout.connect(func():
 		_cast_from = rod_tip()
 		reeled = false
 		_reel_t = -1.0
@@ -934,6 +980,13 @@ func _open_near(base: Vector2, from: Vector2) -> Vector2:
 	return Vector2.INF
 
 # ---------------------------------------------------------------- merchant
+## The shop's tap area follows the building: a tap on the water beside it still casts.
+class ShopHit extends Control:
+	var outline := PackedVector2Array()
+
+	func _has_point(p: Vector2) -> bool:
+		return Geometry2D.is_point_in_polygon(p, outline) if outline.size() > 2 else Rect2(Vector2.ZERO, size).has_point(p)
+
 func _build_merchant() -> void:
 	_merchant_info = manifest.get("merchant", {})
 	for k in ["idle", "wave"]:
@@ -944,7 +997,7 @@ func _build_merchant() -> void:
 	merchant.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(merchant)
 	root.move_child(merchant, caustics.get_index() + 1)
-	merchant_hit = Control.new()
+	merchant_hit = ShopHit.new()
 	merchant_hit.mouse_filter = Control.MOUSE_FILTER_STOP
 	merchant_hit.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	merchant_hit.gui_input.connect(_merchant_input)
@@ -963,7 +1016,7 @@ func _build_merchant() -> void:
 	merchant_tag.add_theme_stylebox_override("panel", sb)
 	var v := VBoxContainer.new()
 	var t := Label.new()
-	t.text = "Merchant"
+	t.text = "Fish shop"
 	t.add_theme_font_size_override("font_size", 26)
 	t.add_theme_color_override("font_color", Color("#3b2c20"))
 	var sub := Label.new()
@@ -977,17 +1030,45 @@ func _build_merchant() -> void:
 	merchant_tag.visible = false
 	root.add_child(merchant_tag)
 
+## The shop itself is part of the backdrop (see vf_shop.py); the manifest says where it stands.
+func _shop_rect() -> Rect2:
+	var r: Array = _scene.get("shop", [])
+	if r.size() < 4: return Rect2()
+	return Rect2(r[0] * SCENE.x, r[1] * SCENE.y, (r[2] - r[0]) * SCENE.x, (r[3] - r[1]) * SCENE.y)
+
 func _place_merchant() -> void:
 	if merchant == null or _merchant_info.is_empty() or not _scene.has("merchant"): return
 	var cell: float = _merchant_info.cell
-	var k: float = float(_scene.get("merchant_unit_px", _scene.unit_px)) / float(_merchant_info.unit_px) * 0.95
+	var k: float = float(_scene.get("merchant_unit_px", _scene.unit_px)) / float(_merchant_info.unit_px)
 	merchant.size = Vector2(cell, cell) * k
 	var spot := Vector2(_scene.merchant[0], _scene.merchant[1]) * SCENE
 	merchant.position = spot - Vector2(_merchant_info.anchor[0], _merchant_info.anchor[1]) * merchant.size
-	merchant.position.y = maxf(merchant.position.y, 125.0)      # keep the roof clear of the HUD
-	merchant_hit.position = merchant.position + merchant.size * Vector2(0.08, 0.1)
-	merchant_hit.size = merchant.size * Vector2(0.84, 0.75)
-	merchant_tag.position = merchant.position + Vector2(merchant.size.x * 0.5 - 150, merchant.size.y * 0.82)
+	var shop := _shop_rect()
+	merchant_hit.position = shop.position
+	merchant_hit.size = shop.size
+	(merchant_hit as ShopHit).outline.clear()
+	for c in _scene.get("shop_outline", []):
+		(merchant_hit as ShopHit).outline.append(Vector2(c[0], c[1]) * SCENE - shop.position)
+	merchant_tag.position = Vector2(shop.get_center().x - 150.0, shop.end.y + 8.0)
+	_place_smoke()
+
+## smoke from the shop's chimney (no "smoke" point in the manifest where there's no air)
+func _place_smoke() -> void:
+	if _smoke == null:
+		_smoke = _particles("smoke_02", 7, 3.6, Color(1, 1, 1, 0.34), 0.03, 0.06)
+		_smoke.material = null
+		_smoke.direction = Vector2(0.25, -1.0)
+		_smoke.spread = 10.0
+		_smoke.gravity = Vector2(5, -10)
+		_smoke.initial_velocity_min = 14.0
+		_smoke.initial_velocity_max = 20.0
+		var c := Curve.new()
+		c.add_point(Vector2(0.0, 0.6))
+		c.add_point(Vector2(1.0, 1.0))
+		_smoke.scale_amount_curve = c
+	_smoke.emitting = _scene.has("smoke")
+	if _scene.has("smoke"):
+		_smoke.position = Vector2(_scene.smoke[0], _scene.smoke[1]) * SCENE
 
 func _tick_merchant(delta: float) -> void:
 	if merchant == null or _merchant_info.is_empty(): return

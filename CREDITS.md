@@ -6,19 +6,21 @@
 Everything not listed here (game code, procedural Blender art, shaders) is original to this project.
 Raw source packs are fetched with `python tools/fetch_assets.py` into `scratch/downloads/` (git-ignored);
 only the files the game uses are copied into `assets/third_party/` or baked into renders under `assets/vf/`.
-The fisher (sou'wester, walrus moustache, life vest, cooler and mug; `assets/vf/fisher/`) is original,
-built and animated from primitives in `tools/blender/vf_fisher.py`.
+The puppet fisher of the marketing videos (`tools/blender/vf_fisher.py`) is original, built and animated from primitives.
 
 | Asset | Author | License | Used for |
 |---|---|---|---|
 | [Animated Fish](https://poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g) (fish ×3, dolphin, shark, whale, manta ray) | [Quaternius](https://quaternius.com/packs/animatedfish.html) | CC0 | Swimming fish sprite sheets (`assets/vf/swim/`); the Leviathan boss (`assets/vf/event/leviathan.png`) |
-| [Animated Woman](https://poly.pizza/m/qJ2gsTUBHL) | Quaternius | CC0 | Market merchant (`assets/vf/merchant/`) |
+| [Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) | [Kay Lousberg (KayKit)](https://www.kaylousberg.com) | CC0 | The captain (the Ranger, as a fisherman: `assets/vf/fisher/`) and the shopkeeper (the Rogue: `assets/vf/merchant/`) |
+| [Character Animations](https://kaylousberg.itch.io/kaykit-character-animations) | Kay Lousberg (KayKit) | CC0 | How they move: fishing, sitting, cheering, waving... |
+| [Forest Nature Pack](https://kaylousberg.itch.io/kaykit-forest) | Kay Lousberg (KayKit) | CC0 | Trees, bushes, grass and rocks in the scenes (recoloured per biome) |
+| [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) | Kenney | CC0 | The fish shop: walls, roof, stall, lanterns, deck (recoloured per biome; `tools/blender/vf_shop.py`) |
 | [Chest](https://poly.pizza/m/O72u4Drp8k) | Quaternius | CC0 | Sunken chests in the Ocean / Abyss scenes |
 | [Flying gull](https://poly.pizza/m/eMNhHDZakYp) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Seagulls (`assets/vf/critters/gull.png`) |
 | [Crab](https://poly.pizza/m/2DgM36qZW2u) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Beach crabs (`assets/vf/critters/crab.png`) |
-| [Nature Kit](https://kenney.nl/assets/nature-kit) | Kenney | CC0 | Trees, palms, rocks, bushes, flowers, lily pads in scenes |
+| [Nature Kit](https://kenney.nl/assets/nature-kit) | Kenney | CC0 | Palms, flowers, stumps, lily pads in scenes |
 | [Watercraft Kit](https://kenney.nl/assets/watercraft-kit) | Kenney | CC0 | Buoys, the moored rowboat, and the Rowboat, Fishing Boat, Speedboat, Pontoon, Sailboat, Yacht, Cruiser and Cruise Ship hulls |
-| [Pirate Kit](https://kenney.nl/assets/pirate-kit) | Kenney | CC0 | Gold Boat (galleon), Sky Cruiser hull, Dark Explorer (ghost ship) |
+| [Pirate Kit](https://kenney.nl/assets/pirate-kit) | Kenney | CC0 | Gold Boat (galleon), Sky Cruiser hull, Dark Explorer (ghost ship), barrels and crates at the shop |
 | [Cruise Ship](https://poly.pizza/m/yq9EKmEmfC), [Spaceship](https://poly.pizza/m/uCeLfsdmNP) | Quaternius | CC0 | Luxury Yacht, space cruiser parts |
 | [Cruise ship](https://poly.pizza/m/dgLCxDWhnZQ), [Blimp](https://poly.pizza/m/cGHU2Pu0Ytf), [Satellite](https://poly.pizza/m/1C3zb8Q9USk), [Flying saucer](https://poly.pizza/m/6hu2h8v78mO), [Submarine](https://poly.pizza/m/8PgPdFGg3MO) | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Boat parts: Sky Cruiser balloon, Satellite, Alien Raft, Alien Submarine, Abyssal Surveyor (recolored, cel-shaded) |
 | [Space Shuttle Orbiter](https://poly.pizza/m/bIAMfx1bHVY) | Zoe XR | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Space Shuttle boat |

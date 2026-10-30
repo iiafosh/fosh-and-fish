@@ -2104,6 +2104,14 @@ func _check_capture() -> void:
 		await idle.capture_test(dir)
 		get_tree().quit()
 		return
+	if "--boats-test" in OS.get_cmdline_user_args():
+		await _boats_test(dir)
+		get_tree().quit()
+		return
+	if "--scenes-test" in OS.get_cmdline_user_args():
+		await _scenes_test(dir)
+		get_tree().quit()
+		return
 	if "--play-shots" in OS.get_cmdline_user_args():
 		await v1.play_shots(dir)
 		get_tree().quit()
@@ -2242,6 +2250,57 @@ func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 
+## godot --path . --resolution 1920x1080 -- --capture=DIR --boats-test : the fisher on every boat, close up
+## (sitting, then casting), for checking seats, scale and how he sits. Never saves.
+func _boats_test(dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	_veteran("River")
+	VF.tutorial = 99
+	_close_panel()
+	for n in [card, sell_btn, fish_btn, mode_pill, top_right, hud_col, boost_pill, chips.rod.get_parent().get_parent()]:
+		n.visible = false
+	idle.auto_pill.visible = false
+	for b in VFData.BOAT_ORDER:
+		VF.boats_owned = VFData.BOAT_ORDER.find(b) + 1
+		_apply_biome()
+		stage.play_anim("idle")
+		await _wait(0.5)
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var c: Vector2 = stage.boat_screen() * Vector2(img.get_size()) / get_viewport_rect().size   # (layout -> image px)
+		var half := Vector2i(330, 240)
+		var r := Rect2i(Vector2i(c) - half, half * 2).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+		img.get_region(r).save_png(dir + "/boat_%02d_%s.png" % [VFData.BOAT_ORDER.find(b) + 1, VFData.slug(b)])
+
+## godot --path . --resolution 1920x1080 -- --capture=DIR --scenes-test : every biome with the HUD on and no
+## catch card or toasts, for checking the backdrops and what the HUD covers. Never saves.
+func _scenes_test(dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	_close_panel()
+	for b in VFData.BIOMES:
+		_veteran(b)
+		_apply_biome()
+		stage.play_anim("idle")
+		card.visible = false
+		for t in toast_box.get_children(): t.free()
+		await _wait(1.5)
+		await _shot(dir + "/scene_%s.png" % VFData.slug(b))
+	# the shop's tap area: the building opens the shop, the water in the corner of its box doesn't
+	_veteran("River")
+	_apply_biome()
+	await _wait(0.5)
+	var shop: Rect2 = stage._shop_rect()
+	var aim0: Vector2 = stage.aim
+	var to_window := get_viewport().get_final_transform()
+	_tap(to_window * stage.to_screen(shop.position + shop.size * Vector2(0.97, 0.97)))
+	await _wait(0.5)
+	print("SHOP TEST water beside it: panel='", _panel_kind, "' aim moved=", stage.aim != aim0)
+	_close_panel()
+	_tap(to_window * stage.to_screen(shop.position + shop.size * Vector2(0.5, 0.55)))
+	await _wait(0.6)
+	print("SHOP TEST the building: panel='", _panel_kind, "'")
+	await _shot(dir + "/scene_shop_open.png")
 
 # ================================================================== guide
 func _capturing() -> bool:
