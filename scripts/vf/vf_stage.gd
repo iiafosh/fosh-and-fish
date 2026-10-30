@@ -20,6 +20,7 @@ var caustics: ColorRect
 var life_layer: Control          # fish, whales, crabs
 var boat: TextureRect
 var boat_foam: TextureRect        # foam and shadow on the water around the hull (behind the boat, moves with it)
+var boat_reflect: TextureRect     # the boat in the water (the same)
 var fisher: TextureRect
 var sky_layer: Control           # gulls
 var over: Control                # line, bobber, ripples
@@ -55,6 +56,49 @@ var aim := Vector2.INF            # where the player last tapped the water (scen
 const MAX_CAST := 820.0           # longest cast from the boat, in scene px
 var _cast_done: Callable
 var _dart: Dictionary = {}
+# ---- the catch (show_catch): the float goes under, the rod bends, the fish flies to the boat
+const ROD_BEND := 0.3             # how far the tip goes at full bend, of the rod's length
+var _bobber_tex: Texture2D
+var _star_tex: Texture2D
+var _rod_bend := 0.0              # a spring: 0 straight, 1 bent under a fish, below 0 whipping back
+var _rod_bend_v := 0.0
+var _rod_pull := 0.0
+var _line_tight := 0.0            # 0 slack .. 1 tight as a wire
+var _tight_to := 0.0
+var _dip := 0.0                   # the float: 0 afloat .. 1 gone under
+var _dip_to := 0.0
+var _catch: Dictionary = {}       # the catch under way, until the fish leaves the water
+var _leapers: Array = []          # fish in the air
+var _drops: Array = []            # water in the air
+var _flashes: Array = []          # foam on the water where a fish came out
+var _drop_col := Color.WHITE
+var _shake := 0.0                 # the whole stage, after a big one
+var _root_scale := 1.0
+var _last_big_show := -100.0
+# ---- the world: the time of day, wind and reflections (Settings: scenery effects)
+## a whole day, in seconds of play. 0 is dawn: morning .. day .. dusk at 0.56 .. night from 0.62 to 0.9 .. dawn again
+const DAY_LEN := 780.0
+## biome: the light at dusk and at night [land, water]; light multiplies everything, so 1 is what the render shows.
+## Space and the Abyss have no sun: they stay as they are, with their lights always on.
+const DAYLIGHT := {
+	"River": {"dusk": [Color(1.0, 0.78, 0.58), Color(1.0, 0.74, 0.6)], "night": [Color(0.38, 0.43, 0.7), Color(0.36, 0.45, 0.74)], "low": Color(1.0, 0.72, 0.42), "moon": Color(0.8, 0.88, 1.0)},
+	"Ocean": {"dusk": [Color(1.0, 0.76, 0.58), Color(1.0, 0.72, 0.62)], "night": [Color(0.38, 0.43, 0.7), Color(0.34, 0.45, 0.76)], "low": Color(1.0, 0.7, 0.44), "moon": Color(0.8, 0.88, 1.0)},
+	"Sky": {"dusk": [Color(1.0, 0.76, 0.78), Color(1.0, 0.7, 0.78)], "night": [Color(0.46, 0.44, 0.82), Color(0.48, 0.44, 0.88)], "low": Color(1.0, 0.68, 0.72), "moon": Color(0.86, 0.86, 1.0)},
+	"Volcanic": {"dusk": [Color(0.9, 0.68, 0.6), Color(1.0, 0.96, 0.9)], "night": [Color(0.5, 0.38, 0.46), Color(1.0, 0.92, 0.84)], "low": Color(1.0, 0.76, 0.4), "moon": Color(1.0, 0.8, 0.5)},
+	"Alien": {"dusk": [Color(0.9, 0.7, 0.96), Color(0.86, 0.8, 1.0)], "night": [Color(0.42, 0.34, 0.7), Color(0.4, 0.6, 0.76)], "low": Color(0.8, 1.0, 0.8), "moon": Color(0.7, 1.0, 0.9)},
+}
+const NIGHT_MUSIC := ["River", "Ocean", "Sky"]     # (elsewhere the biome keeps its own music at night)
+signal night_changed(night: bool)
+var day_t := 0.08                 # the time of day, 0..1 (starts in the morning)
+var night_amount := 0.0           # 0 by day .. 1 at night (the lights come on)
+var _is_night := false
+var _fx_on := true
+var _reflect_mat: ShaderMaterial
+var lights_layer: Control
+var _glow_tex: Texture2D
+var _lights: Array = []
+var _light_color := Color("#ffcf7a")
+var _flies: Array = []
 var _t := 0.0
 var water_tint := Color(0.4, 0.8, 0.8)
 var _ambient: CPUParticles2D
@@ -94,6 +138,9 @@ func _ready() -> void:
 	backdrop.size = SCENE
 	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	backdrop.stretch_mode = TextureRect.STRETCH_SCALE
+	var bm := ShaderMaterial.new()
+	bm.shader = load("res://shaders/vf_backdrop.gdshader")
+	backdrop.material = bm
 	root.add_child(backdrop)
 	life_layer = _layer(_draw_life)
 	caustics = ColorRect.new()
@@ -112,10 +159,13 @@ func _ready() -> void:
 	fisher.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	fisher.stretch_mode = TextureRect.STRETCH_SCALE
 	boat.add_child(fisher)
+	boat_reflect = _reflect_rect()
+	boat.add_child(boat_reflect)
 	boat_foam = _foam_rect()
 	boat.add_child(boat_foam)
 	over = _layer(_draw_over)
 	root.add_child(fx)
+	sky_layer = _layer(_draw_sky)
 	atmos = ColorRect.new()
 	atmos.size = SCENE
 	atmos.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -124,7 +174,11 @@ func _ready() -> void:
 	am.set_shader_parameter("noise", _tex("fx/noise.png"))
 	atmos.material = am
 	root.add_child(atmos)
-	sky_layer = _layer(_draw_sky)
+	_glow_tex = _tex("fx/glow.png")
+	lights_layer = _layer(_draw_lights)
+	var lm := CanvasItemMaterial.new()
+	lm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	lights_layer.material = lm
 	for c in [root, backdrop, caustics, boat, fisher]:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_merchant()
@@ -132,10 +186,12 @@ func _ready() -> void:
 	for k in _fisher_info:
 		if _fisher_info[k] is Dictionary and _fisher_info[k].has("frames"):
 			_fisher_tex[k] = _tex("fisher/%s.png" % k)
+	_bobber_tex = _tex("fx/bobber.png")
+	_star_tex = _tex(FX + "star_06.png")
 	_glints = _particles("star_06", 8, 1.8, Color(1, 1, 1, 0.55), 0.03, 0.07)
 	_glints.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	_glints.emission_rect_extents = SCENE * 0.5
-	_glints.position = SCENE * 0.5
+	_glints.emission_rect_extents = Vector2(SCENE.x * 0.5, SCENE.y * 0.27)     # (out on the water)
+	_glints.position = Vector2(SCENE.x * 0.5, SCENE.y * 0.72)
 	_glints.gravity = Vector2.ZERO
 	_glints.initial_velocity_max = 0.0
 	_glints.emitting = true
@@ -169,9 +225,14 @@ func _tex(path: String) -> Texture2D:
 	return null
 
 func _fit() -> void:
-	var s := maxf(size.x / SCENE.x, size.y / SCENE.y)
+	_root_scale = maxf(size.x / SCENE.x, size.y / SCENE.y)
+	_frame_root()
+
+## where the scene sits in the window (it pushes in and shakes for a moment after a big catch)
+func _frame_root() -> void:
+	var s := _root_scale * (1.0 + 0.018 * _shake)
 	root.scale = Vector2(s, s)
-	root.position = (size - SCENE * s) * 0.5
+	root.position = (size - SCENE * s) * 0.5 + Vector2(sin(_t * 47.0), cos(_t * 39.0)) * 7.0 * _shake * _shake * _root_scale
 
 func to_screen(p: Vector2) -> Vector2:
 	return global_position + root.position + p * root.scale.x
@@ -273,6 +334,11 @@ func _place_fleet() -> void:
 		r.pivot_offset = Vector2(info.origin[0], info.origin[1]) * r.size
 		r.flip_h = rng.randf() < 0.5
 		fleet_layer.add_child(r)
+		var mirror := _reflect_rect()
+		r.add_child(mirror)
+		_fit_reflect(mirror, name, info, r.size)
+		mirror.flip_h = r.flip_h
+		(mirror.material as ShaderMaterial).set_shader_parameter("seed", rng.randf() * 50.0)
 		var foam := _foam_rect()
 		r.add_child(foam)
 		_fit_foam(foam, name, info, r.size)
@@ -452,7 +518,11 @@ func set_biome(name: String) -> void:
 	water_tint = Color(_scene.water[1])
 	(caustics.material as ShaderMaterial).set_shader_parameter("tint", Color(_scene.water[0]).lerp(Color.WHITE, 0.6))
 	(caustics.material as ShaderMaterial).set_shader_parameter("gain", ATMOS.get(name, [1.0, 0.0])[0])
-	(atmos.material as ShaderMaterial).set_shader_parameter("clouds", ATMOS.get(name, [1.0, 0.0])[1])
+	(caustics.material as ShaderMaterial).set_shader_parameter("reflection", _tex("scenes/%s_reflect.png" % slug))
+	(backdrop.material as ShaderMaterial).set_shader_parameter("sway", _tex("scenes/%s_sway.png" % slug))
+	(atmos.material as ShaderMaterial).set_shader_parameter("mask", mt)
+	_set_lights()
+	_apply_daylight()
 	_bobber_home = Vector2(_scene.bobber[0], _scene.bobber[1]) * SCENE
 	_bobber = _bobber_home
 	aim = Vector2.INF
@@ -463,6 +533,15 @@ func set_biome(name: String) -> void:
 	boat_lean = 0.0
 	reeled = false
 	_reel_t = -1.0
+	_catch = {}
+	_dart = {}
+	_leapers.clear()
+	_drops.clear()
+	_flashes.clear()
+	_rod_pull = 0.0
+	_tight_to = 0.0
+	_dip_to = 0.0
+	_drop_col = Color(_scene.water[0]).lerp(Color.WHITE, 0.6)
 	_species.clear()
 	var swim: Dictionary = manifest.get("swim", {})
 	for f in VFData.BIOMES[name].fish:
@@ -500,6 +579,25 @@ func _foam_rect() -> TextureRect:
 	f.material = m
 	return f
 
+func _reflect_rect() -> TextureRect:
+	var f := TextureRect.new()
+	f.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	f.stretch_mode = TextureRect.STRETCH_SCALE
+	f.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	f.show_behind_parent = true
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/vf_reflect.gdshader")
+	f.material = m
+	return f
+
+func _fit_reflect(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2) -> void:
+	f.texture = _tex("boats_reflect/%s.png" % VFData.slug(boat_name))
+	f.size = sprite_size * float(info.get("reflect_pad", 2.2))
+	f.position = (sprite_size - f.size) * 0.5
+	var m := f.material as ShaderMaterial
+	if not _scene.is_empty(): m.set_shader_parameter("water", Color(_scene.water[1]))
+	f.visible = _fx_on and not info.get("floats", false)
+
 func _fit_foam(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2) -> void:
 	f.texture = _tex("boats_foam/%s.png" % VFData.slug(boat_name))
 	f.size = sprite_size * float(info.get("foam_pad", 1.5))
@@ -516,6 +614,7 @@ func _place_boat() -> void:
 	var tex_sz := boat.texture.get_size()
 	boat.size = tex_sz * k
 	_fit_foam(boat_foam, _boat, _boat_info, boat.size)
+	_fit_reflect(boat_reflect, _boat, _boat_info, boat.size)
 	var origin := Vector2(_boat_info.origin[0], _boat_info.origin[1]) * boat.size
 	boat.pivot_offset = origin
 	if boat_pos.x < 0.0: boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
@@ -649,7 +748,9 @@ func play_anim(a: String) -> void:
 
 func rod_tip() -> Vector2:
 	if _fisher_info.is_empty() or _boat_info.is_empty(): return _bobber_home
-	return _fisher_point("rod_tip", [0.6, 0.45])
+	var g := rod_grip()
+	var t: Vector2 = _fisher_point("rod_tip", [0.6, 0.45])
+	return t + _rod_side(g, t) * _rod_bend * ROD_BEND * (t - g).length()
 
 # ------------------------------------------------------------------ life
 func _mask_px(p: Vector2) -> Color:
@@ -787,12 +888,12 @@ func _process(delta: float) -> void:
 			burst("splash", _bobber)
 			if _cast_done.is_valid(): _cast_done.call()
 	if not _dart.is_empty():
-		_dart.t += delta / 0.35
+		_dart.t += delta / CATCH_BITE
 		_dart.pos = (_dart.from as Vector2).lerp(_bobber, minf(_dart.t, 1.0))
 		if _dart.t >= 1.0:
-			splash(_bobber, 1.6)
-			burst("splash", _bobber)
 			_dart = {}
+	_tick_catch(delta)
+	_tick_daylight(delta)
 	for r in _ripples: r.t += delta
 	_ripples = _ripples.filter(func(r): return r.t < 1.4)
 	life_layer.queue_redraw()
@@ -834,6 +935,10 @@ func _draw_life() -> void:
 		life_layer.draw_set_transform(c.pos, c.tilt, Vector2(cs, cs))
 		life_layer.draw_texture(ct, -ct.get_size() * 0.5)
 	life_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for f in _flashes:                       # foam where a fish came out
+		life_layer.draw_set_transform(f.p, 0.0, Vector2(1.0, 0.5))
+		life_layer.draw_circle(Vector2.ZERO, f.r * (0.45 + 0.55 * f.t), Color(1, 1, 1, (1.0 - f.t) * (1.0 - f.t) * 0.85))
+	life_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	for r in _ripples:                       # water rings live under the boats
 		if r.t < 0.0: continue
 		var k: float = r.t / 1.4
@@ -846,7 +951,7 @@ func _draw_sky() -> void:
 	var cell: float = info.cell
 	for g in _gulls:
 		var t: Texture2D = g.tex
-		if t == null: continue
+		if t == null or night_amount > 0.6: continue
 		var fi := int(g.fr) % n
 		var sc := u * 1.4 / cell
 		var squash := 1.0 - clampf(absf(g.turn) * 0.5, 0.0, 0.2)
@@ -861,29 +966,46 @@ func _draw_sky() -> void:
 func _draw_rod() -> void:
 	if _rod_tex == null or _fisher_info.is_empty(): return
 	var g := rod_grip()
-	var t := rod_tip()
+	var t: Vector2 = _fisher_point("rod_tip", [0.6, 0.45])       # where it points, not bent
 	var sz := _rod_tex.get_size()
 	var gs := Vector2(_rod_info.grip[0], _rod_info.grip[1]) * sz
 	var ts := Vector2(_rod_info.tip[0], _rod_info.tip[1]) * sz
 	var k := (t - g).length() / maxf(1.0, (ts - gs).length())
-	over.draw_set_transform(g, (t - g).angle(), Vector2(k, k))
-	over.draw_texture(_rod_tex, -gs)
-	over.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var bend := _rod_side(g, t) * _rod_bend * ROD_BEND * (t - g).length()
+	var top := -gs.y * k
+	var bottom := (sz.y - gs.y) * k
+	var n_seg := 12
+	var white := PackedColorArray([Color.WHITE])
+	for i in n_seg:
+		var u0 := float(i) / n_seg
+		var u1 := float(i + 1) / n_seg
+		var s0 := (u0 * sz.x - gs.x) / (ts.x - gs.x)
+		var s1 := (u1 * sz.x - gs.x) / (ts.x - gs.x)
+		var p0 := g + (t - g) * s0 + bend * maxf(s0, 0.0) * maxf(s0, 0.0)
+		var p1 := g + (t - g) * s1 + bend * maxf(s1, 0.0) * maxf(s1, 0.0)
+		var n0 := ((t - g) + bend * 2.0 * maxf(s0, 0.0)).normalized().rotated(PI * 0.5)
+		var n1 := ((t - g) + bend * 2.0 * maxf(s1, 0.0)).normalized().rotated(PI * 0.5)
+		over.draw_polygon(PackedVector2Array([p0 + n0 * top, p1 + n1 * top, p1 + n1 * bottom, p0 + n0 * bottom]), white,
+			PackedVector2Array([Vector2(u0, 0), Vector2(u1, 0), Vector2(u1, 1), Vector2(u0, 1)]), _rod_tex)
+
+## the way the rod bends under a fish: down, whichever way he's facing
+func _rod_side(g: Vector2, t: Vector2) -> Vector2:
+	var n := (t - g).orthogonal().normalized()
+	return n if n.y > 0.0 else -n
 
 func _draw_over() -> void:
 	_draw_rod()
 	_draw_zzz()
 	var tip := rod_tip()
-	var mid := (tip + _bobber) * 0.5 + Vector2(0, 30 if _cast_t < 0.0 else 0)
+	var mid := (tip + _bobber) * 0.5 + Vector2(0, lerpf(30.0, 0.0, _line_tight) if _cast_t < 0.0 else 0.0)
+	var buzz := (_bobber - tip).orthogonal().normalized() * sin(_t * 70.0) * 2.4 * _line_tight * _line_tight   # a tight line hums
 	var pts := PackedVector2Array()
 	for i in 17:
 		var k := i / 16.0
-		pts.append(tip.lerp(mid, k).lerp(mid.lerp(_bobber, k), k))
-	over.draw_polyline(pts, Color(0.95, 0.95, 0.9, 0.8), 1.6, true)
-	var bob := _bobber + Vector2(0, sin(_t * 2.4) * 2.0)
-	over.draw_circle(bob + Vector2(4, 5), 9.0, Color(0, 0, 0, 0.18))
-	over.draw_circle(bob, 9.0, Color("#ff4b3e"))
-	over.draw_circle(bob + Vector2(0, -3), 5.0, Color.WHITE)
+		pts.append(tip.lerp(mid, k).lerp(mid.lerp(_bobber, k), k) + buzz * sin(k * PI))
+	over.draw_polyline(pts, Color(0.95, 0.95, 0.9, 0.8 + 0.2 * _line_tight), 1.6, true)
+	_draw_float()
+	_draw_catch()
 
 ## "Zzz" floating up from his hat while he naps (drawn here so it never mirrors)
 func _draw_zzz() -> void:
@@ -904,6 +1026,7 @@ func _draw_zzz() -> void:
 
 # ----------------------------------------------------------------- actions
 func cast(done: Callable) -> void:
+	if not _catch.is_empty(): _burst()           # (casting again already: the fish comes up right now)
 	play_anim("cast")
 	if aim != Vector2.INF:
 		_cast_to = aim + Vector2(randf_range(-6, 6), randf_range(-4, 4))    # right where you tapped
@@ -915,6 +1038,7 @@ func cast(done: Callable) -> void:
 	# release the bobber mid-swing
 	get_tree().create_timer(float(_fisher_info.get("cast", {}).get("release", 0.22))).timeout.connect(func():
 		_cast_from = rod_tip()
+		_rod_bend_v += 6.0                        # the rod whips forward
 		reeled = false
 		_reel_t = -1.0
 		_cast_t = 0.0)
@@ -923,11 +1047,346 @@ func splash(at: Vector2, big := 1.0) -> void:
 	for i in 3:
 		_add_ripple(at, 50.0 * big, 2.5, -i * 0.15)
 
-func show_bite(fish_name: String) -> void:
-	play_anim("reel")
-	var sp := _species_entry(fish_name, manifest.get("swim", {}))
-	if sp.tex == null: return
-	_dart = {"sp": sp, "from": _bobber + Vector2.from_angle(randf() * TAU) * 170.0, "pos": _bobber, "t": 0.0}
+# ------------------------------------------------------------ the time of day
+## how far into the night (0..1) and how close to sunset or sunrise (0..1) a time of day is
+func _day_phase(d: float) -> Vector2:
+	var night := smoothstep(0.56, 0.64, d) * (1.0 - smoothstep(0.9, 0.98, d))
+	var low := 1.0 - minf(minf(absf(d - 0.56), absf(d - 0.94)), absf(d + 0.06)) / 0.07
+	return Vector2(night, clampf(low, 0.0, 1.0))
+
+func _tick_daylight(delta: float) -> void:
+	if AudioManager.scenery_fx != _fx_on:
+		_fx_on = AudioManager.scenery_fx
+		_apply_daylight()
+		_place_boat()
+		_place_fleet()
+	if not _fx_on or not DAYLIGHT.has(_biome):
+		lights_layer.queue_redraw()
+		return
+	day_t = fmod(day_t + delta / DAY_LEN, 1.0)
+	_apply_daylight()
+	lights_layer.queue_redraw()
+
+## the shaders' light for this time of day
+func _apply_daylight() -> void:
+	var water_mat := caustics.material as ShaderMaterial
+	var air := atmos.material as ShaderMaterial
+	var sky: Dictionary = DAYLIGHT.get(_biome, {})
+	var clouds: float = ATMOS.get(_biome, [1.0, 0.0])[1]
+	water_mat.set_shader_parameter("mirror", 0.42 if _fx_on else 0.0)
+	(backdrop.material as ShaderMaterial).set_shader_parameter("wind", 1.0 if _fx_on else 0.0)
+	atmos.visible = _fx_on
+	if not _fx_on or sky.is_empty():
+		night_amount = 1.0 if sky.is_empty() and _biome != "" else 0.0
+		air.set_shader_parameter("land", Color.WHITE)
+		air.set_shader_parameter("water", Color.WHITE)
+		air.set_shader_parameter("clouds", clouds if _fx_on else 0.0)
+		water_mat.set_shader_parameter("glint", Color.WHITE)
+		water_mat.set_shader_parameter("sun_at", Vector2(0.7, 0.6))
+		water_mat.set_shader_parameter("sun_glow", 0.0)
+		water_mat.set_shader_parameter("stars", 1.0 if sky.is_empty() and _fx_on else 0.0)
+		_note_night(false)
+		return
+	var ph := _day_phase(day_t)
+	night_amount = ph.x
+	var land := Color.WHITE.lerp(sky.dusk[0], ph.y).lerp(sky.night[0], ph.x)
+	var water := Color.WHITE.lerp(sky.dusk[1], ph.y).lerp(sky.night[1], ph.x)
+	air.set_shader_parameter("land", land)
+	air.set_shader_parameter("water", water)
+	air.set_shader_parameter("clouds", clouds * (1.0 - ph.x) * (1.0 - 0.5 * ph.y))
+	# the sun climbs and sets over the water to the right, the moon hangs further along
+	var sun_x := 0.7 + 0.08 * ph.y
+	var sun_y := 0.6 - 0.16 * ph.y
+	water_mat.set_shader_parameter("sun_at", Vector2(sun_x, sun_y).lerp(Vector2(0.62, 0.42), ph.x))
+	water_mat.set_shader_parameter("glint", Color.WHITE.lerp(sky.low, ph.y).lerp(sky.moon, ph.x))
+	water_mat.set_shader_parameter("sun_glow", 0.38 * ph.y + 0.1 * ph.x)
+	water_mat.set_shader_parameter("stars", ph.x)
+	_note_night(ph.x > 0.5)
+
+func _note_night(on: bool) -> void:
+	if on == _is_night: return
+	_is_night = on
+	night_changed.emit(on)
+
+## music for the place and the hour
+func night_music() -> bool:
+	return _is_night and _biome in NIGHT_MUSIC
+
+## the time of day, for captures: 0.3 midday, 0.57 sunset, 0.75 night
+func set_time_of_day(d: float) -> void:
+	day_t = d
+	_apply_daylight()
+
+func _set_lights() -> void:
+	_lights = _scene.get("lights", [])
+	_light_color = Color(_scene.get("light_color", "#ffcf7a"))
+	_flies.clear()
+	if _biome in ["River", "Ocean", "Alien", "Sky"]:
+		var col := Color(0.75, 1.0, 0.45) if _biome != "Alien" else Color(0.5, 1.0, 0.9)
+		for _i in 16:
+			var p = _rand_point(func(q): return _mask_px(q).a < 0.2 and q.y > 130.0, 200)
+			if p != null: _flies.append({"home": p, "ph": randf() * TAU, "sp": randf_range(0.3, 0.8), "col": col})
+
+## after dark: lit windows and lamps, their shine on the water, the lantern on your boat, fireflies. Added onto what's there
+func _draw_lights() -> void:
+	var a := night_amount if _fx_on else 0.0
+	if a <= 0.01 or _glow_tex == null: return
+	var c := _light_color
+	for l in _lights:
+		var p := Vector2(l[0], l[1]) * SCENE
+		var flick := 0.92 + 0.08 * sin(_t * 9.0 + l[0] * 40.0)
+		match l[2]:
+			"lamp":
+				_glow(p, 78.0, c, 0.36 * a * flick)
+				_glow(p, 17.0, c.lightened(0.35), 0.95 * a * flick)
+				_shine_on_water(Vector2(l[3], l[4]) * SCENE, 15.0, 62.0, c, 0.5 * a * flick)
+			"door":
+				_glow(p, 40.0, c, 0.3 * a)
+			_:
+				_glow(p, 32.0, c, 0.42 * a * flick)
+				_glow(p, 11.0, c.lightened(0.4), 0.8 * a * flick)
+	# the lantern on your boat
+	if _boat != "":
+		var at := deck_point() + Vector2(-24.0 * facing, -34.0)
+		_glow(at, 135.0, Color("#ffc878"), 0.26 * a)
+		_glow(at, 50.0, Color("#ffd28a"), 0.2 * a)
+	if _cast_t < 0.0 and not reeled and _dip < 0.5:     # the float stays easy to see
+		_glow(_bobber + Vector2(0, -8), 15.0, Color("#ff6a50"), 0.55 * a)
+	for f in _flies:
+		var q: Vector2 = f.home + Vector2(sin(_t * f.sp + f.ph) * 44.0, cos(_t * f.sp * 1.3 + f.ph) * 22.0)
+		var blink := pow(maxf(sin(_t * 1.7 * f.sp + f.ph * 3.0), 0.0), 3.0)
+		_glow(q, 11.0, f.col, blink * a * 0.95)
+
+func _glow(p: Vector2, r: float, c: Color, a: float) -> void:
+	lights_layer.draw_texture_rect(_glow_tex, Rect2(p.x - r, p.y - r, r * 2.0, r * 2.0), false, Color(c.r, c.g, c.b, a))
+
+## a lamp's long wobbling streak on the water, where the mirror image of it falls
+func _shine_on_water(p: Vector2, w: float, h: float, c: Color, a: float) -> void:
+	if not _in_water(p, 0.0): return
+	for i in 3:
+		var sway := sin(_t * (1.9 + i * 0.7) + p.x + i * 2.0) * (2.0 + i * 1.5)
+		var hh := h * (1.0 - i * 0.2)
+		var ww := w * (1.0 - i * 0.28)
+		lights_layer.draw_texture_rect(_glow_tex, Rect2(p.x - ww + sway, p.y - hh, ww * 2.0, hh * 2.0), false, Color(c.r, c.g, c.b, a * 0.5))
+
+## The catch, in three beats: the float goes under and the rod bends; the fish bursts out of the water and flies to
+## the boat; it lands at the captain's feet. The bigger the catch, the bigger the show. Returns the seconds until it lands.
+const CATCH_BITE := 0.26                      # a fish darts in, a nibble, and the float goes under
+const CATCH_FIGHT := [0.1, 0.55, 1.05]        # on the line: everyday, a biome's best fish, something special
+const CATCH_FLIGHT := [0.58, 0.8, 1.45]       # in the air
+
+func show_catch(res: Dictionary) -> float:
+	var fish: Dictionary = res.get("fish", {})
+	if not _catch.is_empty(): _burst()
+	if fish.is_empty():
+		get_tree().create_timer(0.55).timeout.connect(reel_in)
+		return 0.0
+	var names: Array = fish.keys()
+	names.sort_custom(func(a, b): return VFData.FISH[a].price > VFData.FISH[b].price)
+	var best: String = names[0]
+	var lv := _show_level(res, best)
+	var sp := _species_entry(best, manifest.get("swim", {}))
+	if sp.tex != null:
+		_dart = {"sp": sp, "from": _bobber + Vector2.from_angle(randf() * TAU) * 170.0, "pos": _bobber, "t": 0.0}
+	_catch = {"t": 0.0, "fight": CATCH_BITE, "burst": CATCH_BITE + CATCH_FIGHT[lv], "lv": lv, "best": best, "extras": _school(fish, int(res.get("count", 1))),
+		"nibbled": false, "on": false, "boil": 0.0}
+	return CATCH_BITE + CATCH_FIGHT[lv] + CATCH_FLIGHT[lv]
+
+## 2: a new species, an event fish, a boss, a pet. 1: the biome's best fish or a chest, now and then (not every cast)
+func _show_level(res: Dictionary, best: String) -> int:
+	if not res.get("new_species", []).is_empty() or String(res.get("event_fish", "")) != "" or res.get("boss_caught", false) or String(res.get("pet", "")) != "":
+		return 2
+	var tiers: Array = VFData.BIOMES.get(_biome, {}).get("fish", [])
+	if (best == tiers.back() if not tiers.is_empty() else false) or not res.get("chest", {}).is_empty():
+		if _t - _last_big_show > 22.0: return 1
+	return 0
+
+## the rest of a big catch flies in with it: a few of them, picked by how many there are of each
+func _school(fish: Dictionary, count: int) -> Array:
+	var n := 0 if count < 3 else 1 if count < 6 else 2 if count < 13 else 3 if count < 31 else 4 if count < 81 else 5
+	var out := []
+	for _i in n:
+		var pick := randi_range(1, maxi(count, 1))
+		for f in fish:
+			pick -= int(fish[f])
+			if pick <= 0:
+				out.append(f)
+				break
+	return out
+
+func _tick_catch(delta: float) -> void:
+	delta = minf(delta, 0.05)
+	_rod_bend_v += ((_rod_pull + sin(_t * 1.9) * 0.012 - _rod_bend) * 170.0 - _rod_bend_v * 9.0) * delta
+	_rod_bend += _rod_bend_v * delta
+	_line_tight = move_toward(_line_tight, _tight_to, delta * 7.0)
+	_dip = move_toward(_dip, _dip_to, delta * (16.0 if _dip_to > _dip else 4.0))
+	if _shake > 0.0:
+		_shake = maxf(_shake - delta * 2.2, 0.0)
+		_frame_root()
+	if not _catch.is_empty():
+		var c := _catch
+		c.t += delta
+		if not c.nibbled and c.t > c.fight * 0.55:
+			c.nibbled = true
+			_dip = 0.45
+			_add_ripple(_bobber, 22.0, 1.5)
+			_rod_bend_v += 3.0
+		if not c.on and c.t >= c.fight:
+			c.on = true
+			_dip_to = 1.0
+			_rod_pull = 1.0
+			_tight_to = 1.0
+			_add_ripple(_bobber, 40.0, 2.0)
+			_spray(_bobber, 7, 0.55)
+			play_anim("struggle" if c.lv > 0 else "bite")
+			AudioManager.play_bite()
+		if c.on and c.lv > 0:                     # it fights: the water boils, the rod nods
+			_rod_pull = 1.0 + sin(_t * 19.0) * 0.16
+			c.boil -= delta
+			if c.boil <= 0.0:
+				c.boil = 0.075
+				_spray(_bobber + Vector2(randf_range(-20, 20), randf_range(-8, 8)), 3, 0.55)
+				if randf() < 0.3: _add_ripple(_bobber + Vector2(randf_range(-26, 26), randf_range(-12, 12)), 26.0, 1.5)
+		if c.t >= c.burst: _burst()
+	for f in _leapers:
+		f.t += delta
+		if f.t < 0.0: continue
+		if f.land < 0.0 and f.t >= f.dur:
+			f.land = 0.0
+			AudioManager.play_flop()
+			if f.lv > 0: burst("sparkle", deck_point())
+		elif f.land >= 0.0:
+			f.land += delta
+	_leapers = _leapers.filter(func(f): return f.land < 0.6)
+	for d in _drops:
+		d.v.y += 900.0 * delta
+		d.p += d.v * delta
+		d.t -= delta
+	_drops = _drops.filter(func(d): return d.t > 0.0)
+	for f in _flashes: f.t += delta / f.life
+	_flashes = _flashes.filter(func(f): return f.t < 1.0)
+
+## out it comes
+func _burst() -> void:
+	var c := _catch
+	_catch = {}
+	_dart = {}
+	var lv: int = c.lv
+	_rod_pull = 0.0
+	_rod_bend_v -= 7.5 + 2.5 * lv             # the rod whips back up
+	_tight_to = 0.0
+	_dip_to = 0.0
+	_dip = 0.0
+	play_anim("yank")
+	var at := _bobber
+	_spray(at, [20, 38, 70][lv], [1.0, 1.25, 1.7][lv])
+	_flashes.append({"p": at, "t": 0.0, "life": [0.5, 0.65, 0.9][lv], "r": [44.0, 66.0, 104.0][lv]})
+	for i in 2 + lv:
+		_add_ripple(at, 56.0 + 26.0 * lv, 2.5, -i * 0.13)
+	AudioManager.play_burst(lv)
+	if lv > 0: _last_big_show = _t
+	if lv == 2: _shake = 1.0
+	_leap(c.best, at, lv, 0.0, true)
+	var i := 0
+	for f in c.extras:
+		i += 1
+		_leap(f, at, 0, 0.05 * i, false)
+	get_tree().create_timer(0.14).timeout.connect(reel_in)
+
+func _leap(fish_name: String, from: Vector2, lv: int, delay: float, main: bool) -> void:
+	var t: Texture2D = _tex("fish/%s.png" % VFData.slug(fish_name))
+	if t == null: return
+	var u: float = float(_scene.get("unit_px", 56.0))
+	var dist := from.distance_to(deck_point())
+	_leapers.append({"tex": t, "name": fish_name, "from": from + Vector2(randf_range(-10, 10), randf_range(-4, 4)), "t": -delay, "land": -1.0, "lv": lv, "main": main,
+		"ofs": Vector2(randf_range(-30, 30), randf_range(-8, 12)) if not main else Vector2.ZERO,
+		"dur": CATCH_FLIGHT[lv] if main else randf_range(0.5, 0.64),
+		"h": clampf(dist * [0.5, 0.62, 0.8][lv], [110.0, 150.0, 240.0][lv], [230.0, 300.0, 400.0][lv]) * (1.0 if main else randf_range(0.7, 1.0)),
+		"size": u * ([2.0, 2.7, 3.8][lv] if main else randf_range(1.3, 1.7))})
+
+## water flung into the air
+func _spray(at: Vector2, n: int, power: float) -> void:
+	for _i in mini(n, 260 - _drops.size()):
+		var a := randf_range(-PI * 0.93, -PI * 0.07)
+		var sp := randf_range(70.0, 340.0) * power
+		_drops.append({"p": at + Vector2(randf_range(-16, 16), randf_range(-5, 5)), "v": Vector2(cos(a) * sp * 0.8, sin(a) * sp),
+			"t": randf_range(0.3, 0.7) * (0.75 + 0.25 * power), "r": randf_range(1.5, 4.2) * sqrt(power)})
+
+## where a caught fish lands: at the captain's feet, on the deck
+func deck_point() -> Vector2:
+	if _fisher_info.is_empty(): return boat.position + boat.pivot_offset
+	var local: Vector2 = fisher.position + Vector2(_fisher_info.feet[0], _fisher_info.feet[1]) * fisher.size + Vector2(46, 8)
+	return boat.position + boat.pivot_offset + ((local - boat.pivot_offset) * boat.scale).rotated(boat.rotation)
+
+func deck_screen() -> Vector2:
+	return to_screen(deck_point())
+
+func _draw_float() -> void:
+	var b := _bobber_tex
+	if b == null: return
+	var sz := b.get_size()
+	var h := float(_scene.get("unit_px", 56.0)) * 1.05
+	var w := h * sz.x / sz.y
+	var afloat := _cast_t < 0.0 and _reel_t < 0.0 and not reeled
+	var p := _bobber
+	if not afloat:
+		over.draw_texture_rect(b, Rect2(p.x - w * 0.5, p.y - h * 0.5, w, h), false)
+		return
+	# in the water: only what's above the waterline shows, and less of that as it goes under
+	p.y += sin(_t * 2.4) * 1.6
+	var shown := 0.68 * (1.0 - _dip)
+	if shown > 0.02:
+		over.draw_set_transform(p, 0.0, Vector2(1.0, 0.42))
+		over.draw_circle(Vector2.ZERO, w * 0.42, Color(1, 1, 1, 0.3))
+		over.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		over.draw_texture_rect_region(b, Rect2(p.x - w * 0.5, p.y - h * shown, w, h * shown), Rect2(0, 0, sz.x, sz.y * shown))
+
+## the fish in the air, and the water
+func _draw_catch() -> void:
+	for d in _drops:
+		over.draw_circle(d.p, d.r, Color(_drop_col.r, _drop_col.g, _drop_col.b, minf(1.0, d.t * 5.0) * 0.9))
+	var font: Font = null
+	for f in _leapers:
+		if f.t < 0.0: continue
+		var to: Vector2 = deck_point() + f.ofs
+		var pos: Vector2
+		var ground: Vector2
+		var ang := 0.0
+		var height := 0.0
+		var sc: float = f.size / f.tex.get_width()
+		var a := 1.0
+		if f.land >= 0.0:                         # on deck: it flops, then it's in the cooler
+			ground = to
+			var hop: float = absf(sin(f.land * 17.0)) * 15.0 * (1.0 - f.land / 0.6)
+			pos = to + Vector2(0, -hop)
+			ang = sin(f.land * 17.0) * 0.45
+			a = clampf((0.6 - f.land) / 0.18, 0.0, 1.0)
+			sc *= 0.82
+		else:
+			var k: float = f.t / f.dur
+			if f.lv == 2: k = 0.5 + 0.5 * signf(2.0 * k - 1.0) * pow(absf(2.0 * k - 1.0), 2.4)    # it hangs in the air at the top
+			ground = (f.from as Vector2).lerp(to, k)
+			height = 4.0 * f.h * k * (1.0 - k)
+			pos = ground + Vector2(0, -height)
+			ang = ((to - f.from) + Vector2(0, -4.0 * f.h * (1.0 - 2.0 * k))).angle()
+			if f.lv == 2:                         # the star of the show
+				var glow := sin(k * PI)
+				if _star_tex:
+					var r: float = f.size * 1.3
+					over.draw_set_transform(pos, _t * 0.9, Vector2.ONE)
+					over.draw_texture_rect(_star_tex, Rect2(-r, -r, r * 2.0, r * 2.0), false, Color(1, 0.95, 0.6, 0.75 * glow))
+					over.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				if font == null: font = over.get_theme_default_font()
+				var fs := 44
+				var tw := font.get_string_size(f.name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+				var lp: Vector2 = pos + Vector2(-tw * 0.5, -f.size * 0.75)
+				over.draw_string_outline(font, lp, f.name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 10, Color(0.1, 0.16, 0.2, glow))
+				over.draw_string(font, lp, f.name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.95, 0.72, glow))
+		over.draw_set_transform(ground, 0.0, Vector2(1.0, 0.42))
+		over.draw_circle(Vector2.ZERO, f.size * 0.26 * (1.0 - 0.5 * minf(height / f.h, 1.0)), Color(0, 0.05, 0.1, 0.2 * a))
+		over.draw_set_transform(pos, ang, Vector2(sc, sc if cos(ang) >= 0.0 else -sc))
+		over.draw_texture(f.tex, -f.tex.get_size() * 0.5, Color(1, 1, 1, a))
+	over.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 # ----------------------------------------------------------------- sailing
 # vf_sail.gd moves boat_pos and sets facing / boat_flip / boat_lean; the stage
@@ -935,6 +1394,7 @@ func show_bite(fish_name: String) -> void:
 
 ## reel the line in before the boat sails off (the bobber zips back to the rod tip)
 func reel_in() -> void:
+	if not _catch.is_empty(): _burst()
 	if reeled or _reel_t >= 0.0 or _cast_t >= 0.0: return
 	_reel_from = _bobber
 	_reel_t = 0.0

@@ -187,6 +187,9 @@ ANIMS = {
     "idle":    dict(fps=7, loop=True, parts=[(SEAT, "Fishing_Idle", 0.0, 1.0, 12)]),
     "cast":    dict(fps=22, parts=[(SEAT, "Fishing_Cast", 0.0, 1.0, 14)]),
     "reel":    dict(fps=18, parts=[(SEAT, "Fishing_Reeling", 0.0, 1.0, 10)]),
+    "bite":    dict(fps=16, parts=[(SEAT, "Fishing_Bite", 0.0, 0.2, 5)]),                  # the rod jerks: something's on!
+    "yank":    dict(fps=18, parts=[(SEAT, "Fishing_Tug", 0.2, 0.62, 8)]),                  # up it comes
+    "struggle": dict(fps=12, loop=True, parts=[(SEAT, "Fishing_Struggling", 0.0, 1.0, 16)]),  # a big one: he leans into it
     "happy":   dict(fps=16, up=True, parts=[(UP_FROM, None, 0.0, 1.0, 6), ("Cheering", None, 0.0, 1.0, 10)]),
     "dance":   dict(fps=16, up=True, parts=[(UP_FROM, None, 0.0, 1.0, 6), ("Cheering", None, 0.0, 1.0, 10), ("Cheering", None, 0.0, 1.0, 10)]),
     "sit":     dict(fps=14, parts=[("Sit_Floor_Down", None, 0.0, 1.0, 6)]),
@@ -272,7 +275,7 @@ def render(out_dir, setup):
     info["feet"] = pt((0, 0, 0))          # the anchor: where he sits (goes on the boat's seat)
     info["unit_px"] = round(CELL / SCALE, 3)
     info["cell"] = CELL
-    info["standing"] = ["cast", "reel", "happy", "dance", "sad", "shrug"]    # (reactions wait for these to end)
+    info["standing"] = ["cast", "reel", "bite", "yank", "struggle", "happy", "dance", "sad", "shrug"]    # (reactions wait for these to end)
     info["up"] = [n for n, a in ANIMS.items() if a.get("up")]                # after these he sits back down
     info["idles"] = IDLES
     return info

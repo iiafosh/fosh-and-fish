@@ -24,6 +24,27 @@ ZIPS = {
     "kenney_fish": "https://kenney.nl/media/pages/assets/fish-pack/07ae98c5b6-1747237960/kenney_fish-pack_2.zip",       # mini-game fish (PNG/Double)
     "kenney_emotes": "https://kenney.nl/media/pages/assets/emotes-pack/d00a3dcb06-1677578798/kenney_emotes-pack.zip",  # mini-game reactions (PNG/Vector/Style 3)
 }
+# the soundtrack (tools/video/make_music.py): Scott Buckley's library, CC-BY 4.0 -> scratch/downloads/music_buckley/<name>.mp3
+MUSIC = {
+    "echoes_of_home": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/05/EchoesOfHome.mp3",
+    "home_was_you": "https://www.scottbuckley.com.au/library/wp-content/uploads/2026/07/HomeWasYou.mp3",
+    "glow": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/02/Glow.mp3",
+    "amberlight": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/03/Amberlight.mp3",
+    "simplicity": "https://www.scottbuckley.com.au/library/wp-content/uploads/2024/03/Simplicity.mp3",
+    "felicity": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/03/sb_felicity.mp3",
+    "castles_in_the_sky": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/11/sb_castlesinthesky.mp3",
+    "cirrus": "https://www.scottbuckley.com.au/library/wp-content/uploads/2023/03/Cirrus.mp3",
+    "beyond_these_walls": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/05/sb_beyondthesewalls.mp3",
+    "path_through_the_mountains": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/10/PathThroughTheMountains.mp3",
+    "aurora": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/10/Aurora.mp3",
+    "borealis": "https://www.scottbuckley.com.au/library/wp-content/uploads/2019/09/sb_borealis.mp3",
+    "solace": "https://www.scottbuckley.com.au/library/wp-content/uploads/2020/05/sb_solace.mp3",
+    "hymn_to_the_dawn": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/11/HymnToTheDawn.mp3",
+    "meanwhile": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/01/Meanwhile.mp3",
+    "reverie": "https://www.scottbuckley.com.au/library/wp-content/uploads/2020/03/sb_reverie.mp3",
+    "moonlight": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/07/Moonlight.mp3",
+    "the_long_way_home": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/05/sb_thelongwayhome.mp3",
+}
 # no fixed link: fetched the way their pages' free download buttons do (CC0, name-your-own-price at $0)
 KENNEY_PAGES = {"kenney_fantasy_town": "fantasy-town-kit"}
 ITCH_PAGES = {"kaykit_adventurers": "kaykit-adventurers", "kaykit_animations": "kaykit-character-animations",
@@ -108,6 +129,12 @@ def main():
                 fetch(slug, z)
             with zipfile.ZipFile(z) as zf:
                 zf.extractall(os.path.join(DL, "x_" + name))
+    os.makedirs(os.path.join(DL, "music_buckley"), exist_ok=True)
+    for name, url in MUSIC.items():
+        path = os.path.join(DL, "music_buckley", name + ".mp3")
+        if not os.path.exists(path):
+            print("fetch", url)
+            save(opener(), url, path)
     for name, uid in GLBS.items():
         get("https://static.poly.pizza/%s.glb" % uid, os.path.join(DL, "glb", name + ".glb"))
     for name, uid in BOAT_GLBS.items():

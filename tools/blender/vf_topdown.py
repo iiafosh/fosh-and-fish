@@ -10,7 +10,7 @@ import random
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 import vf_kit as K
 import vf_models as M
@@ -28,6 +28,9 @@ BOAT_SPOT = (-4.0, -3.0)
 BOBBER_SPOT = (4.0, 0.5)
 X0, X1, Y0, Y1 = -46, 46, -16, 52
 EXTRA_AVOID = []      # (x, y, r) kept clear of scattered props (merchant stall)
+EXTRA_LIGHTS = []     # (world position, kind) of lamps besides the shop's
+# light colour of the lights after dark, per biome
+LIGHT_COLOR = {"River": "#ffcf7a", "Ocean": "#ffd98a", "Volcanic": "#ffb24a", "Sky": "#ffe2b0", "Space": "#a8e8ff", "Alien": "#b8ff6a", "Abyss": "#5ff2ff"}
 
 BIOMES = {
     "River":    dict(shore=8, slope=0.42, deep=3.0, max_a=0.66, water=("#a4f0dc", "#1f94ac"),
@@ -286,6 +289,8 @@ def dock(x, y_shore, length, z=0.55):
     out.append(cube(loc=(x - 0.6, end + 0.9, z + 0.32), scale=(0.6, 0.6, 0.5), mat=toon("#c48a52"), bevel=0.04))
     out.append(cyl(loc=(x + 0.6, end + 1.4, z + 0.35), r=0.28, depth=0.6, mat=toon("#9a6a3c"), verts=14))
     out.append(torus(loc=(x + 0.5, end + 0.3, z + 0.1), R=0.28, r=0.05, mat=toon("#d8c49a")))
+    out.append(V.place("lantern", (x + 0.86, end + 0.75, z + 0.06), 1.3, rot_z=0.0, folder=SH.TOWN))
+    EXTRA_LIGHTS.append(((x + 0.86, end + 0.75, z + 1.45), "lamp"))
     return out
 
 
@@ -316,9 +321,15 @@ def kn(name, s, folder=None, tint=None, hsv=None):
     """Kenney / KayKit model placer for scatter(): fn(p, rnd) -> [obj]."""
     def f(p, r):
         names = name if isinstance(name, (list, tuple)) else [name]
-        o = V.place(r.choice(names), p, s * r.uniform(0.85, 1.2), folder=folder or V.NATURE, tint=tint, rnd=r, hsv=hsv)
+        pick = r.choice(names)
+        o = V.place(pick, p, s * r.uniform(0.85, 1.2), folder=folder or V.NATURE, tint=tint, rnd=r, hsv=hsv)
+        if pick.startswith(SWAYING):
+            o["sway"] = True
         return [o]
     return f
+
+
+SWAYING = ("Tree_", "Bush_", "Grass_", "tree_", "plant_", "grass_", "flower_")
 
 
 def cloud(p, r):
@@ -463,6 +474,92 @@ def shop_spot(P, cam):
     return (0.0, 10.0, max(H(0.0, 10.0, P), 0.25) + 0.2)
 
 
+def render_sway(path):
+    """How much each pixel moves in the wind (vf_backdrop.gdshader), small: 0 at the foot of a tree, 1 high up in it,
+    0 where anything else is in front. Grey, no alpha."""
+    import numpy as np
+    sc = bpy.context.scene
+    m = bpy.data.materials.new("sway")
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    em = nt.nodes.new("ShaderNodeEmission")
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    info = nt.nodes.new("ShaderNodeObjectInfo")
+    s1 = nt.nodes.new("ShaderNodeSeparateXYZ")
+    s2 = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Position"], s1.inputs[0])
+    nt.links.new(info.outputs["Location"], s2.inputs[0])
+    E.nt = nt
+    up = E(s1.outputs["Z"]) - E(s2.outputs["Z"])
+    h = nt.nodes.new("ShaderNodeMapRange")
+    h.inputs["From Min"].default_value = 0.1
+    h.inputs["From Max"].default_value = 3.4
+    nt.links.new(up.sock, h.inputs["Value"])
+    nt.links.new(h.outputs[0], em.inputs["Color"])
+    nt.links.new(em.outputs[0], out.inputs[0])
+    saved = {}
+    for o in list(bpy.data.objects):
+        if o.type == "MESH" and o.name.startswith("Plane"):
+            bpy.data.objects.remove(o)
+        elif o.type == "MESH":
+            o.is_holdout = not o.get("sway", False)
+            if o.get("sway", False) and o.data not in saved:      # (the view layer's material override doesn't work in EEVEE)
+                saved[o.data] = list(o.data.materials)
+                for i in range(len(o.data.materials)):
+                    o.data.materials[i] = m
+    sc.render.resolution_x, sc.render.resolution_y = W // 4, 1080 // 4
+    sc.eevee.taa_render_samples = 4
+    K.render(path)
+    for me, mats in saved.items():
+        for i, mt in enumerate(mats):
+            me.materials[i] = mt
+    im = bpy.data.images.load(path)
+    w, hh = im.size
+    px = np.array(im.pixels[:], dtype=np.float32).reshape(hh, w, 4)
+    bpy.data.images.remove(im)
+    v = px[..., 0] * px[..., 3]
+    px2 = np.ones((hh, w, 4), dtype=np.float32)
+    px2[..., 0] = px2[..., 1] = px2[..., 2] = v
+    img = bpy.data.images.new("sway_out", w, hh, alpha=False)
+    img.pixels = px2.ravel().tolist()
+    img.filepath_raw = path
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+
+
+def render_reflection(path, sun_ob):
+    """The world above the water, turned upside down below it and lit from below, seen through the same camera: what the
+    water would mirror, pixel for pixel. The stage's water shader lays it on the surface, wobbling (small: it's soft anyway)."""
+    sc = bpy.context.scene
+    for o in list(bpy.data.objects):
+        if o.type != "MESH" or o.hide_render:
+            continue
+        o.is_holdout = False
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.transform(o.matrix_world)
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0), plane_no=(0, 0, 1), clear_inner=True)
+        if bm.faces:
+            for v in bm.verts:
+                v.co.z = -v.co.z
+            bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+            me = bpy.data.meshes.new(o.name + "_mirror")
+            bm.to_mesh(me)
+            for mt in o.data.materials:
+                me.materials.append(mt)
+            bpy.context.collection.objects.link(bpy.data.objects.new(me.name, me))
+        bm.free()
+        o.hide_render = True
+    d = sun_ob.rotation_euler.to_matrix() @ Vector((0, 0, -1))
+    sun_ob.rotation_euler = Vector((d.x, d.y, -d.z)).to_track_quat("-Z", "Y").to_euler()
+    sc.render.resolution_x, sc.render.resolution_y = 800, 450
+    sc.eevee.taa_render_samples = 8
+    K.render(path)
+
+
 def convex_hull(pts):
     """the points around pts, in order (Andrew's monotone chain)"""
     pts = sorted(map(tuple, pts))
@@ -492,6 +589,7 @@ def render_scene(name, path, mask_path):
     cam.location = CAM_LOC
     bpy.context.view_layer.update()
     spot = shop_spot(P, cam)
+    EXTRA_LIGHTS[:] = []
     EXTRA_AVOID[:] = [SH.to_world(k, spot)[:2] + (r,) for k, r in (((0.0, 2.0, 0), 7.5), ((3.5, -1.0, 0), 5.5), ((-3.0, -1.5, 0), 4.5), ((0.0, -5.0, 0), 5.0))]
     parts = build_scene(name, P)
     shop, keeper, smoke = SH.build(spot, name)
@@ -512,6 +610,8 @@ def render_scene(name, path, mask_path):
             o.is_holdout = True
     water(P, mask=True)
     K.render(mask_path)
+    render_sway(path[:-4] + "_sway.png")
+    render_reflection(path[:-4] + "_reflect.png", s)
     sc.render.resolution_x, sc.render.resolution_y = W, 1080
     from bpy_extras.object_utils import world_to_camera_view
     bpy.context.view_layer.update()
@@ -525,10 +625,12 @@ def render_scene(name, path, mask_path):
     EXTRA_AVOID[:] = []
     m = px(keeper)
     m2 = px(keeper + Vector((1, 0, 0)))
+    lights = [(SH.to_world(q, spot), kind) for q, kind in SH.light_points()] + EXTRA_LIGHTS
     corners = [px(k) for k in (SH.to_world(q, spot) for q in SH.key_points())]
     e = {"merchant": m, "merchant_unit_px": round((m2[0] - m[0]) * W, 3),
          "shop": [min(c[0] for c in corners), min(c[1] for c in corners), max(c[0] for c in corners), max(c[1] for c in corners)],
          "shop_outline": convex_hull(corners),
+         "lights": [px(q) + [kind] + px((q[0], q[1], -q[2])) for q, kind in lights], "light_color": LIGHT_COLOR.get(name, "#ffcf7a"),
          "boat": a, "bobber": px((BOBBER_SPOT[0], BOBBER_SPOT[1], 0)), "unit_px": round((b[0] - a[0]) * W, 3),
          "water": list(P["water"]), "glow": P.get("glow", "#ffffff")}
     if name not in SH.NO_SMOKE:
@@ -559,6 +661,8 @@ def clip_below(parts, z=-0.03):
     return keep
 
 
+REFLECT_PAD = 2.2       # the reflection's image covers this much more than the sprite (a mast reflects a long way)
+REFLECT_SIZE = 320
 FOAM_PAD = 1.5          # the foam image covers this much more than the boat's sprite, around the same centre
 FOAM_SIZE = 320
 FOOT_Z = 0.35           # the hull's footprint on the water: everything up to here
@@ -645,6 +749,36 @@ def render_foam(cam, foot, path, unit_px):
     bpy.data.images.remove(out)
 
 
+def render_boat_reflection(cam, parts, path):
+    """the boat upside down below the water, seen through the same camera (vf_reflect.gdshader wobbles it on the water)"""
+    sc = bpy.context.scene
+    made = []
+    for o in parts:
+        if o.type != "MESH":
+            continue
+        me = o.data.copy()
+        me.transform(o.matrix_world)
+        me.transform(Matrix.Diagonal((1.0, 1.0, -1.0, 1.0)))
+        me.flip_normals()
+        r = bpy.data.objects.new(o.name + "_mirror", me)
+        bpy.context.collection.objects.link(r)
+        made.append(r)
+        o.hide_render = True
+    for o in bpy.data.objects:
+        if o.type == "LIGHT":
+            d = o.rotation_euler.to_matrix() @ Vector((0, 0, -1))
+            o.rotation_euler = Vector((d.x, d.y, -d.z)).to_track_quat("-Z", "Y").to_euler()
+    k = cam.data.ortho_scale
+    cam.data.ortho_scale = k * REFLECT_PAD
+    res = sc.render.resolution_x, sc.render.resolution_y
+    sc.render.resolution_x, sc.render.resolution_y = REFLECT_SIZE, REFLECT_SIZE
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    K.render(path)
+    sc.render.resolution_x, sc.render.resolution_y = res
+    cam.data.ortho_scale = k
+    return made
+
+
 def render_boat_top(name, path):
     K.clear_scene()
     K.SOFT[0] = True
@@ -666,12 +800,14 @@ def render_boat_top(name, path):
         K.render(path)
         foot.hide_render = False
         render_foam(cam, foot, os.path.join(os.path.dirname(os.path.dirname(path)), "boats_foam", os.path.basename(path)), W2 / scale)
+        foot.hide_render = True
+        render_boat_reflection(cam, allp, os.path.join(os.path.dirname(os.path.dirname(path)), "boats_reflect", os.path.basename(path)))
     d = K.project(cam, deck)
     st = K.project(cam, seat)
     o = K.project(cam, (0, 0, 0))
     K.SOFT[0] = False
     e = {"deck": [d[0] / W2, d[1] / W2], "seat": [st[0] / W2, st[1] / W2], "origin": [o[0] / W2, o[1] / W2],
-         "unit_px": round(W2 / scale, 3), "foam_pad": FOAM_PAD}
+         "unit_px": round(W2 / scale, 3), "foam_pad": FOAM_PAD, "reflect_pad": REFLECT_PAD}
     if floats:
         e["floats"] = True
     return e

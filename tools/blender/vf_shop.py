@@ -203,6 +203,18 @@ def key_points():
     return [(X0, Y0, 0.0), (X1, Y0, 0.0), (X0, Y1, 0.0), (X1, Y1, 0.0), (-1.55 * T, T, ROOF_TOP), (1.55 * T, T, ROOF_TOP), (-0.8, T, SIGN_TOP)]
 
 
+def light_points():
+    """(local position, kind) of what lights up after dark"""
+    d = DECK_Z
+    lamp = d + 1.05 * T
+    out = [((X0 + 0.14, Y0 + 0.14, lamp), "lamp"), ((X1 - 0.14, Y0 + 0.14, lamp), "lamp"), ((0.0, -0.04, d + 0.42 * T), "door"),
+           ((-1.5 * T - 0.04, 0.5 * T, d + 0.52 * T), "window"), ((0.0, 0.32 * T, WALLS + 0.3 * T), "window")]
+    for i in (-1, 1):
+        out.append(((i * T, -0.04, d + 0.52 * T), "window"))
+        out.append(((i * T, -0.04, d + (1.0 + 0.5 * UPPER) * T), "window"))
+    return out
+
+
 def to_world(p, loc, turn=TURN):
     c, s = math.cos(math.radians(turn)), math.sin(math.radians(turn))
     return (loc[0] + p[0] * c - p[1] * s, loc[1] + p[0] * s + p[1] * c, loc[2] + p[2])

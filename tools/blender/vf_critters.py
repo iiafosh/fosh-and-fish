@@ -168,6 +168,22 @@ def render_gull(out_path, n=8, size=160):
     K.SOFT[0] = False
 
 
+# ------------------------------------------------------------------ bobber
+def render_bobber(out_path, size=96):
+    """The float at the end of the line. A quarter of it sits under the waterline (the stage cuts it there)."""
+    from vf_kit import cone, cyl, sphere, toon
+    cam = _setup(size, TD.CAM_ROT)
+    parts = [cone(loc=(0, 0, 0.3), r1=0.05, r2=0.44, depth=0.6, verts=20, mat=toon("#fbf6ea")),
+             sphere(loc=(0, 0, 0.62), scale=(0.44, 0.44, 0.34), seg=24, rings=12, mat=toon("#ee3b2c")),
+             cyl(loc=(0, 0, 0.6), r=0.455, depth=0.07, verts=24, mat=toon("#fbf6ea")),
+             cyl(loc=(0, 0, 1.15), r=0.035, depth=0.55, verts=8, mat=toon("#ee3b2c")),
+             sphere(loc=(0, 0, 1.44), scale=0.08, seg=12, rings=8, mat=toon("#ffd23f"))]
+    K.outline_all(parts, 0.025)
+    K.frame_ortho(cam, parts, 1.05)
+    K.render(out_path)
+    K.SOFT[0] = False
+
+
 # --------------------------------------------------------------- merchant
 MERCHANT_CELL = 192
 MERCHANT_H = 1.6        # the shopkeeper's height, in game units (the shop's door is about that)

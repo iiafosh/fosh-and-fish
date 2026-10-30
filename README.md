@@ -136,14 +136,19 @@ python tools/art/make_ads.py
 **Re-render the art** (Blender 4.2)
 ```bash
 python tools/fetch_assets.py          # the source packs, into scratch/downloads
-blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top fisher merchant
+python tools/video/make_music.py      # the soundtrack: the tracks at one loudness, small
+python tools/art/make_fx.py           # noise and glow for the shaders
+blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top fisher merchant bobber
 blender -b --factory-startup --python tools/blender/render_v1.py -- shiny event ui packs
 ```
 The shop is part of each biome's backdrop (`vf_shop.py`, rendered with `scenes`), the captain and the shopkeeper are
 KayKit characters (`vf_captain.py`), and `boats_top` also finds where the captain sits on each boat and bakes the
-image the hull's foam is drawn from. To check them in the game:
+images the hull's foam and reflection are drawn from; each scene also gets a wind mask and a reflection of the world.
+The web export leaves the soundtrack out of its download and fetches a track when it's needed (`release.py` puts them
+next to the game). To check them in the game:
 `Godot_console.exe --path . --resolution 1920x1080 -- --capture=ABSOLUTE_EMPTY_DIR --scenes-test` (every biome, and a
-test of the shop's tap area) or `--boats-test` (every boat).
+test of the shop's tap area and the radio) or `--boats-test` (every boat). To watch the catch with its sound:
+`Godot_console.exe --path . --resolution 1280x720 --write-movie OUT.avi --fixed-fps 30 -- --capture=ABSOLUTE_DIR --catch-test`.
 
 `render_v1.py` is the 1.0 art (shiny fish, event fish, Pearl and Event Star icons, Supporter Pack icons);
 the exclusive rods are in `vf_models.ROD_SPECS` (`render_assets.py -- rods rods_hand`). Run

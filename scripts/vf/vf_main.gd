@@ -88,6 +88,7 @@ var _update_announced := false
 var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
 var v1                         # scripts/vf/vf_v1_ui.gd (1.0: Store, Events, shinies, the event pill)
 var idle                       # scripts/vf/vf_idle_ui.gd (auto-fish, the Fleet, welcome back, daily rewards)
+var radio                      # scripts/vf/vf_radio.gd (what's playing, the Radio, just listening)
 var notify                     # scripts/vf/vf_notify.gd (reminders while the game is in the background)
 var hud_row: HBoxContainer     # level / money / wallet pills (top left)
 var hud_col: VBoxContainer     # the top-left column under them
@@ -115,10 +116,13 @@ func _ready() -> void:
 	v1.build_hud()
 	v1.setup_juice()
 	idle = load("res://scripts/vf/vf_idle_ui.gd").new(self)
+	radio = load("res://scripts/vf/vf_radio.gd").new(self)
 	idle.build_hud()
+	radio.build_hud()
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
+	stage.night_changed.connect(func(_on): AudioManager.music_place(VF.biome, stage.night_music()))
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
 	VF.goal_done.connect(_on_goal_done)
@@ -874,6 +878,7 @@ func _build_card() -> void:
 	add_child(toast_box)
 
 func _show_card() -> void:
+	if radio.listening: return
 	var popping := not card.visible or card.modulate.a < 0.35
 	card.modulate.a = 1.0
 	card.visible = true
@@ -1130,6 +1135,7 @@ func _build_overlay() -> void:
 func _apply_biome() -> void:
 	stage.set_biome(VF.biome)
 	stage.set_boat(VF.current_boat() if VF.current_boat() != "" else "Rowboat")
+	AudioManager.music_place(VF.biome, stage.night_music())
 	card_accent.color = accent()
 
 # ================================================================ actions
@@ -1186,11 +1192,21 @@ func _do_sell() -> void:
 		v1.coins_to_wallet(sell_btn.get_global_rect().get_center(), earned)
 
 func _on_trip(res: Dictionary) -> void:
+	if is_instance_valid(minigame):              # (the mini-game has its own ending: the fish comes in after it)
+		await minigame.tree_exited
+	var landing: float = stage.show_catch(res)
+	stage.react_trip(res)                        # fisher cheers / dances / facepalms after reeling in
+	if VF.tutorial == 0:
+		_coach_next(1)
+	if landing > 0.0:
+		await get_tree().create_timer(landing).timeout
+	_reveal_trip(res)
+
+## the fish is on deck: the catch card and the news
+func _reveal_trip(res: Dictionary) -> void:
 	_show_catch(res)
-	# the catch comes in: the bobber zips back to the rod a moment after the splash
-	# (in both catch modes - in Reel mode the long line used to stay stretched out)
-	get_tree().create_timer(0.55).timeout.connect(func():
-		if is_instance_valid(stage): stage.reel_in())
+	if int(res.get("count", 0)) > 1:
+		_float_text("+%s" % VF.commas(res.count), stage.deck_screen() + Vector2(0, -44), Color.WHITE)
 	for f in res.get("new_species", []):
 		_banner("New fish discovered!", "%s  ·  %d / %d in your collection" % [f, VF.discovered.size(), VFData.FISH_ORDER.size()],
 			icon_for("fish", f), Color("#2f8f9e"))
@@ -1199,29 +1215,6 @@ func _on_trip(res: Dictionary) -> void:
 		_float_text("Lucky splash!  +%s" % money_str(res.lucky), stage.bobber_screen() + Vector2(0, -70), C_GOLD)
 		stage.burst("sparkle", stage._bobber)
 		AudioManager.play_strike()
-	if VF.tutorial == 0:
-		_coach_next(1)
-	var best := ""
-	for f in res.fish:
-		if best == "" or VFData.FISH[f].price > VFData.FISH[best].price: best = f
-	if best != "": stage.show_bite(best)
-	stage.react_trip(res)                      # fisher cheers / dances / facepalms after reeling in
-	var i := 0
-	var from: Vector2 = stage.bobber_screen()
-	for f in res.fish:
-		var ic := icon(icon_for("fish", f), 54)
-		ic.position = from - Vector2(27, 27)
-		fx_layer.add_child(ic)
-		var target := Vector2(get_viewport_rect().size.x - 300, 140 + i * 30)
-		var tw := ic.create_tween()
-		ic.modulate.a = 0.0
-		tw.tween_interval(0.35 + i * 0.06)
-		tw.tween_property(ic, "modulate:a", 1.0, 0.05)
-		tw.tween_property(ic, "position", ic.position + Vector2(randf_range(-20, 20), -70), 0.25).set_ease(Tween.EASE_OUT)
-		tw.tween_property(ic, "position", target, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tw.parallel().tween_property(ic, "modulate:a", 0.0, 0.45)
-		tw.tween_callback(ic.queue_free)
-		i += 1
 	if not res.chest.is_empty():
 		AudioManager.play_strike()
 		stage.burst("sparkle", stage._bobber)
@@ -1539,7 +1532,7 @@ func _render_panel() -> void:
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
-		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards"}
+		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1578,6 +1571,7 @@ func _render_panel() -> void:
 		"events": v1.panel_events(_panel_tab)
 		"fleet": idle.panel_fleet(_panel_tab)
 		"daily": idle.panel_daily(_panel_tab)
+		"radio": radio.panel_radio()
 
 ## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -2108,6 +2102,14 @@ func _check_capture() -> void:
 		await _boats_test(dir)
 		get_tree().quit()
 		return
+	if "--preview" in OS.get_cmdline_user_args():
+		await _preview_clip()
+		get_tree().quit()
+		return
+	if "--catch-test" in OS.get_cmdline_user_args():
+		await _catch_test(dir)
+		get_tree().quit()
+		return
 	if "--scenes-test" in OS.get_cmdline_user_args():
 		await _scenes_test(dir)
 		get_tree().quit()
@@ -2272,6 +2274,68 @@ func _boats_test(dir: String) -> void:
 		var r := Rect2i(Vector2i(c) - half, half * 2).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
 		img.get_region(r).save_png(dir + "/boat_%02d_%s.png" % [VFData.BOAT_ORDER.find(b) + 1, VFData.slug(b)])
 
+## godot --path . --resolution 1600x900 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --preview : about a minute
+## of the game with its sound, for showing what it's like: fishing by day, the menus fade, sunset, night and a big one. Never saves.
+func _preview_clip() -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	_veteran("River")
+	VF.tutorial = 99
+	_close_panel()
+	_apply_biome()
+	stage.set_time_of_day(0.3)
+	AudioManager.music_volume = 0.8
+	AudioManager.apply_settings()
+	card.visible = false
+	for t in toast_box.get_children(): t.free()
+	var fishes: Array = VFData.BIOMES["River"].fish
+	var play := func(seconds: float, from_day: float, to_day: float, force := {}):
+		var left := seconds
+		var next_cast := 0.4
+		var total := seconds
+		while left > 0.0:
+			var step := 1.0 / 30.0
+			await get_tree().process_frame
+			left -= step
+			next_cast -= step
+			stage.set_time_of_day(lerpf(from_day, to_day, 1.0 - left / total))
+			if next_cast <= 0.0:
+				next_cast = randf_range(2.9, 3.8)
+				if not force.is_empty() and left < total * 0.6:
+					var big: Dictionary = force
+					force = {}
+					stage.cast(func():
+						stage._last_big_show = -100.0
+						stage.show_catch(big))
+				else:
+					VF._last_cast_ms = -100000
+					_do_cast()
+	await play.call(12.0, 0.3, 0.32)
+	radio.start_listening()
+	VF.set_auto(false)
+	await play.call(10.0, 0.32, 0.5, {"fish": {fishes.back(): 2, fishes[0]: 12}, "count": 14, "chest": {}})
+	await play.call(14.0, 0.5, 0.62)
+	await play.call(20.0, 0.62, 0.8, {"fish": {fishes.back(): 1}, "count": 1, "chest": {}, "new_species": [fishes.back()]})
+
+## godot --path . --resolution 1280x720 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --catch-test : the three sizes
+## of catch show in a row, for watching them in a recording (with the game's sound). Never saves.
+func _catch_test(_dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	_veteran("River")
+	VF.tutorial = 99
+	_close_panel()
+	_apply_biome()
+	for n in [card, sell_btn, fish_btn, mode_pill, top_right, hud_col, boost_pill, chips.rod.get_parent().get_parent()]:
+		n.visible = false
+	await _wait(1.0)
+	var fishes: Array = VFData.BIOMES["River"].fish
+	var tests := [{"fish": {fishes[0]: 9, fishes[1]: 5}, "count": 14, "chest": {}}, {"fish": {fishes.back(): 3, fishes[0]: 20}, "count": 23, "chest": {}},
+		{"fish": {fishes.back(): 1}, "count": 1, "chest": {}, "new_species": [fishes.back()]}]
+	for lv in 3:
+		stage.cast(func():
+			stage._last_big_show = -100.0
+			stage.show_catch(tests[lv]))
+		await _wait([3.0, 3.5, 5.0][lv])
+
 ## godot --path . --resolution 1920x1080 -- --capture=DIR --scenes-test : every biome with the HUD on and no
 ## catch card or toasts, for checking the backdrops and what the HUD covers. Never saves.
 func _scenes_test(dir: String) -> void:
@@ -2284,8 +2348,15 @@ func _scenes_test(dir: String) -> void:
 		stage.play_anim("idle")
 		card.visible = false
 		for t in toast_box.get_children(): t.free()
+		stage.set_time_of_day(0.3)
 		await _wait(1.5)
 		await _shot(dir + "/scene_%s.png" % VFData.slug(b))
+		stage.set_time_of_day(0.565)
+		await _wait(0.4)
+		await _shot(dir + "/scene_%s_dusk.png" % VFData.slug(b))
+		stage.set_time_of_day(0.76)
+		await _wait(0.4)
+		await _shot(dir + "/scene_%s_night.png" % VFData.slug(b))
 	# the shop's tap area: the building opens the shop, the water in the corner of its box doesn't
 	_veteran("River")
 	_apply_biome()
@@ -2301,6 +2372,23 @@ func _scenes_test(dir: String) -> void:
 	await _wait(0.6)
 	print("SHOP TEST the building: panel='", _panel_kind, "'")
 	await _shot(dir + "/scene_shop_open.png")
+	_close_panel()
+	print("MUSIC TEST track=", AudioManager.track, " playing=", AudioManager.music_is_playing())
+	_open_panel("radio")
+	await _wait(0.5)
+	await _shot(dir + "/scene_radio.png")
+	AudioManager.music_choose("moonlight")
+	await _wait(0.5)
+	print("MUSIC TEST picked=", AudioManager.track, " pick=", AudioManager.music_pick)
+	radio.start_listening()
+	await _wait(1.5)
+	await _wait(3.0)
+	await _shot(dir + "/scene_listening.png")
+	radio.stop_listening()
+	AudioManager.music_follow_place()
+	await _wait(1.0)
+	print("MUSIC TEST back=", AudioManager.track, " pick=", AudioManager.music_pick)
+	await _shot(dir + "/scene_back.png")
 
 # ================================================================== guide
 func _capturing() -> bool:
@@ -2516,8 +2604,9 @@ func _panel_settings() -> void:
 			_render_panel())
 		ch.add_child(b)
 	panel_body.add_child(cm)
-	_setting_row("Music & ambience", "Calm water sounds in the background", A.music_on, "music_on", A.music_volume, "music_volume")
+	_setting_row("Music", "The soundtrack by %s (pick tracks on the Radio, in the Menu)" % A.COMPOSER, A.music_on, "music_on", A.music_volume, "music_volume")
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
+	_setting_row("Scenery effects", "Wind, reflections, clouds, day and night. Turn off if the game runs slowly", A.scenery_fx, "scenery_fx")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
 		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
 	if notify.supported():
@@ -3096,6 +3185,7 @@ const MENU_TILES := [
 	["events", "Events", "confetti", "", "What's on & the Event Shop"],
 	["fleet", "Fleet", "sailboat", "", "Crews that fish for you"],
 	["daily", "Daily", "gift", "", "Calendar & the daily spin"],
+	["radio", "Radio", "music-notes", "", "The soundtrack, or just listen"],
 ]
 
 const MENU_COLORS := {
@@ -3103,7 +3193,7 @@ const MENU_COLORS := {
 	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
 	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
 	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"), "fleet": Color("#0e7490"),
-	"daily": Color("#f97316"),
+	"daily": Color("#f97316"), "radio": Color("#db2777"),
 }
 
 func _panel_menu() -> void:

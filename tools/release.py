@@ -95,6 +95,7 @@ def export_games(version):
         shutil.rmtree(os.path.join(B, d), ignore_errors=True)
         os.makedirs(os.path.join(B, d), exist_ok=True)
     godot("--export-release", "Web", "build/web/index.html")
+    web_music()
     godot("--export-release", "Windows Desktop", "build/windows/fosh_fish.exe")
     godot("--export-release", "Linux", "build/linux/fosh_fish.x86_64")
     godot("--export-debug", "Android", "build/android/fosh_fish.apk")
@@ -175,6 +176,15 @@ def release_exists(tag):
 
 
 SITE_DOMAIN = "foshfish.xyz"
+def web_music():
+    """The web game leaves the soundtrack out of its first download (export preset) and fetches a track when it's
+    needed (AudioManager._stream_of): index.music.<slug>.ogg, next to the game's other files."""
+    src = os.path.join(ROOT, "assets", "audio", "music")
+    for f in os.listdir(src):
+        if f.endswith(".ogg"):
+            shutil.copy(os.path.join(src, f), os.path.join(B, "web", "index.music." + f))
+
+
 GAME_FILE = re.compile(r"^index\.")     # the web export's files: index.html, .js, .wasm, .pck, icons, worker, ...
 
 
@@ -278,6 +288,7 @@ def main():
         shutil.rmtree(os.path.join(B, "web"), ignore_errors=True)
         os.makedirs(os.path.join(B, "web"))
         godot("--export-release", "Web", "build/web/index.html")
+        web_music()
         manifest.update({"version": a.version, "build": build, "notes": a.note, "date": time.strftime("%Y-%m-%d"),
                          "patches": {str(base): entry}})
 

@@ -201,6 +201,12 @@ def do_merchant(man):
     man["merchant"] = CR.render_merchant(os.path.join(OUT, "merchant"))
 
 
+def do_bobber():
+    d = os.path.join(OUT, "fx")
+    os.makedirs(d, exist_ok=True)
+    CR.render_bobber(os.path.join(d, "bobber.png"))
+
+
 def do_rods_hand(only, man):
     d = os.path.join(OUT, "rods_hand")
     os.makedirs(d, exist_ok=True)
@@ -249,6 +255,8 @@ def main():
             do_rods_hand(only, man)
         elif c == "merchant":
             do_merchant(man)
+        elif c == "bobber":
+            do_bobber()
         elif c in P.PROPS:
             do_props(c, only)
         save_manifest(man)
