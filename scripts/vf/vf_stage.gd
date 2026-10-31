@@ -29,6 +29,13 @@ var atmos: ColorRect             # cloud shadows and the vignette
 var _mask: Image
 var _scene: Dictionary = {}
 var _boat_info: Dictionary = {}
+var _side_tex: Texture2D
+var _side_pivot := Vector2.ZERO   # where the side view's pivot is (the captain and his rod are placed from it)
+var _turn: Dictionary = {}        # the boat from other angles (tools/blender/vf_turn.py), {} if it has none
+var _turn_atlas := AtlasTexture.new()
+var _turn_keep: Array = []
+var _turn_frame := 0
+var _hulls := {}
 var _fisher_info: Dictionary = {}
 var _fisher_tex := {}
 var _anim := "idle"
@@ -118,9 +125,9 @@ signal scene_changed              # a new biome scene was set up (sea lanes need
 signal boat_changed               # a different boat sprite (new hull)
 signal cast_started
 var boat_pos := Vector2(-1, -1)   # the boat's pivot point in scene px (moves when you sail)
-var facing := 1.0                 # +1 bow to the right, -1 to the left (sprite mirrored, never rotated)
-var boat_flip := 1.0              # x scale, eased between -1 and 1 while turning around
-var boat_lean := 0.0              # tiny pitch while sailing up / down
+var boat_yaw := 0.0               # where the bow points, in degrees: 0 right, 90 away from the camera, ±180 left, -90 toward it
+var facing := 1.0                 # +1 the picture as it is, -1 mirrored (follows boat_yaw)
+var boat_lean := 0.0              # how it leans into a turn
 var boat_speed := 0.0             # scene px / s (the wake replaces the idle ripples while moving)
 var reeled := false               # line reeled in while sailing: the bobber hangs at the rod tip
 var _reel_t := -1.0
@@ -529,9 +536,10 @@ func set_biome(name: String) -> void:
 	aim = Vector2.INF
 	boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
 	_home_ofs = _bobber_home - boat_pos
+	boat_yaw = 0.0
 	facing = 1.0
-	boat_flip = 1.0
 	boat_lean = 0.0
+	_hulls.clear()
 	reeled = false
 	_reel_t = -1.0
 	_catch = {}
@@ -562,10 +570,62 @@ func _species_entry(f: String) -> Dictionary:
 func set_boat(name: String) -> void:
 	if name == _boat: return
 	_boat = name
-	boat.texture = _tex("boats_top/%s.png" % VFData.slug(name))
+	var sl := VFData.slug(name)
 	_boat_info = manifest.get("boats_top", {}).get(name, {"deck": [0.6, 0.5], "origin": [0.5, 0.6], "unit_px": 100.0, "fisher_scale": 1.0})
+	_side_tex = _tex("boats_top/%s.png" % sl)
+	_turn = _boat_info.get("turn", {})
+	_turn_atlas.atlas = _tex("boats_turn/%s.png" % sl) if not _turn.is_empty() else null
+	if _turn_atlas.atlas == null: _turn = {}
+	# (all of it stays loaded: a boat turning must not wait for the disk)
+	_turn_keep = [_side_tex, _tex("boats_foam/%s.png" % sl), _tex("boats_reflect/%s.png" % sl), _tex("boats_turn/%s_foam.png" % sl), _tex("boats_turn/%s_reflect.png" % sl)]
+	_hulls.clear()
+	_turn_frame = 0
 	_place_boat()
 	boat_changed.emit()
+
+## which of the turning sheet's pictures the heading calls for: -6 .. 6, each 15 degrees, 0 the plain side view.
+## The other half of the circle is the same pictures mirrored (they meet bow-on and stern-on, where a boat looks the same).
+func _show_heading() -> void:
+	var y := wrapf(boat_yaw, -180.0, 180.0)
+	var mirror := absf(y) > 90.0
+	facing = -1.0 if mirror else 1.0
+	var fr := 0
+	if not _turn.is_empty():
+		fr = int(round((signf(y) * 180.0 - y if mirror else y) / float(_turn.step)))
+	if fr != _turn_frame:
+		_turn_frame = fr
+		_place_boat()
+
+## a picture's place on a turning sheet (they all share one layout), as 0..1 of the sheet
+func _turn_region(fr: int) -> Rect2:
+	var i := fr + 6 if fr < 0 else fr + 5
+	var cols := int(_turn.cols)
+	var rows := ceili(12.0 / cols)
+	return Rect2(float(i % cols) / cols, float(i / cols) / rows, 1.0 / cols, 1.0 / rows)
+
+## the hull as an ellipse around the pivot, in the given picture, seen as if not mirrored: {"c": centre, "r": radii}
+func boat_hull(fr := 99) -> Dictionary:
+	if fr == 99: fr = _turn_frame
+	if _hulls.has(fr): return _hulls[fr]
+	var h := {"c": Vector2.ZERO, "r": Vector2(80, 45)}
+	if _scene.is_empty(): return h
+	if fr != 0 and not _turn.is_empty():
+		var k: float = float(_scene.unit_px) / float(_turn.unit_px) * float(_turn.cell)
+		var q: Array = _turn.rects[fr + 6 if fr < 0 else fr + 5]
+		var rect := Rect2(Vector2(q[0], q[1]) * k, Vector2(q[2] - q[0], q[3] - q[1]) * k)
+		h = {"c": rect.get_center() - Vector2(_turn.origin[0], _turn.origin[1]) * k, "r": rect.size * 0.5 * Vector2(0.9, 0.78)}
+	elif _side_tex != null:
+		var used := Rect2(Vector2.ZERO, _side_tex.get_size())
+		var img := _side_tex.get_image()
+		if img:
+			if img.is_compressed(): img.decompress()
+			var u := img.get_used_rect()
+			if u.size.x > 4: used = Rect2(u)
+		var k: float = float(_scene.unit_px) / float(_boat_info.unit_px)
+		var rect := Rect2(used.position * k, used.size * k)
+		h = {"c": rect.get_center() - Vector2(_boat_info.origin[0], _boat_info.origin[1]) * _side_tex.get_size() * k, "r": rect.size * 0.5 * Vector2(0.9, 0.78)}
+	_hulls[fr] = h
+	return h
 
 ## the hull's foam: an image of its blurred footprint (see render_foam in vf_topdown.py), drawn by vf_foam.gdshader
 func _foam_rect() -> TextureRect:
@@ -590,35 +650,54 @@ func _reflect_rect() -> TextureRect:
 	f.material = m
 	return f
 
-func _fit_reflect(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2) -> void:
-	f.texture = _tex("boats_reflect/%s.png" % VFData.slug(boat_name))
+func _fit_reflect(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2, fr := 0) -> void:
+	var r := _turn_region(fr) if fr != 0 else Rect2(0, 0, 1, 1)
+	f.texture = _tex(("boats_turn/%s_reflect.png" if fr != 0 else "boats_reflect/%s.png") % VFData.slug(boat_name))
 	f.size = sprite_size * float(info.get("reflect_pad", 2.2))
 	f.position = (sprite_size - f.size) * 0.5
 	var m := f.material as ShaderMaterial
+	m.set_shader_parameter("region", Vector4(r.position.x, r.position.y, r.size.x, r.size.y))
 	if not _scene.is_empty(): m.set_shader_parameter("water", Color(_scene.water[1]))
 	f.visible = _fx_on and not info.get("floats", false)
 
-func _fit_foam(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2) -> void:
-	f.texture = _tex("boats_foam/%s.png" % VFData.slug(boat_name))
+func _fit_foam(f: TextureRect, boat_name: String, info: Dictionary, sprite_size: Vector2, fr := 0) -> void:
+	var r := _turn_region(fr) if fr != 0 else Rect2(0, 0, 1, 1)
+	f.texture = _tex(("boats_turn/%s_foam.png" if fr != 0 else "boats_foam/%s.png") % VFData.slug(boat_name))
 	f.size = sprite_size * float(info.get("foam_pad", 1.5))
 	f.position = (sprite_size - f.size) * 0.5
 	var m := f.material as ShaderMaterial
+	m.set_shader_parameter("region", Vector4(r.position.x, r.position.y, r.size.x, r.size.y))
 	m.set_shader_parameter("foam_amount", 0.0 if info.get("floats", false) else 1.0)
 	if not _scene.is_empty():
 		m.set_shader_parameter("foam_color", Color(_scene.water[0]).lerp(Color.WHITE, 0.75))
 		m.set_shader_parameter("shade_color", Color(_scene.water[1]).darkened(0.65))
 
 func _place_boat() -> void:
-	if _scene.is_empty() or _boat_info.is_empty() or boat.texture == null: return
+	if _scene.is_empty() or _boat_info.is_empty() or _side_tex == null: return
+	var fr := _turn_frame if not _turn.is_empty() else 0
 	var k: float = float(_scene.unit_px) / float(_boat_info.unit_px)
-	var tex_sz := boat.texture.get_size()
-	boat.size = tex_sz * k
-	_fit_foam(boat_foam, _boat, _boat_info, boat.size)
-	_fit_reflect(boat_reflect, _boat, _boat_info, boat.size)
-	var origin := Vector2(_boat_info.origin[0], _boat_info.origin[1]) * boat.size
-	boat.pivot_offset = origin
+	var side_size := _side_tex.get_size() * k
+	_side_pivot = Vector2(_boat_info.origin[0], _boat_info.origin[1]) * side_size
+	if fr == 0:
+		boat.texture = _side_tex
+		boat.size = side_size
+		boat.pivot_offset = _side_pivot
+		_fit_foam(boat_foam, _boat, _boat_info, boat.size)
+		_fit_reflect(boat_reflect, _boat, _boat_info, boat.size)
+	else:
+		# another angle: the captain is part of the picture, the sprite takes over again in the side view
+		var cell := float(_turn.cell)
+		var at := _turn_region(fr)
+		var tk: float = float(_scene.unit_px) / float(_turn.unit_px)
+		_turn_atlas.region = Rect2(at.position * _turn_atlas.atlas.get_size(), Vector2(cell, cell))
+		boat.texture = _turn_atlas
+		boat.size = Vector2(cell, cell) * tk
+		boat.pivot_offset = Vector2(_turn.origin[0], _turn.origin[1]) * boat.size
+		_fit_foam(boat_foam, _boat, _turn, boat.size, fr)
+		_fit_reflect(boat_reflect, _boat, _turn, boat.size, fr)
 	if boat_pos.x < 0.0: boat_pos = Vector2(_scene.boat[0], _scene.boat[1]) * SCENE
-	boat.position = boat_pos - origin
+	boat.position = boat_pos - boat.pivot_offset
+	fisher.visible = fr == 0
 	# fisher: his anchor (where he sits) on the boat's seat point, scaled to scene units.
 	# He is a child of the boat, so he mirrors with it when the boat turns around.
 	if _fisher_info.is_empty(): return
@@ -626,7 +705,7 @@ func _place_boat() -> void:
 	var fk: float = float(_scene.unit_px) / float(_fisher_info.unit_px)
 	fisher.size = Vector2(cell, cell) * fk
 	var seat: Array = _boat_info.get("seat", _boat_info.deck)
-	fisher.position = Vector2(seat[0], seat[1]) * boat.size - Vector2(_fisher_info.feet[0], _fisher_info.feet[1]) * fisher.size
+	fisher.position = Vector2(seat[0], seat[1]) * side_size - Vector2(_fisher_info.feet[0], _fisher_info.feet[1]) * fisher.size
 	_set_frame()
 
 func _frames(anim: String) -> int:
@@ -731,7 +810,7 @@ func _fisher_point(key: String, fallback: Array) -> Vector2:
 	var tp: Array = pts[mini(_frame_index(), pts.size() - 1)]
 	var local := fisher.position + Vector2(tp[0], tp[1]) * fisher.size
 	# same order as the Control transform: scale (incl. the mirror when facing left), then rotate
-	return boat.position + boat.pivot_offset + ((local - boat.pivot_offset) * boat.scale).rotated(boat.rotation)
+	return boat.position + boat.pivot_offset + ((local - _side_pivot) * boat.scale).rotated(boat.rotation)
 
 func rod_grip() -> Vector2:
 	return _fisher_point("rod_grip", [0.45, 0.6])
@@ -876,10 +955,11 @@ func _process(delta: float) -> void:
 		var walking: bool = c.wait <= 0.0
 		c.pos = c.home + Vector2(c.x, sin(c.ph * 14.0) * 1.2 if walking else 0.0)
 		c.tilt = sin(c.ph * 14.0) * 0.08 if walking else 0.0
+	_show_heading()
 	boat.position = boat_pos - boat.pivot_offset
 	boat.rotation = sin(_t * 1.1) * 0.025 + boat_lean
 	var bob := 1.0 + sin(_t * 1.6) * 0.008
-	boat.scale = Vector2(bob * boat_flip, bob)
+	boat.scale = Vector2(bob * facing, bob)
 	if randf() < delta * 0.6 and _cast_t < 0.0 and not reeled and _reel_t < 0.0:
 		_add_ripple(_bobber, 34.0, 1.5, 0.0)
 	_tick_reel(delta)
@@ -1016,6 +1096,9 @@ func _rod_side(g: Vector2, t: Vector2) -> Vector2:
 	return n if n.y > 0.0 else -n
 
 func _draw_over() -> void:
+	if _turn_frame != 0:            # under way at an angle: the rod is stowed
+		_draw_catch()
+		return
 	_draw_rod()
 	_draw_zzz()
 	var tip := rod_tip()
@@ -1438,8 +1521,8 @@ func _draw_catch() -> void:
 	over.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 # ----------------------------------------------------------------- sailing
-# vf_sail.gd moves boat_pos and sets facing / boat_flip / boat_lean; the stage
-# draws the boat there and keeps the line, bobber and resting spot with it.
+# vf_sail.gd moves boat_pos and sets boat_yaw / boat_lean; the stage draws the
+# boat there and keeps the line, bobber and resting spot with it.
 
 ## reel the line in before the boat sails off (the bobber zips back to the rod tip)
 func reel_in() -> void:

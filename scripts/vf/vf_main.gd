@@ -2019,6 +2019,16 @@ func _check_capture() -> void:
 		await sail.capture_test(dir)
 		get_tree().quit()
 		return
+	if "--turn-test" in OS.get_cmdline_user_args():
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 99
+		VF.level = 120
+		VF.boats_owned = VFData.BOAT_ORDER.find("Cruise Ship") + 1
+		VF.changed.emit()
+		_coach_show()
+		await sail.turn_test()
+		get_tree().quit()
+		return
 	if "--rtl-test" in OS.get_cmdline_user_args():
 		# run with `--language ar`: the layout must stay put and Arabic text must render (not boxes)
 		VF.player_name = "صيّاد السمك"
@@ -2218,6 +2228,8 @@ func _minigame_test(dir: String) -> void:
 		await _shot(dir + "/mg_%s_4gag.png" % outcome)
 		print("MG %s: trips +%d fish +%d cooldown_left %.2f (cur_cooldown %.2f) took %.1fs" % [outcome, VF.stats.trips - trips,
 			VF.stats.fish - fish, VF.cooldown_left(), VF.cur_cooldown(), mg.play_t])
+		await get_tree().create_timer(0.75 if outcome == "win" else 1.2).timeout
+		await _shot(dir + "/mg_%s_4poster.png" % outcome)
 		while minigame != null:
 			await get_tree().process_frame
 		print("MG %s: closed %.2fs after the result" % [outcome, (Time.get_ticks_msec() - t_end) / 1000.0])
@@ -2230,11 +2242,14 @@ func _minigame_test(dir: String) -> void:
 		await get_tree().process_frame
 	var m2 = minigame
 	m2.auto = "win"
-	for tr in [3, 4, 2, 1]:          # every fish look (eye / mouth overlay on the Kenney sprites)
-		m2.tier = tr
-		m2.progress = 0.3
-		await get_tree().create_timer(0.7).timeout
-		await _shot(dir + "/mg_tier%d.png" % tr)
+	# every gag, on a fish it suits
+	for p in [["Cod", "disguise"], ["Raw Salmon", "selfie"], ["Tropical Fish", "dead"], ["Raw Fish", "nap"], ["Rainbow Fish", "shark"], ["Hot Cod", "banana"],
+			["Space Fish", "rocket"], ["Alien Fish", "boot"], ["Artifact Fish", "dance"], ["Dark Tuna", "bribe"], ["Pufferfish", "puff"], ["Squid", "ink"],
+			["Turtle", "closed"], ["Dolphin", "flip"], ["Shark", "chomp"], ["Galactic Crab", "snip"]]:
+		m2.test_gag(p[0], p[1])
+		await get_tree().create_timer(0.72).timeout
+		await _shot(dir + "/mg_gag_%s.png" % p[1])
+	m2.time_limit = 999.0
 	m2.progress = 0.99
 	m2.zone_y = clampf(m2.fish_y - m2.zone_h * 0.5, 0.0, 1.0 - m2.zone_h)
 	m2.auto = "win"

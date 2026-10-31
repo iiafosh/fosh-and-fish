@@ -93,7 +93,7 @@ def _sheet(rows, out_path, cell):
 
 
 # ------------------------------------------------------------------- fish
-def _build_puffer(spec):
+def _build_puffer(spec, lips=True):
     """swimming, a puffer is a plump fish that rows with its side fins (only the catch art is blown up into a ball)"""
     L, H, W = 0.92, 0.56, 0.54
     fin, top, belly = spec["fin"], hexc(spec["top"]), hexc(spec["belly"])
@@ -132,7 +132,8 @@ def _build_puffer(spec):
         parts.append(M._fin([(0.04, 0.0), (0.0, side * 0.3), (-0.14, side * 0.4), (-0.32, side * 0.36), (-0.34, side * 0.12), (-0.2, 0.0)],
                             (0.1, side * W * 0.84, -0.04), (0, 0, 0), fin, 0.03))
     parts += M._eyes(L, H, W, x=0.72, z=0.32, size=0.135, cute=spec.get("cute"))
-    parts.append(torus(loc=(L * 0.99, 0, -0.06), R=0.085, r=0.032, rot=(0, 90, 0), mat=toon("#c0505a")))
+    if lips:
+        parts.append(torus(loc=(L * 0.99, 0, -0.06), R=0.085, r=0.032, rot=(0, 90, 0), mat=toon("#c0505a")))
     if spec.get("flames"):
         parts += M._flames((0.0, 0, H * 0.92), 0.6)
     return parts
@@ -218,6 +219,63 @@ def render_fish(name, out_path):
     _sheet(rows, out_path, FISH_CELL)
     K.SOFT[0] = False
     return round(FISH_CELL / (radius * 2.0), 3)
+
+
+# ------------------------------------------------------------------- the mini-game's fish
+MINI_CELL = 224
+MINI_FRAMES = 4
+
+
+def render_mini(name, out_path):
+    """Reel it in!: the species close up from the side, swimming, without its eyes: the mini-game draws a cartoon face
+    on it. -> where the face goes, 0..1 of a cell"""
+    spec = M.FISH_SPECS[name]
+    K.clear_scene()
+    V.clear_library()
+    K.SOFT[0] = True
+    K.setup_render(MINI_CELL, MINI_CELL, samples=16)
+    K.setup_world("#9aa6b0", 1.0)
+    s = K.sun((55, 0, 20), 1.0)
+    s.data.angle = math.radians(7)
+    cam = K.make_camera((82, 0, 0), ortho=True)
+    parts = _build_puffer(spec, lips=False) if spec.get("puffer") else M.build_fish(spec)
+    bpy.context.view_layer.update()
+    eye, er = None, 0.0
+    for p in list(parts):
+        if p.type == "MESH" and p.get("no_outline") and len(p.data.vertices) >= 50:      # (not the little sparkles)
+            at, r = p.matrix_world.translation.copy(), max(p.dimensions) * 0.5
+            if at.y < 0.0 and r > er:
+                eye, er = at, r
+            parts.remove(p)
+            bpy.data.objects.remove(p)
+    root, baked = _bake(parts)
+    allv = np.concatenate([a for _, a in baked])
+    x0, x1, z0, z1 = float(allv[:, 0].min()), float(allv[:, 0].max()), float(allv[:, 2].min()), float(allv[:, 2].max())
+    fn = _swim(spec, x1, x0)
+    K.outline_all([p for p, _ in baked], 0.035)
+    span = max(x1 - x0, z1 - z0) * 1.16
+    Rc = cam.rotation_euler.to_matrix()
+    right, up, fwd = Rc @ Vector((1, 0, 0)), Rc @ Vector((0, 1, 0)), Rc @ Vector((0, 0, -1))
+    centre = Vector(((x0 + x1) * 0.5, 0.0, (z0 + z1) * 0.5))
+    cx, cy = centre.dot(right), centre.dot(up)
+    cam.location = right * cx + up * cy - fwd * 60.0
+    cam.data.ortho_scale = span
+    cam["frame"] = (cx, cy, span, 1.0)
+    if eye is None:
+        eye, er = Vector((x1 * 0.6, -0.2, (z0 + z1) * 0.5 + 0.1)), 0.1
+    tmp = tempfile.mkdtemp()
+    paths = []
+    for f in range(MINI_FRAMES):
+        _pose(baked, fn, f / MINI_FRAMES * math.tau)
+        p = os.path.join(tmp, "f%d.png" % f)
+        K.render(p)
+        paths.append(p)
+    _sheet([paths], out_path, MINI_CELL)
+    K.SOFT[0] = False
+    # (a squid's face looks the other way, toward its tentacles)
+    e, m = K.project(cam, eye), K.project(cam, eye + (Vector((-er * 0.4, 0.0, -er * 2.4)) if spec.get("squid") else Vector((er * 2.0, 0.0, -er * 2.0))))
+    return {"eye": [round(e[0] / MINI_CELL, 4), round(e[1] / MINI_CELL, 4)], "mouth": [round(m[0] / MINI_CELL, 4), round(m[1] / MINI_CELL, 4)],
+            "er": round(er / span, 4)}
 
 
 # ------------------------------------------------------------------- gull

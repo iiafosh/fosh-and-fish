@@ -92,6 +92,10 @@ func _ready() -> void:
 		for n in (v if v is Array else [v]):
 			var s = load(SFX + n + ".ogg")
 			if s: sounds[k].append(s)
+	# the cartoon sounds (tools/video/make_sfx.py)
+	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip"]:
+		var s = load("res://assets/audio/fun/%s.ogg" % n)
+		if s: sounds["fun_" + n] = [s]
 	for i in 2:
 		var mp := AudioStreamPlayer.new()
 		mp.bus = "Music"
@@ -277,6 +281,7 @@ func play_sfx(sound_name: String, volume_db: float = 0.0, pitch_scale: float = 1
 	p.pitch_scale = pitch_scale
 	p.play()
 
+func play_fun(sound_name: String, volume_db := -10.0, pitch := 1.0) -> void: play_sfx("fun_" + sound_name, volume_db, pitch)
 func play_click() -> void: play_sfx("click", -6.0, randf_range(0.95, 1.05))
 func play_cast() -> void: play_sfx("cast", -4.0, randf_range(0.9, 1.1))
 func play_splash() -> void: play_sfx("splash", -14.0, randf_range(1.0, 1.2))

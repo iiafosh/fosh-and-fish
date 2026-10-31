@@ -6,6 +6,7 @@ uniform vec4 foam_color : source_color = vec4(1.0);
 uniform vec4 shade_color : source_color = vec4(0.0, 0.12, 0.2, 1.0);
 uniform float foam_amount = 1.0;    // 0 for a craft that floats above the water: only its shadow
 uniform float seed = 0.0;
+uniform vec4 region = vec4(0.0, 0.0, 1.0, 1.0);    // the part of the texture to show (a turning boat's sheet)
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -19,7 +20,7 @@ float vnoise(vec2 p) {
 }
 
 void fragment() {
-	float d = texture(TEXTURE, UV).r;
+	float d = texture(TEXTURE, region.xy + UV * region.zw).r;
 	float t = TIME + seed;
 	float n = vnoise(UV * 24.0 + vec2(t * 0.35, -t * 0.22));
 	float n2 = vnoise(UV * 52.0 + vec2(-t * 0.5, t * 0.3));

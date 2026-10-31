@@ -4,11 +4,12 @@ shader_type canvas_item;
 uniform float strength = 0.42;
 uniform vec4 water : source_color = vec4(0.1, 0.5, 0.6, 1.0);
 uniform float seed = 0.0;
+uniform vec4 region = vec4(0.0, 0.0, 1.0, 1.0);    // the part of the texture to show (a turning boat's sheet)
 
 void fragment() {
 	vec2 uv = UV;
 	float t = TIME + seed;
 	uv.x += sin(UV.y * 120.0 + t * 2.3) * 0.0035 + sin(UV.y * 53.0 - t * 1.4) * 0.0035;
-	vec4 c = texture(TEXTURE, uv);
+	vec4 c = texture(TEXTURE, region.xy + clamp(uv, 0.0, 1.0) * region.zw);
 	COLOR = vec4(mix(c.rgb, water.rgb, 0.3), c.a * strength);
 }

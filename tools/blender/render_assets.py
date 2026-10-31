@@ -157,6 +157,16 @@ def do_boats_top(only, man):
         bt[name] = TD.render_boat_top(name, os.path.join(d, slug(name) + ".png"))
 
 
+def do_boats_turn(only, man):
+    import vf_turn as TR
+    bt = man.setdefault("boats_top", {})
+    d = os.path.join(OUT, "boats_turn")
+    os.makedirs(d, exist_ok=True)
+    for name in B.BOAT_ORDER:
+        if want(name, only):
+            bt.setdefault(name, {})["turn"] = TR.render(name, d, slug(name))
+
+
 def do_boat_seats(only, man):
     """Only the fisher's seat point per boat (same framing as boats_top, no render)."""
     bt = man.setdefault("boats_top", {})
@@ -198,6 +208,16 @@ def do_life(only, man):
         if k not in e and k in old:
             e[k] = old[k]
     man["life"] = e
+
+
+def do_mini(only, man):
+    import vf_life as LF
+    d = os.path.join(OUT, "mini")
+    os.makedirs(d, exist_ok=True)
+    e = man.setdefault("mini", {"cell": LF.MINI_CELL, "frames": LF.MINI_FRAMES, "fish": {}})
+    for name in LF.BIOME_FISH:
+        if want(name, only):
+            e["fish"][name] = LF.render_mini(name, os.path.join(d, slug(name) + ".png"))
 
 
 def do_fisher(man):
@@ -250,6 +270,8 @@ def main():
             do_scenes(only, man)
         elif c == "boats_top":
             do_boats_top(only, man)
+        elif c == "boats_turn":
+            do_boats_turn(only, man)
         elif c == "boat_seats":
             do_boat_seats(only, man)
         elif c == "fish_top":
@@ -258,6 +280,8 @@ def main():
             do_critters(only, man)
         elif c == "life":
             do_life(only, man)
+        elif c == "mini":
+            do_mini(only, man)
         elif c == "fisher":
             do_fisher(man)
         elif c == "rods_hand":
