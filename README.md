@@ -137,13 +137,18 @@ python tools/art/make_ads.py
 ```bash
 python tools/fetch_assets.py          # the source packs, into scratch/downloads
 python tools/video/make_music.py      # the soundtrack: the tracks at one loudness, small
+python tools/video/make_sfx.py        # the cartoon sounds, synthesized
 python tools/art/make_fx.py           # noise and glow for the shaders
-blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top fisher merchant bobber life
+blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top boats_turn fisher merchant bobber life mini brand
+python tools/art/make_brand.py        # logo, icons, splash, covers and the title screen's layers, from what "brand" rendered
 blender -b --factory-startup --python tools/blender/render_v1.py -- shiny event ui packs
 ```
 The shop is part of each biome's backdrop (`vf_shop.py`, rendered with `scenes`), the captain and the shopkeeper are
 KayKit characters (`vf_captain.py`), and `boats_top` also finds where the captain sits on each boat and bakes the
 images the hull's foam and reflection are drawn from; each scene also gets a wind mask and a reflection of the world.
+`boats_turn` is each boat from every side, so it can really swing round; `mini` is the fish of the Reel it in! mini-game;
+`brand` is the logo, the icon and the loading screen's picture (`vf_brand.py`, it needs `build/boom/Fredoka-*.ttf` from
+`tools/video/boom_prep.py`).
 `life` is everything alive on the stage (`vf_life.py`): each biome's fish in five headings, the gull, the crab, the
 whale and the manta, all from the same camera as the scenes.
 The web export leaves the soundtrack out of its download and fetches a track when it's needed (`release.py` puts them

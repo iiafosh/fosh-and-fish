@@ -308,13 +308,13 @@ def title():
 # ------------------------------------------------------------------ splash + covers
 def splash():
     """boot / web loading screen: the title picture and the logo, small to download"""
-    w, h = 1280, 720
+    w, h = 1024, 576
     bg = Image.open(ART).convert("RGB").resize((w, h), Image.LANCZOS).convert("RGBA")
     boat = Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA").resize((w, h), Image.LANCZOS)
     bg.alpha_composite(boat)
-    lg = logo(0.56)
-    bg.alpha_composite(lg, ((w - lg.size[0]) // 2, int(h * 0.05)))
-    bg.convert("RGB").quantize(colors=250, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG).save(os.path.join(BRAND, "splash.png"), optimize=True)
+    lg = logo(0.36)
+    bg.alpha_composite(lg, (int(w * 0.035), int(h * 0.06)))
+    bg.convert("RGB").save(os.path.join(BRAND, "splash.png"), optimize=True)
 
 
 def cover(w, h, logo_w, pos, name, tagline=True, crop_focus=(0.5, 0.5)):

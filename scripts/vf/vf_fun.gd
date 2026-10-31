@@ -36,7 +36,7 @@ func _init(main) -> void:
 func tick(delta: float) -> void:
 	_pay_cd -= delta
 	_honk_cd -= delta
-	if m.launcher_open() or m.overlay.visible or m.minigame != null or m._phone_open() or m.sail.state != "idle": return
+	if VF.tutorial < 99 or m.launcher_open() or m.overlay.visible or m.minigame != null or m._phone_open() or m.sail.state != "idle": return
 	_find_wait -= delta
 	if _find_wait <= 0.0:
 		_find_wait = randf_range(40.0, 100.0)
@@ -167,3 +167,65 @@ func capture_test(dir: String) -> void:
 	await m.get_tree().create_timer(0.6).timeout
 	await m._shot(dir + "/fun_honk.png")
 	print("FUN honk done, say='%s'" % s._say_text)
+
+## godot --path . --resolution 1600x900 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --tour : a look round for a
+## recording: the title screen, the boat turning, the mini-game's gags, the toys. Never saves.
+func tour() -> void:
+	var tree: SceneTree = m.get_tree()
+	var wait := func(t: float): await tree.create_timer(t).timeout
+	VF._apply(VF._defaults.duplicate(true))
+	m._veteran("River")
+	VF.tutorial = 99
+	VF.sail_hint = true
+	VF.changed.emit()
+	await wait.call(6.5)
+	m.launcher.play()
+	await wait.call(1.4)
+	m.card.visible = false
+	for t in m.toast_box.get_children(): t.free()
+	# the boat turns
+	for leg in [[[KEY_D], 1.5], [[KEY_A], 2.6], [[KEY_S], 1.2], [[KEY_D], 1.8], [[KEY_W], 1.3], [[], 2.0]]:
+		for k in leg[0]: m.sail._key(k, true)
+		await wait.call(leg[1])
+		for k in leg[0]: m.sail._key(k, false)
+	# the mini-game's gags
+	m._set_catch_mode("reel")
+	for step in [["Cod", "disguise", "win"], ["Pufferfish", "puff", "win"], ["Raw Salmon", "selfie", "win"], ["Rainbow Fish", "shark", "lose"]]:
+		VF._last_cast_ms = -100000
+		m._do_cast()
+		while m.minigame == null:
+			await tree.process_frame
+		var mg = m.minigame
+		mg.auto = "win"
+		await wait.call(0.9)
+		mg.test_gag(step[0], step[1])
+		await wait.call(float(mg.GAGS[step[1]].len) + 0.4)
+		if step[2] == "lose":
+			mg.auto = "lose"
+			mg.progress = 0.2
+			mg.time_limit = mg.play_t + 1.2
+		else:
+			mg.progress = 0.9
+		while m.minigame != null:
+			await tree.process_frame
+		await wait.call(1.2)
+	m._set_catch_mode("relax")
+	m.card.visible = false
+	# the toys
+	var s = m.stage
+	s.spawn_find("duck")
+	s.spawn_find("bottle")
+	await wait.call(2.2)
+	for f in s._floaters.duplicate():
+		s.poke(s.to_screen(f.pos))
+		await wait.call(0.8)
+	await wait.call(3.0)
+	if not s._crabs.is_empty():
+		s.poke(s.to_screen(s._crabs[0].pos))
+	await wait.call(1.4)
+	s.spawn_thief()
+	await wait.call(3.0)
+	if not s._thief.is_empty(): s.poke(s.to_screen(s._thief.pos))
+	await wait.call(2.2)
+	honk()
+	await wait.call(3.0)

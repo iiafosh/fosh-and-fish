@@ -158,7 +158,7 @@ func _ready() -> void:
 ## unless --launcher asks for it. --no-launcher skips it.
 func _wants_launcher() -> bool:
 	var args := OS.get_cmdline_user_args()
-	if "--launcher" in args: return true
+	if "--launcher" in args or "--tour" in args: return true
 	if "--no-launcher" in args: return false
 	return not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in args)
 
@@ -184,6 +184,7 @@ func _launcher_closing() -> void:
 ## A few seconds after you last reached for it, the interface around the edges fades back so you can look at the water.
 ## Tapping the water to fish doesn't count as reaching for it.
 func _calm_tick(delta: float) -> void:
+	if "--play-shots" in OS.get_cmdline_user_args() or Backend.RECORDING_FLAGS.any(func(f): return f in OS.get_cmdline_user_args()): return
 	_calm_idle += delta
 	var want := 0.5 if _calm_idle > 7.0 and not overlay.visible and minigame == null else 1.0
 	_calm_a = move_toward(_calm_a, want, delta * (0.4 if want < 1.0 else 6.0))
@@ -2034,6 +2035,10 @@ func _check_capture() -> void:
 		await sail.capture_test(dir)
 		get_tree().quit()
 		return
+	if "--tour" in OS.get_cmdline_user_args():
+		await fun.tour()
+		get_tree().quit()
+		return
 	if "--fun-test" in OS.get_cmdline_user_args():
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 99
@@ -2305,13 +2310,17 @@ func _boats_test(dir: String) -> void:
 		VF.boats_owned = VFData.BOAT_ORDER.find(b) + 1
 		_apply_biome()
 		stage.play_anim("idle")
-		await _wait(0.5)
-		await RenderingServer.frame_post_draw
-		var img := get_viewport().get_texture().get_image()
-		var c: Vector2 = stage.boat_screen() * Vector2(img.get_size()) / get_viewport_rect().size   # (layout -> image px)
-		var half := Vector2i(330, 240)
-		var r := Rect2i(Vector2i(c) - half, half * 2).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
-		img.get_region(r).save_png(dir + "/boat_%02d_%s.png" % [VFData.BOAT_ORDER.find(b) + 1, VFData.slug(b)])
+		sail.set_process(false)                       # (it would swing the boat back side-on)
+		for yaw in [0.0, 15.0, -60.0, 120.0]:         # side on, then turned: the pictures must line up
+			stage.boat_yaw = yaw
+			await _wait(0.5 if yaw == 0.0 else 0.15)
+			await RenderingServer.frame_post_draw
+			var img := get_viewport().get_texture().get_image()
+			var c: Vector2 = stage.boat_screen() * Vector2(img.get_size()) / get_viewport_rect().size   # (layout -> image px)
+			var half := Vector2i(330, 240)
+			var r := Rect2i(Vector2i(c) - half, half * 2).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+			img.get_region(r).save_png(dir + "/boat_%02d_%s_%d.png" % [VFData.BOAT_ORDER.find(b) + 1, VFData.slug(b), int(yaw)])
+		sail.set_process(true)
 
 ## godot --path . --resolution 1600x900 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --preview : about a minute
 ## of the game with its sound, for showing what it's like: fishing by day, the menus fade, sunset, night and a big one. Never saves.
