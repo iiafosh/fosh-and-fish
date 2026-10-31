@@ -9,8 +9,8 @@ const BG := "res://assets/launcher/title_bg.jpg"
 const MASKS := "res://assets/launcher/title_masks.png"
 const BOAT := "res://assets/launcher/title_boat.png"
 const LOGO := "res://assets/brand/logo.png"                 # tools/art/make_brand.py
-const BOAT_BOX := Rect2(0.4234, 0.6009, 0.5401, 0.3824)     # where the boat's picture goes, in the big picture (fractions)
-const BOBBER := Vector2(0.4325, 0.972)
+const BOAT_BOX := Rect2(0.5391, 0.6481, 0.339, 0.2926)      # where the boat's picture goes, in the big picture (fractions)
+const BOBBER := Vector2(0.5486, 0.93)
 const LANTERNS := [Vector2(0.582, 0.558), Vector2(0.76, 0.528)]
 
 const GOLD := Color("#ffcf4a")
@@ -203,7 +203,7 @@ func _draw_boat() -> void:
 	var r := _cover_rect()
 	var box := Rect2(r.position + BOAT_BOX.position * r.size, BOAT_BOX.size * r.size)
 	var k := r.size.x / 1920.0
-	var pivot := box.position + box.size * Vector2(0.72, 0.9)
+	var pivot := box.position + box.size * Vector2(0.66, 0.85)
 	boat_layer.draw_set_transform(pivot + Vector2(0.0, sin(_t * 1.3) * 3.5 * k), sin(_t * 0.9) * 0.008, Vector2.ONE)
 	boat_layer.draw_texture_rect(boat_tex, Rect2(box.position - pivot, box.size), false)
 	boat_layer.draw_set_transform(Vector2.ZERO)
@@ -246,7 +246,7 @@ func _tick_jump(delta: float) -> void:
 	if _jump.is_empty():
 		_jump_wait -= delta
 		if _jump_wait <= 0.0:
-			var at := Vector2(randf_range(0.42, 0.62), randf_range(0.8, 0.92))
+			var at := Vector2(randf_range(0.43, 0.53), randf_range(0.8, 0.92))    # (out on the open water, between the words and the boat)
 			var who: String = JUMPERS.pick_random()
 			_jump = {"at": at, "t": 0.0, "dir": 1.0 if randf() < 0.5 else -1.0, "h": randf_range(0.1, 0.17), "tex": main.stage._tex("life/%s.png" % VFData.slug(who))}
 			_rings.append({"at": at, "t": 0.0})

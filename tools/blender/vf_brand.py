@@ -11,6 +11,7 @@ import os
 import bmesh
 import bpy
 import numpy as np
+from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector
 
 import boom_fx as FX
@@ -238,7 +239,7 @@ def render_icon(path):
 
 # ------------------------------------------------------------------- the loading screen's picture
 TITLE_CAM = ((-4.0, -13.5, 4.4), (86.0, 0.0, 0.0), 28.0)
-TITLE_BOAT = (0.7, -1.5, 152.0)         # x, y, which way the bow points (degrees)
+TITLE_BOAT = ("Rowboat", 0.25, -0.8, 165.0)    # which, x, y, which way the bow points (degrees)
 HILLS = [(-34, 96, 0, 46, 22, 15, "#86bdab"), (6, 118, 0, 62, 24, 20, "#9cc9c2"), (44, 92, 0, 44, 20, 13, "#8fc2ae"),
          (-8, 76, 0, 34, 16, 8, "#6fae8f"), (26, 72, 0, 28, 14, 7, "#74b394"), (-46, 70, 0, 26, 14, 8, "#6dab8c")]
 CLOUDS = [(-96, 210, 62, 14.0), (-40, 240, 86, 11.0), (34, 200, 44, 9.0), (92, 215, 70, 15.0), (118, 240, 40, 11.0), (-124, 230, 34, 12.0), (8, 260, 112, 13.0)]
@@ -254,6 +255,37 @@ def _cloud(x, y, z, s):
             b["no_outline"] = True
             out.append(b)
     return out
+
+
+def _drop_near_oar(hull, yaw):
+    """The oar on the camera's side would cut right across the captain: he's fishing, it's stowed. (A small loose piece of
+    the mesh sticking out past the hull, on the boat's side that yaw has turned toward the camera.)"""
+    sign = 1.0 if math.cos(math.radians(yaw)) < 0.0 else -1.0
+    for ob in hull:
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        seen, gone = set(), []
+        for v0 in bm.verts:
+            if v0.index in seen:
+                continue
+            piece, todo = [], [v0]
+            seen.add(v0.index)
+            while todo:
+                v = todo.pop()
+                piece.append(v)
+                for e in v.link_edges:
+                    n = e.other_vert(v)
+                    if n.index not in seen:
+                        seen.add(n.index)
+                        todo.append(n)
+            ys = [v.co.y * sign for v in piece]
+            if len(piece) < 60 and min(ys) > 0.3 and max(ys) > 1.0:
+                gone += piece
+        if gone:
+            bmesh.ops.delete(bm, geom=gone, context="VERTS")
+            bm.to_mesh(ob.data)
+            ob.data.update()
+        bm.free()
 
 
 def render_title(d):
@@ -296,10 +328,14 @@ def render_title(d):
     for c in CLOUDS:
         _cloud(*c)
     # the boat, the captain, his rod and his line
-    bx, by, yaw = TITLE_BOAT
-    hull_parts, deck = B.build_boat("Fishing Boat")
+    which, bx, by, yaw = TITLE_BOAT
+    if os.environ.get("VF_TITLE_HULL"):                   # (to try another one)
+        which, bx, by, yaw = os.environ["VF_TITLE_HULL"].split(",")
+        bx, by, yaw = float(bx), float(by), float(yaw)
+    hull_parts, deck = B.build_boat(which)
     seat = B.find_seat(hull_parts, deck)
     hull = TD.clip_below(hull_parts)
+    _drop_near_oar(hull, yaw)
     K.outline_all(hull, 0.035)
     pivot = FX.empty("boat")
     bpy.context.view_layer.update()
@@ -310,11 +346,13 @@ def render_title(d):
     pivot.location = (bx, by, 0.0)
     pivot.rotation_euler = (0, 0, math.radians(yaw))
     bpy.context.view_layer.update()
-    arm, meshes, root = C.build(face=-46.0)
+    # He sits where the game seats him, mirrored (the bow points left here): on the far side of the deck, his legs across
+    # it. The game turns him C.FACE from the camera toward the bow, in the boat's own terms; so here it's that, mirrored.
+    arm, meshes, root = C.build(face=(180.0 - C.FACE) + yaw - 360.0)
     C.hat(arm, next(m for m in meshes if "Head" in m.name))
     sit, fish = acts[C.SEAT], acts["Fishing_Idle"]
     C.set_pose(arm, sit, C._span(sit, 0.5), fish, C._span(fish, 0.0))
-    root.location = pivot.matrix_world @ Vector(seat)
+    root.location = pivot.matrix_world @ Vector((seat[0], -seat[1], seat[2]))
     bpy.context.view_layer.update()
     g = C.bone_world(arm, "handslot.r").to_translation()
     tip = g + Vector((-0.8, -0.2, 0.56)).normalized() * 2.5
@@ -334,6 +372,8 @@ def render_title(d):
     cam.rotation_euler = [math.radians(a) for a in rot]
     bpy.context.view_layer.update()
     sc = bpy.context.scene
+    v = world_to_camera_view(sc, cam, float_at)
+    print("TITLE float at", round(v.x, 4), round(1.0 - v.y, 4))
     os.makedirs(d, exist_ok=True)
     was = {o: o.hide_render for o in bpy.data.objects}
     for o in boat_objs:

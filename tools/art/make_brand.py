@@ -270,7 +270,9 @@ def title():
     x0, x1 = int(cols.min()), int(cols.max())
     keel = median_filter(keel, size=9)
     has = (keel >= 0)[None, :]
-    ky = np.maximum(keel, 0)[None, :].astype(np.float32)
+    # (smooth, or the foam and the reflection come out in stair steps; the columns with no hull take their neighbours' value)
+    filled = np.interp(np.arange(W), np.where(keel >= 0)[0], keel[keel >= 0]).astype(np.float32)
+    ky = gaussian_filter(filled, sigma=4.0)[None, :]
     below = np.clip((yy - ky) / 170.0, 0.0, 1.0)
     bsx = np.clip(xx + wob * (1.0 + below * 7.0), 0, W - 1)
     bsy = np.clip(ky - (yy - ky) * 0.95, 0, H - 1)
