@@ -119,6 +119,13 @@ var merchant_hit: Control
 var merchant_tag: PanelContainer
 var _smoke: CPUParticles2D
 var _glints: CPUParticles2D
+signal poked(kind: String, at: Vector2)     # you tapped a crab, a gull, a bottle, a duck or the thief (vf_fun.gd)
+const CRAB_HOP := 70.0
+const FIND_LIFE := 40.0
+var _say_text := ""
+var _say_t := 0.0
+var _floaters: Array = []
+var _thief := {}
 
 # ---- sailing state (driven by vf_sail.gd; see the "sailing" section below)
 signal scene_changed              # a new biome scene was set up (sea lanes need re-scanning)
@@ -865,6 +872,9 @@ func _spawn_life() -> void:
 	_big.clear()
 	_gulls.clear()
 	_crabs.clear()
+	_floaters.clear()
+	_thief = {}
+	_say_t = 0.0
 	if not _species.is_empty():
 		for i in 16:
 			var p = _rand_point(_open_water)
@@ -882,12 +892,12 @@ func _spawn_life() -> void:
 		for i in 3:
 			var ang := randf_range(-0.4, 0.4) + (PI if randf() < 0.5 else 0.0)
 			_gulls.append({"tex": g, "pos": Vector2(randf() * SCENE.x, randf_range(0.05, 0.6) * SCENE.y), "ang": ang,
-				"turn": 0.0, "speed": randf_range(95, 135), "ph": randf() * TAU, "glide": 0.0, "fr": 0.0})
+				"turn": 0.0, "speed": randf_range(95, 135), "ph": randf() * TAU, "glide": 0.0, "fr": 0.0, "scared": 0.0})
 	if _biome in ["River", "Ocean"]:
 		var c := _tex("life/crab.png")
 		for i in 3:
 			var p = _rand_point(func(q): return _on_beach(q) and _crabs.all(func(o): return o.home.distance_to(q) > 360.0))
-			if p != null: _crabs.append({"tex": c, "pos": p, "home": p, "ph": randf() * TAU, "dir": 1.0, "wait": randf() * 2.0, "x": 0.0, "tilt": 0.0})
+			if p != null: _crabs.append({"tex": c, "pos": p, "home": p, "ph": randf() * TAU, "dir": 1.0, "wait": randf() * 2.0, "x": 0.0, "tilt": 0.0, "hop": 0.0})
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -930,11 +940,12 @@ func _process(delta: float) -> void:
 		var want := sin(_t * 0.23 + g.ph) * 0.35 + sin(_t * 0.07 + g.ph * 2.0) * 0.25
 		g.turn = lerpf(g.turn, want, delta * 0.8)
 		g.ang += g.turn * delta
-		g.pos += Vector2.from_angle(g.ang) * g.speed * delta
+		g.scared = maxf(0.0, g.scared - delta)
+		g.pos += Vector2.from_angle(g.ang) * g.speed * (2.4 if g.scared > 0.0 else 1.0) * delta
 		# alternate flapping and gliding
 		g.glide -= delta
 		if g.glide < -2.4: g.glide = randf_range(1.0, 2.2)
-		if g.glide <= 0.0: g.fr += delta * 11.0
+		if g.glide <= 0.0 or g.scared > 0.0: g.fr += delta * (24.0 if g.scared > 0.0 else 11.0)
 		if g.pos.x < -220 or g.pos.x > SCENE.x + 220 or g.pos.y < -220 or g.pos.y > SCENE.y + 220:
 			var from_left := randf() < 0.5
 			g.pos = Vector2(-180 if from_left else SCENE.x + 180, randf_range(0.05, 0.6) * SCENE.y)
@@ -942,10 +953,11 @@ func _process(delta: float) -> void:
 			g.turn = 0.0
 	for c in _crabs:
 		c.ph += delta
+		c.hop = maxf(0.0, c.hop - delta * 1.8)
 		if c.wait > 0.0:
 			c.wait -= delta
 		else:
-			c.x += c.dir * 55.0 * delta
+			c.x += c.dir * (55.0 + 240.0 * c.hop) * delta
 			if absf(c.x) > 80.0:
 				c.dir = -signf(c.x)
 				c.wait = randf_range(0.6, 2.5)
@@ -953,8 +965,9 @@ func _process(delta: float) -> void:
 				c.dir = -c.dir
 				c.wait = randf_range(0.6, 2.5)
 		var walking: bool = c.wait <= 0.0
-		c.pos = c.home + Vector2(c.x, sin(c.ph * 14.0) * 1.2 if walking else 0.0)
+		c.pos = c.home + Vector2(c.x, (sin(c.ph * 14.0) * 1.2 if walking else 0.0) - sin(c.hop * PI) * CRAB_HOP)
 		c.tilt = sin(c.ph * 14.0) * 0.08 if walking else 0.0
+	_tick_finds(delta)
 	_show_heading()
 	boat.position = boat_pos - boat.pivot_offset
 	boat.rotation = sin(_t * 1.1) * 0.025 + boat_lean
@@ -1038,10 +1051,12 @@ func _draw_life() -> void:
 		var walking: bool = c.wait <= 0.0
 		var src := Rect2(int(c.ph * (13.0 if walking else 4.0)) % int(crab_info.frames) * cell, 0.0 if walking else cell, cell, cell)
 		var dst := Rect2(-cell * 0.5, -cell * 0.5, cell, cell)
-		life_layer.draw_set_transform(c.pos + Vector2(4, 7), 0.0, Vector2(cs, cs * 0.8))
+		var ground: Vector2 = c.pos + Vector2(0.0, sin(c.hop * PI) * CRAB_HOP)
+		life_layer.draw_set_transform(ground + Vector2(4, 7), 0.0, Vector2(cs, cs * 0.8))
 		life_layer.draw_texture_rect_region(ct, dst, src, Color(0, 0, 0, 0.2))
-		life_layer.draw_set_transform(c.pos, 0.0, Vector2(cs, cs))
+		life_layer.draw_set_transform(c.pos, c.hop * TAU, Vector2(cs, cs))           # (a somersault, if you poked it)
 		life_layer.draw_texture_rect_region(ct, dst, src)
+	_draw_finds()
 	life_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	for f in _flashes:                       # foam where a fish came out
 		life_layer.draw_set_transform(f.p, 0.0, Vector2(1.0, 0.5))
@@ -1060,9 +1075,17 @@ func _draw_sky() -> void:
 		var t: Texture2D = g.tex
 		if t == null or night_amount > 0.6: continue
 		var sp := {"tex": t, "frames": info.frames, "cell": float(info.cell), "rows": 5, "unit_px": float(info.unit_px)}
-		var fi: int = int(info.glide) if g.glide > 0.0 else int(g.fr) % int(info.frames)     # wings out to glide
+		var fi: int = int(info.glide) if g.glide > 0.0 and g.scared <= 0.0 else int(g.fr) % int(info.frames)     # wings out to glide
 		_life_draw(sky_layer, sp, g.pos + Vector2(90, 150), g.ang, u * 0.62, Color(0, 0.05, 0.1, 0.14), 0.0, fi)
 		_life_draw(sky_layer, sp, g.pos, g.ang, u * 0.62, Color.WHITE, 0.0, fi)
+	if not _thief.is_empty():               # the thief, your fish in its beak
+		var sp := {"tex": _tex("life/gull.png"), "frames": info.frames, "cell": float(info.cell), "rows": 5, "unit_px": float(info.unit_px)}
+		var ang: float = (_thief.vel as Vector2).angle()
+		var fs: Dictionary = _thief.fish
+		_life_draw(sky_layer, sp, _thief.pos + Vector2(90, 150), ang, u * 0.68, Color(0, 0.05, 0.1, 0.14), 0.0, int(_thief.fr) % int(info.frames))
+		if fs.get("tex") != null:
+			_life_draw(sky_layer, fs, _thief.pos + (_thief.vel as Vector2).normalized() * u * 0.62 + Vector2(0, u * 0.28), ang + 1.2, u * 0.42, Color.WHITE, 0.0, 0)
+		_life_draw(sky_layer, sp, _thief.pos, ang, u * 0.68, Color.WHITE, 0.0, int(_thief.fr) % int(info.frames))
 	sky_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_rod() -> void:
@@ -1098,6 +1121,7 @@ func _rod_side(g: Vector2, t: Vector2) -> Vector2:
 func _draw_over() -> void:
 	if _turn_frame != 0:            # under way at an angle: the rod is stowed
 		_draw_catch()
+		_draw_say()
 		return
 	_draw_rod()
 	_draw_zzz()
@@ -1111,6 +1135,32 @@ func _draw_over() -> void:
 	over.draw_polyline(pts, Color(0.95, 0.95, 0.9, 0.8 + 0.2 * _line_tight), 1.6, true)
 	_draw_float()
 	_draw_catch()
+	_draw_say()
+
+## what the captain just said, over his head (the same size on the screen, whatever the window)
+func _draw_say() -> void:
+	if _say_t <= 0.0 or _say_text == "": return
+	var font: Font = over.get_theme_default_font()
+	var k := 1.0 / maxf(root.scale.x, 0.01)
+	var fs := int(17.0 * k)
+	var head := _fisher_point("head", [0.5, 0.2]) if _turn_frame == 0 else boat_pos + Vector2(0, -90)
+	var w := font.get_string_size(_say_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var pad := Vector2(14, 8) * k
+	var box := Rect2(head + Vector2(-w.x * 0.5 - pad.x, -w.y - pad.y * 2.0 - 30.0 * k), w + pad * 2.0)
+	box.position.x = clampf(box.position.x, 12.0, SCENE.x - box.size.x - 12.0)
+	var a := clampf(_say_t / 0.3, 0.0, 1.0)
+	over.modulate.a = 1.0
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.985, 0.965, 0.92, 0.96 * a)
+	sb.set_corner_radius_all(int(14.0 * k))
+	sb.shadow_color = Color(0.02, 0.1, 0.14, 0.18 * a)
+	sb.shadow_size = int(6.0 * k)
+	sb.anti_aliasing = true
+	over.draw_style_box(sb, box)
+	var tip := head + Vector2(0, -14.0 * k)
+	var bx := clampf(head.x, box.position.x + 18.0 * k, box.end.x - 18.0 * k)
+	over.draw_colored_polygon(PackedVector2Array([Vector2(bx - 9.0 * k, box.end.y - 1.0), Vector2(bx + 9.0 * k, box.end.y - 1.0), tip]), sb.bg_color)
+	over.draw_string(font, box.position + Vector2(pad.x, pad.y + font.get_ascent(fs)), _say_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.17, 0.23, 0.25, a))
 
 ## "Zzz" floating up from his hat while he naps (drawn here so it never mirrors)
 func _draw_zzz() -> void:
@@ -1546,6 +1596,106 @@ func _tick_reel(delta: float) -> void:
 
 func _hang_point() -> Vector2:
 	return rod_tip() + Vector2(0, 14)
+
+# ------------------------------------------------------- little things to poke
+# (vf_fun.gd decides when, what they're worth and what gets said: here they float, flap and jump)
+func say(text: String, secs := 3.4) -> void:
+	_say_text = text
+	_say_t = secs
+
+## a tap on the scene: if it hit something that's there for poking, it reacts -> true (no cast then)
+func poke(screen: Vector2) -> bool:
+	var p := to_scene(screen)
+	for f in _floaters:
+		if (f.pos as Vector2).distance_to(p) < 72.0:
+			var at: Vector2 = f.pos
+			var kind: String = f.kind
+			_floaters.erase(f)
+			_add_ripple(at, 46.0, 2.0)
+			burst("splash", at)
+			poked.emit(kind, at)
+			return true
+	if not _thief.is_empty() and (_thief.pos as Vector2).distance_to(p) < 100.0:
+		var at: Vector2 = _thief.pos
+		_thief = {}
+		burst("sparkle", at)
+		poked.emit("thief", at)
+		return true
+	for c in _crabs:
+		if (c.pos as Vector2).distance_to(p) < 58.0:
+			c.hop = 1.0
+			c.wait = 0.0
+			c.dir = 1.0 if c.pos.x >= p.x else -1.0
+			poked.emit("crab", c.pos)
+			return true
+	if night_amount < 0.6:
+		for g in _gulls:
+			if (g.pos as Vector2).distance_to(p) < 72.0:
+				g.scared = 1.6
+				g.ang += randf_range(-0.9, 0.9)
+				poked.emit("gull", g.pos)
+				return true
+	return false
+
+## the horn: everything nearby jumps
+func on_honk() -> void:
+	for g in _gulls:
+		g.scared = 1.6
+		g.ang += randf_range(-0.6, 0.6)
+	for c in _crabs:
+		c.hop = 1.0
+		c.wait = 0.0
+	for f in _fish:
+		if (f.pos as Vector2).distance_to(boat_pos) < 460.0:
+			f.target = f.pos + ((f.pos as Vector2) - boat_pos).normalized() * 320.0
+			f.speed = 120.0
+
+func spawn_find(kind: String) -> void:
+	if _floaters.size() >= 2 or _mask == null: return
+	var p = _rand_point(func(q): return _open_water(q) and q.y > 400.0 and q.distance_to(boat_pos) > 300.0, 300)
+	if p == null: return
+	var heading: Vector2 = (Vector2(SCENE.x * 0.5, SCENE.y * 0.72) - (p as Vector2)).normalized().rotated(randf_range(-0.7, 0.7))
+	_floaters.append({"kind": kind, "tex": _tex("life/%s.png" % kind), "pos": p, "vel": heading * randf_range(8.0, 15.0), "t": 0.0, "ph": randf() * TAU,
+		"dir": 1.0 if heading.x >= 0.0 else -1.0})
+	_add_ripple(p, 40.0, 2.0)
+
+func spawn_thief() -> void:
+	var left := randf() < 0.5
+	_thief = {"pos": Vector2(-120.0 if left else SCENE.x + 120.0, randf_range(0.28, 0.6) * SCENE.y), "vel": Vector2(205.0 if left else -205.0, randf_range(-18.0, 18.0)),
+		"fr": 0.0, "fish": _species.pick_random() if not _species.is_empty() else {}}
+	say("Hey! That's my lunch!", 3.0)
+
+func _tick_finds(delta: float) -> void:
+	_say_t = maxf(0.0, _say_t - delta)
+	for f in _floaters:
+		f.t += delta
+		f.pos += f.vel * delta
+		if randf() < delta * 0.35: _add_ripple(f.pos, 30.0, 1.5, 0.0)
+	_floaters = _floaters.filter(func(f): return f.t < FIND_LIFE and _in_water(f.pos, 0.05))
+	if not _thief.is_empty():
+		_thief.pos += _thief.vel * delta
+		_thief.fr += delta * 16.0
+		if _thief.pos.x < -200.0 or _thief.pos.x > SCENE.x + 200.0: _thief = {}
+
+func _draw_finds() -> void:
+	var info: Dictionary = manifest.get("life", {}).get("finds", {})
+	if info.is_empty(): return
+	var u: float = float(_scene.get("unit_px", 56.0))
+	var cell: float = info.cell
+	for f in _floaters:
+		var a := clampf(minf(f.t / 0.8, (FIND_LIFE - f.t) / 1.5), 0.0, 1.0)
+		var s: float = u * 1.35 / float(info[f.kind])
+		var at: Vector2 = f.pos + Vector2(0.0, sin(f.t * 1.8 + f.ph) * 3.0)
+		life_layer.draw_set_transform(f.pos + Vector2(0, 12), 0.0, Vector2(1.0, 0.38))
+		life_layer.draw_circle(Vector2.ZERO, u * 0.72, Color(0.02, 0.12, 0.18, 0.16 * a))
+		life_layer.draw_set_transform(at, sin(f.t * 1.1 + f.ph) * 0.09, Vector2(s * f.dir, s))
+		life_layer.draw_texture_rect(f.tex, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), false, Color(1, 1, 1, a))
+		var g := fmod(f.t + f.ph, 2.6)                      # now and then it catches the light, so you notice
+		if g < 0.55 and _star_tex:
+			var k := sin(g / 0.55 * PI)
+			var st := 52.0 * k
+			life_layer.draw_set_transform(at + Vector2(u * 0.4, -u * 0.5), g * 2.0, Vector2.ONE)
+			life_layer.draw_texture_rect(_star_tex, Rect2(-st * 0.5, -st * 0.5, st, st), false, Color(1, 1, 0.92, 0.85 * k * a))
 
 ## the resting spot for casts when the player hasn't aimed: open water ahead of the boat
 ## (the authored bobber offset, mirrored when the boat faces left), else the nearest open water

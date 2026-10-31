@@ -51,6 +51,7 @@ var stats := {"trips": 0, "fish": 0, "chests": 0, "charms": 0, "money_earned": 0
 var discovered := {}                      # species -> total ever caught (fishdex)
 var goals_done := 0                       # STARTER_GOALS completed (in order)
 var tutorial := 0                         # onboarding step (UI)
+var ducks := 0                            # rubber ducks found (vf_fun.gd). Nobody knows why.
 var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
 var catch_mode := "relax"                 # "relax" (wait the cooldown) | "reel" (mini-game, VFData.MINIGAME_*)
 var quest_day := ""
@@ -430,6 +431,21 @@ func cast_reel(won: bool, cast_start_ms: int = -1) -> Dictionary:
 		elif cast_start_ms >= 0:
 			_last_cast_ms = cast_start_ms
 	return res
+
+## A little find on the water (vf_fun.gd) pays about what this many casts would bring in around here
+func pay_find(casts: float) -> int:
+	var odds: Array = species_odds()
+	var names: Array = VFData.BIOMES[biome].fish
+	var each := 0.0
+	for k in names.size():
+		each += float(odds[k]) * fish_price(names[k])
+	var r: Dictionary = VFData.RODS[rod]
+	var n := (float(r.min) + float(r.max)) * 0.5 * fish_catch_mult() + boats_owned
+	var pay := maxi(1, int(round(each * n * sell_mult() * casts)))
+	money += pay
+	stats.money_earned += pay
+	changed.emit()
+	return pay
 
 func set_catch_mode(m: String) -> void:
 	if m in VFData.CATCH_MODES and m != catch_mode:
@@ -913,6 +929,7 @@ func to_dict() -> Dictionary:
 		"tok": _tok_dict(),
 		"sail_hint": sail_hint,
 		"catch_mode": catch_mode,
+		"ducks": ducks,
 		"v1": _v1_dict(),
 		"idle": _idle_dict(),
 	}
@@ -949,6 +966,7 @@ func _apply(d: Dictionary) -> void:
 	discovered = _ints(d.get("discovered", {}))
 	tutorial = int(d.get("tutorial", 0))
 	sail_hint = bool(d.get("sail_hint", false))
+	ducks = int(d.get("ducks", 0))
 	catch_mode = str(d.get("catch_mode", "relax"))
 	if not catch_mode in VFData.CATCH_MODES: catch_mode = "relax"
 	if d.has("goals_done"):

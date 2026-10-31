@@ -4203,6 +4203,11 @@
    "frames": 6,
    "unit_px": 27.429
   },
+  "finds": {
+   "bottle": 48.696,
+   "cell": 112,
+   "duck": 48.696
+  },
   "fish": {
    "Alien Fish": 31.614,
    "Artifact Fish": 31.818,

@@ -204,7 +204,7 @@ def do_life(only, man):
     fish = old.get("fish", {})
     fish.update(e["fish"])
     e["fish"] = fish
-    for k in ("gull", "crab"):
+    for k in ("gull", "crab", "finds"):
         if k not in e and k in old:
             e[k] = old[k]
     man["life"] = e

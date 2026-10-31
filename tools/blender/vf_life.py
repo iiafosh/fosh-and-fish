@@ -221,6 +221,50 @@ def render_fish(name, out_path):
     return round(FISH_CELL / (radius * 2.0), 3)
 
 
+# ------------------------------------------------------------------- things floating by
+FIND_CELL = 112
+
+
+def _build_duck():
+    yellow, orange = toon("#ffd83a"), toon("#f58a1f")
+    body = sphere(loc=(-0.05, 0.0, 0.26), scale=(0.62, 0.46, 0.4), mat=yellow)
+    tail = cone(loc=(-0.62, 0.0, 0.42), r1=0.16, r2=0.02, depth=0.32, rot=(0, -62, 0), verts=12, mat=yellow)
+    head = sphere(loc=(0.36, 0.0, 0.72), scale=0.3, mat=yellow)
+    beak = sphere(loc=(0.66, 0.0, 0.68), scale=(0.17, 0.13, 0.055), mat=orange)
+    wing = sphere(loc=(-0.1, -0.42, 0.34), scale=(0.3, 0.06, 0.17), mat=toon("#f5c52c"))
+    wing2 = sphere(loc=(-0.1, 0.42, 0.34), scale=(0.3, 0.06, 0.17), mat=toon("#f5c52c"))
+    parts = [body, tail, head, beak, wing, wing2]
+    for side in (1, -1):
+        eye = sphere(loc=(0.52, side * 0.2, 0.8), scale=0.055, mat=toon("#141018", shade=1.0, rim=0.0))
+        shine = sphere(loc=(0.55, side * 0.235, 0.825), scale=0.018, mat=toon("#ffffff", flat_glow=True))
+        eye["no_outline"] = shine["no_outline"] = True
+        parts += [eye, shine]
+    return parts
+
+
+def _build_bottle():
+    """lying on the water, a rolled-up note inside, a cork in it"""
+    glass, cork, paper = toon("#9fe3c4", rim=0.3), toon("#b98a52"), toon("#fbf4df")
+    b = K.cyl(loc=(-0.15, 0.0, 0.2), r=0.24, depth=0.86, verts=24, rot=(0, 90, 0), mat=glass)
+    shoulder = cone(loc=(0.42, 0.0, 0.2), r1=0.24, r2=0.1, depth=0.28, rot=(0, 90, 0), verts=24, mat=glass)
+    neck = K.cyl(loc=(0.66, 0.0, 0.2), r=0.1, depth=0.26, verts=16, rot=(0, 90, 0), mat=glass)
+    stop = K.cyl(loc=(0.83, 0.0, 0.2), r=0.085, depth=0.14, verts=16, rot=(0, 90, 0), mat=cork)
+    note = K.cyl(loc=(-0.15, -0.17, 0.32), r=0.1, depth=0.56, verts=16, rot=(0, 90, 0), mat=paper)
+    tie = K.cyl(loc=(-0.15, -0.17, 0.32), r=0.108, depth=0.07, verts=16, rot=(0, 90, 0), mat=toon("#d9503f"))
+    return [b, shoulder, neck, stop, note, tie]
+
+
+def render_find(kind, out_path):
+    """-> sheet px per model unit"""
+    cam = _setup(FIND_CELL, samples=16)
+    parts = _build_duck() if kind == "duck" else _build_bottle()
+    K.outline_all(parts, 0.03)
+    _frame(cam, 1.15, 0.25)
+    K.render(out_path)
+    K.SOFT[0] = False
+    return round(FIND_CELL / 2.3, 3)
+
+
 # ------------------------------------------------------------------- the mini-game's fish
 MINI_CELL = 224
 MINI_FRAMES = 4
@@ -479,6 +523,9 @@ def render_all(out_dir, only=None):
         e["gull"] = render_gull(os.path.join(out_dir, "gull.png"))
     if want("crab"):
         e["crab"] = render_crab(os.path.join(out_dir, "crab.png"))
+    for f in ("duck", "bottle"):
+        if want(f):
+            e.setdefault("finds", {"cell": FIND_CELL})[f] = render_find(f, os.path.join(out_dir, f + ".png"))
     for m in ("whale", "manta"):
         if want(m):
             render_big(m, os.path.join(out_dir, m + ".png"))

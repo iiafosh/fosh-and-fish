@@ -45,6 +45,8 @@ var _steering_to := Vector2.ZERO   # where the helm wants to go (scene px / s), 
 var _to_side := 0.0            # casting: swing side-on quickly, that's how he fishes
 var _seen_facing := 1.0
 var _wedged := 0.0
+var _press_ms := 0
+var _press_at := Vector2.ZERO
 var _aim_seen := Vector2.INF
 var _aim_anchor := Vector2.ZERO
 var _signs := {}                # side -> PanelContainer
@@ -330,10 +332,14 @@ func _unhandled_input(e: InputEvent) -> void:
 				dragging = true
 				_drag_to = stage.to_scene(e.position)
 				_grab = _drag_to - stage.boat_pos
+				_press_ms = Time.get_ticks_msec()
+				_press_at = e.position
 				_hide_hint()
 				get_viewport().set_input_as_handled()
 		elif dragging:
 			dragging = false
+			if Time.get_ticks_msec() - _press_ms < 280 and (e.position - _press_at).length() < 14.0:
+				main.fun.honk()                                # a tap on the boat, not a drag
 			get_viewport().set_input_as_handled()
 	elif e is InputEventMouseMotion:
 		if dragging:

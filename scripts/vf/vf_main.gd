@@ -103,6 +103,7 @@ var _sim_touch := false        # --touch: behave like a phone (captures on a des
 var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N dp (captures)
 var _portrait_note: CanvasLayer
 var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
+var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
 var _calm_idle := 0.0
 var _calm_a := 1.0
 
@@ -122,6 +123,7 @@ func _ready() -> void:
 	radio = load("res://scripts/vf/vf_radio.gd").new(self)
 	idle.build_hud()
 	radio.build_hud()
+	fun = load("res://scripts/vf/vf_fun.gd").new(self)
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
@@ -203,6 +205,7 @@ func _process(delta: float) -> void:
 	cast_ring.queue_redraw()
 	_process_hold()
 	if v1: v1.tick(delta)
+	if fun: fun.tick(delta)
 	if idle: idle.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
@@ -292,6 +295,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return                                 # the title screen is up: no casting, no menu keys
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
+		if stage.poke(event.position): return  # a crab, a gull, a bottle...
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
 		_do_cast()
@@ -305,6 +309,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_do_cast()
 			KEY_E:                                 # (S is "sail down" now: WASD steers the boat)
 				if not overlay.visible: _do_sell()
+			KEY_H:
+				if not overlay.visible: fun.honk()
 			KEY_ESCAPE:
 				if overlay.visible: _close_panel()
 				else: _open_panel("menu")
@@ -1325,6 +1331,8 @@ func _show_catch(res: Dictionary) -> void:
 	card_accent.color = accent()
 	card_title.text = "You caught %d fish!" % res.count if res.count > 0 else "Nothing bit this time..."
 	_clear(card_body)
+	var quip: String = fun.catch_line(res)
+	if quip != "": card_body.add_child(lbl(quip, 13, C_MUTED))
 	var names: Array = res.fish.keys()
 	names.sort_custom(func(a, b): return VFData.FISH[a].price > VFData.FISH[b].price)
 	for f in names:
@@ -1942,7 +1950,7 @@ func _panel_stats() -> void:
 		["Cooldown", "%.2fs" % VF.cooldown()], ["Avg fish / cast", "%.1f" % _avg_fish()],
 		["Bait effectiveness", "×%.2f" % VF.bait_eff()], ["Duplicate chance", "%.0f%%" % (VF.duplicate_chance() * 100.0)],
 		["Trips", VF.commas(VF.stats.trips)], ["Fish caught", VF.commas(VF.stats.fish)], ["Chests", VF.commas(VF.stats.chests)],
-		["Money earned", money_str(VF.stats.money_earned)]]
+		["Money earned", money_str(VF.stats.money_earned)], ["Rubber ducks", VF.commas(VF.ducks)]]
 	var g := _grid(4)
 	for r in rows:
 		var p := PanelContainer.new()
@@ -2024,6 +2032,15 @@ func _check_capture() -> void:
 		VF.changed.emit()
 		_coach_show()
 		await sail.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--fun-test" in OS.get_cmdline_user_args():
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 99
+		VF.level = 40
+		VF.changed.emit()
+		_coach_show()
+		await fun.capture_test(dir)
 		get_tree().quit()
 		return
 	if "--turn-test" in OS.get_cmdline_user_args():
