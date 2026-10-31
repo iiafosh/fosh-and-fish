@@ -291,6 +291,9 @@ def dock(x, y_shore, length, z=0.55):
     out.append(torus(loc=(x + 0.5, end + 0.3, z + 0.1), R=0.28, r=0.05, mat=toon("#d8c49a")))
     out.append(V.place("lantern", (x + 0.86, end + 0.75, z + 0.06), 1.3, rot_z=0.0, folder=SH.TOWN))
     EXTRA_LIGHTS.append(((x + 0.86, end + 0.75, z + 1.45), "lamp"))
+    # gulls resting: on the crate, and on a post
+    out.append(V.place("gull_standing", (x - 0.6, end + 0.9, z + 0.57), 0.015, rot_z=math.radians(200.0), folder=V.GLB))
+    out.append(V.place("gull_standing", (x - 1.05, y_shore - 2.2, z + 0.3), 0.0135, rot_z=math.radians(-20.0), folder=V.GLB))
     return out
 
 

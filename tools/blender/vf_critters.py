@@ -1,6 +1,6 @@
 """Animated sprite sheets from vendor models:
-- swimming fish (Quaternius Animated Fish, CC0), recoloured per VF species
-- ambient whale / manta ray, seagull and crab (Poly by Google, CC-BY 3.0)
+- swimming fish from above (Quaternius Animated Fish, CC0), recoloured per VF species, for the phone's FishTok posts
+  (what lives on the stage is in vf_life.py)
 - the captain and the shopkeeper: KayKit characters, see vf_captain.py.
 All sheets face +X and use the top-down camera pitch from vf_topdown.
 """
@@ -67,20 +67,6 @@ def render_swimmer(key, out_path):
     V.render_sheet(out_path, step, FRAMES, CELL, cam, meshes, 1.05)
 
 
-def render_static(model, out_path, size=128, rot_z=90):
-    cam = _setup(size, (0, 0, 0))
-    meshes, arm, roots = V.import_glb(os.path.join(V.GLB, model + ".glb"))
-    root = V.group_root(roots)
-    root.rotation_euler = (0, 0, math.radians(rot_z))
-    for m in meshes:
-        for mt in m.data.materials:
-            V.toonify(mt)
-    V.outline_skinned(meshes, 0.03)
-    bpy.context.view_layer.update()
-    V.normalize(meshes, root, length=2.0)
-    V.render_sheet(out_path, lambda i: None, 1, size, cam, meshes, 1.05)
-
-
 # ------------------------------------------------------------------ fisher
 def render_fisher(out_dir):
     """The captain (vf_captain.py): per-anim sheets + manifest info (frames, fps,
@@ -127,45 +113,6 @@ def render_rod_strip(name, out_path):
     K.SOFT[0] = False
     return {"grip": [round(g[0] / STRIP[0], 4), round(g[1] / STRIP[1], 4)],
             "tip": [round(t[0] / STRIP[0], 4), round(t[1] / STRIP[1], 4)]}
-
-
-# ------------------------------------------------------------------ gull
-def render_gull(out_path, n=8, size=160):
-    """Seagull flap cycle seen from above, facing +X (wings bend at the shoulder)."""
-    cam = _setup(size, (0, 0, 0))
-    meshes, arm, roots = V.import_glb(os.path.join(V.GLB, "gull.glb"))
-    root = V.group_root(roots)
-    for m in meshes:
-        for mt in m.data.materials:
-            V.toonify(mt)
-    bpy.context.view_layer.update()
-    V.normalize(meshes, root, length=2.0)
-    gull = meshes[0]
-    mw = gull.matrix_world.copy()
-    gull.parent = None
-    gull.matrix_world = mw
-    bpy.ops.object.select_all(action="DESELECT")
-    gull.select_set(True)
-    bpy.context.view_layer.objects.active = gull
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    base = [v.co.copy() for v in gull.data.vertices]
-    ymax = max(abs(c.y) for c in base)
-    w0 = ymax * 0.16
-
-    def flap(i):
-        a = math.radians(40) * math.sin(math.tau * i / n)
-        for v, c in zip(gull.data.vertices, base):
-            r = abs(c.y) - w0
-            if r <= 0:
-                v.co = c
-                continue
-            sgn = 1.0 if c.y > 0 else -1.0
-            v.co = (c.x, sgn * (w0 + r * math.cos(a)), c.z + r * math.sin(a))
-        gull.data.update()
-    flap(0)
-    K.add_outline(gull, 0.03)
-    V.render_sheet(out_path, flap, n, size, cam, [gull], 1.05)
-    K.SOFT[0] = False
 
 
 # ------------------------------------------------------------------ bobber

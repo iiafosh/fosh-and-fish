@@ -75,6 +75,7 @@ var _drop_col := Color.WHITE
 var _shake := 0.0                 # the whole stage, after a big one
 var _root_scale := 1.0
 var _last_big_show := -100.0
+var _leap_wait := 6.0             # until a fish jumps by itself, out on the water
 # ---- the world: the time of day, wind and reflections (Settings: scenery effects)
 ## a whole day, in seconds of play. 0 is dawn: morning .. day .. dusk at 0.56 .. night from 0.62 to 0.9 .. dawn again
 const DAY_LEN := 780.0
@@ -543,9 +544,8 @@ func set_biome(name: String) -> void:
 	_dip_to = 0.0
 	_drop_col = Color(_scene.water[0]).lerp(Color.WHITE, 0.6)
 	_species.clear()
-	var swim: Dictionary = manifest.get("swim", {})
 	for f in VFData.BIOMES[name].fish:
-		_species.append(_species_entry(f, swim))
+		_species.append(_species_entry(f))
 	_spawn_life()
 	_set_ambient(name)
 	_place_boat()
@@ -553,11 +553,11 @@ func set_biome(name: String) -> void:
 	_place_fleet()
 	scene_changed.emit()
 
-func _species_entry(f: String, swim: Dictionary) -> Dictionary:
-	if f in swim.get("species", []):
-		var t := _tex("swim/%s.png" % VFData.slug(f))
-		if t: return {"tex": t, "frames": int(swim.frames), "cell": float(swim.cell), "len": 1.6}
-	return {"tex": _tex("fish_top/%s.png" % VFData.slug(f)), "frames": 1, "cell": 160.0, "len": 1.25}
+## a swimming fish's sheet (tools/blender/vf_life.py), or no texture for what has none (it just doesn't swim about)
+func _species_entry(f: String) -> Dictionary:
+	var life: Dictionary = manifest.get("life", {})
+	if not life.get("fish", {}).has(f): return {"tex": null}
+	return {"tex": _tex("life/%s.png" % VFData.slug(f)), "frames": int(life.frames), "cell": float(life.cell), "rows": int(life.rows), "unit_px": float(life.fish[f])}
 
 func set_boat(name: String) -> void:
 	if name == _boat: return
@@ -762,11 +762,18 @@ func _in_water(p: Vector2, min_depth := 0.12) -> bool:
 	var c := _mask_px(p)
 	return c.a > 0.5 and c.g >= min_depth
 
+func _open_water(p: Vector2) -> bool:
+	if not _in_water(p, 0.2): return false
+	for d in [Vector2(90, 0), Vector2(-90, 0), Vector2(0, 70), Vector2(0, -70)]:      # room for a whole fish
+		if _mask_px(p + d).a < 0.5: return false
+	return true
+
 func _on_beach(p: Vector2) -> bool:
-	if _mask_px(p).a > 0.3 or _shop_rect().grow(100.0).has_point(p): return false
-	for d in [Vector2(0, 60), Vector2(40, 50), Vector2(-40, 50)]:
-		if _mask_px(p + d).a > 0.5: return true
-	return false
+	if _shop_rect().grow(100.0).has_point(p) or _mask_px(p + Vector2(0, 60)).a < 0.5: return false
+	# all along the crab's walk: sand under it, sand behind it and water in front (the dock and the rowboat have boards in front)
+	for x in [-110.0, -55.0, 0.0, 55.0, 110.0]:
+		if _mask_px(p + Vector2(x, 0)).a > 0.3 or _mask_px(p + Vector2(x, -90)).a > 0.3 or _mask_px(p + Vector2(x, 130)).a < 0.5: return false
+	return true
 
 func _rand_point(pred: Callable, tries := 3000) -> Variant:
 	for i in tries:
@@ -781,7 +788,7 @@ func _spawn_life() -> void:
 	_crabs.clear()
 	if not _species.is_empty():
 		for i in 16:
-			var p = _rand_point(func(q): return _in_water(q, 0.2))
+			var p = _rand_point(_open_water)
 			if p == null: break
 			var sp: Dictionary = _species[randi() % _species.size()]
 			var a := randf() * TAU
@@ -789,18 +796,18 @@ func _spawn_life() -> void:
 				"target": p, "sp": sp, "size": randf_range(0.6, 1.0), "wig": randf() * TAU})
 	var bigs := {"Ocean": ["whale", "manta"], "Abyss": ["manta"], "Space": ["whale"], "Sky": ["manta"]}
 	for kind in bigs.get(_biome, []):
-		var t := _tex("swim/%s.png" % kind)
+		var t := _tex("life/%s.png" % kind)
 		if t: _big.append({"tex": t, "kind": kind, "pos": Vector2(-400, SCENE.y * randf_range(0.6, 0.9)), "wait": randf_range(4, 14), "vel": Vector2(40, -6)})
 	if _biome in ["River", "Ocean", "Volcanic", "Sky"]:
-		var g := _tex("critters/gull.png")
+		var g := _tex("life/gull.png")
 		for i in 3:
 			var ang := randf_range(-0.4, 0.4) + (PI if randf() < 0.5 else 0.0)
 			_gulls.append({"tex": g, "pos": Vector2(randf() * SCENE.x, randf_range(0.05, 0.6) * SCENE.y), "ang": ang,
 				"turn": 0.0, "speed": randf_range(95, 135), "ph": randf() * TAU, "glide": 0.0, "fr": 0.0})
 	if _biome in ["River", "Ocean"]:
-		var c := _tex("critters/crab.png")
+		var c := _tex("life/crab.png")
 		for i in 3:
-			var p = _rand_point(_on_beach)
+			var p = _rand_point(func(q): return _on_beach(q) and _crabs.all(func(o): return o.home.distance_to(q) > 360.0))
 			if p != null: _crabs.append({"tex": c, "pos": p, "home": p, "ph": randf() * TAU, "dir": 1.0, "wait": randf() * 2.0, "x": 0.0, "tilt": 0.0})
 
 func _process(delta: float) -> void:
@@ -821,13 +828,13 @@ func _process(delta: float) -> void:
 		if f.pos.distance_to(f.target) < 40.0 or not _in_water(f.target, 0.18):
 			for _i in 12:
 				var cand: Vector2 = f.pos + Vector2.from_angle(randf() * TAU) * randf_range(150, 420)
-				if _in_water(cand, 0.2):
+				if _open_water(cand) and _in_water((f.pos + cand) * 0.5, 0.12):
 					f.target = cand
 					break
 			f.speed = randf_range(22, 60)
+		if not _in_water(f.pos + Vector2.from_angle(f.ang) * 120.0, 0.12):      # the shore, the dock or a rowboat ahead
+			f.target = f.pos.lerp(Vector2(SCENE.x * 0.5, SCENE.y * 0.85), 0.5)
 		var want_ang: float = (f.target - f.pos).angle()
-		if not _in_water(f.pos + Vector2.from_angle(f.ang) * 60.0, 0.12):
-			want_ang = (Vector2(SCENE.x * 0.5, SCENE.y * 0.85) - f.pos).angle()
 		f.ang = rotate_toward(f.ang, want_ang, 1.6 * delta)
 		f.vel = Vector2.from_angle(f.ang) * f.speed
 		f.pos += f.vel * delta
@@ -894,46 +901,67 @@ func _process(delta: float) -> void:
 			_dart = {}
 	_tick_catch(delta)
 	_tick_daylight(delta)
+	_leap_wait -= delta
+	if _leap_wait <= 0.0:
+		_leap_wait = randf_range(8.0, 20.0)
+		_wild_leap()
 	for r in _ripples: r.t += delta
 	_ripples = _ripples.filter(func(r): return r.t < 1.4)
 	life_layer.queue_redraw()
 	sky_layer.queue_redraw()
 	over.queue_redraw()
 
-func _sheet_draw(layer: Control, sp: Dictionary, p: Vector2, ang: float, length_px: float, col: Color, phase: float) -> void:
+## One creature from a sheet of tools/blender/vf_life.py. Its rows are headings on the water, seen from the game's camera:
+## toward the camera .. right .. away from it. The other side is the same sheet mirrored, and a small turn of the sprite
+## makes up the rest of the way. ang: where it's going on screen. scale_px: scene px per model unit. frame: -1 runs the cycle.
+func _life_draw(layer: Control, sp: Dictionary, p: Vector2, ang: float, scale_px: float, col: Color, phase := 0.0, frame := -1) -> void:
 	var t: Texture2D = sp.tex
 	if t == null: return
 	var cell: float = sp.cell
-	var n: int = sp.frames
-	var fi := int((_t * 10.0 + phase * 3.0)) % n if n > 1 else 0
-	var sc := length_px / cell
-	layer.draw_set_transform(p, ang + (0.0 if n > 1 else sin(_t * 9.0 + phase) * 0.08), Vector2(sc, sc))
-	layer.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fi * cell, 0, cell, t.get_height()), col)
+	var flip := cos(ang) < 0.0
+	var side := atan2(sin(ang), absf(cos(ang)))              # the way it goes, folded onto the right-hand side
+	var row := 0
+	var rest := side
+	if int(sp.rows) > 1:
+		var on_water := rad_to_deg(atan2(-sin(side) / 0.82, cos(side)))    # (the view squeezes depth)
+		row = clampi(int(round((on_water + 90.0) / 45.0)), 0, int(sp.rows) - 1)
+		var th := deg_to_rad(-90.0 + row * 45.0)
+		rest = side - atan2(-sin(th) * 0.82, cos(th))
+	var fi := frame if frame >= 0 else int(_t * 11.0 + phase * 3.0) % int(sp.frames)
+	var sc: float = scale_px / float(sp.unit_px)
+	layer.draw_set_transform(p, -rest if flip else rest, Vector2(-sc if flip else sc, sc))
+	layer.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fi * cell, row * cell, cell, cell), col)
 
 func _draw_life() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
 	for b in _big:
 		if b.wait > 0.0: continue
 		var len_px := u * (11.0 if b.kind == "whale" else 7.0)
-		var sp := {"tex": b.tex, "frames": 8, "cell": 128.0}
-		_sheet_draw(life_layer, sp, b.pos + Vector2(30, 40), b.vel.angle(), len_px, Color(0, 0.05, 0.1, 0.12), 0.0)
-		_sheet_draw(life_layer, sp, b.pos, b.vel.angle(), len_px, Color(water_tint.r, water_tint.g, water_tint.b, 0.35).lerp(Color(1, 1, 1, 0.35), 0.3), 0.0)
+		var big_info: Dictionary = manifest.get("life", {}).get("big", {"cell": 192, "frames": 8})
+		var sp := {"tex": b.tex, "frames": big_info.frames, "cell": float(big_info.cell), "rows": 1, "unit_px": float(big_info.cell)}
+		_life_draw(life_layer, sp, b.pos + Vector2(30, 40), b.vel.angle(), len_px, Color(0, 0.05, 0.1, 0.12))
+		_life_draw(life_layer, sp, b.pos, b.vel.angle(), len_px, Color(water_tint.r, water_tint.g, water_tint.b, 0.35).lerp(Color(1, 1, 1, 0.35), 0.3))
 	for f in _fish:
 		var depth := _mask_px(f.pos).g
-		var len_px: float = u * f.sp.len * f.size
-		_sheet_draw(life_layer, f.sp, f.pos + Vector2(14, 18) * (0.5 + depth), f.vel.angle(), len_px, Color(0, 0.05, 0.1, 0.18), f.wig)
-		var a := clampf(0.9 - depth * 0.55, 0.3, 0.9)
-		_sheet_draw(life_layer, f.sp, f.pos, f.vel.angle(), len_px, Color(1, 1, 1, a).lerp(Color(water_tint.r, water_tint.g, water_tint.b, a), 0.3 + depth * 0.3), f.wig)
+		var fish_px: float = u * 0.8 * f.size
+		_life_draw(life_layer, f.sp, f.pos + Vector2(10, 14) * (0.5 + depth), f.vel.angle(), fish_px, Color(0, 0.05, 0.1, 0.11), f.wig)
+		var a := clampf(1.0 - depth * 0.35, 0.55, 1.0)
+		_life_draw(life_layer, f.sp, f.pos, f.vel.angle(), fish_px, Color(1, 1, 1, a).lerp(Color(water_tint.r, water_tint.g, water_tint.b, a), 0.08 + depth * 0.2), f.wig)
 	if not _dart.is_empty():
-		_sheet_draw(life_layer, _dart.sp, _dart.pos, ((_bobber - (_dart.from as Vector2))).angle(), u * 1.8, Color(1, 1, 1, 0.95), 0.0)
+		_life_draw(life_layer, _dart.sp, _dart.pos, ((_bobber - (_dart.from as Vector2))).angle(), u * 1.0, Color(1, 1, 1, 0.95))
+	var crab_info: Dictionary = manifest.get("life", {}).get("crab", {})
 	for c in _crabs:
 		var ct: Texture2D = c.tex
-		if ct == null: continue
-		var cs := u * 0.9 / ct.get_width()
-		life_layer.draw_set_transform(c.pos + Vector2(6, 8), c.tilt, Vector2(cs, cs))
-		life_layer.draw_texture(ct, -ct.get_size() * 0.5, Color(0, 0, 0, 0.18))
-		life_layer.draw_set_transform(c.pos, c.tilt, Vector2(cs, cs))
-		life_layer.draw_texture(ct, -ct.get_size() * 0.5)
+		if ct == null or crab_info.is_empty(): continue
+		var cell: float = crab_info.cell
+		var cs: float = u * 0.42 / float(crab_info.unit_px)
+		var walking: bool = c.wait <= 0.0
+		var src := Rect2(int(c.ph * (13.0 if walking else 4.0)) % int(crab_info.frames) * cell, 0.0 if walking else cell, cell, cell)
+		var dst := Rect2(-cell * 0.5, -cell * 0.5, cell, cell)
+		life_layer.draw_set_transform(c.pos + Vector2(4, 7), 0.0, Vector2(cs, cs * 0.8))
+		life_layer.draw_texture_rect_region(ct, dst, src, Color(0, 0, 0, 0.2))
+		life_layer.draw_set_transform(c.pos, 0.0, Vector2(cs, cs))
+		life_layer.draw_texture_rect_region(ct, dst, src)
 	life_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	for f in _flashes:                       # foam where a fish came out
 		life_layer.draw_set_transform(f.p, 0.0, Vector2(1.0, 0.5))
@@ -946,21 +974,15 @@ func _draw_life() -> void:
 
 func _draw_sky() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
-	var info: Dictionary = manifest.get("gull", {"frames": 8, "cell": 160})
-	var n: int = info.frames
-	var cell: float = info.cell
+	var info: Dictionary = manifest.get("life", {}).get("gull", {})
+	if info.is_empty(): return
 	for g in _gulls:
 		var t: Texture2D = g.tex
 		if t == null or night_amount > 0.6: continue
-		var fi := int(g.fr) % n
-		var sc := u * 1.4 / cell
-		var squash := 1.0 - clampf(absf(g.turn) * 0.5, 0.0, 0.2)
-		var src := Rect2(fi * cell, 0, cell, cell)
-		var dst := Rect2(-cell * 0.5, -cell * 0.5, cell, cell)
-		sky_layer.draw_set_transform(g.pos + Vector2(110, 160), g.ang, Vector2(sc, sc * squash))
-		sky_layer.draw_texture_rect_region(t, dst, src, Color(0, 0.05, 0.1, 0.15))
-		sky_layer.draw_set_transform(g.pos, g.ang, Vector2(sc, sc * squash))
-		sky_layer.draw_texture_rect_region(t, dst, src)
+		var sp := {"tex": t, "frames": info.frames, "cell": float(info.cell), "rows": 5, "unit_px": float(info.unit_px)}
+		var fi: int = int(info.glide) if g.glide > 0.0 else int(g.fr) % int(info.frames)     # wings out to glide
+		_life_draw(sky_layer, sp, g.pos + Vector2(90, 150), g.ang, u * 0.62, Color(0, 0.05, 0.1, 0.14), 0.0, fi)
+		_life_draw(sky_layer, sp, g.pos, g.ang, u * 0.62, Color.WHITE, 0.0, fi)
 	sky_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_rod() -> void:
@@ -1185,7 +1207,7 @@ func show_catch(res: Dictionary) -> float:
 	names.sort_custom(func(a, b): return VFData.FISH[a].price > VFData.FISH[b].price)
 	var best: String = names[0]
 	var lv := _show_level(res, best)
-	var sp := _species_entry(best, manifest.get("swim", {}))
+	var sp := _species_entry(best)
 	if sp.tex != null:
 		_dart = {"sp": sp, "from": _bobber + Vector2.from_angle(randf() * TAU) * 170.0, "pos": _bobber, "t": 0.0}
 	_catch = {"t": 0.0, "fight": CATCH_BITE, "burst": CATCH_BITE + CATCH_FIGHT[lv], "lv": lv, "best": best, "extras": _school(fish, int(res.get("count", 1))),
@@ -1252,6 +1274,10 @@ func _tick_catch(delta: float) -> void:
 		f.t += delta
 		if f.t < 0.0: continue
 		if f.land < 0.0 and f.t >= f.dur:
+			if f.has("to"):                       # back in the water
+				_water_kick(f.to, 0.55)
+				f.land = 1.0
+				continue
 			f.land = 0.0
 			AudioManager.play_flop()
 			if f.lv > 0: burst("sparkle", deck_point())
@@ -1304,6 +1330,29 @@ func _leap(fish_name: String, from: Vector2, lv: int, delay: float, main: bool) 
 		"h": clampf(dist * [0.5, 0.62, 0.8][lv], [110.0, 150.0, 240.0][lv], [230.0, 300.0, 400.0][lv]) * (1.0 if main else randf_range(0.7, 1.0)),
 		"size": u * ([2.0, 2.7, 3.8][lv] if main else randf_range(1.3, 1.7))})
 
+## now and then something jumps out on the water, for no reason at all
+func _wild_leap() -> void:
+	var names: Array = VFData.BIOMES.get(_biome, {}).get("fish", []).filter(func(f): return not f in ["Turtle", "Guardian", "Galactic Crab"])
+	if names.is_empty() or _mask == null: return
+	var from_boat := boat.position + boat.pivot_offset
+	var p = _rand_point(func(q): return _in_water(q, 0.3) and q.distance_to(from_boat) > 260.0 and q.distance_to(_bobber) > 180.0, 60)
+	if p == null: return
+	var fish_name: String = "Dolphin" if "Dolphin" in names and randf() < 0.6 else names.pick_random()
+	var t: Texture2D = _tex("fish/%s.png" % VFData.slug(fish_name))
+	if t == null: return
+	var u: float = float(_scene.get("unit_px", 56.0))
+	var big: float = 1.5 if fish_name in ["Dolphin", "Shark"] else 1.0
+	var to: Vector2 = p + Vector2(randf_range(70.0, 130.0) * big * (1.0 if randf() < 0.5 else -1.0), randf_range(-12.0, 12.0))
+	_leapers.append({"tex": t, "name": fish_name, "from": p, "to": to, "ofs": Vector2.ZERO, "t": 0.0, "land": -1.0, "lv": 0, "main": false,
+		"dur": 0.62 + 0.14 * big, "h": randf_range(60.0, 90.0) * big, "size": u * 1.5 * big})
+	_water_kick(p, 0.5)
+
+## the splash where something leaves the water or falls back in (no sound: this is scenery)
+func _water_kick(at: Vector2, power: float) -> void:
+	_spray(at, int(12.0 * power) + 3, power)
+	_add_ripple(at, 44.0 * power + 12.0, 1.8)
+	_flashes.append({"p": at, "t": 0.0, "life": 0.4, "r": 40.0 * power + 8.0})
+
 ## water flung into the air
 func _spray(at: Vector2, n: int, power: float) -> void:
 	for _i in mini(n, 260 - _drops.size()):
@@ -1347,8 +1396,8 @@ func _draw_catch() -> void:
 		over.draw_circle(d.p, d.r, Color(_drop_col.r, _drop_col.g, _drop_col.b, minf(1.0, d.t * 5.0) * 0.9))
 	var font: Font = null
 	for f in _leapers:
-		if f.t < 0.0: continue
-		var to: Vector2 = deck_point() + f.ofs
+		if f.t < 0.0 or f.land >= 0.6: continue
+		var to: Vector2 = f.to if f.has("to") else deck_point() + f.ofs
 		var pos: Vector2
 		var ground: Vector2
 		var ang := 0.0

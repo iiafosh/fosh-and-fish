@@ -53,8 +53,8 @@ GLBS = {
     "dolphin": "fcea284f-cafc-4be1-a701-2a0fd811ad5c", "shark": "d2d374ea-eb1d-4659-8cc7-816a83b82470",
     "fish1": "6805b99c-5fd7-4aab-bf57-3bb645e1108a", "whale": "7300e697-2543-4a9a-a77d-dedf29251fd7",
     "fish2": "311a79f6-ba3e-47aa-80ce-04185fc76b2a", "fish3": "8410757e-6594-4011-817a-633730fbcaf8",
-    "manta": "32b4e08e-4605-4356-8bd3-e0cf32335a0f", "gull": "882c4ff3-c97b-4ae2-aedf-953c8d692898",
-    "crab": "1acf95b5-2e6b-4c9d-bd37-8384b88bdbea",
+    "manta": "32b4e08e-4605-4356-8bd3-e0cf32335a0f",
+    "gull_standing": "b556e543-d7ac-4740-84fd-b0a8221c68a5",
     "chest": "803af4ae-433f-4b05-b1f1-c6a2da02d768",
 }
 # boat models (tools/blender/vf_boats.py) -> scratch/downloads/glb/boats/<name>.glb

@@ -184,13 +184,20 @@ def do_critters(only, man):
         if want(key, only):
             CR.render_swimmer(key, os.path.join(d, slug(key) + ".png"))
     man["swim"] = {"frames": CR.FRAMES, "cell": CR.CELL, "species": [k for k in CR.SWIMMERS]}
-    d = os.path.join(OUT, "critters")
-    os.makedirs(d, exist_ok=True)
-    if want("gull", only):
-        CR.render_gull(os.path.join(d, "gull.png"))
-        man["gull"] = {"frames": 8, "cell": 160}
-    if want("crab", only):
-        CR.render_static("crab", os.path.join(d, "crab.png"), 96, rot_z=0)
+
+
+def do_life(only, man):
+    import vf_life as LF
+    e = LF.render_all(os.path.join(OUT, "life"), only)
+    old = man.get("life", {})
+    # (rendering only some of them keeps the others' entries)
+    fish = old.get("fish", {})
+    fish.update(e["fish"])
+    e["fish"] = fish
+    for k in ("gull", "crab"):
+        if k not in e and k in old:
+            e[k] = old[k]
+    man["life"] = e
 
 
 def do_fisher(man):
@@ -249,6 +256,8 @@ def main():
             do_fish_top(only)
         elif c == "critters":
             do_critters(only, man)
+        elif c == "life":
+            do_life(only, man)
         elif c == "fisher":
             do_fisher(man)
         elif c == "rods_hand":

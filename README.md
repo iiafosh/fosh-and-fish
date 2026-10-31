@@ -138,12 +138,14 @@ python tools/art/make_ads.py
 python tools/fetch_assets.py          # the source packs, into scratch/downloads
 python tools/video/make_music.py      # the soundtrack: the tracks at one loudness, small
 python tools/art/make_fx.py           # noise and glow for the shaders
-blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top fisher merchant bobber
+blender -b --factory-startup --python tools/blender/render_assets.py -- fish boats scenes boats_top fisher merchant bobber life
 blender -b --factory-startup --python tools/blender/render_v1.py -- shiny event ui packs
 ```
 The shop is part of each biome's backdrop (`vf_shop.py`, rendered with `scenes`), the captain and the shopkeeper are
 KayKit characters (`vf_captain.py`), and `boats_top` also finds where the captain sits on each boat and bakes the
 images the hull's foam and reflection are drawn from; each scene also gets a wind mask and a reflection of the world.
+`life` is everything alive on the stage (`vf_life.py`): each biome's fish in five headings, the gull, the crab, the
+whale and the manta, all from the same camera as the scenes.
 The web export leaves the soundtrack out of its download and fetches a track when it's needed (`release.py` puts them
 next to the game). To check them in the game:
 `Godot_console.exe --path . --resolution 1920x1080 -- --capture=ABSOLUTE_EMPTY_DIR --scenes-test` (every biome, and a

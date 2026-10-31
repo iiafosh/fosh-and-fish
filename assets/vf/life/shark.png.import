@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b14dfgvtj01xl"
-path="res://.godot/imported/gull.png-898b482b554e238e4785b6e6b96d01ac.ctex"
+uid="uid://deiiloouraf3b"
+path="res://.godot/imported/shark.png-9610d416a9f317a394e4c4130b7072e6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/critters/gull.png"
-dest_files=["res://.godot/imported/gull.png-898b482b554e238e4785b6e6b96d01ac.ctex"]
+source_file="res://assets/vf/life/shark.png"
+dest_files=["res://.godot/imported/shark.png-9610d416a9f317a394e4c4130b7072e6.ctex"]
 
 [params]
 

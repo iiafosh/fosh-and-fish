@@ -2696,9 +2696,54 @@
    ]
   }
  },
- "gull": {
-  "cell": 160,
-  "frames": 8
+ "life": {
+  "big": {
+   "cell": 192,
+   "frames": 8
+  },
+  "cell": 112,
+  "crab": {
+   "cell": 96,
+   "frames": 6,
+   "unit_px": 27.429
+  },
+  "fish": {
+   "Alien Fish": 31.614,
+   "Artifact Fish": 31.818,
+   "Cod": 31.121,
+   "Dark Puffer": 36.841,
+   "Dark Tuna": 26.337,
+   "Dolphin": 28.955,
+   "Emerald Squid": 34.291,
+   "Fiery Pufferfish": 33.946,
+   "Galactic Crab": 30.018,
+   "Guardian": 27.555,
+   "Hot Cod": 30.042,
+   "Pufferfish": 36.841,
+   "Rainbow Fish": 30.882,
+   "Raw Fish": 32.079,
+   "Raw Salmon": 30.43,
+   "Shark": 27.413,
+   "Space Fish": 31.885,
+   "Squid": 34.436,
+   "Tropical Fish": 32.947,
+   "Turtle": 38.44
+  },
+  "frames": 6,
+  "gull": {
+   "cell": 128,
+   "frames": 8,
+   "glide": 6,
+   "unit_px": 49.231
+  },
+  "headings": [
+   -90.0,
+   -45.0,
+   0.0,
+   45.0,
+   90.0
+  ],
+  "rows": 5
  },
  "merchant": {
   "anchor": [
