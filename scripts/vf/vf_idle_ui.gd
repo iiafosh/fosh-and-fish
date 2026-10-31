@@ -5,14 +5,14 @@ extends RefCounted
 ## Built with vf_main's UI kit (sbox, lbl, btn, icon, ph, tex, _card, _act, _grid, money_str).
 ## Game rules live in VF (vf_game.gd "Idle"), data in VFData ("idle").
 
-const C_TEXT := Color("#1f2d35")
-const C_MUTED := Color("#6b7d86")
-const C_GOOD := Color("#22a06b")
-const C_GOLD := Color("#d4920f")
-const C_TEAL := Color("#1d9bb0")
+const C_TEXT := Color("#2b3a40")
+const C_MUTED := Color("#6d7c7d")
+const C_GOOD := Color("#2c9a73")
+const C_GOLD := Color("#c98b1c")
+const C_TEAL := Color("#238b9c")
 const C_AD := Color("#2563eb")
 const C_SUN := Color("#ffd75e")
-const C_PANEL2 := Color("#eef4f6")          # (vf_main.C_PANEL2: cards inside panels)
+const C_PANEL2 := Color("#efe9dc")          # (vf_main.C_PANEL2: cards inside panels)
 const SPIN_SECS := 3.6
 
 var m                                 # vf_main
@@ -106,7 +106,7 @@ func _style_auto() -> void:
 	for st in ["normal", "hover", "pressed"]:
 		var sb: StyleBoxFlat = m.pill_box(true, 13, 6)
 		if on: sb.bg_color = C_GOOD.lightened(0.08 if st == "hover" else 0.0).darkened(0.12 if st == "pressed" else 0.0)
-		elif st == "hover": sb.bg_color = Color.WHITE
+		elif st == "hover": sb.bg_color = m.C_LIGHT_HOVER
 		auto_pill.add_theme_stylebox_override(st, sb)
 	auto_pill.text = "Auto: on" if on else "Auto"
 	auto_pill.tooltip_text = ("Auto-fish is on: your boat casts by itself (a bit slower than holding the button). Click to stop." if on
@@ -124,14 +124,15 @@ func _refresh_hud() -> void:
 		fleet_sub.text = "They fish for you, even while you're away"
 		var sb: StyleBoxFlat = m.pill_box(false, 10, 5)
 		if VF.money >= c:
-			sb.border_color = C_SUN
-			sb.set_border_width_all(2)
+			sb.border_color = Color(C_SUN, 0.55)
+			sb.set_border_width_all(1)
 		fleet_pill.add_theme_stylebox_override("panel", sb)
 	else:
 		fleet_title.text = "%d crew%s  ·  %s fish/min" % [VF.crews, "" if VF.crews == 1 else "s", VF.fmt(VF.fleet_fish_per_min())]
 		fleet_sub.text = "Fishing for you, even while you're away"
 		fleet_pill.add_theme_stylebox_override("panel", m.pill_box(false, 10, 5))
-	fleet_sub.visible = not m.compact()
+	fleet_sub.visible = false
+	fleet_pill.tooltip_text = fleet_sub.text
 
 
 func tick(_delta: float) -> void:

@@ -44,7 +44,7 @@ void fragment() {
 		float s1 = texture(noise, p * vec2(2.6, 5.4) + vec2(t * 0.012, t * 0.008)).g;
 		float s2 = texture(noise, p * vec2(3.5, 7.2) + vec2(-t * 0.01, t * 0.011)).g;
 		float sun = smoothstep(0.85, 0.1, length((UV - sun_at) * vec2(1.0, 1.5)));
-		float sparkle = smoothstep(1.87, 1.92, s1 + s2 + sun * 0.06) * max(sun, stars * 0.65);
+		float sparkle = smoothstep(1.91, 1.97, s1 + s2 + sun * 0.05) * max(sun, stars * 0.65);
 		// the reflection, broken up by the small waves
 		vec2 ruv = UV;
 		ruv.x += (sin(UV.y * 150.0 + TIME * 2.3) * 0.0016 + sin(UV.y * 71.0 - TIME * 1.4) * 0.0022) * (0.5 + a1);
@@ -53,7 +53,7 @@ void fragment() {
 		float ra = r.a * mirror * water;
 		// the light on top of it
 		float a = (k * 0.5 * (1.0 - depth * 0.8) + lines * 0.11) * gain;
-		float g = sparkle * 0.75 * gain + sun * sun_glow;
+		float g = sparkle * 0.5 * gain + sun * sun_glow;
 		a = clamp(a * water, 0.0, 1.0);
 		g = clamp(g * water, 0.0, 1.0);
 		float light = 1.0 - (1.0 - a) * (1.0 - g);

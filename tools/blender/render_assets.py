@@ -210,6 +210,17 @@ def do_life(only, man):
     man["life"] = e
 
 
+def do_brand(only):
+    import vf_brand as BR
+    d = os.path.join(ROOT, "assets", "brand", "src")
+    if want("logo", only):
+        BR.render_logo(os.path.join(d, "logo_3d.png"))
+    if want("icon", only):
+        BR.render_icon(os.path.join(d, "icon_3d.png"))
+    if want("title", only):
+        BR.render_title(d)
+
+
 def do_mini(only, man):
     import vf_life as LF
     d = os.path.join(OUT, "mini")
@@ -282,6 +293,8 @@ def main():
             do_life(only, man)
         elif c == "mini":
             do_mini(only, man)
+        elif c == "brand":
+            do_brand(only)
         elif c == "fisher":
             do_fisher(man)
         elif c == "rods_hand":

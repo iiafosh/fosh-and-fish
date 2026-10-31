@@ -196,7 +196,7 @@ func _ready() -> void:
 			_fisher_tex[k] = _tex("fisher/%s.png" % k)
 	_bobber_tex = _tex("fx/bobber.png")
 	_star_tex = _tex(FX + "star_06.png")
-	_glints = _particles("star_06", 8, 1.8, Color(1, 1, 1, 0.55), 0.03, 0.07)
+	_glints = _particles("star_06", 3, 2.4, Color(1, 1, 1, 0.3), 0.03, 0.06)
 	_glints.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_glints.emission_rect_extents = Vector2(SCENE.x * 0.5, SCENE.y * 0.27)     # (out on the water)
 	_glints.position = Vector2(SCENE.x * 0.5, SCENE.y * 0.72)

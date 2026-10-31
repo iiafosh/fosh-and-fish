@@ -3,8 +3,8 @@ extends RefCounted
 ## "Just listen", where the interface fades away and the game plays by itself to the music.
 ## The music itself is in AudioManager. Built with vf_main's UI kit (sbox, lbl, btn, icon, ph, _grid, _add_to).
 
-const C_TEAL := Color("#1d9bb0")
-const C_MUTED := Color("#6b7d86")
+const C_TEAL := Color("#238b9c")
+const C_MUTED := Color("#6d7c7d")
 const C_PINK := Color("#db2777")
 
 var m                                 # vf_main

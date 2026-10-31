@@ -8,18 +8,19 @@ const ART := "res://assets/vf/"
 var VERSION: String = Updater.version + (" beta" if Updater.version.begins_with("0.") else "")    # 1.0+: no "beta"
 const FEEDBACK_URL := "https://github.com/iiafosh/fosh-and-fish/issues/new"
 const C_BG := Color("#cfe8ec")
-const C_PANEL := Color("#fbfdfe")          # frosted white
-const C_PANEL2 := Color("#eef4f6")         # cards inside panels
-const C_TEXT := Color("#1f2d35")
-const C_MUTED := Color("#6b7d86")
-const C_GOOD := Color("#22a06b")
-const C_GOLD := Color("#d4920f")
-const C_BAD := Color("#e04f45")
-const C_NEUTRAL := Color("#eef3f5")
-const C_TEAL := Color("#1d9bb0")
-const C_DARK := Color(0.055, 0.16, 0.2, 0.74)  # dark glass pills (numbers)
-const C_LIGHT := Color(1, 1, 1, 0.9)          # light glass pills (actions)
-const C_SHADOW := Color(0.02, 0.1, 0.14, 0.22)
+const C_PANEL := Color("#f8f3e9")          # warm paper: easy on the eye next to all that blue
+const C_PANEL2 := Color("#efe9dc")         # cards inside panels
+const C_TEXT := Color("#2b3a40")
+const C_MUTED := Color("#6d7c7d")
+const C_GOOD := Color("#2c9a73")
+const C_GOLD := Color("#c98b1c")
+const C_BAD := Color("#d5604f")
+const C_NEUTRAL := Color("#ece6d9")
+const C_TEAL := Color("#238b9c")
+const C_DARK := Color(0.05, 0.16, 0.19, 0.62)   # dark sea glass (numbers)
+const C_LIGHT := Color(0.975, 0.955, 0.91, 0.84)   # light paper glass (actions)
+const C_LIGHT_HOVER := Color(1.0, 0.985, 0.95, 0.95)
+const C_SHADOW := Color(0.02, 0.1, 0.14, 0.15)
 
 var manifest := {}
 var _tex_cache := {}
@@ -102,6 +103,8 @@ var _sim_touch := false        # --touch: behave like a phone (captures on a des
 var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N dp (captures)
 var _portrait_note: CanvasLayer
 var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
+var _calm_idle := 0.0
+var _calm_a := 1.0
 
 func _ready() -> void:
 	_load_manifest()
@@ -133,11 +136,11 @@ func _ready() -> void:
 	if not title:
 		_card_intro()
 		idle.on_shown.call_deferred()          # (else when the title screen closes)
-	_build_version_label()
 	_build_coach()
 	if title: _open_launcher()
 	_check_capture()
 	Updater.boot_ok()
+	_build_update_pill()
 	Updater.status_changed.connect(_on_update_status)
 	if Updater.skipped_patch != "":
 		_toast("Update %s didn't start, so you're on the previous version. A fix is coming!" % Updater.skipped_patch, "warn")
@@ -176,7 +179,21 @@ func _launcher_closing() -> void:
 	idle.on_shown()                            # what the crews caught while you were away
 	_coach_show()
 
+## A few seconds after you last reached for it, the interface around the edges fades back so you can look at the water.
+## Tapping the water to fish doesn't count as reaching for it.
+func _calm_tick(delta: float) -> void:
+	_calm_idle += delta
+	var want := 0.5 if _calm_idle > 7.0 and not overlay.visible and minigame == null else 1.0
+	_calm_a = move_toward(_calm_a, want, delta * (0.4 if want < 1.0 else 6.0))
+	for n in [hud_col, top_right, gear_box, mode_pill, idle.auto_pill if idle else null]:
+		if n and is_instance_valid(n): n.modulate.a = _calm_a
+
+func _calm_near_hud(at: Vector2) -> bool:
+	var vs := get_viewport_rect().size
+	return at.y < 120.0 or at.y > vs.y - 150.0 or at.x < vs.x * 0.2 or at.x > vs.x * 0.86
+
 func _process(delta: float) -> void:
+	_calm_tick(delta)
 	_save_timer += delta
 	if _save_timer > 20.0:
 		_save_timer = 0.0
@@ -201,6 +218,8 @@ func _process(delta: float) -> void:
 ## swallow the drag, so only the thin scrollbar moved it.) A drag that becomes a scroll cancels the button
 ## it started on, so scrolling never presses anything.
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey or ((event is InputEventMouseMotion or event is InputEventMouseButton) and _calm_near_hud(event.position)):
+		_calm_idle = 0.0
 	if _drag_cancel or not is_touch() or panel_scroll == null or not overlay.visible: return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -395,9 +414,9 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 		b.add_theme_color_override(k, fc)
 	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.35))
 	if color == C_NEUTRAL:
-		b.add_theme_stylebox_override("normal", sbox(Color.WHITE, 14, 1, Color("#d5e1e5"), 8))
-		b.add_theme_stylebox_override("hover", sbox(Color("#f6fbfc"), 14, 2, C_TEAL.lightened(0.3), 8))
-		b.add_theme_stylebox_override("pressed", sbox(Color("#e3eef1"), 14, 1, C_TEAL, 8))
+		b.add_theme_stylebox_override("normal", sbox(Color("#fbf7ee"), 14, 1, Color("#d9d2c2"), 8))
+		b.add_theme_stylebox_override("hover", sbox(Color("#fffaf0"), 14, 2, C_TEAL.lightened(0.3), 8))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#ece6d9"), 14, 1, C_TEAL, 8))
 	else:
 		var n := sbox(color, 14, 0, Color.TRANSPARENT, 9)
 		n.border_width_bottom = 3
@@ -533,7 +552,7 @@ func _check_portrait() -> void:
 		_portrait_note.visible = upright
 
 func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
-	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.7) if light else Color(1, 1, 1, 0.08), 0, 6)
+	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.3) if light else Color(1, 1, 1, 0.06), 0, 5)
 	sb.content_margin_left = pad_h
 	sb.content_margin_right = pad_h
 	sb.content_margin_top = pad_v
@@ -543,7 +562,7 @@ func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
 ## small keyboard hint chip ("Tab", "Esc"); hidden on phones
 func keycap(text: String) -> Control:
 	var p := PanelContainer.new()
-	var sb := sbox(Color("#e6eef1"), 6, 1, Color("#c9d6db"), 0)
+	var sb := sbox(Color("#e9e3d6"), 6, 1, Color("#d3ccbc"), 0)
 	sb.content_margin_left = 5
 	sb.content_margin_right = 5
 	sb.content_margin_top = 0
@@ -555,7 +574,7 @@ func keycap(text: String) -> Control:
 	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return p
 
-## a clickable pill: [icon] text [keycap] (+ optional red badge)
+## a clickable pill: [icon] text (+ optional badge); its keyboard key is in the tooltip
 func pill_button(icon_name: String, text: String, key := "", light := true) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
@@ -572,31 +591,20 @@ func pill_button(icon_name: String, text: String, key := "", light := true) -> B
 		b.icon = ph(icon_name)
 		b.add_theme_constant_override("icon_max_width", 18)
 		b.add_theme_constant_override("h_separation", 7)
-	var show_key := key != "" and not is_touch()
+	if key != "" and not is_touch(): b.tooltip_text = "%s  [%s]" % [text, key]
 	var sb := pill_box(light, 13, 6)
-	if show_key: sb.content_margin_right = 13 + 8 + 9 * key.length() + 10
 	b.add_theme_stylebox_override("normal", sb)
 	var hv := sb.duplicate()
-	hv.bg_color = Color.WHITE if light else C_DARK.lightened(0.1)
-	hv.border_color = C_TEAL.lightened(0.35) if light else Color(1, 1, 1, 0.25)
+	hv.bg_color = C_LIGHT_HOVER if light else C_DARK.lightened(0.1)
+	hv.border_color = C_TEAL.lightened(0.45) if light else Color(1, 1, 1, 0.2)
 	b.add_theme_stylebox_override("hover", hv)
 	var pr := sb.duplicate()
-	pr.bg_color = Color("#e3eef1") if light else C_DARK.darkened(0.2)
+	pr.bg_color = C_NEUTRAL if light else C_DARK.darkened(0.2)
 	b.add_theme_stylebox_override("pressed", pr)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	if show_key:
-		var kc := keycap(key)
-		kc.anchor_left = 1.0
-		kc.anchor_right = 1.0
-		kc.anchor_top = 0.5
-		kc.anchor_bottom = 0.5
-		kc.offset_right = -11
-		kc.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		kc.grow_vertical = Control.GROW_DIRECTION_BOTH
-		b.add_child(kc)
 	var badge := PanelContainer.new()
 	badge.name = "Badge"
-	var bsb := sbox(Color("#ff4d4f"), 999, 2, Color.WHITE, 0)
+	var bsb := sbox(Color("#e3735f"), 999, 0, Color.TRANSPARENT, 0)
 	bsb.content_margin_left = 5
 	bsb.content_margin_right = 5
 	badge.add_theme_stylebox_override("panel", bsb)
@@ -770,14 +778,14 @@ func _build_hud() -> void:
 	col.add_child(wallet)
 	# goal: one quiet line + thin progress, click to jump to it
 	goal_box = PanelContainer.new()
-	goal_box.add_theme_stylebox_override("panel", sbox(C_LIGHT, 14, 1, Color(1, 1, 1, 0.7), 10, 6))
+	goal_box.add_theme_stylebox_override("panel", sbox(C_LIGHT, 14, 1, Color(1, 1, 1, 0.3), 10, 6))
 	var gv := VBoxContainer.new()
 	gv.add_theme_constant_override("separation", 4)
 	goal_label = lbl("", 13)
 	goal_bar = ProgressBar.new()
 	goal_bar.show_percentage = false
 	goal_bar.custom_minimum_size = Vector2(230, 5)
-	goal_bar.add_theme_stylebox_override("background", sbox(Color("#dfe9ec"), 3, 0, Color.TRANSPARENT, 0))
+	goal_bar.add_theme_stylebox_override("background", sbox(Color("#e2dccd"), 3, 0, Color.TRANSPARENT, 0))
 	goal_bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 3, 0, Color.TRANSPARENT, 0))
 	gv.add_child(goal_label)
 	gv.add_child(goal_bar)
@@ -838,7 +846,7 @@ func _toggle_wallet() -> void:
 
 func _build_card() -> void:
 	card = PanelContainer.new()
-	card.add_theme_stylebox_override("panel", sbox(C_LIGHT, 18, 1, Color(1, 1, 1, 0.8), 0, 10))
+	card.add_theme_stylebox_override("panel", sbox(C_LIGHT, 18, 1, Color(1, 1, 1, 0.3), 0, 8))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
 	card.offset_left = -314
@@ -870,9 +878,12 @@ func _build_card() -> void:
 	toast_box = VBoxContainer.new()
 	toast_box.anchor_left = 0.5
 	toast_box.anchor_right = 0.5
+	toast_box.anchor_top = 1.0
+	toast_box.anchor_bottom = 1.0
 	toast_box.offset_left = -230
 	toast_box.offset_right = 230
-	toast_box.offset_top = 64
+	toast_box.offset_bottom = -78
+	toast_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	toast_box.add_theme_constant_override("separation", 4)
 	toast_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toast_box)
@@ -889,11 +900,13 @@ func _show_card() -> void:
 	_card_tw.tween_property(card, "modulate:a", 0.0, 0.8)
 
 var _bottom: HBoxContainer
+var gear_box: PanelContainer
 
 func _build_dock() -> void:
 	# ---- bottom-left: your gear (rod, bait, biome, pet) in one light pill
 	var gear := PanelContainer.new()
-	gear.add_theme_stylebox_override("panel", sbox(C_LIGHT, 20, 1, Color(1, 1, 1, 0.7), 6, 6))
+	gear.add_theme_stylebox_override("panel", sbox(C_LIGHT, 20, 1, Color(1, 1, 1, 0.3), 6, 5))
+	gear_box = gear
 	gear.anchor_top = 1.0
 	gear.anchor_bottom = 1.0
 	gear.offset_left = 14
@@ -935,7 +948,7 @@ func _build_dock() -> void:
 	fish_btn = Button.new()
 	fish_btn.focus_mode = Control.FOCUS_NONE
 	fish_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var fb := sbox(C_TEAL, 999, 3, Color.WHITE, 0, 10)
+	var fb := sbox(C_TEAL, 999, 3, Color(1, 1, 1, 0.75), 0, 8)
 	fish_btn.add_theme_stylebox_override("normal", fb)
 	var fbh := fb.duplicate()
 	fbh.bg_color = C_TEAL.lightened(0.12)
@@ -970,14 +983,6 @@ func _build_dock() -> void:
 	cast_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cast_ring.draw.connect(_draw_cast_ring)
 	fish_btn.add_child(cast_ring)
-	var kc := keycap("Space")
-	kc.anchor_left = 0.5
-	kc.anchor_right = 0.5
-	kc.anchor_top = 1.0
-	kc.anchor_bottom = 1.0
-	kc.offset_top = -4
-	kc.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	fish_btn.add_child(kc)
 	# ---- catch mode pill, left of the cast button
 	mode_pill = pill_button("hourglass-medium", "Relax")
 	mode_pill.anchor_left = 1.0
@@ -1011,7 +1016,7 @@ func _refresh_mode_pill() -> void:
 	for st in ["normal", "hover", "pressed"]:
 		var sb: StyleBoxFlat = pill_box(true, 13, 6)
 		if reel: sb.bg_color = C_TEAL.lightened(0.1 if st == "hover" else 0.0).darkened(0.12 if st == "pressed" else 0.0)
-		elif st == "hover": sb.bg_color = Color.WHITE
+		elif st == "hover": sb.bg_color = C_LIGHT_HOVER
 		mode_pill.add_theme_stylebox_override(st, sb)
 	mode_pill.tooltip_text = ("Catch mode: Reel it in! - play a quick mini-game after each bite: win for +%d%% fish and a %ss cooldown. Click for Relax." if reel
 		else "Catch mode: Relax - cast and wait for the cooldown. Click for Reel it in! (mini-game: +%d%% fish, %ss cooldown)") % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)]
@@ -1025,16 +1030,16 @@ func _draw_cast_ring() -> void:
 		cast_ring.draw_arc(c, r, 0, TAU, 48, Color(1, 1, 1, 0.35), 5.0, true)
 		cast_ring.draw_arc(c, r, -PI / 2, -PI / 2 + TAU * (1.0 - left / cd), 48, Color.WHITE, 5.0, true)
 	else:
-		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
-		cast_ring.draw_arc(c, r + pulse * 3.0, 0, TAU, 48, Color(1, 1, 1, 0.35 + 0.35 * pulse), 3.0, true)
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 640.0)
+		cast_ring.draw_arc(c, r + pulse * 2.0, 0, TAU, 48, Color(1, 1, 1, 0.22 + 0.2 * pulse), 2.5, true)
 
 func _chip(key: String) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_stylebox_override("normal", sbox(Color(1, 1, 1, 0), 14, 0, Color.TRANSPARENT, 4))
-	b.add_theme_stylebox_override("hover", sbox(Color("#e8f2f4"), 14, 0, Color.TRANSPARENT, 4))
-	b.add_theme_stylebox_override("pressed", sbox(Color("#d9e9ed"), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("hover", sbox(Color("#efe9dc"), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("pressed", sbox(Color("#e6dfd0"), 14, 0, Color.TRANSPARENT, 4))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.add_theme_font_size_override("font_size", 11)
 	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
@@ -1115,7 +1120,7 @@ func _build_overlay() -> void:
 	head.add_child(close)
 	v.add_child(head)
 	tabs_track = PanelContainer.new()
-	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e6eef1"), 999, 0, Color.TRANSPARENT, 4))
+	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), 999, 0, Color.TRANSPARENT, 4))
 	tabs_track.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	panel_tabs = HBoxContainer.new()
 	panel_tabs.add_theme_constant_override("separation", 2)
@@ -1281,12 +1286,13 @@ func _toast(text: String, kind: String) -> void:
 		"prestige": Color("#1d4ed8"), "buy": Color("#15803d")}
 	var p := PanelContainer.new()
 	var sb := pill_box(false, 16, 7)
-	sb.bg_color = Color(colors.get(kind, Color("#334155")), 0.9)
+	sb.bg_color = Color(Color(colors.get(kind, Color("#334155"))).lerp(Color("#123a44"), 0.45), 0.84)
 	p.add_theme_stylebox_override("panel", sb)
 	var tl := lbl(text, 14, Color.WHITE)
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p.add_child(tl)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	toast_box.add_child(p)
 	while toast_box.get_child_count() > 3:
 		toast_box.get_child(0).free()
@@ -1422,7 +1428,8 @@ func _refresh_goal() -> void:
 		goal_box.visible = true
 		_goal = {"starter": true, "goal": sg}
 		var prog: int = mini(VF.goal_progress(sg), int(sg.goal))
-		goal_label.text = "%s   %s/%s\nReward: %s" % [sg.text, VF.commas(prog), VF.commas(sg.goal), VF.goal_reward_text(sg.reward)]
+		goal_label.text = "%s   %s/%s" % [sg.text, VF.commas(prog), VF.commas(sg.goal)]
+		goal_box.tooltip_text = "Reward: %s. Click to go there." % VF.goal_reward_text(sg.reward)
 		goal_bar.max_value = sg.goal
 		goal_bar.value = prog
 		return
@@ -2411,18 +2418,7 @@ func _capturing() -> bool:
 		if a.begins_with("--capture="): return true
 	return false
 
-func _build_version_label() -> void:
-	var v := lbl("fosh&fish %s · by afosh" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
-	v.anchor_left = 1.0
-	v.anchor_right = 1.0
-	v.anchor_top = 1.0
-	v.anchor_bottom = 1.0
-	v.offset_left = -480
-	v.offset_right = -118
-	v.offset_top = -24
-	v.offset_bottom = -8
-	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+func _build_update_pill() -> void:
 	update_pill = btn("Update available", Color("#2f8f9e"), 14, 0)
 	update_pill.icon = ph("arrow-circle-up")
 	update_pill.add_theme_constant_override("icon_max_width", 18)
@@ -2441,8 +2437,6 @@ func _build_version_label() -> void:
 	update_pill.visible = false
 	update_pill.pressed.connect(func(): _open_panel("update"))
 	add_child(update_pill)
-	add_child(v)
-	move_child(v, overlay.get_index())
 
 func _panel_guide() -> void:
 	if _panel_tab == "Feedback":
@@ -3223,7 +3217,7 @@ func _panel_menu() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_stylebox_override("normal", sbox(C_PANEL2, 18, 0, Color.TRANSPARENT, 12))
 		b.add_theme_stylebox_override("hover", sbox(Color.WHITE, 18, 2, C_TEAL.lightened(0.3), 12, 8))
-		b.add_theme_stylebox_override("pressed", sbox(Color("#dcebef"), 18, 2, C_TEAL, 12))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#e6dfd0"), 18, 2, C_TEAL, 12))
 		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		var v := VBoxContainer.new()
 		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

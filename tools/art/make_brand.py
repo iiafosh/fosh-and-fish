@@ -1,5 +1,4 @@
-"""fosh&fish brand kit (the 0.5.11 rebrand: white, chunky, tilted lettering with a leaping fish,
-deep-sea teal and mint), all drawn here from the Fredoka font and simple shapes.
+"""fosh&fish brand kit: chunky golden 3D letters, a life ring for the "o", a leaping fish.
 
     python tools/art/make_brand.py            everything
     python tools/art/make_brand.py logo       just assets/brand/logo.png (quick look)
@@ -9,7 +8,7 @@ Writes to assets/brand/:
   icon_{64..1024}.png, icon.ico, android_192.png, android_fg_432.png, android_bg_432.png
   splash.png                   boot / web loading screen (deep sea, logo)
   cover_1920x1080.png, cover_1280x720.png, social_1280x640.png, itch_cover_630x500.png
-The covers use assets/launcher/launcher_bg.jpg (tools/art/make_launcher.py).
+The art comes from Blender: tools/blender/render_assets.py -- brand (assets/brand/src).
 """
 import math
 import os
@@ -17,11 +16,14 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from scipy.ndimage import distance_transform_edt, gaussian_filter, map_coordinates, median_filter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BRAND = os.path.join(ROOT, "assets", "brand")
+SRC = os.path.join(BRAND, "src")               # tools/blender/render_assets.py -- brand
+NAVY = (13, 43, 58)
 FONT = os.path.join(ROOT, "assets", "third_party", "fonts", "Fredoka.ttf")
-ART = os.path.join(ROOT, "assets", "launcher", "launcher_bg.jpg")
+ART = os.path.join(ROOT, "assets", "launcher", "title_bg.jpg")
 
 WHITE = (255, 255, 255)
 ICE = (214, 244, 255)          # the cool underside of the letters
@@ -135,30 +137,33 @@ def styled(mask, scale=1.0, depth=None, shadow=True):
     return out
 
 
-def logo(scale=1.0, tilt=6.0):
-    s = scale
-    l1 = text_mask("fosh", int(300 * s))
-    amp = text_mask("&", int(170 * s))
-    l2 = text_mask("fish", int(300 * s))
-    fish = fish_mask(int(170 * s))
-    drops = [drop_mask(int(44 * s)), drop_mask(int(32 * s)), drop_mask(int(24 * s))]
-    W = int(max(l1.size[0] + fish.size[0] + 20 * s, l2.size[0] + 210 * s) + 60 * s)
-    H = int(l1.size[1] + l2.size[1] + 40 * s)
-    m = Image.new("L", (W, H), 0)
-    m.paste(255, (0, 0), l1)
-    fx = l1.size[0] - 10 * s
-    m.paste(Image.new("L", fish.rotate(18, expand=True, resample=Image.BICUBIC).size, 255), (int(fx), int(20 * s)),
-            fish.rotate(18, expand=True, resample=Image.BICUBIC))
-    y2 = l1.size[1] + 26 * s
-    x2 = 160 * s
-    m.paste(255, (int(x2 - amp.size[0] * 1.08), int(y2 + 30 * s)), amp)
-    m.paste(255, (int(x2), int(y2)), l2)
-    # (no splash wave under "fish": at small sizes it read as an underline - the leaping fish is the accent)
-    m = m.crop(m.getbbox())
-    st = styled(m, s)
-    if tilt:
-        st = st.rotate(tilt, resample=Image.BICUBIC, expand=True)
-    return st.crop(st.getbbox())
+def sticker(img, width, color=NAVY, shadow=True, shadow_y=None):
+    """a thick, even, rounded outline around everything in the picture (and a soft shadow under it): whatever it's
+    put on, it stands out, and the pieces read as one thing"""
+    pad = int(width * 3.2)
+    w, h = img.size
+    out = Image.new("RGBA", (w + pad * 2, h + pad * 2), (0, 0, 0, 0))
+    a = np.zeros((h + pad * 2, w + pad * 2), np.float32)
+    a[pad:pad + h, pad:pad + w] = np.asarray(img.getchannel("A"), np.float32) / 255.0
+    dist = distance_transform_edt(a < 0.5)
+    ring = np.clip(width + 1.0 - dist, 0.0, 1.0)                            # 1 inside the outline, soft at its edge
+    mask = Image.fromarray((ring * 255).astype(np.uint8))
+    if shadow:
+        sy = int(width * 0.9) if shadow_y is None else shadow_y
+        sh = ImageChops.offset(mask, 0, sy).filter(ImageFilter.GaussianBlur(width * 0.7))
+        out.paste(Image.new("RGBA", out.size, SHADOW + (255,)), (0, 0), sh.point(lambda v: int(v * 0.42)))
+    out.paste(Image.new("RGBA", out.size, color + (255,)), (0, 0), mask)
+    out.alpha_composite(img, (pad, pad))
+    return out.crop(out.getbbox())
+
+
+def logo(scale=1.0):
+    """the 3D logo (tools/blender/vf_brand.py) as a sticker, about 1000 px wide at scale 1"""
+    raw = Image.open(os.path.join(SRC, "logo_3d.png")).convert("RGBA")
+    raw = raw.crop(raw.getbbox())
+    width = int(1000 * scale)
+    raw = raw.resize((width, int(raw.size[1] * width / raw.size[0])), Image.LANCZOS)
+    return sticker(raw, max(4, int(width * 0.013)))
 
 
 # ------------------------------------------------------------------ icons
@@ -180,43 +185,35 @@ def sea_gradient(w, h, top=AQUA, bottom=SEA, glow=True):
     return Image.fromarray(np.clip(a.repeat(w, 1) if a.shape[1] == 1 else a, 0, 255).astype(np.uint8)[..., :3])
 
 
+def icon_tile(size):
+    """sunny water: bright at the top, deep at the bottom, with a soft wave across it"""
+    y = np.linspace(0, 1, size)[:, None, None]
+    top, bot = np.array((132, 226, 236), np.float32), np.array((16, 112, 140), np.float32)
+    a = np.repeat(top + (bot - top) * y ** 1.15, size, axis=1)
+    tile = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).convert("RGBA")
+    d = Image.new("L", (size, size), 0)
+    pts = [(0, size)]
+    for i in range(81):
+        x = size * i / 80
+        pts.append((x, size * 0.7 + math.sin(i / 80 * math.pi * 2.6 + 0.4) * size * 0.028))
+    pts.append((size, size))
+    ImageDraw.Draw(d).polygon(pts, fill=255)
+    tile.paste(Image.new("RGBA", (size, size), (10, 86, 116, 255)), (0, 0), d.point(lambda v: int(v * 0.5)))
+    return tile
+
+
 def icon_art(size, bg=True):
-    """the app icon: a white fish leaping out of a splash on a sea-teal tile"""
+    """the app icon: a fish leaping through a life ring (tools/blender/vf_brand.py) on sunny water"""
     s = size / 1024
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     if bg:
-        tile = sea_gradient(size, size).convert("RGBA")
-        img.paste(tile, (0, 0), rounded(size, int(230 * s)))
-    art = Image.new("L", (size, size), 0)
-    # water: two waves across the lower part
-    d = ImageDraw.Draw(art)
-    for k, (yy, amp_, th) in enumerate([(0.74, 26, 34), (0.86, 20, 26)]):
-        pts = []
-        for i in range(81):
-            x = size * (0.12 + 0.76 * i / 80)
-            y = size * yy + math.sin(i / 80 * math.pi * 3 + k) * amp_ * s
-            pts.append((x, y))
-        d.line(pts, fill=255, width=int(th * s), joint="curve")
-        for p in (pts[0], pts[-1]):
-            r = th * s / 2
-            d.ellipse((p[0] - r, p[1] - r, p[0] + r, p[1] + r), fill=255)
-    fish = fish_mask(int(600 * s)).rotate(28, expand=True, resample=Image.BICUBIC)
-    art.paste(255, (int(size * 0.5 - fish.size[0] / 2 + 10 * s), int(size * 0.18)), fish)
-    for (dx, dy, ds, ang) in [(0.2, 0.52, 70, 30), (0.29, 0.4, 48, 20), (0.78, 0.5, 56, -25), (0.84, 0.38, 36, -15)]:
-        dm = drop_mask(int(ds * s)).rotate(ang, expand=True, resample=Image.BICUBIC)
-        art.paste(255, (int(size * dx), int(size * dy)), dm)
-    # shadow + white art + a soft gloss
-    sh = ImageChops.offset(art, int(10 * s), int(16 * s)).filter(ImageFilter.GaussianBlur(14 * s))
-    img.paste(Image.new("RGBA", (size, size), SHADOW + (255,)), (0, 0), sh.point(lambda v: int(v * 0.45)))
-    edge = ImageChops.offset(art, 0, int(9 * s))
-    img.paste(Image.new("RGBA", (size, size), EDGE + (255,)), (0, 0), edge)
-    face = Image.new("RGBA", (size, size), WHITE + (255,))
-    img.paste(face, (0, 0), art)
-    if bg:
-        gl = Image.new("L", (size, size), 0)
-        ImageDraw.Draw(gl).ellipse((-0.3 * size, -0.62 * size, 1.3 * size, 0.42 * size), fill=60)
-        gl = ImageChops.multiply(gl, rounded(size, int(230 * s))).filter(ImageFilter.GaussianBlur(8 * s))
-        img.paste(Image.new("RGBA", (size, size), (255, 255, 255, 255)), (0, 0), gl)
+        img.paste(icon_tile(size), (0, 0), rounded(size, int(230 * s)))
+    raw = Image.open(os.path.join(SRC, "icon_3d.png")).convert("RGBA")
+    raw = raw.crop(raw.getbbox())
+    k = size * 0.86 / max(raw.size)
+    art = raw.resize((int(raw.size[0] * k), int(raw.size[1] * k)), Image.LANCZOS)
+    art = sticker(art, max(2, int(size * 0.012)))
+    img.alpha_composite(art, ((size - art.size[0]) // 2, (size - art.size[1]) // 2))
     return img
 
 
@@ -232,19 +229,92 @@ def save_icons():
     inner = icon_art(300, bg=False)
     fg.alpha_composite(inner, (66, 66))
     fg.save(os.path.join(BRAND, "android_fg_432.png"))
-    sea_gradient(432, 432).save(os.path.join(BRAND, "android_bg_432.png"))
+    icon_tile(432).convert("RGB").save(os.path.join(BRAND, "android_bg_432.png"))
+
+
+# ------------------------------------------------------------------ the loading screen's picture
+def title():
+    """The layers of tools/blender/vf_brand.py render_title -> what the game loads (assets/launcher):
+    title_bg.jpg (with the world mirrored in the water, and the boat's reflection and foam), title_boat.png (it bobs),
+    title_masks.png (R the water, G what the wind moves, for the title screen's shader). -> the boat's place, 0..1"""
+    rgb = lambda n: np.asarray(Image.open(os.path.join(SRC, n)).convert("RGB"), np.float32) / 255.0
+    a = rgb("title_a.png")
+    H, W = a.shape[:2]
+    mask = Image.open(os.path.join(SRC, "title_mask.png")).convert("RGBA")
+    water = np.asarray(mask.getchannel("A").resize((W, H), Image.BILINEAR), np.float32) / 255.0
+    # the reflection: each column mirrored about where the water starts in it, the waves breaking it up more further out
+    wet = water > 0.5
+    top = np.where(wet.any(axis=0), wet.argmax(axis=0), H)
+    top = gaussian_filter(median_filter(top, size=15).astype(np.float32), sigma=26.0)     # (no seams where the dock and the shop start)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    far = np.clip((yy - top[None, :]) / (H - top[None, :] + 1.0), 0.0, 1.0)
+    wob = np.sin(yy * 0.19 + xx * 0.012) + 0.6 * np.sin(yy * 0.41 - xx * 0.021 + 1.3) + 0.35 * np.sin(yy * 0.83 + 2.1)
+    sx = np.clip(xx + wob * (1.0 + far * 6.0), 0, W - 1)
+    sy = np.clip(top[None, :] - (yy - top[None, :]) * 0.92, 0, H - 1)
+    mirror = np.stack([map_coordinates(a[..., c], [sy, sx], order=1) for c in range(3)], axis=-1)
+    mirror = gaussian_filter(mirror, sigma=(3.5, 1.0, 0))
+    mirror = mirror * 0.72 + a * 0.28                                 # (calmer: it never quite hides the water's colour)
+    k = (0.62 - 0.44 * far)[..., None] * water[..., None]
+    out = a * (1.0 - k) + mirror * k
+    # small dark and light ripples, more of them near the camera
+    n = gaussian_filter(np.random.default_rng(5).normal(0, 1, (H, W)), sigma=(1.1, 9.0))
+    n = n / n.std()
+    out = out + (np.clip(n, -2.0, 2.0) * (0.012 + 0.016 * far) * water)[..., None]
+    # the boat: its reflection and the foam along its waterline
+    boat = np.asarray(Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA"), np.float32) / 255.0
+    # (the columns of the hull itself, not the rod and the line: the lowest thick run of pixels)
+    thick = gaussian_filter((boat[..., 3] > 0.5).astype(np.float32), sigma=(6.0, 0)) > 0.45
+    keel = np.where(thick.any(axis=0), H - 1 - thick[::-1].argmax(axis=0), -1)
+    keel[keel < H * 0.8] = -1                                         # (that's the rod, or his legs: the hull sits lower)
+    cols = np.where(keel >= 0)[0]
+    x0, x1 = int(cols.min()), int(cols.max())
+    keel = median_filter(keel, size=9)
+    has = (keel >= 0)[None, :]
+    ky = np.maximum(keel, 0)[None, :].astype(np.float32)
+    below = np.clip((yy - ky) / 170.0, 0.0, 1.0)
+    bsx = np.clip(xx + wob * (1.0 + below * 7.0), 0, W - 1)
+    bsy = np.clip(ky - (yy - ky) * 0.95, 0, H - 1)
+    refl = np.stack([map_coordinates(boat[..., c], [bsy, bsx], order=1) for c in range(4)], axis=-1)
+    refl = gaussian_filter(refl, sigma=(1.8, 0.6, 0))
+    ra = refl[..., 3] * (yy > ky) * has * (0.55 - 0.3 * below)
+    out = out * (1.0 - ra[..., None]) + refl[..., :3] * ra[..., None]
+    shade = gaussian_filter(((yy > ky) & (yy < ky + 26) & has).astype(np.float32), sigma=(7.0, 9.0)) * 0.3
+    out = out * (1.0 - shade[..., None]) + np.array((0.02, 0.14, 0.22), np.float32) * shade[..., None]
+    fn = gaussian_filter(np.random.default_rng(9).normal(0, 1, (H, W)), sigma=(1.0, 7.0))
+    fn = fn / fn.std()
+    d = np.abs(yy - ky - 2.0 - fn * 2.0)
+    foam = np.clip(1.0 - d / 4.0, 0.0, 1.0) * has * water
+    out = out * (1.0 - foam[..., None] * 0.9) + foam[..., None] * 0.9
+    # a soft, warm vignette
+    r = np.sqrt(((xx / W - 0.5) * 1.15) ** 2 + ((yy / H - 0.5) * 1.05) ** 2)
+    out = out * (1.0 - np.clip(r - 0.42, 0.0, 1.0)[..., None] * np.array((0.28, 0.36, 0.42), np.float32))
+    bg = Image.fromarray((np.clip(out, 0.0, 1.0) * 255).astype(np.uint8))
+    d = os.path.join(ROOT, "assets", "launcher")
+    os.makedirs(d, exist_ok=True)
+    bg.save(os.path.join(d, "title_bg.jpg"), quality=90, optimize=True)
+    # the boat, trimmed
+    bi = Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA")
+    box = bi.getbbox()
+    bi.crop(box).save(os.path.join(d, "title_boat.png"), optimize=True)
+    # R the water, G what sways
+    sway = Image.open(os.path.join(SRC, "title_sway.png")).convert("L").resize((W // 2, H // 2), Image.BILINEAR)
+    m = Image.merge("RGB", (mask.getchannel("A").resize((W // 2, H // 2), Image.BILINEAR), sway, Image.new("L", (W // 2, H // 2), 0)))
+    m.save(os.path.join(d, "title_masks.png"), optimize=True)
+    place = [round(box[0] / W, 4), round(box[1] / H, 4), round(box[2] / W, 4), round(box[3] / H, 4)]
+    print("title_boat at", place, "waterline at x", x0, x1)
+    return place
 
 
 # ------------------------------------------------------------------ splash + covers
 def splash():
-    w, h = 1920, 1080
-    bg = sea_gradient(w, h, top=SEA, bottom=DEEP).convert("RGBA")
-    lg = logo(1.05)
-    bg.alpha_composite(lg, ((w - lg.size[0]) // 2, (h - lg.size[1]) // 2 - 40))
-    f = font(34, 500, 100)
-    d = ImageDraw.Draw(bg)
-    d.text((w / 2, (h + lg.size[1]) / 2 + 30), "a cozy fishing game  ·  by afosh", font=f, fill=(169, 214, 216), anchor="mm")
-    bg.convert("RGB").save(os.path.join(BRAND, "splash.png"), optimize=True)
+    """boot / web loading screen: the title picture and the logo, small to download"""
+    w, h = 1280, 720
+    bg = Image.open(ART).convert("RGB").resize((w, h), Image.LANCZOS).convert("RGBA")
+    boat = Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA").resize((w, h), Image.LANCZOS)
+    bg.alpha_composite(boat)
+    lg = logo(0.56)
+    bg.alpha_composite(lg, ((w - lg.size[0]) // 2, int(h * 0.05)))
+    bg.convert("RGB").quantize(colors=250, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG).save(os.path.join(BRAND, "splash.png"), optimize=True)
 
 
 def cover(w, h, logo_w, pos, name, tagline=True, crop_focus=(0.5, 0.5)):
@@ -278,6 +348,9 @@ if __name__ == "__main__":
     lg.save(os.path.join(BRAND, "logo.png"), optimize=True)
     print("logo.png", lg.size)
     if "logo" in sys.argv[1:]:
+        sys.exit()
+    title()
+    if "title" in sys.argv[1:]:
         sys.exit()
     save_icons()
     splash()

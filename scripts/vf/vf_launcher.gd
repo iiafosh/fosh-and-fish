@@ -1,24 +1,30 @@
 extends Control
-## Title screen ("launcher"): the first thing players see. The owner's title illustration, brought to life
-## (water shimmer and glints, swaying leaves, bobber ripples, lantern glow, a passing gull, a slow camera
-## drift), with a deep-sea side panel on the right (a softly moving wave edge, drifting bubbles and fish
-## shadows): a greeting, Play, signing in / creating an account right there, and the update status.
-## Art: tools/art/make_launcher.py. vf_main shows it at start (not in captures / recordings unless
-## --launcher) and hides it on Play.
+## Title screen ("launcher"): the first thing players see. The game's own River at golden hour, seen from the water
+## (tools/blender/vf_brand.py, tools/art/make_brand.py), brought to life: the water shimmers, the trees sway, the boat
+## bobs, a gull goes by, now and then a fish jumps. On the left the logo and what you came for: Play, signing in /
+## creating an account right there, and the update status when there's something to do about it. And a daft tip.
+## vf_main shows it at start (not in captures / recordings unless --launcher) and hides it on Play.
 
-const BG := "res://assets/launcher/launcher_bg.jpg"
-const MASKS := "res://assets/launcher/launcher_masks.png"
-const LOGO := "res://assets/brand/logo.png"          # tools/art/make_brand.py
-const ICON := "res://assets/brand/icon_256.png"
-const BOBBER := Vector2(0.3772, 0.6885)                     # points in the picture (fractions)
-const LANTERNS := [Vector2(0.1356, 0.2862), Vector2(0.2663, 0.4296)]
+const BG := "res://assets/launcher/title_bg.jpg"
+const MASKS := "res://assets/launcher/title_masks.png"
+const BOAT := "res://assets/launcher/title_boat.png"
+const LOGO := "res://assets/brand/logo.png"                 # tools/art/make_brand.py
+const BOAT_BOX := Rect2(0.4234, 0.6009, 0.5401, 0.3824)     # where the boat's picture goes, in the big picture (fractions)
+const BOBBER := Vector2(0.4325, 0.972)
+const LANTERNS := [Vector2(0.582, 0.558), Vector2(0.76, 0.528)]
 
-const MINT := Color("#5fe0bd")
-const SEA := Color("#12454f")
-const DEEP := Color("#0a2930")
-const INK := Color("#0b3138")
-const SOFT := Color("#a9d6d8")
-const FAINT := Color("#7fb0b5")
+const GOLD := Color("#ffcf4a")
+const MINT := Color("#7ff0cf")
+const INK := Color("#2b2110")
+const SOFT := Color("#e4f1ee")
+const FAINT := Color("#b9d3d0")
+const SHADE := Color("#06262e")
+
+const TIPS := ["Tip: fish can't read this.", "Tip: hold to reel. Let go to regret.", "Tip: the crabs know what you did.",
+	"Tip: gulls don't pay rent.", "Tip: poke things. They love it. Mostly.", "Tip: a bigger boat won't fill the void. Buy it anyway.",
+	"Tip: that's not a rock. Or is it?", "Tip: the fish have been warned about you.", "Tip: never trust a fish in a moustache.",
+	"Tip: the shopkeeper remembers everything.", "Tip: honk your boat. It helps nobody.", "Tip: the sea is big. You'll be fine. Probably."]
+const JUMPERS := ["Raw Salmon", "Cod", "Tropical Fish", "Pufferfish", "Raw Fish"]
 
 const SHADER := """
 shader_type canvas_item;
@@ -29,42 +35,50 @@ void fragment() {
 	vec3 m = texture(masks, uv).rgb;
 	float t = TIME;
 	vec2 n = texture(noise, uv * vec2(2.5, 4.5) + vec2(t * 0.010, t * 0.017)).rg - 0.5;
-	vec2 wobble = n * 0.0016 * m.r;
-	vec2 sway = vec2(sin(t * 1.25 + uv.y * 5.0) * 0.0045, cos(t * 1.05 + uv.x * 4.0) * 0.0018) * m.g;
+	vec2 wobble = n * 0.0022 * m.r;
+	vec2 sway = vec2(sin(t * 1.25 + uv.y * 5.0 + uv.x * 9.0) * 0.0016, cos(t * 1.05 + uv.x * 4.0) * 0.0006) * m.g;
 	vec4 c = texture(TEXTURE, uv + wobble + sway);
 	float a = texture(noise, uv * vec2(16.0, 30.0) + vec2(-t * 0.03, t * 0.05)).r;
 	float b = texture(noise, uv * vec2(23.0, 41.0) + vec2(t * 0.04, -t * 0.02)).r;
 	float patch = smoothstep(0.55, 0.75, texture(noise, uv * 1.3 + vec2(t * 0.006, 0.0)).r);
 	float glint = smoothstep(0.86, 0.93, a * b * 2.0) * m.r * patch;
-	c.rgb += vec3(1.0, 0.98, 0.9) * glint * 0.45;
+	c.rgb += vec3(1.0, 0.96, 0.84) * glint * 0.3;
 	COLOR = c;
 }
 """
 
 var main
 var art: Control
-var fx: Control
-var wave: Control
+var under: Control                      # ripples and a jumping fish, under the boat
+var boat_layer: Control
+var over: Control                       # a gull, the lamps' glow
+var shade: Control                      # the side the words are on gets darker, so they read
 var tex: Texture2D
+var boat_tex: Texture2D
 var glow: Texture2D
 var bold: FontVariation
 var logo: TextureRect
-var tagline: Control
-var col: VBoxContainer                  # the panel's content column
+var col: VBoxContainer                  # the logo's column
 var foot: HBoxContainer
+var tip_box: PanelContainer
+var tip_lbl: Label
 var play_btn: Button
-var form := ""                          # "" | sign_in | sign_up: the account form open in the panel
+var form := ""                          # "" | sign_in | sign_up: the account form open in the column
 var _fields := {}
 var _typed := {}                        # what was typed in the form (kept across rebuilds)
 var _t := 0.0
-var _gull_t := -4.0
-var _slide := 1.0                       # 1 = the panel is off to the right (entrance / exit)
+var _gull_t := -3.0
+var _slide := 1.0                       # 1 = the column is off to the left (entrance / exit)
 var _leaving := false
 var _leave_t := 0.0
 var _key := ""
 var _retried := false                   # one quiet automatic retry if the first update check fails
-var _bubbles := []
-var _fish := []
+var _jump := {}
+var _jump_wait := 2.5
+var _rings := []
+var _tip_i := 0
+var _tip_t := 0.0
+var _life := {}
 
 func setup(m) -> void:
 	main = m
@@ -77,6 +91,8 @@ func _ready() -> void:
 	bold.base_font = load("res://assets/third_party/fonts/Fredoka.ttf")
 	bold.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 680}
 	tex = load(BG)
+	boat_tex = load(BOAT)
+	_life = main.stage.manifest.get("life", {})
 	art = _layer(_draw_art)
 	var mat := ShaderMaterial.new()
 	mat.shader = Shader.new()
@@ -91,36 +107,44 @@ func _ready() -> void:
 	nt.noise = fn
 	mat.set_shader_parameter("noise", nt)
 	art.material = mat
-	fx = _layer(_draw_fx)
+	under = _layer(_draw_under)
+	boat_layer = _layer(_draw_boat)
+	over = _layer(_draw_over)
 	var g := GradientTexture2D.new()
 	g.fill = GradientTexture2D.FILL_RADIAL
 	g.fill_from = Vector2(0.5, 0.5)
 	g.fill_to = Vector2(1.0, 0.5)
 	g.gradient = Gradient.new()
-	g.gradient.set_color(0, Color(1, 0.86, 0.5, 0.85))
+	g.gradient.set_color(0, Color(1, 0.86, 0.5, 0.7))
 	g.gradient.set_color(1, Color(1, 0.7, 0.3, 0.0))
 	glow = g
+	shade = _layer(_draw_shade)
 	_build_logo()
-	wave = _layer(_draw_wave)
 	col = VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 10)
 	add_child(col)
 	foot = HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 8)
 	add_child(foot)
-	for i in 14:
-		_bubbles.append({"x": randf(), "y": randf() * 1200.0, "r": randf_range(1.5, 4.5), "s": randf_range(10.0, 26.0)})
-	for i in 4:
-		_fish.append({"x": randf(), "y": randf_range(0.1, 0.95), "s": randf_range(0.006, 0.014) * (1 if randf() < 0.5 else -1), "k": randf_range(0.7, 1.3)})
+	tip_box = PanelContainer.new()
+	tip_box.add_theme_stylebox_override("panel", _box(Color(0.03, 0.14, 0.17, 0.55), 999, Color.TRANSPARENT, 16, 7))
+	tip_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip_lbl = _text("", 14, SOFT)
+	tip_box.add_child(tip_lbl)
+	add_child(tip_box)
+	_tip_i = randi() % TIPS.size()
+	tip_lbl.text = TIPS[_tip_i]
 	Backend.status_changed.connect(_refresh)
 	Updater.status_changed.connect(_refresh)
 	resized.connect(_layout)
 	_refresh()
-	# entrance: the panel glides in, the logo fades up
+	# entrance: the column glides in, the logo pops up
 	logo.modulate.a = 0.0
+	logo.scale = Vector2(0.82, 0.82)
 	var tw := create_tween().set_parallel()
 	tw.tween_property(self, "_slide", 0.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tw.tween_property(logo, "modulate:a", 1.0, 0.8).set_delay(0.25)
+	tw.tween_property(logo, "modulate:a", 1.0, 0.4).set_delay(0.2)
+	tw.tween_property(logo, "scale", Vector2.ONE, 0.55).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.2)
 
 func _layer(cb: Callable) -> Control:
 	var c := Control.new()
@@ -134,11 +158,11 @@ func _layer(cb: Callable) -> Control:
 func _cover_rect() -> Rect2:
 	var sz := size
 	var ts := Vector2(tex.get_size())
-	var zoom := 1.0 + 0.035 * (0.5 - 0.5 * cos(_t * TAU / 46.0))         # a slow breath of a camera move
+	var zoom := 1.0 + 0.03 * (0.5 - 0.5 * cos(_t * TAU / 46.0))          # a slow breath of a camera move
 	if _leaving: zoom += 0.12 * clampf((_t - _leave_t) / 0.5, 0.0, 1.0)
 	var s := maxf(sz.x / ts.x, sz.y / ts.y) * zoom
 	var rs := ts * s
-	var drift := Vector2(0.5 + 0.03 * sin(_t * TAU / 61.0), 0.5)
+	var drift := Vector2(0.5 + 0.03 * sin(_t * TAU / 61.0), 0.62)        # (keeps the water in view on wide phones)
 	return Rect2((sz - rs) * drift, rs)
 
 func to_screen(p: Vector2) -> Vector2:
@@ -148,93 +172,123 @@ func to_screen(p: Vector2) -> Vector2:
 func _draw_art() -> void:
 	art.draw_texture_rect(tex, _cover_rect(), false)
 
-func _draw_fx() -> void:
+func _draw_under() -> void:
 	var r := _cover_rect()
 	var k := r.size.x / 1920.0
-	var bp := to_screen(BOBBER)                               # bobber ripples (flattened: we look at an angle)
-	fx.draw_set_transform(bp, 0.0, Vector2(1.0, 0.42))
+	var bp := to_screen(BOBBER)                               # the float's ripples (flattened: we look at an angle)
+	under.draw_set_transform(bp, 0.0, Vector2(1.0, 0.34))
 	for i in 3:
 		var ph := fmod(_t * 0.45 + i / 3.0, 1.0)
-		fx.draw_arc(Vector2.ZERO, (10.0 + 70.0 * ph) * k, 0.0, TAU, 48, Color(1, 1, 1, 0.55 * (1.0 - ph)), 2.0 * k, true)
-	fx.draw_set_transform(Vector2.ZERO)
+		under.draw_arc(Vector2.ZERO, (14.0 + 90.0 * ph) * k, 0.0, TAU, 48, Color(1, 1, 1, 0.45 * (1.0 - ph)), 2.4 * k, true)
+	for q in _rings:
+		var ph: float = q.t
+		under.draw_set_transform(to_screen(q.at), 0.0, Vector2(1.0, 0.34))
+		under.draw_arc(Vector2.ZERO, (16.0 + 110.0 * ph) * k, 0.0, TAU, 48, Color(1, 1, 1, 0.6 * (1.0 - ph)), 3.0 * k, true)
+	under.draw_set_transform(Vector2.ZERO)
+	if not _jump.is_empty() and not _life.is_empty():         # a fish jumps
+		var t: Texture2D = _jump.tex
+		var f: float = _jump.t
+		var at: Vector2 = _jump.at
+		var cell: float = _life.cell
+		var y: float = at.y - 4.0 * _jump.h * f * (1.0 - f)
+		var p := to_screen(Vector2(at.x + _jump.dir * 0.05 * (f - 0.5), y))
+		var rot: float = (1.0 - 2.0 * f) * -1.05 * _jump.dir              # nose up, then nose down
+		var s := 1.5 * k
+		under.draw_set_transform(p, rot, Vector2(_jump.dir * s, s))
+		var fr := int(_t * 12.0) % int(_life.frames)
+		under.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fr * cell, 2.0 * cell, cell, cell))
+		under.draw_set_transform(Vector2.ZERO)
+
+func _draw_boat() -> void:
+	var r := _cover_rect()
+	var box := Rect2(r.position + BOAT_BOX.position * r.size, BOAT_BOX.size * r.size)
+	var k := r.size.x / 1920.0
+	var pivot := box.position + box.size * Vector2(0.72, 0.9)
+	boat_layer.draw_set_transform(pivot + Vector2(0.0, sin(_t * 1.3) * 3.5 * k), sin(_t * 0.9) * 0.008, Vector2.ONE)
+	boat_layer.draw_texture_rect(boat_tex, Rect2(box.position - pivot, box.size), false)
+	boat_layer.draw_set_transform(Vector2.ZERO)
+
+func _draw_over() -> void:
+	var r := _cover_rect()
+	var k := r.size.x / 1920.0
 	for i in LANTERNS.size():
 		var lp := to_screen(LANTERNS[i])
 		var fl := 0.75 + 0.15 * sin(_t * 7.3 + i * 2.1) + 0.1 * sin(_t * 13.7 + i)
-		var gs := 120.0 * k * (0.95 + 0.08 * fl)
-		fx.draw_texture_rect(glow, Rect2(lp - Vector2(gs, gs) * 0.5, Vector2(gs, gs)), false, Color(1, 1, 1, 0.55 * fl))
-	if _gull_t >= 0.0:                                        # a gull crossing the sky now and then
-		var f := _gull_t / 11.0
-		var gp := Vector2(r.position.x + r.size.x * (0.75 - 0.9 * f), r.position.y + r.size.y * (0.12 + 0.04 * sin(f * 5.0)))
-		var flap := sin(_t * 9.0)
-		var w := 15.0 * k
-		var pts := PackedVector2Array([gp + Vector2(-w, -w * 0.35 * flap - 2 * k), gp + Vector2(-w * 0.45, -w * 0.2 * flap - 5 * k * flap),
-			gp, gp + Vector2(w * 0.45, -w * 0.2 * flap - 5 * k * flap), gp + Vector2(w, -w * 0.35 * flap - 2 * k)])
-		fx.draw_polyline(pts, Color(0.2, 0.25, 0.3, 0.35), 4.0 * k, true)
-		fx.draw_polyline(pts, Color(1, 1, 1, 0.95), 2.4 * k, true)
+		var gs := 86.0 * k * (0.95 + 0.08 * fl)
+		over.draw_texture_rect(glow, Rect2(lp - Vector2(gs, gs) * 0.5, Vector2(gs, gs)), false, Color(1, 1, 1, 0.42 * fl))
+	var gull: Dictionary = _life.get("gull", {})
+	if _gull_t >= 0.0 and not gull.is_empty():                # a gull crossing the sky now and then
+		var t: Texture2D = main.stage._tex("life/gull.png")
+		if t == null: return
+		var f := _gull_t / 13.0
+		var gp := r.position + r.size * Vector2(1.02 - 0.75 * f, 0.16 + 0.05 * sin(f * 5.0))
+		var cell: float = gull.cell
+		var fr: int = int(gull.glide) if fmod(_t, 3.2) < 1.1 else int(_t * 11.0) % int(gull.frames)
+		var s := 0.92 * k
+		over.draw_set_transform(gp, 0.0, Vector2(-s, s))
+		over.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fr * cell, 2.0 * cell, cell, cell))
+		over.draw_set_transform(Vector2.ZERO)
 
-# ------------------------------------------------------------------ the deep-sea panel
-func _short() -> bool:
-	return size.y < 600.0
+func _draw_shade() -> void:
+	var w := size.x
+	var h := size.y
+	var c1 := Color(SHADE, 0.0)
+	var edge := _col_w() + _pad() * 2.0 + 150.0
+	var x := -edge * _slide * 0.6
+	shade.draw_polygon(PackedVector2Array([Vector2(minf(x, 0.0), 0), Vector2(x + edge, 0), Vector2(x + edge, h), Vector2(minf(x, 0.0), h)]),
+		PackedColorArray([Color(SHADE, 0.12), c1, c1, Color(SHADE, 0.68)]))       # (the sky stays clear: only the words need it)
+	if form != "":                                            # an account form is open: the world steps back
+		shade.draw_rect(Rect2(0, 0, w, h), Color(SHADE, 0.34))
 
-func _panel_w() -> float:
-	return clampf(size.x * 0.42, 340.0, 440.0) if _short() else clampf(size.x * 0.36, 390.0, 500.0)
-
-func _panel_x() -> float:
-	return size.x - _panel_w() * (1.0 - _slide) + 40.0 * _slide
-
-func _edge(y: float) -> float:
-	var a := 13.0
-	return _panel_x() - a + a * sin(y * 0.0105 + _t * 0.6) + a * 0.45 * sin(y * 0.027 - _t * 0.95)
-
-func _draw_wave() -> void:
-	var n := 56
-	var edge := PackedVector2Array()
-	for i in n + 1:
-		var y := size.y * float(i) / n
-		edge.append(Vector2(_edge(y), y))
-	for s in 3:                                               # a soft shadow on the picture
-		var sh := PackedVector2Array()
-		for p in edge: sh.append(p - Vector2(5.0 + s * 6.0, 0.0))
-		wave.draw_polyline(sh, Color(0.02, 0.1, 0.14, 0.09 - s * 0.025), 10.0, true)
-	var right := maxf(size.x, _panel_x() + 40.0) + 4.0       # (strips: always convex, even while sliding off-screen)
-	for i in n:
-		var c0 := SEA.lerp(DEEP, float(i) / n)
-		var c1 := SEA.lerp(DEEP, float(i + 1) / n)
-		wave.draw_polygon(PackedVector2Array([edge[i], edge[i + 1], Vector2(right, edge[i + 1].y), Vector2(right, edge[i].y)]),
-			PackedColorArray([c0, c1, c1, c0]))
-	wave.draw_polyline(edge, Color(0.6, 0.97, 0.88, 0.32), 2.0, true)       # rim light
-	var x0 := _panel_x()
-	var pw := _panel_w()
-	for f in _fish:                                           # fish shadows drifting by
-		var fp := Vector2(x0 + 30.0 + fmod(f.x, 1.0) * (pw - 60.0), size.y * f.y)
-		var d: float = signf(f.s)
-		var sz: float = 14.0 * f.k
-		var body := PackedVector2Array()
-		for a in 12:
-			var ang := TAU * a / 12.0
-			body.append(fp + Vector2(cos(ang) * sz, sin(ang) * sz * 0.42))
-		wave.draw_colored_polygon(body, Color(0.62, 0.95, 0.9, 0.07))
-		var tail := fp - Vector2(d * sz * 0.95, 0)
-		wave.draw_colored_polygon(PackedVector2Array([tail, tail - Vector2(d * sz * 0.6, sz * 0.4), tail - Vector2(d * sz * 0.6, -sz * 0.4)]),
-			Color(0.62, 0.95, 0.9, 0.07))
-	for b in _bubbles:                                        # bubbles rising
-		var bp := Vector2(x0 + 20.0 + b.x * (pw - 40.0) + sin(_t * 1.3 + b.r * 3.0) * 4.0, size.y - fmod(b.y, size.y + 40.0) + 20.0)
-		wave.draw_arc(bp, b.r, 0.0, TAU, 14, Color(0.75, 1.0, 0.95, 0.11), 1.2, true)
+func _tick_jump(delta: float) -> void:
+	for q in _rings: q.t += delta / 1.3
+	_rings = _rings.filter(func(q): return q.t < 1.0)
+	if _jump.is_empty():
+		_jump_wait -= delta
+		if _jump_wait <= 0.0:
+			var at := Vector2(randf_range(0.42, 0.62), randf_range(0.8, 0.92))
+			var who: String = JUMPERS.pick_random()
+			_jump = {"at": at, "t": 0.0, "dir": 1.0 if randf() < 0.5 else -1.0, "h": randf_range(0.1, 0.17), "tex": main.stage._tex("life/%s.png" % VFData.slug(who))}
+			_rings.append({"at": at, "t": 0.0})
+	else:
+		_jump.t += delta / 1.05
+		if _jump.t >= 1.0:
+			_rings.append({"at": _jump.at + Vector2(_jump.dir * 0.025, 0.0), "t": 0.0})
+			_jump = {}
+			_jump_wait = randf_range(4.0, 10.0)
 
 func _process(delta: float) -> void:
 	_t += delta
 	_gull_t += delta
-	if _gull_t > 11.0: _gull_t = -randf_range(6.0, 12.0)
-	for b in _bubbles: b.y += b.s * delta
-	for f in _fish: f.x += f.s * delta
+	if _gull_t > 13.0: _gull_t = -randf_range(6.0, 14.0)
+	_tick_jump(delta)
+	_tip_t += delta
+	if _tip_t > 6.0:
+		_tip_t = 0.0
+		_tip_i = (_tip_i + 1) % TIPS.size()
+		var tw := create_tween()
+		tw.tween_property(tip_box, "modulate:a", 0.0, 0.25)
+		tw.tween_callback(func(): tip_lbl.text = TIPS[_tip_i])
+		tw.tween_property(tip_box, "modulate:a", 1.0, 0.25)
 	art.queue_redraw()
-	fx.queue_redraw()
-	wave.queue_redraw()
+	under.queue_redraw()
+	boat_layer.queue_redraw()
+	over.queue_redraw()
+	shade.queue_redraw()
 	_place()
 	if Engine.get_process_frames() % 20 == 0:
 		_refresh()                                            # (cheap: only rebuilds when something changed)
 
 # ------------------------------------------------------------------ layout
+func _short() -> bool:
+	return size.y < 600.0
+
+func _pad() -> float:
+	return 26.0 if _short() else 54.0
+
+func _col_w() -> float:
+	return clampf(size.x * 0.36, 280.0, 400.0) if _short() else clampf(size.x * 0.3, 340.0, 560.0)
+
 func _build_logo() -> void:
 	logo = TextureRect.new()
 	logo.texture = load(LOGO)
@@ -242,42 +296,46 @@ func _build_logo() -> void:
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(logo)
-	var tg := PanelContainer.new()                           # (hidden: the stacked logo stands alone, like the brand art)
-	tg.visible = false
-	tg.add_theme_stylebox_override("panel", _box(Color(0.06, 0.2, 0.26, 0.5), 999, Color.TRANSPARENT, 14, 5))
-	tg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tl := _text("a cozy fishing game  ·  by afosh", 15, Color(1, 1, 1, 0.95))
-	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tg.add_child(tl)
-	tagline = tg
-	logo.add_child(tg)
 
 func _layout() -> void:
 	_place()
 
-## positions follow the moving panel every frame (it slides in and out)
+## positions follow the moving column every frame (it slides in and out)
 func _place() -> void:
 	if size.x < 10: return
-	var pw := _panel_w()
-	var x0 := _panel_x()
-	var pad := 34.0 if not _short() else 26.0
-	var cw := pw - pad * 2.0
+	var cw := _col_w()
+	var pad := _pad()
+	var x0 := pad - (cw + pad + 70.0) * _slide
 	col.custom_minimum_size.x = cw
-	col.add_theme_constant_override("separation", 12 if not _short() else 8)
+	col.add_theme_constant_override("separation", 10 if not _short() else 6)
 	col.size = Vector2(cw, 0)
 	col.reset_size()
+	foot.custom_minimum_size.x = cw
 	foot.reset_size()
-	foot.position = Vector2(x0 + pad, size.y - foot.size.y - (16.0 if not _short() else 8.0))
-	var room := foot.position.y - 8.0                         # centred in the space above the footer
-	col.position = Vector2(x0 + pad, maxf(10.0, (room - col.size.y) * 0.5))
-	# the logo over the sky, centred on the picture's visible part
+	foot.position = Vector2(x0, size.y - foot.size.y - (14.0 if not _short() else 6.0))
+	tip_box.visible = form == ""
+	tip_box.reset_size()
+	tip_box.position = Vector2(size.x - tip_box.size.x - pad * 0.6, 16.0 if not _short() else 8.0).round()
+	# the logo gets the height the column leaves; together they're centred above the footer
+	var room := foot.position.y - 8.0
 	var ts := Vector2(logo.texture.get_size())
-	var lw := minf(size.x * 0.2, 380.0) if not _short() else minf(size.x * 0.2, 270.0)
-	var lh := lw * ts.y / ts.x
-	logo.size = Vector2(lw, lh)
-	logo.position = Vector2((size.x - pw) * 0.42 - lw * 0.5, size.y * (0.05 if not _short() else 0.035))
-	tagline.reset_size()
-	tagline.position = Vector2(lw * 0.5 - tagline.size.x * 0.5, lh + 6.0)
+	var lh := minf(cw * ts.y / ts.x, room - col.size.y - 18.0)
+	if form != "" and _short(): lh = 0.0
+	logo.visible = lh > 70.0
+	var total := col.size.y + (lh + 10.0 if logo.visible else 0.0)
+	var y := maxf(8.0, (room - total) * 0.5)
+	if logo.visible:
+		var lw := lh * ts.x / ts.y
+		logo.size = Vector2(lw, lh)
+		logo.pivot_offset = logo.size * 0.5
+		logo.position = Vector2(x0 + (cw - lw) * 0.5, y + sin(_t * 0.9) * 3.0)
+		logo.rotation = sin(_t * 0.6) * 0.006
+		y += lh + 10.0
+	col.position = Vector2(x0, y)
+	if is_instance_valid(play_btn):
+		play_btn.pivot_offset = play_btn.size * 0.5
+		var br := 1.0 + 0.012 * sin(_t * 2.1)
+		play_btn.scale = Vector2(br, br)
 
 # ------------------------------------------------------------------ widgets
 func _box(bg: Color, radius: int, border: Color, pad_h := 12, pad_v := 8) -> StyleBoxFlat:
@@ -319,9 +377,14 @@ func _button(t: String, primary: bool, cb: Callable, icon_name := "", height := 
 			"icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
 		b.add_theme_color_override(k, fg)
 	b.add_theme_color_override("font_disabled_color", Color(fg, 0.5))
-	var n := _box(MINT if primary else Color(1, 1, 1, 0.05), 999, Color.TRANSPARENT if primary else Color(MINT, 0.5), 16, 6)
-	var h := _box(MINT.lightened(0.15) if primary else Color(1, 1, 1, 0.1), 999, Color.TRANSPARENT if primary else MINT, 16, 6)
-	var p := _box(MINT.darkened(0.12) if primary else Color(1, 1, 1, 0.02), 999, Color.TRANSPARENT if primary else MINT, 16, 6)
+	var n := _box(GOLD if primary else Color(0.03, 0.14, 0.17, 0.5), 999, Color.TRANSPARENT if primary else Color(1, 1, 1, 0.28), 16, 6)
+	var h := _box(GOLD.lightened(0.14) if primary else Color(0.05, 0.2, 0.24, 0.65), 999, Color.TRANSPARENT if primary else Color(1, 1, 1, 0.6), 16, 6)
+	var p := _box(GOLD.darkened(0.1) if primary else Color(0.02, 0.1, 0.13, 0.6), 999, Color.TRANSPARENT if primary else Color(1, 1, 1, 0.5), 16, 6)
+	if primary:
+		for s in [n, h]:
+			s.shadow_color = Color(0.02, 0.08, 0.1, 0.32)
+			s.shadow_size = 10
+			s.shadow_offset = Vector2(0, 4)
 	b.add_theme_stylebox_override("normal", n)
 	b.add_theme_stylebox_override("hover", h)
 	b.add_theme_stylebox_override("pressed", p)
@@ -329,13 +392,13 @@ func _button(t: String, primary: bool, cb: Callable, icon_name := "", height := 
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	if icon_name != "":
 		b.icon = main.ph(icon_name)
-		b.add_theme_constant_override("icon_max_width", 20 if primary else 16)
+		b.add_theme_constant_override("icon_max_width", 22 if primary else 16)
 		b.add_theme_constant_override("h_separation", 9)
 	b.pressed.connect(func(): AudioManager.play_click())
 	b.pressed.connect(cb)
 	return b
 
-func _link(t: String, cb: Callable, color := MINT) -> Button:
+func _link(t: String, cb: Callable, color := SOFT) -> Button:
 	var b := Button.new()
 	b.text = t
 	b.flat = true
@@ -359,8 +422,8 @@ func _field(key: String, placeholder: String, secret := false, kb := LineEdit.KE
 	e.add_theme_color_override("font_color", Color.WHITE)
 	e.add_theme_color_override("font_placeholder_color", Color(FAINT, 0.85))
 	e.add_theme_color_override("caret_color", MINT)
-	e.add_theme_stylebox_override("normal", _box(Color(0.02, 0.13, 0.16, 0.6), 999, Color("#2d6d76"), 18, 6))
-	e.add_theme_stylebox_override("focus", _box(Color(0.02, 0.13, 0.16, 0.75), 999, MINT, 18, 6))
+	e.add_theme_stylebox_override("normal", _box(Color(0.02, 0.13, 0.16, 0.72), 999, Color(1, 1, 1, 0.25), 18, 6))
+	e.add_theme_stylebox_override("focus", _box(Color(0.02, 0.13, 0.16, 0.85), 999, MINT, 18, 6))
 	e.text = str(_typed.get(key, ""))
 	e.text_changed.connect(func(t): _typed[key] = t)
 	e.text_submitted.connect(func(_t): _submit())
@@ -399,14 +462,13 @@ func _rebuild() -> void:
 	for c in foot.get_children(): c.queue_free()
 	_fields.clear()
 	var B = Backend
+	var U = Updater
 	var short := _short()
 	var open := form != ""
 	# greeting
 	var hello := "Welcome, fisher!"
-	var sub := "Your fish are saved on this device. Sign in to keep them safe in the cloud too."
+	var sub := "Your fish are saved on this device."
 	var sub_col := SOFT
-	if not B.configured():
-		sub = "Your progress is saved on this device."
 	match B.state:
 		"signed_in":
 			hello = "Welcome back, %s!" % (B.display_name if B.display_name != "" else "fisher")
@@ -414,48 +476,39 @@ func _rebuild() -> void:
 				"syncing": sub = "Saving your fish to the cloud…"
 				"error":
 					sub = B.sync_error
-					sub_col = Color("#ff9d8f")
+					sub_col = Color("#ffb4a6")
 				"conflict":
 					sub = "This device and your cloud save differ. Pick the one to keep."
 					sub_col = Color("#ffd27a")
-				_: sub = "Your cloud save is synced."
+				_: sub = ""
 		"busy":
 			sub = "Signing in…"
 		"offline":
 			hello = "Welcome back!"
-			sub = "You're offline. Your progress is kept here and syncs when you're back."
+			sub = "You're offline. Your progress syncs when you're back."
 	if open:
 		hello = "Sign in" if form == "sign_in" else "Create your account"
 		sub = "Your progress comes with you to any device." if form == "sign_in" else "Free. Keeps your fish safe and puts you on the leaderboard."
-	if not (short and open):
-		var tile := CenterContainer.new()
-		var tp := PanelContainer.new()
-		tp.add_theme_stylebox_override("panel", _box(Color(1, 1, 1, 0.08), 22, Color(MINT, 0.35), 8, 8))
-		var ic: TextureRect = main.icon(load(ICON), 64 if not short else 42)
-		tp.add_child(ic)
-		tile.add_child(tp)
-		col.add_child(tile)
-	var title := _text(hello, 30 if not short else 25, Color.WHITE)
+	var title := _text(hello, 24 if not short else 19, Color.WHITE)
 	title.add_theme_font_override("font", bold)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(title)
-	var sl := _wrap(sub, 15, sub_col)
-	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(sl)
-	col.add_child(_gap(4))
+	if sub != "" and (open or not short or sub_col != SOFT):
+		var sl := _wrap(sub, 14, sub_col)
+		sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(sl)
 	if open:
 		_form_rows()
 	else:
-		play_btn = _button("Play", true, play, "play", 58 if not short else 52)
-		play_btn.add_theme_font_size_override("font_size", 24)
+		play_btn = _button("Play", true, play, "", 64 if not short else 50)
+		play_btn.add_theme_font_size_override("font_size", 28 if not short else 22)
 		col.add_child(play_btn)
 		var fresh: bool = VF.level <= 1 and VF.stats.trips == 0
-		var ps := _text("New game: welcome aboard!" if fresh else "Continue  ·  Lv %s  ·  %s  ·  %s" % [VF.commas(VF.level), VF.biome, main.money_str(VF.money)], 13, FAINT)
+		var ps := _text("New game: welcome aboard!" if fresh else "Lv %s  ·  %s  ·  %s" % [VF.commas(VF.level), VF.biome, main.money_str(VF.money)], 14, SOFT)
 		ps.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(ps)
 		if B.configured():
-			col.add_child(_gap(2))
 			match B.state:
 				"signed_in":
 					if not B.conflict.is_empty():
@@ -466,24 +519,18 @@ func _rebuild() -> void:
 				"signed_out":
 					col.add_child(_row([_button("Sign in", false, func(): _open_form("sign_in"), "sign-in", 40),
 						_button("Create account", false, func(): _open_form("sign_up"), "user-circle", 40)]))
-	col.add_child(_gap(4))
-	col.add_child(_update_strip())
+	if U.state in ["available", "full_needed", "downloading", "ready", "error"]:         # only when there's something to do
+		col.add_child(_update_strip())
 	# footer: settings (and quit on desktop) + version
-	foot.add_child(_link("Settings", func(): main._open_panel("settings"), FAINT))
+	foot.add_child(_link("Settings", func(): main._open_panel("settings"), SOFT))
 	if OS.get_name() in ["Windows", "Linux", "macOS"]:
-		foot.add_child(_link("Quit", func(): get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST), FAINT))
+		foot.add_child(_link("Quit", func(): get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST), SOFT))
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(sp)
-	var v := _text("fosh&fish %s" % main.VERSION, 13, Color(FAINT, 0.8))
+	var v := _text("fosh&fish %s" % main.VERSION, 13, FAINT)
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	foot.add_child(v)
-	foot.custom_minimum_size.x = _panel_w() - (68.0 if not short else 52.0)
-
-func _gap(h: float) -> Control:
-	var g := Control.new()
-	g.custom_minimum_size.y = h
-	return g
 
 func _form_rows() -> void:
 	var B = Backend
@@ -497,20 +544,20 @@ func _form_rows() -> void:
 	go.disabled = busy
 	col.add_child(go)
 	if B.message != "":
-		var m := _wrap(B.message, 14, Color("#ff9d8f") if B.message_kind == "error" else (MINT if B.message_kind == "good" else SOFT))
+		var m := _wrap(B.message, 14, Color("#ffb4a6") if B.message_kind == "error" else (MINT if B.message_kind == "good" else SOFT))
 		m.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(m)
 	var links := HBoxContainer.new()
 	links.alignment = BoxContainer.ALIGNMENT_CENTER
 	links.add_theme_constant_override("separation", 18)
-	links.add_child(_link("Back", func(): _open_form("")))
+	links.add_child(_link("Back", func(): _open_form(""), MINT))
 	if form == "sign_in":
 		links.add_child(_link("Forgot password?", func():
 			main._open_panel("account", "Account")
-			if main.account_ui: main.account_ui._set_mode("forgot")))
-		links.add_child(_link("Create account", func(): _open_form("sign_up")))
+			if main.account_ui: main.account_ui._set_mode("forgot"), MINT))
+		links.add_child(_link("Create account", func(): _open_form("sign_up"), MINT))
 	else:
-		links.add_child(_link("I have an account", func(): _open_form("sign_in")))
+		links.add_child(_link("I have an account", func(): _open_form("sign_in"), MINT))
 	col.add_child(links)
 	var first: LineEdit = _fields.get("name" if form == "sign_up" else "email")
 	if first and first.text == "" and not main.is_touch():
@@ -540,8 +587,8 @@ func _update_strip() -> Control:
 	var newest: String = String(U.latest.get("version", ""))
 	var box := PanelContainer.new()
 	var hot: bool = U.state in ["available", "full_needed", "ready"]
-	box.add_theme_stylebox_override("panel", _box(Color(MINT, 0.12) if hot else Color(1, 1, 1, 0.04), 16,
-		Color(MINT, 0.45) if hot else Color.TRANSPARENT, 14, 10))
+	box.add_theme_stylebox_override("panel", _box(Color(0.03, 0.14, 0.17, 0.6), 16,
+		Color(MINT, 0.5) if hot else Color.TRANSPARENT, 14, 8))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	box.add_child(v)
@@ -549,20 +596,14 @@ func _update_strip() -> Control:
 	h.add_theme_constant_override("separation", 10)
 	v.add_child(h)
 	var icon_name := "arrow-circle-up"
-	var line := "Checking for updates…"
+	var line := ""
 	var action: Button = null
 	match U.state:
-		"up_to_date":
-			icon_name = "check"
-			line = "Up to date  ·  version %s" % main.VERSION
 		"available":
 			var web: bool = U.platform() == "web"
 			var mb := float(U.patch_info().get("size", 0)) / 1048576.0
 			line = "Version %s is out!" % newest + ("" if web else "  (%.1f MB)" % mb)
 			action = _button("Reload" if web else "Update", true, U.download, "", 34)
-		"store":
-			icon_name = "check"
-			line = "Version %s  ·  updates come from Google Play" % main.VERSION
 		"full_needed":
 			line = "Version %s needs a new download" % newest
 			action = _button("Get it", true, U.open_downloads, "", 34)
@@ -579,7 +620,7 @@ func _update_strip() -> Control:
 				U.state = "idle"
 				U.check(), "", 34)
 	var ic: TextureRect = main.icon(main.ph(icon_name), 18)
-	ic.modulate = MINT if U.state in ["up_to_date", "available", "ready", "store"] else FAINT
+	ic.modulate = MINT if U.state in ["available", "ready"] else FAINT
 	h.add_child(ic)
 	var l := _wrap(line, 14, Color.WHITE if hot else SOFT)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL

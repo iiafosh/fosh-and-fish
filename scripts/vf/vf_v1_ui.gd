@@ -5,11 +5,11 @@ extends RefCounted
 ## Built with vf_main's UI kit (sbox, lbl, btn, icon, ph, tex, _card, _act, _grid, money_str).
 ## Game rules live in VF (vf_game.gd "1.0"), purchases in Store, ads in Ads, shiny rolls in Backend.
 
-const C_TEXT := Color("#1f2d35")
-const C_MUTED := Color("#6b7d86")
-const C_GOOD := Color("#22a06b")
-const C_GOLD := Color("#d4920f")
-const C_TEAL := Color("#1d9bb0")
+const C_TEXT := Color("#2b3a40")
+const C_MUTED := Color("#6d7c7d")
+const C_GOOD := Color("#2c9a73")
+const C_GOLD := Color("#c98b1c")
+const C_TEAL := Color("#238b9c")
 const C_PEARL := Color("#a78bfa")
 const C_STAR := Color("#f59e0b")
 const HINT_EVERY := 900.0             # seconds between "sign in to catch shiny fish" hints
@@ -155,8 +155,8 @@ func tick(delta: float) -> void:
 			boss_bar.value = float(VF.ev_boss_hp)
 		var sb: StyleBoxFlat = m.pill_box(false, 10, 5)
 		sb.bg_color = Color(e.color.darkened(0.45), 0.86)
-		sb.border_color = e.color
-		sb.set_border_width_all(2)
+		sb.border_color = Color(e.color, 0.7)
+		sb.set_border_width_all(1)
 		event_pill.add_theme_stylebox_override("panel", sb)
 		(glow.material as ShaderMaterial).set_shader_parameter("tint", e.color)
 	else:
@@ -166,7 +166,7 @@ func tick(delta: float) -> void:
 		event_sub.text = "Keep fishing: events come every 10 minutes of play"
 		boss_bar.visible = false
 		event_pill.add_theme_stylebox_override("panel", m.pill_box(false, 10, 5))
-	event_sub.visible = on or m.overlay.visible == false and not m.compact()
+	event_sub.visible = on and not m.compact()
 	event_pill.visible = VF.level >= 3 or on                     # not in the very first minutes
 	var fx_id: String = VF.ev_id if on else ""
 	if m.stage.event_fx_id != fx_id: m.stage.set_event_fx(fx_id)
@@ -354,7 +354,7 @@ func _store_packs() -> void:
 		if bmins > 0: bits.append(("%s of every boost" % dur(bmins * 60.0)) if d.get("boost", []).size() > 1 else ("%s Fish Boost" % dur(bmins * 60.0)))
 		var card: PanelContainer = _card(pack_tex(id), d.name + ("   ·  " + tags[id] if tags.has(id) else ""), "\n".join(bits.map(func(x): return "•  " + x)),
 			_buy_button(id), false, 72, d.color)
-		var sb: StyleBoxFlat = m.sbox(Color("#f6fbfc"), 14, 2, d.color.lightened(0.2), 12)
+		var sb: StyleBoxFlat = m.sbox(Color("#fffaf0"), 14, 2, d.color.lightened(0.2), 12)
 		card.add_theme_stylebox_override("panel", sb)
 		m._add_to(g, card)
 
@@ -502,7 +502,7 @@ func tab_shiny() -> void:
 		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(sub)
 		var cell := PanelContainer.new()
-		cell.add_theme_stylebox_override("panel", m.sbox(Color("#f3efff") if not mine.is_empty() else Color("#eef4f6"), 12, 1 if not mine.is_empty() else 0, Color("#c4b5fd"), 8))
+		cell.add_theme_stylebox_override("panel", m.sbox(Color("#f3efff") if not mine.is_empty() else Color("#efe9dc"), 12, 1 if not mine.is_empty() else 0, Color("#c4b5fd"), 8))
 		cell.add_child(box)
 		cell.tooltip_text = "Shiny %s\n%s%s" % [f, ("You own " + serials + "\n") if serials != "" else "", left]
 		m._add_to(g, cell)
@@ -530,7 +530,7 @@ func tab_event_fish() -> void:
 		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(s)
 		var cell := PanelContainer.new()
-		cell.add_theme_stylebox_override("panel", m.sbox(Color("#eef4f6"), 12, 0, Color.TRANSPARENT, 8))
+		cell.add_theme_stylebox_override("panel", m.sbox(Color("#efe9dc"), 12, 0, Color.TRANSPARENT, 8))
 		cell.add_child(box)
 		m._add_to(g, cell)
 
