@@ -7,6 +7,11 @@ signal trip_done(result: Dictionary)
 signal leveled_up(new_level: int, money_reward: int)
 signal toast(text: String, kind: String)
 signal goal_done(text: String, reward: String, chest: Dictionary)
+signal event_started(id: String)
+signal event_ended(id: String, boss_caught: bool)
+signal shiny_ticket(species: String)       # a catch earned a shiny roll: the UI asks the server (Backend.try_shiny)
+signal crew_trip(n: int)                   # the fleet landed n fish (vf_idle_ui: a splash by a crew boat, the hold grows)
+signal offline_ready(r: Dictionary)        # back from being away: what the crews caught waits in `offline`
 
 const SAVE_PATH := "user://vf_save.json"
 const SAVE_VERSION := 1
@@ -46,6 +51,7 @@ var stats := {"trips": 0, "fish": 0, "chests": 0, "charms": 0, "money_earned": 0
 var discovered := {}                      # species -> total ever caught (fishdex)
 var goals_done := 0                       # STARTER_GOALS completed (in order)
 var tutorial := 0                         # onboarding step (UI)
+var ducks := 0                            # rubber ducks found (vf_fun.gd). Nobody knows why.
 var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
 var catch_mode := "relax"                 # "relax" (wait the cooldown) | "reel" (mini-game, VFData.MINIGAME_*)
 var quest_day := ""
@@ -78,6 +84,8 @@ func _ready() -> void:
 	_roll_quest_day()
 
 func _process(delta: float) -> void:
+	_ev_tick(delta)
+	_idle_tick(delta)
 	if is_boost_active("worker"):
 		_worker_accum += delta
 		var cd := worker_cooldown()
@@ -184,7 +192,11 @@ func marketing_mult() -> float:
 
 func sell_mult() -> float:
 	return (1.0 + 0.05 * up("salesman") + 0.05 * sp("fish_ovens") + 0.15 * sp("ultimate_salesman")
-		+ 0.40 * pk("business_education") + 0.20 * pk("virtual_fisher")) * marketing_mult() * stat_mult()
+		+ 0.40 * pk("business_education") + 0.20 * pk("virtual_fisher")) * marketing_mult() * stat_mult() * extra_money_mult()
+
+## 1.0: the easier economy, Supporter Pack perks, the shiny collection, Golden Hour and Double Money (ads)
+func extra_money_mult() -> float:
+	return VFData.EASE * (1.0 + perk("money") + shiny_bonus()) * event_mult("money") * (2.0 if money2x_left() > 0.0 else 1.0)
 
 ## Beginner's Luck (not in the bot): new players level faster so chests and boosts
 ## (level 10) arrive in the first session. x3 below level 10, fading to x1 at level 25.
@@ -197,7 +209,8 @@ func beginner_mult(lvl: int = -1) -> float:
 
 func xp_mult() -> float:
 	return beginner_mult() * maxf(0.1, 1.0 + 0.10 * up("experienced") + 0.15 * sp("highly_experienced") + 0.35 * pk("ancient_one")
-		+ 0.20 * pk("virtual_fisher") + 0.05 * charm_tier("experience") + pet_stat("xp") + bait_stat("xp")) * stat_mult()
+		+ 0.20 * pk("virtual_fisher") + 0.05 * charm_tier("experience") + pet_stat("xp") + bait_stat("xp")) * stat_mult() \
+		* VFData.EASE * (1.0 + perk("xp"))
 
 func treasure_boost_mult() -> float:
 	if not is_boost_active("treasure"): return 1.0
@@ -206,16 +219,16 @@ func treasure_boost_mult() -> float:
 func treasure_chance() -> float:
 	var r: Dictionary = VFData.RODS[rod]
 	var m := (1.0 + 0.05 * up("more_chests") + 0.025 * charm_tier("treasure") + bait_stat("tc") + pet_stat("tc")) * stat_mult()
-	return clampf(r.tc * m * treasure_boost_mult(), 0.0, 1.0)
+	return clampf(r.tc * m * treasure_boost_mult() * event_mult("treasure"), 0.0, 1.0)
 
 func treasure_quality() -> float:
 	var r: Dictionary = VFData.RODS[rod]
 	return (1.0 + r.tq) * (1.0 + 0.10 * up("better_chests") + 0.025 * charm_tier("quality") + bait_stat("tq")
-		+ pet_stat("tq")) * stat_mult()
+		+ pet_stat("tq")) * stat_mult() * event_mult("tq")
 
 func cooldown() -> float:
 	var cd := VFData.BASE_COOLDOWN + float(VFData.BIOMES[biome].cd_add) - 0.25 * boats_owned - 0.05 * charm_tier("haste")
-	return maxf(VFData.MIN_COOLDOWN, cd)
+	return maxf(VFData.MIN_COOLDOWN, cd) * event_mult("cooldown")      # Fish Frenzy halves it
 
 func booster_buff() -> float:
 	return 1.75 if Time.get_unix_time_from_system() < personal_until else 1.0
@@ -251,7 +264,7 @@ func _rod_table(r: String, b: String) -> Array:
 	var cheapest_cost := -1
 	for other in VFData.ROD_ORDER:
 		var t: Dictionary = VFData.RODS[other].tables
-		if other == "Supporter Rod" or not t.has(b): continue
+		if VFData.is_exclusive_rod(other) or not t.has(b): continue
 		var c: int = VFData.RODS[other].cost
 		if c <= cost and c > best_cost:
 			best = t[b]; best_cost = c
@@ -295,6 +308,7 @@ func _fish_count(for_worker: bool = false, fish_bonus: float = 0.0) -> int:
 		cnt += bm.catch_rate * rng.randf_range(0.0, 4.0) + 1.0 + bb + rng.randf_range(0.0, 2.0) * ff
 		cnt *= 1.05 + 0.01 * ff + 0.01 * bb
 	cnt *= 1.0 + fish_bonus
+	cnt *= event_mult("fish")                  # Fish Frenzy
 	var n := int(floor(cnt))
 	if rng.randf() < cnt - n: n += 1
 	if n > 0 and rng.randf() < duplicate_chance():
@@ -342,7 +356,8 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_cd_override = -1.0
 	_roll_quest_day()
 	var res := {"ok": true, "fish": {}, "count": 0, "xp": 0, "chest": {}, "pet": "", "bait_used": "",
-		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0, "reel": reel_result}
+		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0, "reel": reel_result,
+		"stars": 0, "event_fish": "", "event_money": 0, "boss_hp": -1, "boss_caught": false, "shiny_ticket": ""}
 	var used_bait := has_bait()
 	var n := _fish_count(false, fish_bonus)
 	var caught := _distribute(n)
@@ -390,9 +405,14 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_quest_add("fish", n)
 	_quest_add("trips", 1)
 	_week_trip()
+	_v1_on_catch(res, caught)                  # 1.0: active play, event stars / fish / boss, shiny tickets
 	trip_done.emit(res)
 	check_goals()
 	changed.emit()
+	if res.boss_caught:
+		_ev_end(true)
+	if res.shiny_ticket != "":
+		shiny_ticket.emit(res.shiny_ticket)
 	return res
 
 ## "Reel it in!" mode: the catch after the mini-game (the mini-game already waited, so the
@@ -411,6 +431,21 @@ func cast_reel(won: bool, cast_start_ms: int = -1) -> Dictionary:
 		elif cast_start_ms >= 0:
 			_last_cast_ms = cast_start_ms
 	return res
+
+## A little find on the water (vf_fun.gd) pays about what this many casts would bring in around here
+func pay_find(casts: float) -> int:
+	var odds: Array = species_odds()
+	var names: Array = VFData.BIOMES[biome].fish
+	var each := 0.0
+	for k in names.size():
+		each += float(odds[k]) * fish_price(names[k])
+	var r: Dictionary = VFData.RODS[rod]
+	var n := (float(r.min) + float(r.max)) * 0.5 * fish_catch_mult() + boats_owned
+	var pay := maxi(1, int(round(each * n * sell_mult() * casts)))
+	money += pay
+	stats.money_earned += pay
+	changed.emit()
+	return pay
 
 func set_catch_mode(m: String) -> void:
 	if m in VFData.CATCH_MODES and m != catch_mode:
@@ -637,6 +672,7 @@ func buy_boat() -> String:
 func buy_rod(r: String) -> String:
 	var d: Dictionary = VFData.RODS[r]
 	if r in owned_rods: return "Already owned."
+	if VFData.is_exclusive_rod(r): return "The %s isn't sold for money." % r
 	if prestige < int(d.get("prestige", 0)): return "Needs Prestige %d." % d.prestige
 	if level < d.level: return "%s needs level %d." % [r, d.level]
 	if not _spend(d.cost): return "Not enough money."
@@ -743,14 +779,17 @@ func buy_boost(id: String) -> String:
 	if level < 10: return "Boosts unlock at level 10."
 	if exotics[d.cur] < d.cost: return "Not enough %s." % VFData.EXOTICS[d.cur].name
 	exotics[d.cur] -= d.cost
-	var secs: float = d.secs
-	if d.kind == "worker":
-		secs *= 1.0 + 0.1 * sp("worker_extender")
+	add_boost(d.kind, float(d.secs))
+	return ""
+
+## secs more of a boost (worker boosts last longer with Worker Extender and pack perks)
+func add_boost(kind: String, secs: float) -> void:
+	if kind == "worker":
+		secs *= 1.0 + 0.1 * sp("worker_extender") + perk("worker")
 	var now := Time.get_unix_time_from_system()
-	boosts[d.kind] = maxf(now, float(boosts.get(d.kind, 0.0))) + secs
+	boosts[kind] = maxf(now, float(boosts.get(kind, 0.0))) + secs
 	_quest_add("boostmin", int(secs / 60.0))
 	changed.emit()
-	return ""
 
 func use_personal_booster() -> String:
 	if personal_boosters <= 0: return "No personal boosters."
@@ -764,7 +803,7 @@ func daily_ready_in() -> float:
 	return maxf(0.0, daily_last + 86400.0 - Time.get_unix_time_from_system())
 
 func claim_daily() -> Dictionary:
-	if level < 10: return {"error": "Daily unlocks at level 10."}
+	if level < VFData.DAILY_LEVEL: return {"error": "Daily unlocks at level %d." % VFData.DAILY_LEVEL}
 	if daily_ready_in() > 0.0: return {"error": "Come back later."}
 	var now := Time.get_unix_time_from_system()
 	daily_streak = daily_streak + 1 if now - daily_last < 172800.0 else 1
@@ -784,7 +823,10 @@ func claim_daily() -> Dictionary:
 		personal_boosters += 1
 		out.booster = 1
 	out.streak = daily_streak
+	out.day = calendar_done()                           # the calendar: day 1-7 of this run pays its bonus too
+	out.bonus = _give_item(VFData.CALENDAR[out.day - 1])
 	changed.emit()
+	save_game()
 	return out
 
 # ------------------------------------------------------------------ quests
@@ -852,12 +894,15 @@ func do_prestige() -> String:
 	xp = 0
 	money = 0
 	biome = "River"
-	owned_rods = ["Plastic Rod"]
-	if prestige >= 5: owned_rods.append("Supporter Rod")
+	# exclusive rods (Supporter Packs, Pearls, the Event Shop) are kept through prestige
+	owned_rods = ["Plastic Rod"] + owned_rods.filter(func(r): return VFData.is_exclusive_rod(r))
 	rod = "Plastic Rod"
 	bait = ""
 	bait_stock = {}
 	boats_owned = 0
+	crews = 0
+	fleet_up = {}
+	_crew_accum = 0.0
 	inventory = {}
 	upgrades = {}
 	specials = {}
@@ -884,12 +929,16 @@ func to_dict() -> Dictionary:
 		"tok": _tok_dict(),
 		"sail_hint": sail_hint,
 		"catch_mode": catch_mode,
+		"ducks": ducks,
+		"v1": _v1_dict(),
+		"idle": _idle_dict(),
 	}
 
 var autosave := true
 
 func save_game() -> void:
 	if not autosave: return
+	idle_seen = Time.get_unix_time_from_system()
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f: f.store_string(JSON.stringify(to_dict()))
 
@@ -917,6 +966,7 @@ func _apply(d: Dictionary) -> void:
 	discovered = _ints(d.get("discovered", {}))
 	tutorial = int(d.get("tutorial", 0))
 	sail_hint = bool(d.get("sail_hint", false))
+	ducks = int(d.get("ducks", 0))
 	catch_mode = str(d.get("catch_mode", "relax"))
 	if not catch_mode in VFData.CATCH_MODES: catch_mode = "relax"
 	if d.has("goals_done"):
@@ -928,6 +978,9 @@ func _apply(d: Dictionary) -> void:
 	for k in ["sells", "bait_casts"]:
 		if not stats.has(k): stats[k] = 0
 	_tok_apply(d.get("tok", {}))           # FishTok (absent in old saves -> defaults)
+	_v1_apply(d.get("v1", {}))             # 1.0: pearls, packs, events, shinies, ads (absent before 1.0)
+	_idle_apply(d.get("idle", {}))         # idle: auto-fish, the fleet, the calendar & spin (absent before)
+	offline_check()                        # what the crews caught since this save was written
 
 func _ints(src: Dictionary) -> Dictionary:
 	var out := {}
@@ -975,6 +1028,7 @@ func goal_progress(gdef: Dictionary) -> int:
 		"species": return discovered.size()
 		"level": return level
 		"boats": return boats_owned
+		"crews": return crews
 	return 0
 
 func goal_reward_text(r: Dictionary) -> String:
@@ -1396,3 +1450,596 @@ func _tok_apply(t: Dictionary) -> void:
 	for id in t.get("liked", []): tok_liked.append(String(id))
 	tok_trend_day = String(t.get("trend_day", ""))
 	tok_trend = String(t.get("trend", ""))
+
+
+# ======================================================================
+# ---- 1.0: events, event fish & the Event Shop, shinies, Pearls & Supporter Packs, ads
+# Data in vf_data.gd (EVENTS, EVENT_FISH, EVENT_SHOP, SHINY_*, PACKS, PEARL_*, AD_*).
+# Real-money purchases arrive from the Store autoload (Google Play) through grant_purchase(),
+# rewarded ads from the Ads autoload through grant_ad(), and shiny rolls are decided by the server
+# (Backend.try_shiny) and land here through add_shiny().
+
+var pearls := 0
+var packs: Array = []                     # Supporter Packs owned (product ids), kept forever
+var purchases: Array = []                 # purchase tokens already granted (never twice)
+var money2x_until := 0.0                  # Double Money (a rewarded ad) runs until then
+var ad_day := ""
+var ad_count := {}                        # ad reward id -> watched today ("total" = all of them)
+var ev_play := 0.0                        # seconds of active play toward the next event
+var ev_id := ""                           # the running event ("" = none)
+var ev_until := 0.0                       # unix time the running event ends
+var ev_last := ""                         # never the same event twice in a row
+var ev_boss_hp := 0
+var stars := 0                            # Event Stars
+var event_fish := {}                      # event fish -> caught
+var shinies := {}                         # species -> [serial numbers] (a mirror of the server's list)
+var shiny_lure := 0                       # catches left with a Shiny Lure on
+var _last_active := -1000.0               # unix time of the last cast you made (active play)
+
+# ------------------------------------------------------------------ perks
+## Supporter Pack perks add up: "money", "xp", "worker", "shiny" (fractions).
+func perk(key: String) -> float:
+	var s := 0.0
+	for id in packs:
+		if VFData.PACKS.has(id): s += float(VFData.PACKS[id].perks.get(key, 0.0))
+	return s
+
+func shiny_species_owned() -> int:
+	var n := 0
+	for sp_name in shinies:
+		if not (shinies[sp_name] as Array).is_empty(): n += 1
+	return n
+
+func shiny_bonus() -> float:
+	return VFData.SHINY_SELL_BONUS * shiny_species_owned()
+
+func money2x_left() -> float:
+	return maxf(0.0, money2x_until - Time.get_unix_time_from_system())
+
+# ------------------------------------------------------------------ events
+func event_active() -> bool:
+	return ev_id != "" and Time.get_unix_time_from_system() < ev_until
+
+func event_left() -> float:
+	return maxf(0.0, ev_until - Time.get_unix_time_from_system()) if ev_id != "" else 0.0
+
+## seconds of active play until the next event (0 while one runs)
+func event_next_in() -> float:
+	return 0.0 if ev_id != "" else maxf(0.0, VFData.EVENT_EVERY - ev_play)
+
+func event_mult(key: String) -> float:
+	if not event_active(): return 1.0
+	return float(VFData.EVENTS[ev_id].get(key, 1.0))
+
+func _ev_tick(delta: float) -> void:
+	var now := Time.get_unix_time_from_system()
+	if ev_id != "":
+		if now >= ev_until: _ev_end(false)
+		return
+	if now - _last_active < VFData.EVENT_IDLE:
+		ev_play += delta
+		if ev_play >= VFData.EVENT_EVERY: start_event()
+
+## Start an event now (id "" = a random one, never the last one). Returns "" or why not.
+func start_event(id: String = "") -> String:
+	if ev_id != "": return "An event is already on."
+	if id == "":
+		var pool: Array = VFData.EVENT_ORDER.filter(func(e): return e != ev_last)
+		id = pool[rng.randi() % pool.size()]
+	if not VFData.EVENTS.has(id): return "Unknown event."
+	ev_id = id
+	ev_last = id
+	ev_play = 0.0
+	ev_until = Time.get_unix_time_from_system() + float(VFData.EVENTS[id].secs)
+	ev_boss_hp = int(VFData.EVENTS[id].get("boss_hp", 0))
+	event_started.emit(id)
+	changed.emit()
+	save_game()
+	return ""
+
+func _ev_end(boss_caught: bool) -> void:
+	if ev_id == "": return
+	var id := ev_id
+	ev_id = ""
+	ev_until = 0.0
+	if id == "boss" and not boss_caught:
+		stars += 3
+		toast.emit("The Leviathan got away... +3 Event Stars for trying", "warn")
+	event_ended.emit(id, boss_caught)
+	changed.emit()
+	save_game()
+
+## what an event fish pays at your level
+func event_fish_money(f: String) -> int:
+	return int(maxf(500.0, levelup_money(level) * float(VFData.EVENT_FISH[f].money)))
+
+## after every cast you make: active play, event stars, event fish, the boss, shiny tickets
+func _v1_on_catch(res: Dictionary, caught: Dictionary) -> void:
+	if not auto_cast: _last_active = Time.get_unix_time_from_system()    # (auto-fish isn't active play)
+	if event_active():
+		res.stars = 1
+		var f: String = VFData.EVENTS[ev_id].fish_id
+		if ev_id == "boss":
+			ev_boss_hp = maxi(0, ev_boss_hp - (2 if res.reel == "win" else 1))
+			res.boss_hp = ev_boss_hp
+			if ev_boss_hp == 0:
+				res.event_fish = f
+				res.boss_caught = true
+				if res.chest.is_empty(): res.chest = _open_chest("legendary")
+		elif rng.randf() < float(VFData.EVENT_FISH[f].chance):
+			res.event_fish = f
+		if res.event_fish != "":
+			res.event_money = event_fish_money(res.event_fish)
+			money += res.event_money
+			stats.money_earned += res.event_money
+			res.stars += int(VFData.EVENT_FISH[res.event_fish].stars)
+			event_fish[res.event_fish] = int(event_fish.get(res.event_fish, 0)) + 1
+		stars += res.stars
+	# shiny ticket: a random fish of this catch (common fish more often, like in the water)
+	var n := int(res.count)
+	if n > 0 and not auto_cast and rng.randf() < shiny_ticket_chance():
+		var k := rng.randi_range(1, n)
+		for sp_name in caught:
+			k -= int(caught[sp_name])
+			if k <= 0:
+				res.shiny_ticket = sp_name
+				break
+	if shiny_lure > 0 and n > 0 and not auto_cast:
+		shiny_lure -= 1
+
+func shiny_ticket_chance() -> float:
+	return VFData.SHINY_TICKET * event_mult("shiny") * (1.0 + perk("shiny")) * (VFData.SHINY_LURE_MULT if shiny_lure > 0 else 1.0)
+
+# ------------------------------------------------------------------ shinies
+## The server minted a shiny for you (serial No. n of SHINY_SUPPLY)
+func add_shiny(species: String, serial: int) -> void:
+	if not VFData.FISH.has(species): return
+	var a: Array = shinies.get(species, [])
+	if not serial in a: a.append(serial)
+	shinies[species] = a
+	changed.emit()
+	save_game()
+
+## The server's list of your shinies: [{"species", "serial"}] (it wins over this device's mirror)
+func set_shinies(rows: Array) -> void:
+	var out := {}
+	for r in rows:
+		if typeof(r) != TYPE_DICTIONARY: continue
+		var s := String(r.get("species", ""))
+		if not VFData.FISH.has(s): continue
+		var a: Array = out.get(s, [])
+		a.append(int(r.get("serial", 0)))
+		out[s] = a
+	shinies = out
+	changed.emit()
+
+# --------------------------------------------------------- pearls & packs
+## Google Play confirmed a purchase (or a test purchase): give what it holds. token: the purchase token,
+## remembered so the same purchase is never granted twice. Supporter Packs are kept forever.
+func grant_purchase(product_id: String, token: String = "") -> Dictionary:
+	if token != "" and token in purchases: return {"error": "Already granted."}
+	var got := {}
+	if VFData.PACKS.has(product_id):
+		if product_id in packs: return {"error": "You already own the %s." % VFData.PACKS[product_id].name}
+		var d: Dictionary = VFData.PACKS[product_id]
+		packs.append(product_id)
+		pearls += int(d.pearls)
+		got["pearls"] = int(d.pearls)
+		var rods: Array = ["Supporter Rod"]
+		rods.append_array(d.get("rods", []))
+		for r in rods:
+			if not r in owned_rods: owned_rods.append(r)
+		got["rods"] = rods
+		for b in d.get("boost", []): add_boost(String(b[0]), float(b[1]))
+	elif VFData.PEARL_PACKS.has(product_id):
+		pearls += int(VFData.PEARL_PACKS[product_id].pearls)
+		got["pearls"] = int(VFData.PEARL_PACKS[product_id].pearls)
+	else:
+		return {"error": "Unknown product."}
+	if token != "":
+		purchases.append(token)
+		if purchases.size() > 300: purchases.pop_front()
+	toast.emit("Thank you!  %s" % got_text(got), "buy")
+	changed.emit()
+	save_game()
+	return {"ok": true, "got": got}
+
+## "+150 Pearls  Supporter Rod, Pearl Rod  +$12K" for toasts
+func got_text(got: Dictionary) -> String:
+	var bits := []
+	if got.has("pearls"): bits.append("+%s Pearls" % commas(int(got.pearls)))
+	if got.has("rods"): bits.append(", ".join(got.rods))
+	if got.has("money"): bits.append("+$" + fmt(got.money))
+	if got.has("xp"): bits.append("+%s XP" % fmt(got.xp))
+	if got.has("chest"): bits.append("%s chest" % String(got.chest.get("tier", "")).capitalize())
+	if got.has("bait"): bits.append("%s %s" % [commas(int(got.bait[1])), got.bait[0]])
+	if got.has("spins"): bits.append("+%d spin%s" % [int(got.spins), "" if int(got.spins) == 1 else "s"])
+	if got.has("offline"): bits.append("+%s fish" % commas(int(got.offline.n)))
+	return "  ".join(bits)
+
+## Pearl Shop / Event Shop / ad rewards: one item's effects. Returns what you got or {"error"}.
+func _give_item(d: Dictionary) -> Dictionary:
+	if d.has("event"):
+		var why := start_event()
+		if why != "": return {"error": why}
+	var got := {}
+	for b in d.get("boost", []):
+		add_boost(String(b[0]), float(b[1]))
+	if d.has("money_levels"):
+		got["money"] = int(maxf(1000.0, levelup_money(level)) * float(d.money_levels))
+		money += got.money
+		stats.money_earned += got.money
+	if d.has("xp_frac"):
+		got["xp"] = int(xp_to_next() * float(d.xp_frac))
+		add_xp(got.xp)
+	if d.has("chest"):
+		got["chest"] = _open_chest(String(d.chest))
+	if d.has("lure"):
+		shiny_lure += int(d.lure)
+	if d.has("rod"):
+		if not d.rod in owned_rods: owned_rods.append(d.rod)
+		rod = d.rod
+		got["rods"] = [d.rod]
+	if d.has("money2x"):
+		var now := Time.get_unix_time_from_system()
+		money2x_until = minf(maxf(now, money2x_until) + float(d.money2x), now + 3600.0)
+	if d.has("pearls"):
+		pearls += int(d.pearls)
+		got["pearls"] = int(d.pearls)
+	if d.has("bait_best"):
+		var b := best_bait()
+		bait_stock[b] = int(bait_stock.get(b, 0)) + int(d.bait_best)
+		if bait == "" or not has_bait(): bait = b
+		got["bait"] = [b, int(d.bait_best)]
+	if d.has("spin"):
+		spins += int(d.spin)
+		got["spins"] = int(d.spin)
+	if d.has("offline2x"):
+		var r := collect_offline(2.0)
+		if r.has("error"): return r
+		got["offline"] = r
+	return got
+
+func buy_pearl_item(id: String) -> Dictionary:
+	var d: Dictionary = VFData.PEARL_SHOP[id]
+	if d.has("rod") and d.rod in owned_rods: return {"error": "You already own the %s." % d.rod}
+	if d.has("event") and ev_id != "": return {"error": "An event is already on."}
+	if pearls < int(d.cost): return {"error": "Not enough Pearls."}
+	pearls -= int(d.cost)
+	var got := _give_item(d)
+	if got.has("error"):
+		pearls += int(d.cost)
+		return got
+	changed.emit()
+	save_game()
+	return got
+
+func buy_event_item(id: String) -> Dictionary:
+	var d: Dictionary = VFData.EVENT_SHOP[id]
+	if d.has("rod") and d.rod in owned_rods: return {"error": "You already own the %s." % d.rod}
+	if stars < int(d.cost): return {"error": "Not enough Event Stars."}
+	stars -= int(d.cost)
+	var got := _give_item(d)
+	changed.emit()
+	save_game()
+	return got
+
+# ---------------------------------------------------------------------- ads
+func _ad_roll_day() -> void:
+	var t := _today()
+	if ad_day != t:
+		ad_day = t
+		ad_count = {}
+
+## how many more times today this ad reward can be watched (0 = none)
+func ad_left(id: String) -> int:
+	_ad_roll_day()
+	var left := VFData.AD_DAILY_MAX - int(ad_count.get("total", 0))
+	var d: Dictionary = VFData.AD_REWARDS[id]
+	if d.has("max"): left = mini(left, int(d.max) - int(ad_count.get(id, 0)))
+	return maxi(0, left)
+
+## a rewarded ad was watched to the end (Ads autoload): give its reward
+func grant_ad(id: String) -> Dictionary:
+	if not VFData.AD_REWARDS.has(id): return {"error": "Unknown reward."}
+	if ad_left(id) <= 0: return {"error": "That's all for today. Come back tomorrow!"}
+	ad_count[id] = int(ad_count.get(id, 0)) + 1
+	ad_count["total"] = int(ad_count.get("total", 0)) + 1
+	var got := _give_item(VFData.AD_REWARDS[id])
+	changed.emit()
+	save_game()
+	return got
+
+# ---------------------------------------------------------------- save/load
+func _v1_dict() -> Dictionary:
+	return {"pearls": pearls, "packs": packs, "purchases": purchases, "money2x_until": money2x_until,
+		"ad_day": ad_day, "ad_count": ad_count, "ev_play": ev_play, "ev_id": ev_id, "ev_until": ev_until,
+		"ev_last": ev_last, "ev_boss_hp": ev_boss_hp, "stars": stars, "event_fish": event_fish,
+		"shinies": shinies, "shiny_lure": shiny_lure}
+
+func _v1_apply(d: Dictionary) -> void:
+	pearls = maxi(0, int(d.get("pearls", 0)))
+	packs = []
+	for p in d.get("packs", []):
+		if VFData.PACKS.has(String(p)) and not String(p) in packs: packs.append(String(p))
+	purchases = []
+	for t in d.get("purchases", []): purchases.append(String(t))
+	money2x_until = float(d.get("money2x_until", 0.0))
+	ad_day = String(d.get("ad_day", ""))
+	var ac = d.get("ad_count", {})
+	ad_count = _ints(ac) if typeof(ac) == TYPE_DICTIONARY else {}
+	ev_play = clampf(float(d.get("ev_play", 0.0)), 0.0, VFData.EVENT_EVERY)
+	ev_id = String(d.get("ev_id", ""))
+	if not VFData.EVENTS.has(ev_id): ev_id = ""
+	ev_until = float(d.get("ev_until", 0.0))
+	ev_last = String(d.get("ev_last", ""))
+	ev_boss_hp = int(d.get("ev_boss_hp", 0))
+	stars = maxi(0, int(d.get("stars", 0)))
+	event_fish = {}
+	var ef = d.get("event_fish", {})
+	if typeof(ef) == TYPE_DICTIONARY:
+		for f in ef:
+			if VFData.EVENT_FISH.has(String(f)): event_fish[String(f)] = int(ef[f])
+	shinies = {}
+	var sh = d.get("shinies", {})
+	if typeof(sh) == TYPE_DICTIONARY:
+		for s in sh:
+			if VFData.FISH.has(String(s)) and typeof(sh[s]) == TYPE_ARRAY:
+				var a: Array = []
+				for n in sh[s]: a.append(int(n))
+				shinies[String(s)] = a
+	shiny_lure = maxi(0, int(d.get("shiny_lure", 0)))
+
+
+# ======================================================================
+# ---- Idle: auto-fish, the Fleet, the catch while you were away, the 7-day calendar, the daily spin
+# Data in vf_data.gd ("idle"), UI in vf_idle_ui.gd. Not part of the bot.
+#  * Auto-fish casts your own boat on its own (vf_main, AUTO_SLOW x the cooldown apart).
+#  * Crews fish all the time: one trip each every crew_trip_secs(), landed in batches every 2 seconds.
+#  * While the game isn't running (closed, a phone in the background, a laptop asleep) the crews fish on
+#    at offline_rate() for up to offline_cap_secs(); the catch waits in `offline` until it's collected.
+
+var auto_on := false                      # auto-fish (your own boat), the player's switch
+var crews := 0                            # crews hired: the k-th sails VFData.BOAT_ORDER[k - 1]
+var fleet_up := {}                        # FLEET_UPGRADES id -> level
+var fleet_fish_total := 0
+var idle_seen := 0.0                      # unix time the game last ran (the offline clock starts here)
+var offline := {}                         # the catch waiting to be collected: {away, secs, n, xp, fish}
+var spin_day := ""                        # the UTC day the free spin was last used
+var spins := 0                            # extra spins (the calendar, ads)
+var auto_cast := false                    # runtime: the cast now running is an auto cast (vf_main sets it)
+var _crew_accum := 0.0
+var _crew_tick := 0.0
+var _crew_said := 0                       # ticks ms of the last `changed` the crews sent
+
+# --------------------------------------------------------------- auto-fish
+func auto_unlocked() -> bool:
+	return level >= VFData.AUTO_LEVEL or prestige > 0
+
+func set_auto(on: bool) -> void:
+	if on and not auto_unlocked(): return
+	auto_on = on
+	changed.emit()
+	save_game()
+
+# ------------------------------------------------------------------- fleet
+func fleet_unlocked() -> bool:
+	return level >= VFData.FLEET_LEVEL or prestige > 0 or crews > 0
+
+## money for crew number k (1 = the first)
+static func crew_cost(k: int) -> int:
+	return int(round(VFData.CREW_COST * pow(VFData.CREW_GROWTH, k - 1)))
+
+func next_crew_cost() -> int:
+	return -1 if crews >= VFData.BOAT_ORDER.size() else crew_cost(crews + 1)
+
+func hire_crew() -> String:
+	if not fleet_unlocked(): return "The fleet unlocks at level %d." % VFData.FLEET_LEVEL
+	var c := next_crew_cost()
+	if c < 0: return "Every boat has a crew."
+	if not _spend(c): return "Not enough money."
+	crews += 1
+	toast.emit("The %s crew is fishing for you, even while you're away!" % VFData.BOAT_ORDER[crews - 1], "buy")
+	changed.emit()
+	check_goals()
+	save_game()
+	return ""
+
+func fleet_lv(id: String) -> int:
+	return int(fleet_up.get(id, 0))
+
+func fleet_up_cost(id: String) -> int:
+	var d: Dictionary = VFData.FLEET_UPGRADES[id]
+	if fleet_lv(id) >= int(d.max): return -1
+	return int(round(float(d.cost) * pow(float(d.growth), fleet_lv(id))))
+
+func buy_fleet_up(id: String) -> String:
+	if crews <= 0: return "Hire a crew first."
+	var c := fleet_up_cost(id)
+	if c < 0: return "Maxed."
+	if not _spend(c): return "Not enough money."
+	fleet_up[id] = fleet_lv(id) + 1
+	changed.emit()
+	save_game()
+	return ""
+
+## what the fleet upgrade `id` adds at its level (VFData.FLEET_UPGRADES "step")
+func fleet_bonus(id: String) -> float:
+	return float(VFData.FLEET_UPGRADES[id].step) * fleet_lv(id)
+
+func crew_trip_secs() -> float:
+	return VFData.CREW_TRIP / (1.0 + fleet_bonus("speed"))
+
+func crew_fish_mult() -> float:
+	return 1.0 + fleet_bonus("nets")
+
+func crew_trips_per_min() -> float:
+	return crews * 60.0 / crew_trip_secs()
+
+## the fish one crew trip lands on average (_fish_count(true) without the dice, timed boosts or doubles)
+func crew_trip_fish() -> float:
+	var r: Dictionary = VFData.RODS[rod]
+	var v: float = (r.min + r.max) / 2.0 * fish_catch_mult() * (1.0 + 0.10 * up("worker_motivation") + 0.03 * charm_tier("worker"))
+	v = (v + boats_owned) * VFData.BIOMES[biome].catch_rate * float(r.get("biome_mult", {}).get(biome, 1.0))
+	return v * crew_fish_mult()
+
+func fleet_fish_per_min() -> float:
+	return crew_trips_per_min() * crew_trip_fish()
+
+func _idle_tick(delta: float) -> void:
+	var now := Time.get_unix_time_from_system()
+	if idle_seen > 0.0 and now - idle_seen >= VFData.OFFLINE_MIN:
+		offline_check()                    # the game didn't run for a while: a phone in the background, a sleep
+	idle_seen = now
+	if crews <= 0: return
+	_crew_accum += minf(delta, 1.0) * crews / crew_trip_secs()
+	_crew_tick += delta
+	if _crew_tick < 2.0: return
+	_crew_tick = 0.0
+	var k := int(_crew_accum)
+	if k > 0:
+		_crew_accum -= k
+		_crew_trips(k)
+
+## k crew trips at once (like the bot's worker trips: boosts and events count, bait doesn't)
+func _crew_trips(k: int) -> void:
+	var n := 0
+	for i in k: n += _fish_count(true)
+	n = int(round(n * crew_fish_mult()))
+	if n <= 0: return
+	var caught := _distribute(n)
+	var gx := 0.0
+	for f in caught:
+		inventory[f] = int(inventory.get(f, 0)) + caught[f]
+		gx += caught[f] * VFData.FISH[f].xp
+	fleet_fish_total += n
+	add_xp(int(round(gx * xp_mult() * VFData.CREW_XP)))
+	crew_trip.emit(n)
+	var now := Time.get_ticks_msec()
+	if now - _crew_said >= 10000:          # (the HUD follows crew_trip; open menus re-draw at most every 10 s)
+		_crew_said = now
+		changed.emit()
+
+# ------------------------------------------------------ while you were away
+func offline_cap_secs() -> float:
+	return VFData.OFFLINE_HOURS * 3600.0 + fleet_bonus("cooler")
+
+func offline_rate() -> float:
+	return VFData.OFFLINE_RATE + fleet_bonus("sealegs")
+
+## The game runs again after it wasn't running (closed, in the background, asleep): what the crews caught
+## meanwhile waits in `offline` until you collect it. _apply calls it (start, a cloud save), and _idle_tick.
+func offline_check() -> void:
+	var now := Time.get_unix_time_from_system()
+	var away := now - idle_seen
+	var first := idle_seen <= 0.0
+	idle_seen = now
+	if first or away < VFData.OFFLINE_MIN or crews <= 0: return
+	var secs := minf(away, offline_cap_secs())
+	var n := int(round(crews * secs / crew_trip_secs() * offline_rate() * crew_trip_fish()))
+	if n <= 0: return
+	var caught := _distribute(n)
+	var gx := 0.0
+	for f in caught: gx += caught[f] * VFData.FISH[f].xp
+	var o: Dictionary = offline if not offline.is_empty() else {"away": 0.0, "secs": 0.0, "n": 0, "xp": 0, "fish": {}}
+	o.away = float(o.away) + away
+	o.secs = float(o.secs) + secs
+	o.n = int(o.n) + n
+	o.xp = int(o.xp) + int(round(gx * xp_mult() * VFData.CREW_XP))
+	for f in caught: o.fish[f] = int(o.fish.get(f, 0)) + caught[f]
+	offline = o
+	offline_ready.emit(o)
+
+## what the waiting catch sells for today
+func offline_value() -> int:
+	var v := 0.0
+	var fish: Dictionary = offline.get("fish", {})
+	for f in fish: v += int(fish[f]) * fish_price(f)
+	return int(round(v * sell_mult()))
+
+## the waiting catch goes into your hold (mult 2: a rewarded ad)
+func collect_offline(mult := 1.0) -> Dictionary:
+	if offline.is_empty(): return {"error": "Nothing to collect."}
+	var o := offline
+	offline = {}
+	var n := 0
+	for f in o.fish:
+		var c := int(round(int(o.fish[f]) * mult))
+		inventory[f] = int(inventory.get(f, 0)) + c
+		n += c
+	fleet_fish_total += n
+	var gx := int(round(int(o.xp) * mult))
+	add_xp(gx)
+	changed.emit()
+	save_game()
+	return {"n": n, "xp": gx}
+
+# --------------------------------------------------------- calendar & spin
+## days of the current 7-day run already claimed (0-7); a missed day (48 hours) starts it over
+func calendar_done() -> int:
+	if daily_streak <= 0 or Time.get_unix_time_from_system() - daily_last >= 172800.0: return 0
+	var d := ((daily_streak - 1) % 7) + 1
+	return 0 if d == 7 and daily_ready_in() <= 0.0 else d
+
+## the calendar day (1-7) the next claim pays
+func calendar_next() -> int:
+	return calendar_done() % 7 + 1
+
+func best_bait() -> String:
+	var b := "Worms"
+	for x in VFData.BAIT_ORDER:
+		if VFData.BAITS[x].level <= level and x != "Support Bait": b = x
+	return b
+
+func spin_free() -> bool:
+	return spin_day != _today()
+
+func spins_left() -> int:
+	return spins + (1 if spin_free() else 0)
+
+## Spin the wheel: the day's free spin first, then extra spins. -> {index, got} or {error}
+func spin() -> Dictionary:
+	if level < VFData.DAILY_LEVEL: return {"error": "The daily spin unlocks at level %d." % VFData.DAILY_LEVEL}
+	if spin_free(): spin_day = _today()
+	elif spins > 0: spins -= 1
+	else: return {"error": "No spins left. A free one comes tomorrow!"}
+	var total := 0.0
+	for x in VFData.SPIN: total += float(x.w)
+	var roll := rng.randf() * total
+	var i := 0
+	while i < VFData.SPIN.size() - 1 and roll >= float(VFData.SPIN[i].w):
+		roll -= float(VFData.SPIN[i].w)
+		i += 1
+	var got := _give_item(VFData.SPIN[i])
+	changed.emit()
+	save_game()
+	return {"index": i, "got": got}
+
+# ---------------------------------------------------------------- save/load
+func _idle_dict() -> Dictionary:
+	return {"auto": auto_on, "crews": crews, "fleet_up": fleet_up, "fleet_fish": fleet_fish_total, "seen": idle_seen,
+		"offline": offline, "spin_day": spin_day, "spins": spins}
+
+func _idle_apply(d: Dictionary) -> void:
+	auto_on = bool(d.get("auto", false))
+	crews = clampi(int(d.get("crews", 0)), 0, VFData.BOAT_ORDER.size())
+	fleet_up = {}
+	var fu = d.get("fleet_up", {})
+	if typeof(fu) == TYPE_DICTIONARY:
+		for k in fu:
+			if VFData.FLEET_UPGRADES.has(String(k)):
+				fleet_up[String(k)] = clampi(int(fu[k]), 0, int(VFData.FLEET_UPGRADES[String(k)].max))
+	fleet_fish_total = maxi(0, int(d.get("fleet_fish", 0)))
+	idle_seen = float(d.get("seen", 0.0))
+	offline = {}
+	var o = d.get("offline", {})
+	if typeof(o) == TYPE_DICTIONARY and typeof(o.get("fish")) == TYPE_DICTIONARY:
+		var fish := {}
+		for f in o.fish:
+			if VFData.FISH.has(String(f)) and int(o.fish[f]) > 0: fish[String(f)] = int(o.fish[f])
+		if not fish.is_empty():
+			offline = {"away": float(o.get("away", 0.0)), "secs": float(o.get("secs", 0.0)), "n": int(o.get("n", 0)),
+				"xp": maxi(0, int(o.get("xp", 0))), "fish": fish}
+	spin_day = String(d.get("spin_day", ""))
+	spins = maxi(0, int(d.get("spins", 0)))
+	_crew_accum = 0.0

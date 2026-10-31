@@ -10,11 +10,15 @@ extends Node
 ##
 ## Limits of patches: no new autoloads, no new class_name scripts, no project setting or
 ## engine changes. Those need a full release. Tooling: tools/release.py.
+##
+## The Google Play build (export feature "play") never patches itself: Play's rules say an app from
+## Play updates only through Play, so there the state is "store" and nothing is downloaded.
 
 signal status_changed
 
 const MANIFEST_URL := "https://foshfish.xyz/update.json"     # (was iiafosh.github.io/fosh-and-fish: it redirects here)
 const RELEASES_URL := "https://github.com/iiafosh/fosh-and-fish/releases/latest"
+const PLAY_PACKAGE := "com.iiafosh.virtualfisher"     # = package/unique_name of the "Android Play" export preset
 const BUILD_FILE := "res://data/build.json"
 const DIR := "user://patches/"
 const STATE := DIR + "installed.json"
@@ -49,7 +53,7 @@ func _init() -> void:
 	base_build = int(b.get("build", 0))
 	version = String(b.get("version", "?"))
 	build = base_build
-	if OS.has_feature("web") or OS.has_feature("editor"):
+	if OS.has_feature("web") or OS.has_feature("editor") or store_managed():
 		return
 	var st := _read_json(STATE)
 	if st.is_empty():
@@ -80,6 +84,10 @@ func boot_ok() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(BOOT_FLAG))
 	_cleanup_old_patches()
 
+## installed from Google Play: Play brings the updates
+static func store_managed() -> bool:
+	return OS.has_feature("play")
+
 func platform() -> String:
 	if OS.has_feature("web"): return "web"
 	if OS.has_feature("android"): return "android"
@@ -92,6 +100,9 @@ func manifest_url() -> String:
 
 # ------------------------------------------------------------------ check
 func check() -> void:
+	if store_managed():
+		_set_state("store")
+		return
 	if state in ["checking", "downloading", "ready"]: return
 	_set_state("checking")
 	_http = HTTPRequest.new()
@@ -205,6 +216,9 @@ func restart() -> void:
 
 func open_downloads() -> void:
 	OS.shell_open(RELEASES_URL)
+
+func open_store() -> void:
+	OS.shell_open("https://play.google.com/store/apps/details?id=" + PLAY_PACKAGE)
 
 # ---------------------------------------------------------------- helpers
 func _set_state(s: String) -> void:

@@ -2,6 +2,45 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## 1.0 — shiny fish, live events and the Google Play version (not released yet)
+
+- **Shiny fish.** Every species has a rare, sparkling shiny, and only **3,000 of each exist in the whole world**, numbered (No. 0001 to 3000). Each shiny species you own adds +2% to your sell price. The server hands them out so it stays fair: at most 3 of each species per player and 3 new ones a day, and the odds fall for every copy you own and as the stock runs out, so nobody can collect a whole stock. Shiny fish need a (free) account. See them in Fish Book → Shiny.
+- **An event every 10 minutes of play** (idle time doesn't count), each with its own look on the water:
+  - **Golden Hour**: every fish sells for double.
+  - **Fish Frenzy**: casts recharge twice as fast and bring +50% fish.
+  - **Treasure Tide**: triple treasure chance and better chests.
+  - **Meteor Shower**: shiny fish turn up five times as often.
+  - **Boss Fish**: wear down the Leviathan with 25 catches (a reel-in win counts double) for a legendary chest.
+- **Event fish and Event Stars.** The Golden Koi, Frenzy Piranha, Treasure Crab, Meteor Fish and the Leviathan only bite during their event, pay well and give Event Stars, as does every catch during an event. Spend them in **Events → Event Shop**: the exclusive **Starfall Rod**, the Shiny Lure, Event Chests and Frenzy Boosts.
+- **Supporter Packs and Pearls** (in the Google Play version): one-time packs from $1.49 to $19.99. Every pack unlocks the Supporter Rod, and each gives more: Pearls, bonuses that last forever (money, XP, workers, shiny chance), boosts, and the exclusive **Pearl Rod** (Fisher Pack) or **Legend Rod** (Legend Pack). Pearls buy boosts, chests, events, the Shiny Lure and the Pearl Rod in the **Pearl Shop**. What you buy comes with your cloud save, on every device. Random things bought with Pearls show their odds.
+- **Free rewards** (Google Play version): watch a short ad, only when you choose to, for double money (10 minutes), a Fish Boost or 10 Pearls (up to 8 ads a day).
+- **Idle play: the game keeps going when you don't.**
+  - **Auto-fish** (from level 5): switch on **Auto** and your boat casts by itself. Tapping or holding is still faster, and the Reel it in! mini-game faster still.
+  - **Your fleet** (from level 5, Menu → Fleet): hire crews, one boat at a time from the Rowboat to the Abyssal Surveyor. Each makes a fishing trip every 15 seconds with your rod, in your biome, and you see their boats around yours. Upgrades: Bigger Nets, Faster Crews, Bigger Cooler and Sea Legs. The fleet starts over when you prestige, like your boats.
+  - **While you were away**: your crews keep fishing when the game is closed (35% of their catch, for up to 4 hours; upgrades raise both). Come back to a "Welcome back!" card with everything they caught; in the Google Play version an ad can double it.
+  - **Daily rewards** (from level 3, the gift at the top right): the daily reward now has a **7-day calendar** with a bonus every day (bait, boosts, spins, an epic chest, Pearls, and a jackpot on day 7), and there's a **free spin of the wheel** every day (the odds are shown next to it).
+  - **Reminders** (web version, Settings → Reminders): a browser notification when your crews fill the cooler or a daily reward is ready, only while the tab is in the background.
+- **The whole game is 10% easier**: +10% money and +10% XP.
+- **A real soundtrack.** 90 minutes of music by the film composer Scott Buckley, warm piano, strings and folk, different in every biome and calmer at night. The water sound is gone. The **Radio** (Menu → Radio, or tap what's playing) lets you pick any track, and **Just listen** fades the menus away while the game plays by itself to the music.
+- **The catch is the best moment now.** The float nibbles and goes under, the rod bends, the line goes tight and hums, then the fish bursts out of the water with a splash and flies to the boat, flopping on the deck at the captain's feet, with the rest of a big catch flying in behind it. The biome's best fish put up a fight first. A new species or an event fish hangs in the air with its name on it, and the whole picture shakes.
+- **The world moves.** The trees sway in the wind. Everything mirrors in the water: the shop, the dock, the shore and your boat. A day passes every 13 minutes of play: a golden sunset on the water, then night with lit windows, lamps shining on the water, a lantern on your boat, stars in the water and fireflies on the shore, and the music changes with it. In the Volcanic biome the land goes dark and the lava glows. **Settings → Scenery effects** turns all this off if a device struggles.
+- **A new logo and a new loading screen.** Golden letters with a life ring for the "o", in the game's own 3D look, on the real River at golden hour: the captain fishing, the water moving, fish jumping, and a daft tip in the sky. The app icon is new too.
+- **Easier on the eye.** A warm paper and sea-glass look instead of cold white, one line of text instead of two, no keyboard chips on the screen (they're in the tooltips), softer water sparkle, and the interface around the edges fades back when you're not using it.
+- **Poke everything.** Crabs somersault, gulls squawk, tap your boat to honk, the captain mutters to himself. Bottles float by with notes in them, rubber ducks too (nobody knows why you're collecting them). And if a gull flies off with your lunch, tap it before it's gone.
+- **Boats really turn now.** Every boat exists from every side, with foam and a reflection for each angle: it swings round through the bow instead of flipping like a sheet of paper, and it sails where its bow points, so an about-turn is a proper arc. Big ships swing slower than little boats.
+- **Reel it in! pays +200% fish and got a sense of humour.** The fish on your line is the actual species you hooked, with a face and a name, and it fights dirty: fake moustaches, selfies for FishTok, playing dead, banana peels on your net, rockets, old boots, bribes, and a shark passing by that makes it beg to be caught. Puffers puff and fly off like a balloon, squid ink the water, turtles close for business. You end with its mugshot, or a WANTED poster.
+- **New creatures, seen from the game's own camera.** All the fish now swim as what you actually catch, with tails that wag, turtles that paddle and squid that trail their tentacles, instead of flat shapes from above. Pufferfish are plump little fish that row with their side fins, not spiky balls (until you catch one). Fish steer clear of the shore, the dock and the rowboat. New gulls flap and glide, and rest on the dock. New crabs walk sideways on the sand and wave their claws. Now and then a fish jumps out on the water by itself, dolphins most of all.
+- **A new look for the whole game.**
+  - **A real view of the world**: the camera now looks across the water at an angle, so buildings show their walls, boats their hulls and trees their trunks, in every biome.
+  - **A new fish shop**: a timbered house on a wooden deck by the shore, with a stall of fish on ice, lanterns, a golden fish on the roof, smoke from the chimney and a shopkeeper who waves. It's built into each biome in its own colours and stands clear of the buttons. Tap anywhere on it to shop.
+  - **A new captain**: he sits on the deck with his legs out and really fishes, gets up to cheer, waves, yawns and nods off under his hat. He sits in a spot that fits him on every one of the 17 boats, at the same size on all of them.
+  - **New trees, bushes and rocks**, and richer colours: clearer water, hotter lava, soft clouds in the Sky biome and pink blossom on its trees.
+  - **Living water**: foam laps around every hull, each boat has a shadow on the water, thin waves and sun sparkle move across the surface, and cloud shadows drift over everything.
+  - The Alien Raft now looks like a saucer, with a canopy on it.
+- **New art**, rendered in Blender like the rest: 20 shiny fish, the 5 event fish, the Starfall, Pearl and Legend rods, the Supporter Pack icons, the Pearl and the Event Star.
+- **Livelier**: buttons squash when you press them, panels pop open, the catch card pops in, and when you sell, coins fly into your money as it counts up. Shinies ring a bell.
+- The Supporter Rod now comes with Supporter Packs (if you already have it, you keep it). Exclusive rods stay with you through prestige.
+
 ## 0.5 — the full release (14 October 2026)
 
 - **Everything from the 0.5 updates (0.5.1 to 0.5.14) in one download**, for Windows, Linux and Android at **https://foshfish.xyz**. New downloads start on the newest version straight away, no update needed.

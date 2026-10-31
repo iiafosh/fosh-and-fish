@@ -2,7 +2,11 @@
 """Download the third-party source packs listed in CREDITS.md into
 scratch/downloads/ (git-ignored). Needed only to re-run the Blender
 pipeline (tools/blender/render_assets.py)."""
+import http.cookiejar
+import json
 import os
+import re
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -20,12 +24,37 @@ ZIPS = {
     "kenney_fish": "https://kenney.nl/media/pages/assets/fish-pack/07ae98c5b6-1747237960/kenney_fish-pack_2.zip",       # mini-game fish (PNG/Double)
     "kenney_emotes": "https://kenney.nl/media/pages/assets/emotes-pack/d00a3dcb06-1677578798/kenney_emotes-pack.zip",  # mini-game reactions (PNG/Vector/Style 3)
 }
+# the soundtrack (tools/video/make_music.py): Scott Buckley's library, CC-BY 4.0 -> scratch/downloads/music_buckley/<name>.mp3
+MUSIC = {
+    "echoes_of_home": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/05/EchoesOfHome.mp3",
+    "home_was_you": "https://www.scottbuckley.com.au/library/wp-content/uploads/2026/07/HomeWasYou.mp3",
+    "glow": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/02/Glow.mp3",
+    "amberlight": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/03/Amberlight.mp3",
+    "simplicity": "https://www.scottbuckley.com.au/library/wp-content/uploads/2024/03/Simplicity.mp3",
+    "felicity": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/03/sb_felicity.mp3",
+    "castles_in_the_sky": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/11/sb_castlesinthesky.mp3",
+    "cirrus": "https://www.scottbuckley.com.au/library/wp-content/uploads/2023/03/Cirrus.mp3",
+    "beyond_these_walls": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/05/sb_beyondthesewalls.mp3",
+    "path_through_the_mountains": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/10/PathThroughTheMountains.mp3",
+    "aurora": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/10/Aurora.mp3",
+    "borealis": "https://www.scottbuckley.com.au/library/wp-content/uploads/2019/09/sb_borealis.mp3",
+    "solace": "https://www.scottbuckley.com.au/library/wp-content/uploads/2020/05/sb_solace.mp3",
+    "hymn_to_the_dawn": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/11/HymnToTheDawn.mp3",
+    "meanwhile": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/01/Meanwhile.mp3",
+    "reverie": "https://www.scottbuckley.com.au/library/wp-content/uploads/2020/03/sb_reverie.mp3",
+    "moonlight": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/07/Moonlight.mp3",
+    "the_long_way_home": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/05/sb_thelongwayhome.mp3",
+}
+# no fixed link: fetched the way their pages' free download buttons do (CC0, name-your-own-price at $0)
+KENNEY_PAGES = {"kenney_fantasy_town": "fantasy-town-kit"}
+ITCH_PAGES = {"kaykit_adventurers": "kaykit-adventurers", "kaykit_animations": "kaykit-character-animations",
+              "kaykit_forest": "kaykit-forest"}
 GLBS = {
     "dolphin": "fcea284f-cafc-4be1-a701-2a0fd811ad5c", "shark": "d2d374ea-eb1d-4659-8cc7-816a83b82470",
     "fish1": "6805b99c-5fd7-4aab-bf57-3bb645e1108a", "whale": "7300e697-2543-4a9a-a77d-dedf29251fd7",
     "fish2": "311a79f6-ba3e-47aa-80ce-04185fc76b2a", "fish3": "8410757e-6594-4011-817a-633730fbcaf8",
-    "manta": "32b4e08e-4605-4356-8bd3-e0cf32335a0f", "gull": "882c4ff3-c97b-4ae2-aedf-953c8d692898",
-    "crab": "1acf95b5-2e6b-4c9d-bd37-8384b88bdbea", "character": "ba7a1955-ea51-4cb9-a561-188bdef0a6c7",
+    "manta": "32b4e08e-4605-4356-8bd3-e0cf32335a0f",
+    "gull_standing": "b556e543-d7ac-4740-84fd-b0a8221c68a5",
     "chest": "803af4ae-433f-4b05-b1f1-c6a2da02d768",
 }
 # boat models (tools/blender/vf_boats.py) -> scratch/downloads/glb/boats/<name>.glb
@@ -50,14 +79,62 @@ def get(url, path):
         f.write(r.read())
 
 
+def opener(referer=""):
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    op.addheaders = [("User-Agent", "Mozilla/5.0 vfish-asset-fetch"), ("Referer", referer), ("Accept", "application/json, text/html, */*")]
+    return op
+
+
+def save(op, url, path):
+    with op.open(url) as r, open(path, "wb") as f:
+        f.write(r.read())
+
+
+def get_kenney(slug, path):
+    page = "https://kenney.nl/assets/" + slug
+    op = opener(page)
+    op.open(page).read()
+    url = json.loads(op.open("https://kenney.nl/download-link/" + ("assets/" + slug).encode().hex()).read().decode())["url"]
+    save(op, url, path)
+
+
+def get_itch(slug, path):
+    """the pack's free upload ("Free" in its name)"""
+    page = "https://kaylousberg.itch.io/" + slug
+    op = opener(page)
+    op.open(page).read()
+    jar = next(h.cookiejar for h in op.handlers if isinstance(h, urllib.request.HTTPCookieProcessor))
+    token = urllib.parse.urlencode({"csrf_token": next(c.value for c in jar if c.name == "itchio_token")}).encode()
+    html = op.open(json.loads(op.open(page + "/download_url", token).read().decode())["url"]).read().decode("utf-8", "replace")
+    uploads = re.findall(r'data-upload_id="(\d+)"', html)
+    names = re.findall(r'<strong title="([^"]+)" class="name"', html)
+    upload = next(u for u, n in zip(uploads, names) if "free" in n.lower())
+    save(op, json.loads(op.open("%s/file/%s?source=game_download" % (page, upload), token).read().decode())["url"], path)
+
+
 def main():
     os.makedirs(os.path.join(DL, "glb", "market"), exist_ok=True)
     os.makedirs(os.path.join(DL, "glb", "boats"), exist_ok=True)
+    open(os.path.join(DL, ".gdignore"), "a").close()      # (keeps Godot from importing the raw packs)
     for name, url in ZIPS.items():
         z = os.path.join(DL, name + ".zip")
         get(url, z)
         with zipfile.ZipFile(z) as zf:
             zf.extractall(os.path.join(DL, "x_" + name))
+    for pages, fetch in ((KENNEY_PAGES, get_kenney), (ITCH_PAGES, get_itch)):
+        for name, slug in pages.items():
+            z = os.path.join(DL, name + ".zip")
+            if not os.path.exists(z):
+                print("fetch", slug)
+                fetch(slug, z)
+            with zipfile.ZipFile(z) as zf:
+                zf.extractall(os.path.join(DL, "x_" + name))
+    os.makedirs(os.path.join(DL, "music_buckley"), exist_ok=True)
+    for name, url in MUSIC.items():
+        path = os.path.join(DL, "music_buckley", name + ".mp3")
+        if not os.path.exists(path):
+            print("fetch", url)
+            save(opener(), url, path)
     for name, uid in GLBS.items():
         get("https://static.poly.pizza/%s.glb" % uid, os.path.join(DL, "glb", name + ".glb"))
     for name, uid in BOAT_GLBS.items():

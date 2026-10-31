@@ -19,9 +19,10 @@ const DEPTH := 0.3              # water depth (mask green) the hull outline need
 const HULL_MARGIN := 24.0       # clearance around the hull (scene px): keeps it off the foam line and docks
 const WAKE_LIFE := 1.3
 const LANE_PREF_Y := 0.645      # lanes prefer the authored boat height (clear of the HUD corners)
+const TILT := 0.82              # depth on screen is squeezed by the camera's angle (sin 55 degrees)
 
 var main                        # vf_main: UI kit (pill_box, ph, lbl, keycap), overlay, toasts
-var stage                       # vf_stage: boat_pos / facing / boat_flip / boat_lean, water mask
+var stage                       # vf_stage: boat_pos / boat_yaw / boat_lean, water mask
 var vel := Vector2.ZERO         # scene px / s
 var dragging := false
 var _grab := Vector2.ZERO       # where the finger holds the boat, relative to the boat (scene px)
@@ -40,10 +41,14 @@ var _was_moving := false
 var _brake := 0.0
 var _bump_t := -10.0
 var _no_turn := 0.0            # right after a bump the boat backs off without turning around
-var _turn_k := 1.0             # 0 -> 1 while the boat swings round (a quick squash, never paper-thin)
+var _steering_to := Vector2.ZERO   # where the helm wants to go (scene px / s), ZERO when you've let go
+var _to_side := 0.0            # casting: swing side-on quickly, that's how he fishes
+var _seen_facing := 1.0
+var _wedged := 0.0
+var _press_ms := 0
+var _press_at := Vector2.ZERO
 var _aim_seen := Vector2.INF
 var _aim_anchor := Vector2.ZERO
-var _hull_cache := {}
 var _signs := {}                # side -> PanelContainer
 var _sign_keys := {}            # side -> "biome|locked" the sign was built for
 var wipe_k := 0.0               # 0 open -> 1 covered -> 2 open again (tweened)
@@ -73,7 +78,9 @@ func _ready() -> void:
 	stage.root.move_child(layer, stage.boat.get_index())
 	stage.scene_changed.connect(_on_scene)
 	stage.boat_changed.connect(_on_boat)
-	stage.cast_started.connect(func(): _brake = 0.35)       # casting drops anchor
+	stage.cast_started.connect(func():                      # casting drops anchor
+		_brake = 0.35
+		_to_side = 0.4)
 	VF.changed.connect(_sync_signs)
 	_build_wipe_box()
 	_build_hint()
@@ -86,24 +93,15 @@ func _update_vis() -> void:
 		return
 	vis = Rect2(-stage.root.position / s, stage.size / s).intersection(Rect2(Vector2.ZERO, SCENE))
 
-## the hull as an ellipse: centre relative to the boat's pivot (facing right) and radii,
-## from the sprite's opaque area
-func _hull() -> Dictionary:
-	var tex: Texture2D = stage.boat.texture
-	if tex == null: return {"c": Vector2.ZERO, "r": Vector2(80, 45)}
-	var key := "%s|%s" % [tex.resource_path, stage.boat.size]
-	if _hull_cache.has(key): return _hull_cache[key]
-	var used := Rect2(Vector2.ZERO, tex.get_size())
-	var img := tex.get_image()
-	if img:
-		if img.is_compressed(): img.decompress()
-		var u := img.get_used_rect()
-		if u.size.x > 4: used = Rect2(u)
-	var k: Vector2 = stage.boat.size / tex.get_size()
-	var rect := Rect2(used.position * k, used.size * k)
-	var h := {"c": rect.get_center() - stage.boat.pivot_offset, "r": rect.size * 0.5 * Vector2(0.9, 0.78)}
-	_hull_cache[key] = h
-	return h
+## the hull as an ellipse: centre relative to the boat's pivot (facing right) and radii, for the angle it's
+## showing. 0 is the side view: screen limits and sea lanes go by that one, so they don't move as it turns.
+func _hull(fr := 99) -> Dictionary:
+	return stage.boat_hull(fr)
+
+## half the hull's length on the water, the way the bow points now
+func _along() -> Vector2:
+	var y := deg_to_rad(stage.boat_yaw)
+	return Vector2(cos(y), -sin(y) * TILT) * _hull(0).r.x * 1.05
 
 func _hull_center(p: Vector2, f: float) -> Vector2:
 	var c: Vector2 = _hull().c
@@ -111,7 +109,7 @@ func _hull_center(p: Vector2, f: float) -> Vector2:
 
 ## where the boat's centre may go: on screen, with most of the hull visible
 func _limits() -> Rect2:
-	var r: Vector2 = _hull().r
+	var r: Vector2 = _hull(0).r
 	var x0 := vis.position.x + r.x * 0.5
 	var x1 := vis.end.x - r.x * 0.5
 	var y0 := vis.position.y + r.y + 40.0
@@ -155,8 +153,18 @@ func hit_boat(screen: Vector2) -> bool:
 	return (d.x * d.x) / (r.x * r.x) + (d.y * d.y) / (r.y * r.y) <= 1.0
 
 func _bow() -> Vector2:
-	var r: Vector2 = _hull().r
-	return _hull_center(stage.boat_pos, stage.facing) + Vector2(r.x * 0.9 * stage.facing, 0)
+	return stage.boat_pos + _along()
+
+## the hull's outline sticking out of the water (it swung round next to a shore): push off gently
+func _push_off(delta: float) -> void:
+	var c := _hull_center(stage.boat_pos, stage.facing)
+	var r: Vector2 = _hull().r + Vector2(HULL_MARGIN, HULL_MARGIN)
+	var push := Vector2.ZERO
+	for i in 20:
+		var q := Vector2(cos(TAU * i / 20.0) * r.x, sin(TAU * i / 20.0) * r.y)
+		if not stage._in_water(c + q, DEPTH): push -= q.normalized()
+	if push != Vector2.ZERO:
+		stage.boat_pos += push.normalized() * 150.0 * delta
 
 func _edge_x(side: int) -> float:
 	return vis.end.x if side > 0 else vis.position.x
@@ -206,7 +214,7 @@ func _scan_lanes() -> void:
 ## where a lane leaves the screen on this side: water from the edge inwards, wide and
 ## deep enough for the hull, as close as possible to the authored boat height. -1 = none.
 func _lane_y(side: int) -> float:
-	var r: Vector2 = _hull().r
+	var r: Vector2 = _hull(0).r
 	var lim := _limits()
 	var pref := clampf(LANE_PREF_Y * SCENE.y, lim.position.y, lim.end.y)
 	var best := -1.0
@@ -230,7 +238,7 @@ func _corridor(side: int, y: float, r: Vector2) -> bool:
 ## water reaches the screen edge here, so the boat can sail out
 func _edge_open(side: int, y: float) -> bool:
 	var x := _edge_x(side) - side * 4.0
-	var r: Vector2 = _hull().r
+	var r: Vector2 = _hull(0).r
 	for dy in [-r.y * 0.6, 0.0, r.y * 0.6]:
 		if not stage._in_water(Vector2(x, y + dy), DEPTH): return false
 	return true
@@ -276,7 +284,7 @@ func _make_sign(side: int, b: String) -> PanelContainer:
 	return p
 
 func _place_signs(delta: float) -> void:
-	var r: Vector2 = _hull().r
+	var r: Vector2 = _hull(0).r
 	for side in _signs:
 		var p: PanelContainer = _signs[side]
 		if not lanes.has(side):
@@ -324,10 +332,14 @@ func _unhandled_input(e: InputEvent) -> void:
 				dragging = true
 				_drag_to = stage.to_scene(e.position)
 				_grab = _drag_to - stage.boat_pos
+				_press_ms = Time.get_ticks_msec()
+				_press_at = e.position
 				_hide_hint()
 				get_viewport().set_input_as_handled()
 		elif dragging:
 			dragging = false
+			if Time.get_ticks_msec() - _press_ms < 280 and (e.position - _press_at).length() < 14.0:
+				main.fun.honk()                                # a tap on the boat, not a drag
 			get_viewport().set_input_as_handled()
 	elif e is InputEventMouseMotion:
 		if dragging:
@@ -356,8 +368,15 @@ func _steer(delta: float) -> void:
 		if k != Vector2.ZERO:
 			want = k.normalized() * top
 			steering = true
+	_steering_to = want
 	if steering:
-		vel = vel.move_toward(want, ACCEL * delta)
+		if want == Vector2.ZERO or _no_turn > 0.0:
+			vel = vel.move_toward(want, ACCEL * delta)
+		else:
+			# a boat goes where its bow points: the engine pushes along the hull (gently while it's still
+			# swinging round, so it sails an arc instead of backing up), the keel takes out the sideways slide
+			var h := _along().normalized()
+			vel = vel.move_toward(h * want.length() * maxf(h.dot(want.normalized()), 0.25), ACCEL * delta)
 	else:
 		vel *= exp(-COAST * delta)
 		if vel.length() < 4.0: vel = Vector2.ZERO
@@ -382,6 +401,7 @@ func _move(step: Vector2, delta: float) -> void:
 	var p: Vector2 = stage.boat_pos
 	var now := _bad(p)
 	var nb := _bad(p + step)
+	if now == 0: _wedged = 0.0
 	if nb == 0 or (now > 0 and nb <= now):
 		stage.boat_pos = p + step
 		return
@@ -393,7 +413,10 @@ func _move(step: Vector2, delta: float) -> void:
 				vel = vel.rotated(a * s) * cos(a)
 				return
 	if now > 0:
-		_settle(true)                       # wedged somewhere it doesn't fit: pop out to open water
+		_wedged += delta
+		if _wedged > 1.5:
+			_wedged = 0.0
+			_settle(true)                   # wedged somewhere it doesn't fit: pop out to open water
 		return
 	# head-on into the shore: a soft stop with a little splash
 	if vel.length() > 160.0 and Time.get_ticks_msec() / 1000.0 - _bump_t > 0.8:
@@ -460,17 +483,16 @@ func _voyage(b: String, side: int, from_map: bool) -> void:
 		main._toast("Your %s can't fish in %s. Equip another rod in the Shop." % [VF.rod, b], "warn")
 
 func _offscreen(side: int) -> bool:
-	return (stage.boat_pos.x - side * _hull().r.x * 0.9 - _edge_x(side)) * side > 0.0
+	return (stage.boat_pos.x - side * _hull(0).r.x * 0.9 - _edge_x(side)) * side > 0.0
 
 ## put the boat just past the given screen edge, heading in along that side's lane
 func _enter(edge: int) -> void:
 	_update_vis()
 	_scan_lanes()
 	_wake.clear()
-	var r: Vector2 = _hull().r
+	var r: Vector2 = _hull(0).r
 	var y: float = float(lanes[edge].y) if lanes.has(edge) else _lane_y(edge)
-	stage.facing = float(-edge)
-	stage.boat_flip = stage.facing
+	stage.boat_yaw = 0.0 if edge < 0 else 180.0
 	if y < 0.0:
 		# no water reaches that edge: appear at the authored spot instead
 		state = "idle"
@@ -540,22 +562,38 @@ func _process(delta: float) -> void:
 	layer.queue_redraw()
 	queue_redraw()
 
-## facing, lean, reeling the line in, resting spot and aim follow the boat
+## the bow swings toward where you steer (big ships slower than little boats). Left alone it comes back side-on,
+## the way it's facing: that's how he fishes.
+func _tick_heading(delta: float) -> void:
+	_no_turn -= delta
+	_to_side = maxf(0.0, _to_side - delta)
+	var yaw: float = stage.boat_yaw
+	var to := yaw
+	var rate := clampf(36000.0 / _hull(0).r.x, 150.0, 340.0)
+	var dir := _steering_to if state == "idle" else vel
+	if _to_side > 0.0 or (dir.length() < 20.0 and vel.length() < 40.0):
+		to = 0.0 if cos(deg_to_rad(yaw)) >= 0.0 else 180.0
+		rate *= 3.0 if _to_side > 0.0 else 0.6
+	elif dir.length() >= 20.0 and _no_turn <= 0.0:
+		to = rad_to_deg(atan2(-dir.y / TILT, dir.x))
+	var d := rad_to_deg(angle_difference(deg_to_rad(yaw), deg_to_rad(to)))
+	if absf(d) > 170.0:                                       # about-turn: bow past the camera, the side you see best
+		d = -absf(d) if cos(deg_to_rad(yaw)) >= 0.0 else absf(d)
+	stage.boat_yaw = wrapf(yaw + clampf(d, -rate * delta, rate * delta), -180.0, 180.0)
+	var lean: float = clampf(d / 50.0, -1.0, 1.0) * 0.04 * stage.facing
+	stage.boat_lean = lerpf(stage.boat_lean, lean, 1.0 - exp(-5.0 * delta))
+	if stage.facing != _seen_facing:
+		_seen_facing = stage.facing
+		stage.update_home()
+	if state == "idle":
+		_push_off(delta)
+
+## lean, reeling the line in, resting spot and aim follow the boat
 func _tick_boat(delta: float) -> void:
 	var speed := vel.length()
 	stage.boat_speed = speed
-	_no_turn -= delta
-	if absf(vel.x) > 30.0 and signf(vel.x) != stage.facing and _no_turn <= 0.0:
-		if state != "idle" or _fits(stage.boat_pos, signf(vel.x)):
-			stage.facing = signf(vel.x)
-			_turn_k = 0.0
-	# turning around: mirror at once and squash a little (it used to scale through zero and
-	# look like a sheet of paper for a few frames)
-	_turn_k = minf(_turn_k + delta / 0.22, 1.0)
-	stage.boat_flip = stage.facing * (1.0 - 0.22 * sin(PI * _turn_k))
-	var lean: float = clampf(vel.y / MAX_SPEED, -1.0, 1.0) * 0.06 * stage.facing
-	stage.boat_lean = lerpf(stage.boat_lean, lean, 1.0 - exp(-6.0 * delta))
-	if speed > 45.0 and not stage.reeled:
+	_tick_heading(delta)
+	if (speed > 45.0 or (stage._turn_frame != 0 and _to_side <= 0.0)) and not stage.reeled:
 		if stage._reel_t < 0.0 and stage._cast_t < 0.0: AudioManager.play_reel()
 		stage.reel_in()
 	# a tap aims the casts; sail far from where you aimed and it's forgotten
@@ -580,10 +618,8 @@ func _tick_wake(delta: float) -> void:
 	_wake_acc += delta
 	if speed > 30.0 and _wake_acc > 0.05:
 		_wake_acc = 0.0
-		var r: Vector2 = _hull().r
-		var dir := vel / speed
-		var c := _hull_center(stage.boat_pos, stage.facing)
-		_wake.append({"p": c - Vector2(dir.x * r.x, dir.y * r.y) * 0.85, "n": dir.orthogonal(), "t": 0.0,
+		var along := _along()
+		_wake.append({"p": stage.boat_pos - along * 0.9, "n": (vel / speed).orthogonal(), "t": 0.0,
 			"k": clampf(speed / MAX_SPEED, 0.0, 1.0)})
 
 func _draw_layer() -> void:
@@ -611,8 +647,7 @@ func _draw_layer() -> void:
 	if speed > 60.0 and wipe_k == 0.0:
 		# bow wave
 		var dir := vel / speed
-		var r: Vector2 = _hull().r
-		var bow := _hull_center(stage.boat_pos, stage.facing) + Vector2(dir.x * r.x, dir.y * r.y) * 0.92
+		var bow := _bow()
 		var a := clampf(speed / MAX_SPEED, 0.0, 1.0) * 0.5
 		layer.draw_arc(bow - dir * 14.0, 22.0, dir.angle() - 1.2, dir.angle() + 1.2, 16, Color(1, 1, 1, a), 2.5, true)
 
@@ -853,6 +888,16 @@ func capture_test(dir: String) -> void:
 	print("SAIL hint state=%d shown=%s vel=%s boat=%s" % [_hint_state, _hint.visible, vel.round(), stage.boat_pos.round()])
 	await main._shot(dir + "/sail12_hint_touch.png")
 
+## godot --path . --resolution 1280x720 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --turn-test : the boat
+## steered with real keys: about-turns, up, down and round. Prints where it is pointing as it goes.
+func turn_test() -> void:
+	await _wait(2.0)
+	for leg in [[[KEY_D], 1.6], [[KEY_A], 2.6], [[KEY_S], 1.3], [[KEY_D], 1.8], [[KEY_W], 1.6], [[KEY_A, KEY_W], 1.4], [[], 2.6]]:
+		for k in leg[0]: _key(k, true)
+		await _wait(leg[1])
+		print("TURN keys=%s yaw=%d frame=%d mirrored=%s boat=%s fits=%s" % [leg[0], stage.boat_yaw, stage._turn_frame, stage.facing < 0.0, stage.boat_pos.round(), _fits(stage.boat_pos)])
+		for k in leg[0]: _key(k, false)
+
 ## test helm: hold D (side 1) / A (-1) and W / S to line up with that side's lane; 0 lets go
 var _held := {}
 func _helm(side: int) -> void:
@@ -879,19 +924,20 @@ func _key(k: int, down: bool) -> void:
 	e.pressed = down
 	Input.parse_input_event(e)
 
+## (parsed events are in window pixels: on a scaled display that's not the same as viewport pixels)
 func _mouse(at: Vector2, down: bool) -> void:
 	var e := InputEventMouseButton.new()
 	e.button_index = MOUSE_BUTTON_LEFT
 	e.pressed = down
-	e.position = at
-	e.global_position = at
+	e.position = get_viewport().get_final_transform() * at
+	e.global_position = e.position
 	e.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
 	Input.parse_input_event(e)
 
 func _motion(at: Vector2) -> void:
 	var e := InputEventMouseMotion.new()
-	e.position = at
-	e.global_position = at
+	e.position = get_viewport().get_final_transform() * at
+	e.global_position = e.position
 	e.button_mask = MOUSE_BUTTON_MASK_LEFT
 	Input.parse_input_event(e)
 

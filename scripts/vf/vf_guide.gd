@@ -13,6 +13,8 @@ const TABS := {
 		"Press SELL (or E) to sell your whole hold. Fish are worth more with a higher Sell Price (Salesman, Fish Ovens, Marketing charms…). Tip: sell right before a big purchase."],
 		["Sailing", ["boat", "Rowboat"],
 		"Press on your boat and drag it (or use WASD / the arrow keys) to sail somewhere else and fish from there. Sail out through the lanes at the screen edges to reach the previous or next biome — later biomes need a higher level. The Map takes you anywhere you've unlocked."],
+		["Poke things", ["ui", "inventory"],
+		"Everything's alive and it doesn't mind (much). Tap crabs and gulls. Tap your boat to honk (or H). Bottles and rubber ducks float by: tap them for a little money and a note. And if a gull flies off with your fish, tap it before it's gone."],
 		["The merchant", ["ui", "shop"],
 		"The fish shop on the island is the merchant. Tap it (or the Shop button) to buy rods, bait, boats and upgrades."],
 		["Next goal", ["ui", "xp"],
@@ -60,4 +62,4 @@ const TAB_ORDER := ["Basics", "Gear", "Progress", "Prestige", "Controls", "Credi
 const AUTHOR := "afosh"
 const SOCIALS := [["LinkedIn", "https://www.linkedin.com/in/mostafa-kmal-3731453a9/"],
 	["GitHub", "https://github.com/iiafosh"]]
-const ASSET_CREDITS := "Fish, characters & market art: Quaternius (CC0) · Nature, boats, particles, UI & sounds: Kenney (CC0) · Seagull, crab & some boat parts: Poly by Google (CC-BY 3.0) · Space Shuttle: Zoe XR (CC-BY 3.0) · Water sounds: OpenGameArt (CC0) · Fonts: Fredoka & Cairo (OFL) · Interface icons: Phosphor Icons (MIT) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."
+const ASSET_CREDITS := "Captain, shopkeeper, trees & rocks: KayKit by Kay Lousberg (CC0) · Fish: Quaternius (CC0) · Shop, boats, particles, UI & sounds: Kenney (CC0) · Resting gulls & some boat parts: Poly by Google (CC-BY 3.0) · Space Shuttle: Zoe XR (CC-BY 3.0) · Music: Scott Buckley, www.scottbuckley.com.au (CC-BY 4.0) · Sound effects: OpenGameArt (CC0) · Fonts: Fredoka & Cairo (OFL) · Interface icons: Phosphor Icons (MIT) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."

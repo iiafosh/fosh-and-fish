@@ -4,15 +4,15 @@ extends RefCounted
 ## Builds into vf_main's panel_body with vf_main's UI kit (sbox, lbl, btn, icon, ph, money_str).
 ## All online work happens in the Backend autoload (scripts/net/backend.gd).
 
-const C_TEXT := Color("#1f2d35")
-const C_MUTED := Color("#6b7d86")
-const C_GOOD := Color("#22a06b")
-const C_GOLD := Color("#d4920f")
+const C_TEXT := Color("#2b3a40")
+const C_MUTED := Color("#6d7c7d")
+const C_GOOD := Color("#2c9a73")
+const C_GOLD := Color("#c98b1c")
 const C_BAD := Color("#e04f45")
-const C_TEAL := Color("#1d9bb0")
-const C_PANEL2 := Color("#eef4f6")
-const C_NEUTRAL := Color("#eef3f5")
-const C_LINE := Color("#dbe6ea")
+const C_TEAL := Color("#238b9c")
+const C_PANEL2 := Color("#efe9dc")
+const C_NEUTRAL := Color("#ece6d9")
+const C_LINE := Color("#dcd5c5")
 const MEDALS := [Color("#f2b632"), Color("#a3b4bc"), Color("#cd8b57")]
 
 var m                           # vf_main
@@ -485,7 +485,7 @@ func _leaderboard() -> void:
 			m.panel_body.add_child(_lb_row(["–", B.display_name, "P%d" % VF.prestige, "Lv " + VF.commas(VF.level),
 				m.money_str(int(VF.stats.get("money_earned", 0)))], 99, true, false))
 	if B.state != "signed_in":
-		var cta := _box(Color("#e3f5f8"), 14)
+		var cta := _box(Color("#e2f0ea"), 14)
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 12)
 		cta.add_child(h)
@@ -502,7 +502,7 @@ func _leaderboard() -> void:
 
 func _lb_row(cells: Array, idx: int, mine: bool, header: bool) -> PanelContainer:
 	var p := PanelContainer.new()
-	var bg := Color(1, 1, 1, 0) if header else (Color("#e3f5f8") if mine else (C_PANEL2 if idx % 2 == 0 else Color(C_PANEL2, 0.45)))
+	var bg := Color(1, 1, 1, 0) if header else (Color("#e2f0ea") if mine else (C_PANEL2 if idx % 2 == 0 else Color(C_PANEL2, 0.45)))
 	var sb: StyleBoxFlat = m.sbox(bg, 12, 2 if mine else 0, C_TEAL, 0)
 	sb.content_margin_left = 12
 	sb.content_margin_right = 16
@@ -615,7 +615,7 @@ func _wrap(text: String, size: int, color: Color) -> Label:
 ## a two-option pill switch (like the panel tabs)
 func _segment(options: Array, current: String) -> PanelContainer:
 	var track := PanelContainer.new()
-	track.add_theme_stylebox_override("panel", m.sbox(Color("#e6eef1"), 999, 0, Color.TRANSPARENT, 4))
+	track.add_theme_stylebox_override("panel", m.sbox(Color("#e8e1d2"), 999, 0, Color.TRANSPARENT, 4))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 2)
 	track.add_child(h)
@@ -652,7 +652,7 @@ func _line_edit(key: String, placeholder: String, value: String, secret := false
 	e.custom_minimum_size.y = 42
 	e.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	e.add_theme_font_size_override("font_size", 16)
-	var n: StyleBoxFlat = m.sbox(Color("#f5f9fa"), 12, 1, Color("#d3dfe4"), 12)
+	var n: StyleBoxFlat = m.sbox(Color("#fbf7ee"), 12, 1, Color("#d9d2c2"), 12)
 	n.content_margin_top = 6
 	n.content_margin_bottom = 6
 	e.add_theme_stylebox_override("normal", n)
@@ -660,7 +660,7 @@ func _line_edit(key: String, placeholder: String, value: String, secret := false
 	f.draw_center = false
 	e.add_theme_stylebox_override("focus", f)
 	var ro: StyleBoxFlat = n.duplicate()
-	ro.bg_color = Color("#eef3f5")
+	ro.bg_color = Color("#ece6d9")
 	e.add_theme_stylebox_override("read_only", ro)
 	e.add_theme_color_override("font_color", C_TEXT)
 	e.add_theme_color_override("font_uneditable_color", C_MUTED)

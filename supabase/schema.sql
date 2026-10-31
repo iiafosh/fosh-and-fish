@@ -206,3 +206,131 @@ $$;
 
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+
+-- ================================================================ shinies (1.0)
+-- Shiny fish: 3,000 numbered copies of each species' shiny, worldwide. The game asks for a roll on a few
+-- of a signed-in player's catches (try_shiny); the server decides, so nobody can mint shinies by editing
+-- the game, and nobody can collect a whole stock:
+--   * one roll every 30 seconds per player (a bot can't spam rolls)
+--   * at most 3 copies of one species per player, and 3 new shinies per player per day
+--   * the odds fall for every copy of that species you already own (1, 1/4, 1/9)
+--     and as the stock runs out (x the square root of the share that's left)
+--   * every copy gets the next serial number (No. 1 .. 3000); the stock can't oversell
+-- Keep the numbers in step with scripts/vf/vf_data.gd (SHINY_*) and tools/mock_supabase.py.
+create table if not exists public.shiny_stock (
+  species text primary key,
+  supply  int  not null default 3000,
+  minted  int  not null default 0 check (minted >= 0 and minted <= supply)
+);
+insert into public.shiny_stock (species) values
+  ('Raw Fish'), ('Raw Salmon'), ('Cod'), ('Tropical Fish'), ('Pufferfish'), ('Fiery Pufferfish'), ('Hot Cod'),
+  ('Squid'), ('Turtle'), ('Dolphin'), ('Guardian'), ('Emerald Squid'), ('Rainbow Fish'), ('Space Fish'),
+  ('Galactic Crab'), ('Shark'), ('Alien Fish'), ('Artifact Fish'), ('Dark Puffer'), ('Dark Tuna')
+on conflict (species) do nothing;
+alter table public.shiny_stock enable row level security;      -- no policies: read it through shiny_board
+revoke all on public.shiny_stock from anon, authenticated;
+
+create table if not exists public.shinies (
+  id        bigint generated always as identity primary key,
+  owner     uuid not null references auth.users on delete cascade,
+  species   text not null references public.shiny_stock (species),
+  serial    int  not null,
+  caught_at timestamptz not null default now(),
+  unique (species, serial)
+);
+create index if not exists shinies_owner on public.shinies (owner, species);
+alter table public.shinies enable row level security;
+drop policy if exists "shinies: read own" on public.shinies;
+create policy "shinies: read own" on public.shinies
+  for select using (owner = auth.uid());
+revoke all on public.shinies from anon, authenticated;
+grant select on public.shinies to authenticated;                 -- new ones only through try_shiny()
+
+create table if not exists public.shiny_rolls (
+  owner     uuid primary key references auth.users on delete cascade,
+  last_roll timestamptz not null default 'epoch'
+);
+alter table public.shiny_rolls enable row level security;      -- no policies: only try_shiny() uses it
+revoke all on public.shiny_rolls from anon, authenticated;
+
+-- what's left of every stock: anyone can read it (the game shows "1,284 of 3,000 left")
+drop view if exists public.shiny_board;
+create view public.shiny_board as
+  select species, supply, minted, supply - minted as "left" from public.shiny_stock;
+revoke all on public.shiny_board from anon, authenticated;
+grant select on public.shiny_board to anon, authenticated;
+
+-- the latest finds (names of players who aren't banned)
+drop view if exists public.shiny_feed;
+create view public.shiny_feed as
+  select p.display_name, s.species, s.serial, s.caught_at
+    from public.shinies s join public.profiles p on p.id = s.owner
+   where not p.banned
+   order by s.caught_at desc
+   limit 30;
+revoke all on public.shiny_feed from anon, authenticated;
+grant select on public.shiny_feed to anon, authenticated;
+
+create or replace function public.try_shiny(p_species text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me        uuid := auth.uid();
+  base_odds constant float := 1.0 / 70.0;
+  max_each  constant int := 3;
+  max_day   constant int := 3;
+  wait_for  constant interval := interval '30 seconds';
+  st        record;
+  last      timestamptz;
+  owned     int;
+  today     int;
+  odds      float;
+  num       int;
+begin
+  if me is null then
+    return json_build_object('ok', false, 'reason', 'signed_out');
+  end if;
+  if exists (select 1 from profiles where id = me and banned) then
+    return json_build_object('ok', false, 'reason', 'banned');
+  end if;
+  select * into st from shiny_stock where species = p_species;
+  if not found then
+    return json_build_object('ok', false, 'reason', 'unknown');
+  end if;
+  insert into shiny_rolls (owner) values (me) on conflict (owner) do nothing;
+  select last_roll into last from shiny_rolls where owner = me for update;
+  if now() - last < wait_for then
+    return json_build_object('ok', false, 'reason', 'cooldown');
+  end if;
+  update shiny_rolls set last_roll = now() where owner = me;
+  if st.minted >= st.supply then
+    return json_build_object('ok', false, 'reason', 'sold_out', 'left', 0);
+  end if;
+  select count(*) into owned from shinies where owner = me and species = p_species;
+  if owned >= max_each then
+    return json_build_object('ok', false, 'reason', 'max_each', 'left', st.supply - st.minted);
+  end if;
+  select count(*) into today from shinies where owner = me and caught_at > now() - interval '1 day';
+  if today >= max_day then
+    return json_build_object('ok', false, 'reason', 'max_day', 'left', st.supply - st.minted);
+  end if;
+  odds := base_odds / power(1 + owned, 2) * sqrt((st.supply - st.minted)::float / st.supply);
+  if random() >= odds then
+    return json_build_object('ok', false, 'reason', 'no_luck', 'left', st.supply - st.minted);
+  end if;
+  update shiny_stock set minted = minted + 1
+   where species = p_species and minted < supply
+   returning minted into num;
+  if num is null then
+    return json_build_object('ok', false, 'reason', 'sold_out', 'left', 0);
+  end if;
+  insert into shinies (owner, species, serial) values (me, p_species, num);
+  return json_build_object('ok', true, 'species', p_species, 'serial', num, 'left', st.supply - num);
+end;
+$$;
+revoke all on function public.try_shiny(text) from public, anon;
+grant execute on function public.try_shiny(text) to authenticated;
