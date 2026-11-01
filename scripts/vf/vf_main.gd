@@ -1906,8 +1906,8 @@ func _panel_prestige() -> void:
 			panel_body.add_child(lbl("Prestige %d » %d" % [VF.prestige, VF.prestige + 1], 20, C_GOLD))
 			panel_body.add_child(_req_row("Level", c.level[0], c.level[1]))
 			panel_body.add_child(_req_row("Money", c.money[0], c.money[1], true))
-			panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
-			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. P0 requirements are from the Prestige 0 Guide; later requirements are estimated.", 13, C_MUTED)
+			if c.charms[1] > 0: panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
+			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. From your second prestige on, you also need every charm maxed.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)
 			var b := _act("PRESTIGE", Color("#1d4ed8"), func(): return VF.do_prestige(), c.ok)
@@ -2047,6 +2047,10 @@ func _check_capture() -> void:
 		VF.changed.emit()
 		_coach_show()
 		await fun.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--rebirth-test" in OS.get_cmdline_user_args():
+		await fun.rebirth_test(dir)
 		get_tree().quit()
 		return
 	if "--turn-test" in OS.get_cmdline_user_args():

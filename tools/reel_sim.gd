@@ -13,6 +13,13 @@ func _run() -> void:
 	V.autosave = false
 	V._apply(V._defaults.duplicate(true))
 	seed(7)
+	var table_only := ""                 # -- --table=novice : only the table tools/reel_model.gd uses
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--table="): table_only = a.substr(8)
+	if table_only != "":
+		_table(Bot, V, table_only)
+		quit()
+		return
 	print("== a new player with the starter rod and a common fish, %d rounds each (phone / desktop)" % N)
 	print("   %-8s %-14s %-14s %-14s %-14s" % ["", "round 1", "round 2", "round 3", "round 4 (normal)"])
 	for bot in Bot.BOTS:
@@ -27,4 +34,21 @@ func _run() -> void:
 		V.reel_rounds = 0
 		secs += float(Bot.play(self, "novice", "Raw Fish", 0, true, 1.0 / 60.0).secs)
 	print("   a novice's first round lasts %.1fs on average" % (secs / N))
+	_table(Bot, V, "novice")
 	quit()
+
+func _table(Bot, V, bot: String) -> void:
+	print("== the normal game, by rod and fish tier: %s on a phone, won and the average round in seconds" % bot)
+	for r in ["Plastic Rod", "Steel Rod", "Alloy Rod", "Magma Rod", "Infinity Rod", "Dark Rod"]:
+		V.rod = r
+		var row := "   %-14s" % r
+		for tier in 5:
+			var wins := 0
+			var long := 0.0
+			for i in N / 2:
+				V.reel_rounds = VFData.ROOKIE_ROUNDS
+				var one: Dictionary = Bot.play(self, bot, "Raw Fish", tier, true, 1.0 / 60.0)
+				wins += 1 if one.won else 0
+				long += float(one.secs)
+			row += "  t%d %3d%% %.1fs" % [tier, int(round(100.0 * wins / (N / 2))), long / (N / 2)]
+		print(row)
