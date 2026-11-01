@@ -53,7 +53,8 @@ var goals_done := 0                       # STARTER_GOALS completed (in order)
 var tutorial := 0                         # onboarding step (UI)
 var ducks := 0                            # rubber ducks found (vf_fun.gd). Nobody knows why.
 var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
-var catch_mode := "relax"                 # "relax" (wait the cooldown) | "reel" (mini-game, VFData.MINIGAME_*)
+var catch_mode := "reel"                  # "reel" (mini-game, VFData.MINIGAME_*) | "relax" (wait the cooldown). Saves without it: relax
+var reel_rounds := 0                      # rounds of Reel it in! played: the first few are easier (VFData.ROOKIE_ROUNDS)
 var quest_day := ""
 var quest_progress := {}
 var quest_claimed := {}
@@ -929,6 +930,7 @@ func to_dict() -> Dictionary:
 		"tok": _tok_dict(),
 		"sail_hint": sail_hint,
 		"catch_mode": catch_mode,
+		"reel_rounds": reel_rounds,
 		"ducks": ducks,
 		"v1": _v1_dict(),
 		"idle": _idle_dict(),
@@ -969,6 +971,8 @@ func _apply(d: Dictionary) -> void:
 	ducks = int(d.get("ducks", 0))
 	catch_mode = str(d.get("catch_mode", "relax"))
 	if not catch_mode in VFData.CATCH_MODES: catch_mode = "relax"
+	# (a save from before rounds were counted, already on Reel it in!, has played plenty: past the coach and the card too)
+	reel_rounds = maxi(0, int(d.get("reel_rounds", VFData.ROOKIE_ROUNDS + 1 if catch_mode == "reel" else 0)))
 	if d.has("goals_done"):
 		goals_done = int(d.goals_done)
 	else:

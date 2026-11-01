@@ -76,8 +76,10 @@ static func rod_reel_power(r: String) -> float:
 ## Tuning history (reaction-time bot, starter rod vs common fish on PC): 0.5.1 ~1% (owner: "really
 ## hard"), 0.5.2 ~100% (owner: "really easy"), 0.5.3 ~52% - a sharp player wins most common fish,
 ## rare fish need a better rod, and even the best rod can lose to the rarest fish (~60%).
-static func minigame_params(tier: int, power: float, desktop := false) -> Dictionary:
+## rounds: how many rounds the player has played (VF.reel_rounds): see ROOKIE_ROUNDS.
+static func minigame_params(tier: int, power: float, desktop := false, rounds := ROOKIE_ROUNDS) -> Dictionary:
 	var t := clampi(tier, 0, 4)
+	if rounds < ROOKIE_ROUNDS: t = mini(t, maxi(rounds, 0))      # a rare fish doesn't get to be hard this early
 	var pw := clampf(power, 0.0, 1.0)
 	var p := {
 		"zone_h": 0.34 - 0.03 * t + 0.09 * pw,
@@ -105,9 +107,21 @@ static func minigame_params(tier: int, power: float, desktop := false) -> Dictio
 		p.lift = 3.15
 		p.sink = 2.55
 		p.max_v = 1.52
+	if rounds < ROOKIE_ROUNDS:
+		var e: float = ROOKIE_EASE[maxi(rounds, 0)]
+		p.zone_h = lerpf(p.zone_h, ROOKIE_ZONE, e)
+		p.fish_speed *= 1.0 - 0.35 * e
+		p.fill_rate *= 1.0 - 0.3 * e       # (a slower ring: the round lasts long enough for the fish to pull a gag)
+		p.drain_rate = lerpf(p.drain_rate, 0.02, e)
+		p.time_limit += 10.0 * e
 	return p
 
 const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer fish: up to +1s)
+## New players (not in the bot, DERIVED): the first ROOKIE_ROUNDS rounds someone plays are easier, by ROOKIE_EASE
+## (1 = fully). The first is close to impossible to lose, even without touching anything (measured: tools/reel_sim.gd).
+const ROOKIE_ROUNDS := 3
+const ROOKIE_EASE := [1.0, 0.6, 0.3]
+const ROOKIE_ZONE := 0.62
 
 const FISH := {
 	"Raw Fish":         {"price": 1,        "xp": 1},
