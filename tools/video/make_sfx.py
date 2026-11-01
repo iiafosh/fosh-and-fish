@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """The game's cartoon sounds, synthesized here (no samples, nothing to credit) -> assets/audio/fun/*.ogg.
 Short and soft on purpose: they come up often, in the mini-game and when you poke things.
-   python tools/video/make_sfx.py"""
+   python tools/video/make_sfx.py [name ...]          (no names: all of them)"""
 import os
 import subprocess
+import sys
 import tempfile
 import wave
 
@@ -150,15 +151,128 @@ def snip():
     return out
 
 
+def put(out, at, x):
+    """mix x into out, at seconds"""
+    i = int(at * SR)
+    out[i:i + len(x)] += x[:len(out) - i]
+
+
+def vowel(x, formants):
+    """a saw into a mouth: one resonance per (Hz, level)"""
+    return sum(signal.lfilter(*signal.iirpeak(f, f / 140, fs=SR), x) * a for f, a in formants)
+
+
+def huh(f0, sec, oh):
+    """one 'huh' of a chuckle: a breath, then a low voice that sags. oh: how far the vowel rounds into 'oh'"""
+    t = times(sec)
+    k = t / sec
+    v = osc(f0 * (1.05 - 0.12 * k - 0.22 * k ** 3) * (1 + 0.006 * np.sin(2 * np.pi * 7 * t)), "saw")
+    voice = vowel(v, ((540, 2.0), (1010, 1.2), (2030, 0.2))) * (1 - oh * k) + vowel(v, ((430, 2.0), (730, 1.2), (2050, 0.15))) * oh * k + low(v, 280) * 0.3
+    breath = vowel(rng.normal(0, 1, len(t)), ((540, 1.0), (1010, 0.6))) * 0.9
+    return fade((voice * np.minimum(t / 0.022, 1) + breath * np.exp(-t / 0.02)) * np.exp(-t / (sec * 0.6)), 0.006, 0.03)
+
+
+def laugh():
+    """Gerald, very pleased with himself: a fat 'huh-huh-huh-hoh' and one bubble. Low and round, because it plays often"""
+    out = np.zeros(int(0.92 * SR))
+    for at, f, sec, oh, level in ((0, 120, 0.15, 0.3, 0.85), (0.19, 113, 0.15, 0.3, 1.0), (0.38, 106, 0.15, 0.3, 0.85), (0.57, 96, 0.32, 1.0, 0.95)):
+        put(out, at, huh(f, sec, oh) * level)
+    t = times(0.05)
+    put(out, 0.85, fade(osc(np.geomspace(420, 980, len(t))) * 0.1, 0.004, 0.012))
+    return low(out, 2400)
+
+
+def brass(f, sec):
+    """a fat, slightly sour horn that opens up right after the attack. f: Hz, or a curve"""
+    t = times(sec)
+    x = osc(f * np.ones(len(t)), "saw") + osc(f * 1.007 * np.ones(len(t)), "saw")
+    return fade(low(x, 350) * 0.6 + band(x, 350, 1500) * 1.5 + band(x, 1500, 3200) * (0.15 + 0.85 * np.exp(-t / 0.06)), 0.01, 0.03)
+
+
+def sting():
+    """Gerald shows up: bwa-bwa-BWAAA, a villain's chord, and the last note gives up"""
+    out = np.zeros(int(0.95 * SR))
+    for at in (0, 0.15):
+        put(out, at, (brass(146.8, 0.11) + brass(73.4, 0.11) * 0.3) * 0.75)
+    t = times(0.62)
+    bend = (1 + 0.02 * np.sin(2 * np.pi * 7 * t) * np.clip(t / 0.2, 0, 1)) * (1 - 0.26 * np.clip((t - 0.34) / 0.28, 0, 1) ** 2)
+    put(out, 0.3, brass(207.7 * bend, 0.62) + brass(146.8 * bend, 0.62) * 0.7 + brass(73.4 * bend, 0.62) * 0.3)
+    return out
+
+
+def kazoo(f, sec):
+    """a kazoo-ish buzz: nasal and not quite in tune. f: Hz, or a curve"""
+    t = times(sec)
+    f = f * np.ones(len(t))
+    x = (osc(f, "saw") + osc(f * 1.009, "saw") * 0.7) * (0.8 + 0.2 * np.sin(2 * np.pi * 61 * t))
+    return fade(band(x, 420, 3000) + band(x, 1000, 1700) * 0.6, 0.012, 0.03)
+
+
+def fanfare():
+    """you finally got him: da-da-da-DAAA on a bad kazoo band, and one late toot"""
+    out = np.zeros(int(0.97 * SR))
+    for at in (0, 0.1, 0.2):
+        put(out, at, kazoo(392, 0.085) * 0.7)
+    t = times(0.47)
+    bend = np.interp(t, [0, 0.05], [0.93, 1]) * (1 + 0.022 * np.sin(2 * np.pi * 7.5 * t) * np.clip(t / 0.22, 0, 1))
+    put(out, 0.3, kazoo(523.3 * bend, 0.47) + kazoo(659.3 * bend, 0.47) * 0.7 + brass(130.8, 0.47) * 0.2)
+    put(out, 0.83, kazoo(784, 0.13) * 0.7)
+    return band(np.tanh(out), 120, 9000)
+
+
+def mallet(f, sec):
+    """a soft wooden note, with a tock at the start"""
+    t = times(sec)
+    return fade((np.sin(2 * np.pi * f * t) + 0.35 * np.sin(2 * np.pi * 4 * f * t) * np.exp(-40 * t)) * np.exp(-7 * t), 0.002, 0.03)
+
+
+def find_new():
+    """a small happy discovery: three notes up, and a glint on the last"""
+    out = np.zeros(int(0.62 * SR))
+    for at, f, level in ((0, 587.3, 0.7), (0.09, 784, 0.8), (0.18, 987.8, 1.0)):
+        put(out, at, mallet(f, 0.44) * level)
+    put(out, 0.18, mallet(1975.5, 0.3) * 0.18)
+    return out
+
+
+def bell(f, sec):
+    t = times(sec)
+    return fade((np.sin(2 * np.pi * f * t) + 0.45 * np.sin(2 * np.pi * 2 * f * t) * np.exp(-3 * t) + 0.15 * np.sin(2 * np.pi * 4.2 * f * t) * np.exp(-12 * t)) * np.exp(-5 * t), 0.001, 0.05)
+
+
+def ach():
+    """claiming an achievement: ta-DING, a rolled chord of bells with a soft thump under it"""
+    out = np.zeros(int(0.82 * SR))
+    put(out, 0, bell(784, 0.07) * 0.6)
+    for at, f in ((0.07, 1046.5), (0.095, 1318.5), (0.12, 1568)):
+        put(out, at, bell(f, 0.7) * 0.6)
+    t = times(0.14)
+    put(out, 0.07, fade(np.sin(2 * np.pi * 261.6 * t) * np.exp(-24 * t), 0.002, 0.02))
+    return out
+
+
+def hat_on():
+    """a soft comic pop: a round 'bwop' going up, and a puff of felt"""
+    t = times(0.17)
+    f = 220 + 480 * (1 - np.exp(-t / 0.03))
+    x = (osc(f) + 0.25 * osc(f * 2)) * np.exp(-26 * t)
+    return fade(x + low(rng.normal(0, 1, len(t)), 1400) * np.exp(-t / 0.012) * 0.6, 0.003, 0.02)
+
+
 SOUNDS = {"boing": boing, "squeak": squeak, "quack": quack, "slide_up": lambda: slide(320, 1300, 0.42), "slide_down": lambda: slide(1300, 260, 0.5),
           "pop": pop, "horn": horn, "shutter": shutter, "dundun": dundun, "whoosh": whoosh, "clunk": clunk, "squawk": squawk, "pfff": pfff,
-          "ding": ding, "snip": snip}
+          "ding": ding, "snip": snip, "laugh": laugh, "sting": sting, "fanfare": fanfare, "find_new": find_new, "ach": ach, "hat_on": hat_on}
 
 
 def main():
+    only = sys.argv[1:]
+    if set(only) - set(SOUNDS):
+        sys.exit("no such sound: %s" % ", ".join(sorted(set(only) - set(SOUNDS))))
     os.makedirs(OUT, exist_ok=True)
     for name, fn in SOUNDS.items():
-        x = np.asarray(fn(), dtype=np.float64)
+        x = np.asarray(fn(), dtype=np.float64)                    # every sound runs, so each still gets the same noise from rng
+        if only and name not in only:
+            continue
         x = x / max(1e-6, np.abs(x).max()) * 0.5                  # all at one level, with plenty of room
         path = os.path.join(tempfile.gettempdir(), "vf_%s.wav" % name)
         with wave.open(path, "wb") as w:

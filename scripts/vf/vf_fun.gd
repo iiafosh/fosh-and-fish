@@ -168,6 +168,45 @@ func capture_test(dir: String) -> void:
 	await m._shot(dir + "/fun_honk.png")
 	print("FUN honk done, say='%s'" % s._say_text)
 
+## godot --path . --resolution 1280x720 -- --capture=DIR --rebirth-test : the first rebirth from the goal on the HUD to Prestige 1
+func rebirth_test(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
+	VF.tutorial = 99
+	VF.level = VFData.prestige_level_req(0) - 1
+	VF.money = 1_200_000
+	VF.goals_done = VFData.STARTER_GOALS.size() - 2
+	VF.changed.emit()
+	m._coach_show()
+	await tree.create_timer(1.2).timeout
+	await m._shot(dir + "/rebirth0_goal_level.png")
+	m._open_panel("prestige", "Prestige")
+	await tree.create_timer(0.5).timeout
+	await m._shot(dir + "/rebirth1_panel_not_yet.png")
+	m._close_panel()
+	VF.level = VFData.prestige_level_req(0)
+	VF.check_goals()
+	VF.changed.emit()
+	await tree.create_timer(1.2).timeout
+	await m._shot(dir + "/rebirth2_goal_money.png")
+	VF.money = VFData.prestige_money_req(0)
+	VF.check_goals()
+	VF.changed.emit()
+	await tree.create_timer(0.8).timeout
+	await m._shot(dir + "/rebirth3_ready_toast.png")
+	print("REBIRTH ready=%s check=%s goal=%s" % [VF.prestige_check().ok, VF.prestige_check(), VF.current_goal().get("id", "")])
+	m._open_panel("prestige", "Prestige")
+	await tree.create_timer(0.5).timeout
+	await m._shot(dir + "/rebirth4_panel_ready.png")
+	print("REBIRTH do_prestige='%s' prestige=%d level=%d azure=%d goals=%d/%d" % [VF.do_prestige(), VF.prestige, VF.level, VF.exotics.azure, VF.goals_done, VFData.STARTER_GOALS.size()])
+	m._close_panel()
+	await tree.create_timer(1.2).timeout
+	await m._shot(dir + "/rebirth5_reborn.png")
+	m._open_panel("prestige", "Prestige")
+	await tree.create_timer(0.5).timeout
+	await m._shot(dir + "/rebirth6_next_prestige.png")
+
 ## godot --path . --resolution 1600x900 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --tour : a look round for a
 ## recording: the title screen, the boat turning, the mini-game's gags, the toys. Never saves.
 func tour() -> void:
@@ -190,6 +229,7 @@ func tour() -> void:
 		for k in leg[0]: m.sail._key(k, false)
 	# the mini-game's gags
 	m._set_catch_mode("reel")
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS
 	for step in [["Cod", "disguise", "win"], ["Pufferfish", "puff", "win"], ["Raw Salmon", "selfie", "win"], ["Rainbow Fish", "shark", "lose"]]:
 		VF._last_cast_ms = -100000
 		m._do_cast()

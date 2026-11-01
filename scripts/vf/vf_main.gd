@@ -1907,8 +1907,8 @@ func _panel_prestige() -> void:
 			panel_body.add_child(lbl("Prestige %d » %d" % [VF.prestige, VF.prestige + 1], 20, C_GOLD))
 			panel_body.add_child(_req_row("Level", c.level[0], c.level[1]))
 			panel_body.add_child(_req_row("Money", c.money[0], c.money[1], true))
-			panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
-			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. P0 requirements are from the Prestige 0 Guide; later requirements are estimated.", 13, C_MUTED)
+			if c.charms[1] > 0: panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
+			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. From your second prestige on, you also need every charm maxed.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)
 			var b := _act("PRESTIGE", Color("#1d4ed8"), func(): return VF.do_prestige(), c.ok)
@@ -2029,6 +2029,7 @@ func _check_capture() -> void:
 		# steer with keys and a drag, cast from the new spot, sail through lanes, Map travel,
 		# every biome's exits (the scenario lives in vf_sail.gd)
 		VF._apply(VF._defaults.duplicate(true))
+		VF.catch_mode = "relax"
 		VF.tutorial = 99
 		VF.level = 120
 		VF.changed.emit()
@@ -2047,6 +2048,10 @@ func _check_capture() -> void:
 		VF.changed.emit()
 		_coach_show()
 		await fun.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--rebirth-test" in OS.get_cmdline_user_args():
+		await fun.rebirth_test(dir)
 		get_tree().quit()
 		return
 	if "--turn-test" in OS.get_cmdline_user_args():
@@ -2077,6 +2082,7 @@ func _check_capture() -> void:
 	if "--aim-test" in OS.get_cmdline_user_args():
 		# tap three different spots; the bobber must land on each (within a few px)
 		VF._apply(VF._defaults.duplicate(true))
+		VF.catch_mode = "relax"
 		VF.tutorial = 99
 		VF.changed.emit()
 		_coach_show()
@@ -2248,6 +2254,21 @@ func _minigame_test(dir: String) -> void:
 	VF.tutorial = 99
 	VF.changed.emit()
 	_coach_show()
+	await get_tree().create_timer(1.0).timeout
+	# a new game is already in this mode, and its first round is close to impossible to lose: nobody touches anything here
+	print("MG new game: mode=%s rounds=%d" % [VF.catch_mode, VF.reel_rounds])
+	_do_cast()
+	while minigame == null:
+		await get_tree().process_frame
+	var first = minigame
+	await get_tree().create_timer(1.3).timeout
+	await _shot(dir + "/mg_first_round.png")
+	while is_instance_valid(first) and first.phase != "end":
+		await get_tree().process_frame
+	print("MG first round, hands off: won=%s after %.1fs, rounds=%d" % [first.won, first.play_t, VF.reel_rounds])
+	while minigame != null:
+		await get_tree().process_frame
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS        # from here on: the normal game
 	_set_catch_mode("reel")
 	await get_tree().create_timer(1.0).timeout
 	await _shot(dir + "/mg0_toggle.png")
@@ -3010,6 +3031,7 @@ func _trailer() -> void:
 	AudioManager.sfx_on = true
 	AudioManager.apply_settings()
 	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
 	VF.tutorial = 99          # captions explain instead of the tutorial pointer
 	VF.changed.emit()
 	_coach_show()
@@ -3070,6 +3092,7 @@ func _reel() -> void:
 	AudioManager.sfx_on = true
 	AudioManager.apply_settings()
 	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
 	VF.tutorial = 99
 	VF.changed.emit()
 	_coach_show()
