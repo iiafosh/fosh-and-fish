@@ -2,13 +2,15 @@
 
     python tools/art/make_brand.py            everything
     python tools/art/make_brand.py logo       just assets/brand/logo.png (quick look)
+    python tools/art/make_brand.py painted    the logo, the splash and the covers: what comes from the painting
 
 Writes to assets/brand/:
   logo.png                     stacked "fosh & fish" logo, transparent (title screen, covers, splash)
   icon_{64..1024}.png, icon.ico, android_192.png, android_fg_432.png, android_bg_432.png
-  splash.png                   boot / web loading screen (deep sea, logo)
+  splash.png                   boot / web loading screen (the painted bay, logo)
   cover_1920x1080.png, cover_1280x720.png, social_1280x640.png, itch_cover_630x500.png
-The art comes from Blender: tools/blender/render_assets.py -- brand (assets/brand/src).
+The logo and icon come from Blender (tools/blender/render_assets.py -- brand, assets/brand/src), the picture is the
+owner's painting (tools/art/make_launcher.py).
 """
 import math
 import os
@@ -16,14 +18,15 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
-from scipy.ndimage import distance_transform_edt, gaussian_filter, map_coordinates, median_filter
+from scipy.ndimage import distance_transform_edt
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BRAND = os.path.join(ROOT, "assets", "brand")
 SRC = os.path.join(BRAND, "src")               # tools/blender/render_assets.py -- brand
 NAVY = (13, 43, 58)
 FONT = os.path.join(ROOT, "assets", "third_party", "fonts", "Fredoka.ttf")
-ART = os.path.join(ROOT, "assets", "launcher", "title_bg.jpg")
+ART = os.path.join(ROOT, "assets", "launcher", "launcher_bg.jpg")
+SPLASH_LOGO = (0.575, 0.288, 0.25, 0.3635)     # x, y, w, h in the picture: the title screen starts its logo right there (vf_launcher.gd)
 
 WHITE = (255, 255, 255)
 ICE = (214, 244, 255)          # the cool underside of the letters
@@ -232,90 +235,15 @@ def save_icons():
     icon_tile(432).convert("RGB").save(os.path.join(BRAND, "android_bg_432.png"))
 
 
-# ------------------------------------------------------------------ the loading screen's picture
-def title():
-    """The layers of tools/blender/vf_brand.py render_title -> what the game loads (assets/launcher):
-    title_bg.jpg (with the world mirrored in the water, and the boat's reflection and foam), title_boat.png (it bobs),
-    title_masks.png (R the water, G what the wind moves, for the title screen's shader). -> the boat's place, 0..1"""
-    rgb = lambda n: np.asarray(Image.open(os.path.join(SRC, n)).convert("RGB"), np.float32) / 255.0
-    a = rgb("title_a.png")
-    H, W = a.shape[:2]
-    mask = Image.open(os.path.join(SRC, "title_mask.png")).convert("RGBA")
-    water = np.asarray(mask.getchannel("A").resize((W, H), Image.BILINEAR), np.float32) / 255.0
-    # the reflection: each column mirrored about where the water starts in it, the waves breaking it up more further out
-    wet = water > 0.5
-    top = np.where(wet.any(axis=0), wet.argmax(axis=0), H)
-    top = gaussian_filter(median_filter(top, size=15).astype(np.float32), sigma=26.0)     # (no seams where the dock and the shop start)
-    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    far = np.clip((yy - top[None, :]) / (H - top[None, :] + 1.0), 0.0, 1.0)
-    wob = np.sin(yy * 0.19 + xx * 0.012) + 0.6 * np.sin(yy * 0.41 - xx * 0.021 + 1.3) + 0.35 * np.sin(yy * 0.83 + 2.1)
-    sx = np.clip(xx + wob * (1.0 + far * 6.0), 0, W - 1)
-    sy = np.clip(top[None, :] - (yy - top[None, :]) * 0.92, 0, H - 1)
-    mirror = np.stack([map_coordinates(a[..., c], [sy, sx], order=1) for c in range(3)], axis=-1)
-    mirror = gaussian_filter(mirror, sigma=(3.5, 1.0, 0))
-    mirror = mirror * 0.72 + a * 0.28                                 # (calmer: it never quite hides the water's colour)
-    k = (0.62 - 0.44 * far)[..., None] * water[..., None]
-    out = a * (1.0 - k) + mirror * k
-    # small dark and light ripples, more of them near the camera
-    n = gaussian_filter(np.random.default_rng(5).normal(0, 1, (H, W)), sigma=(1.1, 9.0))
-    n = n / n.std()
-    out = out + (np.clip(n, -2.0, 2.0) * (0.012 + 0.016 * far) * water)[..., None]
-    # the boat: its reflection and the foam along its waterline
-    boat = np.asarray(Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA"), np.float32) / 255.0
-    # (the columns of the hull itself, not the rod and the line: the lowest thick run of pixels)
-    thick = gaussian_filter((boat[..., 3] > 0.5).astype(np.float32), sigma=(6.0, 0)) > 0.45
-    keel = np.where(thick.any(axis=0), H - 1 - thick[::-1].argmax(axis=0), -1)
-    keel[keel < H * 0.8] = -1                                         # (that's the rod, or his legs: the hull sits lower)
-    cols = np.where(keel >= 0)[0]
-    x0, x1 = int(cols.min()), int(cols.max())
-    keel = median_filter(keel, size=9)
-    has = (keel >= 0)[None, :]
-    # (smooth, or the foam and the reflection come out in stair steps; the columns with no hull take their neighbours' value)
-    filled = np.interp(np.arange(W), np.where(keel >= 0)[0], keel[keel >= 0]).astype(np.float32)
-    ky = gaussian_filter(filled, sigma=4.0)[None, :]
-    below = np.clip((yy - ky) / 170.0, 0.0, 1.0)
-    bsx = np.clip(xx + wob * (1.0 + below * 7.0), 0, W - 1)
-    bsy = np.clip(ky - (yy - ky) * 0.95, 0, H - 1)
-    refl = np.stack([map_coordinates(boat[..., c], [bsy, bsx], order=1) for c in range(4)], axis=-1)
-    refl = gaussian_filter(refl, sigma=(1.8, 0.6, 0))
-    ra = refl[..., 3] * (yy > ky) * has * (0.55 - 0.3 * below)
-    out = out * (1.0 - ra[..., None]) + refl[..., :3] * ra[..., None]
-    shade = gaussian_filter(((yy > ky) & (yy < ky + 26) & has).astype(np.float32), sigma=(7.0, 9.0)) * 0.3
-    out = out * (1.0 - shade[..., None]) + np.array((0.02, 0.14, 0.22), np.float32) * shade[..., None]
-    fn = gaussian_filter(np.random.default_rng(9).normal(0, 1, (H, W)), sigma=(1.0, 7.0))
-    fn = fn / fn.std()
-    d = np.abs(yy - ky - 2.0 - fn * 2.0)
-    foam = np.clip(1.0 - d / 4.0, 0.0, 1.0) * has * water
-    out = out * (1.0 - foam[..., None] * 0.9) + foam[..., None] * 0.9
-    # a soft, warm vignette
-    r = np.sqrt(((xx / W - 0.5) * 1.15) ** 2 + ((yy / H - 0.5) * 1.05) ** 2)
-    out = out * (1.0 - np.clip(r - 0.42, 0.0, 1.0)[..., None] * np.array((0.28, 0.36, 0.42), np.float32))
-    bg = Image.fromarray((np.clip(out, 0.0, 1.0) * 255).astype(np.uint8))
-    d = os.path.join(ROOT, "assets", "launcher")
-    os.makedirs(d, exist_ok=True)
-    bg.save(os.path.join(d, "title_bg.jpg"), quality=90, optimize=True)
-    # the boat, trimmed
-    bi = Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA")
-    box = bi.getbbox()
-    bi.crop(box).save(os.path.join(d, "title_boat.png"), optimize=True)
-    # R the water, G what sways
-    sway = Image.open(os.path.join(SRC, "title_sway.png")).convert("L").resize((W // 2, H // 2), Image.BILINEAR)
-    m = Image.merge("RGB", (mask.getchannel("A").resize((W // 2, H // 2), Image.BILINEAR), sway, Image.new("L", (W // 2, H // 2), 0)))
-    m.save(os.path.join(d, "title_masks.png"), optimize=True)
-    place = [round(box[0] / W, 4), round(box[1] / H, 4), round(box[2] / W, 4), round(box[3] / H, 4)]
-    print("title_boat at", place, "waterline at x", x0, x1)
-    return place
-
-
 # ------------------------------------------------------------------ splash + covers
 def splash():
-    """boot / web loading screen: the title picture and the logo, small to download"""
+    """boot / web loading screen: the painted bay and the logo, small to download. The title screen shows the same picture
+    and starts its logo in this very place, then the panel glides in and takes it"""
     w, h = 1024, 576
     bg = Image.open(ART).convert("RGB").resize((w, h), Image.LANCZOS).convert("RGBA")
-    boat = Image.open(os.path.join(SRC, "title_boat.png")).convert("RGBA").resize((w, h), Image.LANCZOS)
-    bg.alpha_composite(boat)
-    lg = logo(0.36)
-    bg.alpha_composite(lg, (int(w * 0.035), int(h * 0.06)))
+    x, y, lw, lh = SPLASH_LOGO
+    lg = logo(1.0).resize((round(lw * w), round(lh * h)), Image.LANCZOS)
+    bg.alpha_composite(lg, (round(x * w), round(y * h)))
     bg.convert("RGB").save(os.path.join(BRAND, "splash.png"), optimize=True)
 
 
@@ -351,15 +279,13 @@ if __name__ == "__main__":
     print("logo.png", lg.size)
     if "logo" in sys.argv[1:]:
         sys.exit()
-    title()
-    if "title" in sys.argv[1:]:
-        sys.exit()
-    save_icons()
+    if "painted" not in sys.argv[1:]:
+        save_icons()
     splash()
-    cover(1920, 1080, 720, (0.33, 0.24), "cover_1920x1080.png")
-    cover(1280, 720, 480, (0.33, 0.24), "cover_1280x720.png")
-    cover(1280, 640, 470, (0.33, 0.25), "social_1280x640.png")
-    cover(630, 500, 330, (0.5, 0.25), "itch_cover_630x500.png", crop_focus=(0.12, 0.5))
+    cover(1920, 1080, 640, (0.71, 0.42), "cover_1920x1080.png")      # (over the open water, clear of the dock)
+    cover(1280, 720, 430, (0.71, 0.42), "cover_1280x720.png")
+    cover(1280, 640, 400, (0.71, 0.43), "social_1280x640.png")
+    cover(630, 500, 270, (0.72, 0.36), "itch_cover_630x500.png", crop_focus=(0.12, 0.5))
     for n in sorted(os.listdir(BRAND)):
         if n.endswith((".png", ".ico")):
             print(n, os.path.getsize(os.path.join(BRAND, n)) // 1024, "KB")
