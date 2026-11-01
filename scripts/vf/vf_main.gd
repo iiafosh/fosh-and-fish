@@ -2059,6 +2059,10 @@ func _check_capture() -> void:
 		await fun.gerald_test(dir)
 		get_tree().quit()
 		return
+	if "--finds-test" in OS.get_cmdline_user_args():
+		await fun.finds_test(dir)
+		get_tree().quit()
+		return
 	if "--rebirth-test" in OS.get_cmdline_user_args():
 		await fun.rebirth_test(dir)
 		get_tree().quit()

@@ -27,6 +27,8 @@ var _thief_wait := 90.0
 var _quip_wait := 30.0
 var _pay_cd := 0.0               # poking pays a little, not all the time
 var _honk_cd := 0.0
+var _resident_wait := 40.0       # until the next find turns up
+var _resident_left := 0.0        # the one out there now: how long it stays
 var _note_box: PanelContainer
 
 func _init(main) -> void:
@@ -36,11 +38,15 @@ func _init(main) -> void:
 func tick(delta: float) -> void:
 	_pay_cd -= delta
 	_honk_cd -= delta
+	_resident_left -= delta
 	if VF.tutorial < 99 or m.launcher_open() or m.overlay.visible or m.minigame != null or m._phone_open() or m.sail.state != "idle": return
 	_find_wait -= delta
 	if _find_wait <= 0.0:
 		_find_wait = randf_range(40.0, 100.0)
 		m.stage.spawn_find("duck" if randf() < 0.3 else "bottle")
+	if _resident_left <= 0.0:
+		_resident_wait -= delta
+		if _resident_wait <= 0.0: _send_resident()
 	_thief_wait -= delta
 	if _thief_wait <= 0.0:
 		_thief_wait = randf_range(150.0, 300.0)
@@ -49,6 +55,15 @@ func tick(delta: float) -> void:
 	if _quip_wait <= 0.0:
 		_quip_wait = randf_range(45.0, 110.0)
 		m.stage.say(QUIPS.pick_random())
+
+## one find at a time, the stage puts it somewhere worth sailing to and takes it away after VFData.FIND_SECS
+func _send_resident() -> void:
+	_resident_wait = randf_range(VFData.FIND_WAIT[0], VFData.FIND_WAIT[1])
+	if not m.stage.has_method("spawn_resident"): return
+	var id: String = VF.find_pick()
+	if id == "": return
+	m.stage.spawn_resident(id)
+	_resident_left = VFData.FIND_SECS
 
 ## tap the boat, or H
 func honk() -> void:
@@ -61,11 +76,13 @@ func honk() -> void:
 
 ## a little line on the catch card now and then ("" most of the time)
 func catch_line(res: Dictionary) -> String:
-	if res.count <= 0: return EMPTY_LINES.pick_random()
+	if res.count <= 0: return "" if not res.get("chest", {}).is_empty() else EMPTY_LINES.pick_random()    # (a goal's chest isn't a bad catch)
 	return CAUGHT_LINES.pick_random() if randf() < 0.22 else ""
 
 func _pay(casts: float, at: Vector2) -> void:
-	var n: int = VF.pay_find(casts)
+	_show_pay(VF.pay_find(casts), at)
+
+func _show_pay(n: int, at: Vector2) -> void:
 	var sp: Vector2 = m.stage.to_screen(at)
 	m._float_text("+%s" % m.money_str(n), sp + Vector2(0, -36), m.C_GOLD)
 	m.v1.coins_to_wallet(sp, n)
@@ -73,6 +90,9 @@ func _pay(casts: float, at: Vector2) -> void:
 
 func _on_poked(kind: String, at: Vector2) -> void:
 	VFHaptics.buzz("poke")
+	if kind.begins_with("find:"):
+		_found(kind.substr(5), at)
+		return
 	match kind:
 		"crab":
 			AudioManager.play_fun("squeak", -9.0, randf_range(0.9, 1.25))
@@ -100,6 +120,21 @@ func _on_poked(kind: String, at: Vector2) -> void:
 			AudioManager.play_fun("ding", -9.0)
 			_pay(5.0, at)
 			m.stage.say("And stay out!", 2.4)
+
+## you tapped a find, from close enough
+func _found(id: String, at: Vector2) -> void:
+	_resident_left = 0.0
+	var d: Dictionary = VFData.find_def(id)
+	if d.is_empty(): return
+	var r: Dictionary = VF.find_tapped(id)
+	m.stage.say(r.line, 4.0)
+	if r.first:
+		VFHaptics.buzz("rare")
+		AudioManager.play_fun("find_new", -5.0)
+		m._banner("New find: %s!" % d.name, "%d of %d found (Fish Book)" % [VF.finds.size(), VFData.finds_total()], m.ph("sparkle"), Color("#2f8f9e"))
+	else:
+		AudioManager.play_fun("ding", -11.0)
+	if int(r.pay) > 0: _show_pay(int(r.pay), at)
 
 ## the round against Gerald or Geraldine is decided: pay up. At the end of their run: the hat, and after Gerald, his mum.
 func rival_result(mg, won: bool) -> void:
@@ -304,6 +339,40 @@ func _rival_gags(dir: String) -> void:
 	mg.progress = 0.97
 	while m.minigame != null:
 		await tree.process_frame
+
+## godot --path . --resolution 1280x720 -- --capture=DIR --finds-test : every find of every biome, tapped twice. It shows them on
+## the water once the stage has stage.spawn_resident. Never saves.
+func finds_test(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
+	VF.tutorial = 99
+	VF.sail_hint = true
+	VF.level = 2500
+	VF.rod = "Dark Rod"
+	VF.owned_rods = ["Plastic Rod", "Dark Rod"]
+	print("FINDS stage has spawn_resident: %s" % m.stage.has_method("spawn_resident"))
+	for b in VFData.BIOME_ORDER:
+		VF.biome = b
+		VF.changed.emit()
+		await tree.create_timer(2.2).timeout
+		for id in VFData.FINDS[b]:
+			if m.stage.has_method("spawn_resident"):
+				m.stage.spawn_resident(id)
+				await tree.create_timer(0.8).timeout
+				await m._shot(dir + "/finds_%s_%s.png" % [VFData.slug(b), id])
+			var money0: int = VF.money
+			_on_poked("find:" + id, m.stage.boat_pos + Vector2(220, -60))
+			print("FINDS %s %s first tap: +$%d, found %d of %d: %s" % [b, id, VF.money - money0, VF.finds.size(), VFData.finds_total(), m.stage._say_text])
+			await tree.create_timer(1.3).timeout
+			await m._shot(dir + "/finds_%s_%s_tapped.png" % [VFData.slug(b), id])
+			money0 = VF.money
+			_on_poked("find:" + id, m.stage.boat_pos + Vector2(220, -60))
+			print("FINDS %s %s tapped again: +$%d" % [b, id, VF.money - money0])
+			await tree.create_timer(0.4).timeout
+	var total := 0
+	for id in VF.finds: total += int(VF.finds[id])
+	print("FINDS done: %d of %d found, %d taps" % [VF.finds.size(), VFData.finds_total(), total])
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --rebirth-test : the first rebirth from the goal on the HUD to Prestige 1
 func rebirth_test(dir: String) -> void:
