@@ -119,25 +119,25 @@ def _small_fish(at, length=0.3, col="#ff9a2e", fin="#e0641c"):
 
 # ------------------------------------------------------------------- River
 def _otter():
-    fur, paw = "#8e5c34", "#6a4226"
-    body = sphere(loc=(-0.1, 0, 0.1), scale=(0.74, 0.42, 0.3), seg=48, rings=24)
-    _paint(body, lambda co, n: mix(hexc(fur), hexc("#f6e7cb"), _s((co.z - 0.3) / 0.32) * _s((0.82 - abs(co.y)) / 0.3)), "otter")
-    head = sphere(loc=(0.66, 0, 0.27), scale=(0.31, 0.3, 0.26), mat=toon(fur))
-    muzzle = sphere(loc=(0.82, 0, 0.36), scale=(0.17, 0.2, 0.125), mat=toon("#f6e7cb"))
-    nose = sphere(loc=(0.94, 0, 0.42), scale=(0.055, 0.075, 0.04), mat=toon("#2a1a14"))
-    tail = tube([(-0.72, 0, 0.07), (-1.04, 0, 0.09), (-1.32, 0, 0.24)], 0.13, mat=toon(paw), taper=(1.0, 0.25))
-    clam = sphere(loc=(0.2, 0, 0.42), scale=(0.17, 0.19, 0.075), mat=toon("#ffb0b8"))
+    fur, paw = "#96623a", "#6a4226"
+    body = sphere(loc=(-0.18, 0, 0.1), scale=(0.62, 0.45, 0.33), seg=48, rings=24)
+    _paint(body, lambda co, n: mix(hexc(fur), hexc("#f6e7cb"), _s((co.z - 0.25) / 0.32) * _s((0.85 - abs(co.y)) / 0.3)), "otter")
+    head = sphere(loc=(0.54, -0.02, 0.31), scale=(0.38, 0.37, 0.32), mat=toon(fur))
+    muzzle = sphere(loc=(0.74, -0.08, 0.4), scale=(0.2, 0.25, 0.15), mat=toon("#f6e7cb"))
+    nose = sphere(loc=(0.88, -0.1, 0.5), scale=(0.07, 0.09, 0.05), mat=toon("#2a1a14"))
+    tail = tube([(-0.72, 0, 0.07), (-0.94, 0, 0.1), (-1.14, 0, 0.27)], 0.12, mat=toon(paw), taper=(1.0, 0.3))
+    clam = sphere(loc=(0.02, 0, 0.47), scale=(0.2, 0.23, 0.085), mat=toon("#ffb0b8"))
     parts = [body, head, muzzle, nose, tail, clam]
-    for i in (-0.09, 0.0, 0.09):
-        parts += _bare(tube([(0.14 + i * 0.2, i, 0.487), (0.28, i * 1.5, 0.47)], 0.009, mat=toon("#d9707e", shade=1.0, rim=0.0), res=4))
+    for i in (-0.12, 0.0, 0.12):
+        parts += _bare(tube([(-0.05, i * 0.6, 0.55), (0.14, i * 1.3, 0.52)], 0.011, mat=toon("#d9707e", shade=1.0, rim=0.0), res=4))
     for s in (1, -1):
-        ear = sphere(loc=(0.5, s * 0.27, 0.38), scale=0.085, mat=toon(paw))
-        arm = tube([(0.02, s * 0.32, 0.28), (0.16, s * 0.24, 0.42)], 0.065, mat=toon(fur))
-        pad = sphere(loc=(0.18, s * 0.2, 0.44), scale=(0.1, 0.085, 0.07), mat=toon(paw))
-        foot = sphere(loc=(-0.68, s * 0.24, 0.32), scale=(0.14, 0.09, 0.11), mat=toon(paw))
+        ear = sphere(loc=(0.34, s * 0.34, 0.46), scale=0.1, mat=toon(paw))
+        arm = tube([(-0.18, s * 0.36, 0.28), (0.0, s * 0.28, 0.46)], 0.07, mat=toon(fur))
+        pad = sphere(loc=(0.03, s * 0.24, 0.49), scale=(0.11, 0.09, 0.075), mat=toon(paw))
+        foot = sphere(loc=(-0.68, s * 0.27, 0.32), scale=(0.15, 0.1, 0.12), mat=toon(paw))
         parts += [ear, arm, pad, foot]
-        parts += _happy((0.64, s * 0.16, 0.5), 0.06, along=(1, 0, 0))
-        parts.append(_thin(tube([(0.84, s * 0.2, 0.36), (0.88, s * 0.42, 0.42)], 0.007, mat=toon("#fbf6ea"), res=4), 0.2))
+        parts += _happy((0.5, -0.02 + s * 0.2, 0.615), 0.08, along=(1, 0, 0))
+        parts.append(_thin(tube([(0.76, s * 0.22 - 0.08, 0.42), (0.82, s * 0.5 - 0.08, 0.5)], 0.008, mat=toon("#fbf6ea"), res=4), 0.2))
     return parts
 
 
@@ -228,19 +228,19 @@ def _capybara():
     orange = sphere(loc=(0.3, -0.16, 1.03), scale=0.15, mat=toon("#ff9a2e"), seg=20, rings=10)
     leaf = sphere(loc=(0.36, -0.14, 1.19), scale=(0.07, 0.035, 0.022), rot=(0, -20, 30), mat=toon("#4fa45a"))
     parts += [orange, _thin(leaf, 0.5)]
-    for x, y, z, r in ((-0.72, 0.42, 0.42, 0.14), (-0.58, 0.5, 0.72, 0.19), (-0.74, 0.46, 1.02, 0.14), (0.86, 0.4, 0.5, 0.12), (0.76, 0.46, 0.76, 0.15)):
-        parts += _bare(sphere(loc=(x, y, z), scale=r, mat=toon("#ffffff", flat_glow=True, alpha=0.55), seg=16, rings=8))
+    for x, y, z, r in ((-0.74, 0.34, 0.5, 0.13), (-0.62, 0.42, 0.8, 0.18), (-0.76, 0.46, 1.14, 0.24), (0.84, 0.36, 0.54, 0.12), (0.76, 0.44, 0.86, 0.17)):
+        parts += _bare(sphere(loc=(x, y, z), scale=r, mat=toon("#ffffff", flat_glow=True, alpha=0.26), seg=16, rings=8))
     return parts
 
 
 def _lava_crab():
     import vf_life as LF
-    groups = LF._build_crab(top="#3d2c2e", belly="#ff9a3a", claw="#ff5c2a", leg="#46302e")
+    groups = LF._build_crab(top="#4a3432", belly="#ff9a3a", claw="#ff5c2a", leg="#a2472a")
 
     def crust(co, n):
-        c = mix(hexc("#ff9a3a"), hexc("#3d2c2e"), min(1.0, max(0.0, co.z * 2.6 + 0.8)))
-        if abs(math.sin(co.x * 11.0 + co.z * 7.0) + math.sin(co.y * 10.0 - co.z * 9.0)) < 0.17 and co.z > -0.25:
-            c = hexc("#ffb02e")
+        c = mix(hexc("#ff9a3a"), hexc("#4a3432"), min(1.0, max(0.0, co.z * 2.6 + 0.8)))
+        if abs(math.sin(co.x * 8.0 + co.z * 5.0) + math.sin(co.y * 7.0 - co.z * 6.0)) < 0.13 and co.z > -0.1:
+            c = hexc("#ffc23a")
         return c
     _paint(groups["body"][0], crust, "lavacrab", emit=0.22)
     # (each claw is an arm, a palm, a finger and a thumb. Keep the arms)
@@ -249,29 +249,47 @@ def _lava_crab():
         bpy.data.objects.remove(o)
     groups["claws"] = [claws[0], claws[4]]
     parts = [p for g in groups.values() for p in g]
+    red, cuff_m = toon("#e8483a"), toon("#f6ecd6")
     for s in (1, -1):                                       # oven gloves: he is not stupid
-        glove = sphere(loc=(1.04, s * 0.76, 0.38), scale=(0.38, 0.27, 0.27), mat=toon("#e9e2d0"))
-        cuff = sphere(loc=(0.76, s * 0.8, 0.28), scale=(0.1, 0.21, 0.21), mat=toon("#d94f3a"))
-        thumb = sphere(loc=(1.1, s * 0.52, 0.44), scale=(0.15, 0.12, 0.11), rot=(0, 0, s * -30), mat=toon("#e9e2d0"))
+        glove = sphere(loc=(1.06, s * 0.76, 0.4), scale=(0.38, 0.28, 0.28), mat=red)
+        cuff = sphere(loc=(0.76, s * 0.8, 0.28), scale=(0.1, 0.22, 0.22), mat=cuff_m)
+        thumb = sphere(loc=(1.1, s * 0.5, 0.46), scale=(0.16, 0.13, 0.12), rot=(0, 0, s * -30), mat=red)
         parts += [glove, cuff, thumb]
     return _turn(parts, (0, 0, -90))
 
 
 def _marshmallow():
-    rock = ico(loc=(0, 0, 0.06), scale=(0.86, 0.62, 0.42), mat=toon("#4a3d3a"), sub=2, smooth=False)
-    glow = sphere(loc=(0.42, -0.12, 0.42), scale=(0.25, 0.2, 0.08), mat=toon("#ffb02e", flat_glow=True))
-    stick = tube([(-0.5, -0.1, 0.3), (-0.12, -0.14, 0.72), (0.34, -0.18, 1.0), (0.46, -0.18, 1.07)], 0.032, mat=toon("#8a5a2e"), res=8)
-    m = cyl(loc=(0.58, -0.2, 1.14), r=0.31, depth=0.44, rot=(0, 56, 0), verts=32, mat=None)
-    _dice(m, 2)
-    # (round the edges of the cylinder: it is a marshmallow, not a tin)
-    K.deform(m, lambda co: Vector((co.x * (1.0 - 0.1 * (abs(co.z) * 2.2) ** 4), co.y * (1.0 - 0.1 * (abs(co.z) * 2.2) ** 4), co.z)))
-    _paint(m, lambda co, n: mix(hexc("#fff9ee"), hexc("#b5733a"), _s((-co.z * 0.5 - co.x * 0.5 - 0.1) / 0.5)), "mallow")
+    rock = ico(loc=(-0.12, 0.04, 0.04), scale=(0.68, 0.52, 0.42), mat=toon("#4f4240"), sub=2, smooth=False)
+    glow = sphere(loc=(0.18, -0.12, 0.36), scale=(0.25, 0.2, 0.07), mat=toon("#ffb02e", flat_glow=True))
+    stick = tube([(-0.5, 0.0, 0.3), (-0.2, -0.04, 0.72), (0.1, -0.08, 0.98), (0.26, -0.1, 1.12)], 0.034, mat=toon("#8a5a2e"), res=8)
+    at = Vector((0.26, -0.12, 1.16))
+    m = sphere(scale=1.0, seg=40, rings=24)
+
+    def puff(co):
+        rho = math.hypot(co.x, co.y)
+        k = rho ** 0.5 / rho if rho > 1e-5 else 1.0                 # (a sphere, puffed out into a soft cylinder)
+        z = math.copysign(abs(co.z) ** 0.55, co.z)
+        return Vector((co.x * k * 0.46, co.y * k * 0.46, z * 0.33))
+
+    def toast(co, n):
+        c = mix(hexc("#fff6e4"), hexc("#a9652c"), _s((-co.z + 0.02 + 0.05 * math.sin(co.x * 16.0)) / 0.22))
+        if math.hypot(co.x - 0.36, co.z + 0.02) < 0.15:             # (the side that has already had enough)
+            c = mix(c, hexc("#6e3d1c"), 0.8)
+        return c
+    K.deform(m, puff)
+    _paint(m, toast, "mallow", emit=0.45)
+    m.location = at
+    m.rotation_euler = (0, math.radians(-8), 0)
     parts = [rock, stick, m] + _bare(glow)
-    parts += M._flames((0.44, -0.14, 0.32), 0.62)
+    parts += M._flames((0.2, -0.12, 0.3), 0.6)
     # it has seen what happened to the last one
-    parts += _goggle((0.5, -0.46, 1.25), 0.075, look=(0.5, -0.6, -0.7), pupil=0.46)
-    parts += _goggle((0.71, -0.44, 1.14), 0.075, look=(0.2, -0.6, -0.8), pupil=0.46)
-    parts += _bare(torus(loc=(0.68, -0.48, 0.99), R=0.03, r=0.012, rot=(70, 0, 0), mat=toon("#3a1420", shade=1.0, rim=0.0), seg=12, mseg=6))
+    ink = toon("#231a22", shade=1.0, rim=0.0)
+    for s in (1, -1):
+        e = sphere(loc=(at.x + s * 0.15, at.y - 0.45, at.z + 0.1), scale=(0.062, 0.02, 0.09), mat=ink, seg=14, rings=8)
+        g = sphere(loc=(at.x + s * 0.15 + 0.018, at.y - 0.47, at.z + 0.135), scale=0.022, mat=toon("#ffffff", flat_glow=True), seg=8, rings=5)
+        brow = tube([(at.x + s * 0.25, at.y - 0.44, at.z + 0.2), (at.x + s * 0.09, at.y - 0.45, at.z + 0.25)], 0.014, mat=ink, res=2)
+        parts += _bare(e, g, brow)
+    parts += _bare(sphere(loc=(at.x, at.y - 0.46, at.z - 0.08), scale=(0.04, 0.012, 0.055), mat=ink, seg=12, rings=8))
     return parts
 
 
@@ -284,26 +302,26 @@ def _turtle():
         return hexc("#2f7a44") if hexa else mix(hexc("#58ad62"), hexc("#3e9050"), 1.0 - co.z)
     _paint(shell, plates, "turtleshell")
     skin = "#8ccf7a"
-    head = sphere(loc=(0.86, -0.08, 0.34), scale=(0.31, 0.27, 0.25), mat=toon(skin))
+    head = sphere(loc=(0.86, -0.1, 0.32), scale=(0.33, 0.3, 0.26), mat=toon(skin))
     neck = tube([(0.5, 0, 0.18), (0.8, -0.06, 0.28)], 0.17, mat=toon(skin))
     parts = [shell, head, neck]
     for sx, sy, ang, a, b in ((0.42, 1, 40, 0.5, 0.15), (0.42, -1, -40, 0.5, 0.15), (-0.72, 1, 140, 0.32, 0.12), (-0.72, -1, -140, 0.32, 0.12)):
         parts.append(sphere(loc=(sx, sy * 0.72, 0.1), scale=(a, b, 0.07), rot=(0, 0, ang), mat=toon(skin)))
     # the hat: thirty years of barnacles, all on the one head
-    hat = cone(loc=(0.84, -0.06, 0.7), r1=0.24, r2=0.13, depth=0.26, verts=20, mat=toon("#cbd2cc"))
-    brim = sphere(loc=(0.84, -0.06, 0.57), scale=(0.33, 0.31, 0.045), mat=toon("#b6bfb8"))
+    hat = cone(loc=(0.8, -0.04, 0.74), r1=0.24, r2=0.13, depth=0.26, verts=20, mat=toon("#cbd2cc"))
+    brim = sphere(loc=(0.8, -0.04, 0.61), scale=(0.33, 0.31, 0.045), mat=toon("#b6bfb8"))
     parts += [hat, brim]
     for i in range(10):
         a = i * 2.4
         r = 0.08 + i * 0.019
-        z = 0.82 - i * 0.022
-        c = cone(loc=(0.84 + math.cos(a) * r, -0.06 + math.sin(a) * r, z), r1=0.055, r2=0.02, depth=0.08, verts=8, mat=toon("#eef0ea"))
+        z = 0.86 - i * 0.022
+        c = cone(loc=(0.8 + math.cos(a) * r, -0.04 + math.sin(a) * r, z), r1=0.055, r2=0.02, depth=0.08, verts=8, mat=toon("#eef0ea"))
         parts.append(_thin(c, 0.5))
     # and he has had enough of you
-    parts += _eye((0.98, -0.28, 0.4), 0.05)
-    lid = sphere(loc=(0.98, -0.285, 0.425), scale=(0.062, 0.052, 0.038), mat=toon(skin))
+    parts += _eye((1.0, -0.3, 0.38), 0.07)
+    lid = sphere(loc=(1.0, -0.31, 0.415), scale=(0.085, 0.07, 0.048), mat=toon("#79bd68"))
     parts += _bare(lid)
-    parts += _bare(tube([(0.98, -0.26, 0.26), (1.1, -0.2, 0.25), (1.15, -0.1, 0.28)], 0.012, mat=toon("#3a4a2c", shade=1.0, rim=0.0), res=6))
+    parts += _bare(tube([(0.96, -0.33, 0.22), (1.1, -0.27, 0.2), (1.17, -0.14, 0.24)], 0.016, mat=toon("#3a4a2c", shade=1.0, rim=0.0), res=6))
     return parts
 
 
@@ -356,7 +374,7 @@ def _treasure():
 
 # --------------------------------------------------------------------- Sky
 def _cloud_sheep():
-    wool = toon("#ffffff")
+    wool = toon("#ffffff", emit=0.5)
     parts = []
     puffs = [(0, 0, 0.72, 0.5), (-0.46, 0.04, 0.68, 0.38), (0.42, 0.1, 0.72, 0.36), (-0.2, -0.3, 0.6, 0.34), (0.2, -0.3, 0.6, 0.34), (0.0, 0.3, 0.76, 0.38),
              (-0.26, 0.1, 1.02, 0.3), (0.2, 0.08, 1.04, 0.3), (-0.72, 0.02, 0.56, 0.22), (0.66, 0.06, 0.46, 0.2), (-0.4, -0.2, 0.42, 0.26), (0.34, -0.14, 0.4, 0.26)]
@@ -398,32 +416,35 @@ def _kite():
 
 
 def _paper_plane():
-    nose, tail_l, tail_r = (1.24, 0.0, 0.5), (-1.02, -0.74, 0.74), (-1.02, 0.74, 0.74)
+    nose, tail_l, tail_r = (1.24, 0.0, 0.5), (-1.02, -0.86, 0.74), (-1.02, 0.86, 0.74)
     fold_l, fold_r, keel = (-1.02, -0.06, 0.52), (-1.02, 0.06, 0.52), (-1.02, 0.0, 0.1)
     ob = _sheet([nose, tail_l, fold_l, tail_r, fold_r, keel], [(0, 1, 2), (0, 4, 3), (0, 2, 5), (0, 5, 4)], 0.024)
-    _dice(ob, 31)
-
-    def page(co, n):
-        c = hexc("#fbfaf2") if co.z > 0.46 else hexc("#dfe0da")
-        if abs(((co.x + 0.03 * co.y) * 4.4) % 1.0 - 0.5) < 0.09:    # (ruled paper, and someone's homework)
-            c = mix(c, hexc("#9cc0e8"), 0.9)
-        if abs(co.x + 0.74) < 0.022:
-            c = mix(c, hexc("#ef6a6a"), 0.9)
-        return c
-    _paint(ob, page, "paper")
+    _dice(ob, 3)
+    _paint(ob, lambda co, n: hexc("#fdfcf4") if co.z > 0.46 else hexc("#d9dad2"), "paper")
     parts = [ob]
+    n, l, f = Vector(nose), Vector(tail_l), Vector(fold_l)
+    nrm = (l - n).cross(f - n).normalized()
+
+    def on(x, y):
+        """this point of a wing (they mirror each other), just above the paper"""
+        return Vector((x, y, n.z - (nrm.x * (x - n.x) + nrm.y * (-abs(y) - n.y)) / nrm.z + 0.02))
+    # (ruled paper: somebody's homework)
+    blue = toon("#8db8ea", shade=1.0, rim=0.0)
+    for x in (-0.82, -0.56, -0.3, -0.04, 0.22, 0.48):
+        t = (1.24 - x) / 2.26
+        for s in (-1, 1):
+            parts += _bare(tube([on(x, s * (0.06 * t + 0.03)), on(x, s * (0.86 * t - 0.03))], 0.008, mat=blue, res=2))
     # it came back with a mark. A big one
     red = toon("#d9302c", shade=1.0, rim=0.0)
-    y, z0 = -0.36, 0.63
-    for a, b in (((-0.34, y, z0), (0.08, y, z0 - 0.03)), ((0.08, y, z0 - 0.03), (0.08, y + 0.2, z0 - 0.08)), ((-0.14, y, z0 - 0.015), (-0.14, y + 0.14, z0 - 0.05))):
-        parts += _bare(tube([a, b], 0.026, mat=red, res=2))
-    return _turn(parts, (12, -6, -22), (0, 0, 0.5))
+    for a, b in (((-0.48, -0.5), (-0.48, -0.16)), ((-0.48, -0.16), (-0.2, -0.16)), ((-0.48, -0.32), (-0.26, -0.32))):
+        parts += _bare(tube([on(*a), on(*b)], 0.03, mat=red, res=2))
+    return _turn(parts, (6, -4, -16), (0, 0, 0.5))
 
 
 # ------------------------------------------------------------------- Space
 def _helmet(at, r):
-    glass = sphere(loc=at, scale=r, mat=toon("#cfefff", alpha=0.24, rim=0.65), seg=32, rings=16)
-    glint = sphere(loc=(at[0] - r * 0.42, at[1] - r * 0.62, at[2] + r * 0.5), scale=(r * 0.2, r * 0.07, r * 0.13), rot=(40, 0, -30), mat=toon("#ffffff", flat_glow=True))
+    glass = sphere(loc=at, scale=r, mat=toon("#cfefff", alpha=0.17, rim=0.65), seg=32, rings=16)
+    glint = sphere(loc=(at[0] - r * 0.64, at[1] - r * 0.5, at[2] + r * 0.54), scale=(r * 0.1, r * 0.05, r * 0.17), rot=(40, 0, 32), mat=toon("#ffffff", flat_glow=True))
     return _bare(glass, glint)
 
 
@@ -455,66 +476,68 @@ def _astro_cat():
 def _satellite():
     def foil(co, n):
         k = math.sin(co.x * 41.0 + co.z * 37.0) * math.sin(co.y * 43.0 - co.z * 31.0)
-        return mix(hexc("#e7b846"), hexc("#b98a22"), 0.5 + 0.5 * k)
-    body = cube(loc=(0, 0, 0.56), scale=(0.62, 0.62, 0.62), bevel=0.03)
+        return mix(hexc("#ffd257"), hexc("#d29c2a"), 0.5 + 0.5 * k)
+    body = cube(loc=(0, 0, 0.56), scale=(0.66, 0.66, 0.66), bevel=0.03)
     _dice(body, 6)
     _paint(body, foil, "foil", spec=0.3)
     parts = [body]
 
     def cells(co, n):
-        line = int((co.x + 2.0) * 32.0) % 8 == 0 or int((co.y + 2.0) * 32.0) % 5 == 0
-        return hexc("#8fb4f0") if line else hexc("#2a4fa8")
+        line = int((co.x + 2.0) * 16.0) % 4 == 0 or int((co.y + 2.0) * 16.0) % 4 == 0
+        return hexc("#9cc4ff") if line else hexc("#2f5cc4")
     for s in (1, -1):
-        arm = tube([(s * 0.3, 0, 0.56), (s * 0.5, 0, 0.56)], 0.03, mat=toon("#9aa6b0"), res=2)
-        panel = cube(loc=(s * 0.98, 0, 0.56), scale=(0.92, 0.5, 0.03))
+        arm = tube([(s * 0.3, 0, 0.56), (s * 0.46, 0, 0.56)], 0.035, mat=toon("#9aa6b0"), res=2)
+        panel = cube(loc=(s * 0.82, 0, 0.56), scale=(0.72, 0.84, 0.04))
         _dice(panel, 15)
         K.vcolor(panel, cells, per_face=True)
-        panel.data.materials.append(toon(None, vcol="col", spec=0.25, key=("find", "panel")))
+        panel.data.materials.append(toon(None, vcol="col", spec=0.25, emit=0.25, key=("find", "panel")))
         parts += [arm, _thin(panel, 0.7)]
-    for a, b in (((-1.2, -0.16, 0.6), (-0.82, 0.18, 0.6)), ((-1.2, 0.18, 0.6), (-0.82, -0.16, 0.6))):     # it was mended, once, by someone
-        parts += _bare(tube([a, b], 0.04, mat=toon("#c4c4bc"), res=2))
+    for a, b in (((-1.02, -0.2, 0.61), (-0.66, 0.2, 0.61)), ((-1.02, 0.2, 0.61), (-0.66, -0.2, 0.61))):     # it was mended, once, by someone
+        parts += _bare(tube([a, b], 0.045, mat=toon("#e4e4dc", shade=1.0), res=2))
     dish = sphere(loc=(0, -0.08, 1.14), scale=(0.34, 0.34, 0.15), rot=(-30, 0, 0), mat=toon("#f2f4f6"))
     prong = tube([(0, -0.2, 1.2), (0, -0.28, 1.42)], 0.016, mat=toon("#9aa6b0"), res=2)
     tip = sphere(loc=(0, -0.28, 1.44), scale=0.045, mat=toon("#ff3b30", flat_glow=True))
     parts += [dish, _thin(prong, 0.5)] + _bare(tip)
-    return _turn(parts, (-16, 18, 12), (0, 0, 0.6))
+    return _turn(parts, (-10, 12, 14), (0, 0, 0.6))
 
 
 def _space_duck():
     import vf_life as LF
     parts = LF._build_duck()
-    pack = cube(loc=(-0.34, 0.26, 0.56), scale=(0.3, 0.26, 0.46), rot=(0, -14, 0), mat=toon("#9aa6b0"), bevel=0.03)
-    nozzle = cone(loc=(-0.4, 0.26, 0.26), r1=0.13, r2=0.07, depth=0.14, verts=12, mat=toon("#5a6470"))
+    pack = cube(loc=(-0.24, 0.0, 0.8), scale=(0.46, 0.34, 0.24), mat=toon("#9aa6b0"), bevel=0.03)
+    nozzle = cone(loc=(-0.54, 0.0, 0.8), r1=0.13, r2=0.07, depth=0.16, rot=(0, 90, 0), verts=12, mat=toon("#5a6470"))
     parts += [pack, nozzle]
-    for dz, r, col in ((0.0, 0.11, "#ffb21f"), (0.02, 0.06, "#fff2a0")):
-        parts += _bare(cone(loc=(-0.42, 0.26, 0.04 + dz), r1=r, r2=0.0, depth=0.34 - dz * 8, rot=(180, 0, 0), verts=10, mat=toon(col, flat_glow=True)))
+    for r, ln, col in ((0.11, 0.5, "#ffb21f"), (0.06, 0.3, "#fff2a0")):      # (it did not need to go this fast)
+        parts += _bare(cone(loc=(-0.62 - ln * 0.5, 0.0, 0.8), r1=r, r2=0.0, depth=ln, rot=(0, -90, 0), verts=10, mat=toon(col, flat_glow=True)))
     parts += _helmet((0.38, 0.0, 0.76), 0.47)
     parts.append(torus(loc=(0.38, 0.0, 0.42), R=0.27, r=0.05, mat=toon("#9aa6b0")))
-    return _turn(parts, (-12, 0, -24), (0, 0, 0.4))
+    return _turn(parts, (-10, 0, -18), (0, 0, 0.4))
 
 
 # ------------------------------------------------------------------- Alien
 def _ufo():
-    z = 1.32
-    hull = sphere(loc=(0, 0, z), scale=(1.02, 1.02, 0.21), seg=48, rings=16)
+    z = 1.86
+    hull = sphere(loc=(0, 0, z), scale=(0.88, 0.88, 0.19), seg=48, rings=16)
     _paint(hull, lambda co, n: mix(hexc("#7f8d9a"), hexc("#d5dee4"), _s(co.z + 0.5)), "saucer", spec=0.2)
-    band = torus(loc=(0, 0, z), R=0.98, r=0.05, mat=toon("#5a6470"), seg=48, mseg=8)
+    band = torus(loc=(0, 0, z), R=0.84, r=0.045, mat=toon("#5a6470"), seg=48, mseg=8)
     parts = [hull, band]
     for i in range(10):                                     # lights, all of them the wrong colour
         a = i / 10 * math.tau
-        parts += _bare(sphere(loc=(math.cos(a) * 0.92, math.sin(a) * 0.92, z + 0.03), scale=0.07, mat=toon("#ffe066" if i % 2 else "#b8ff6a", flat_glow=True), seg=10, rings=6))
-    pilot = sphere(loc=(0, 0, z + 0.3), scale=(0.15, 0.14, 0.17), mat=toon("#8fe36a"))
+        parts += _bare(sphere(loc=(math.cos(a) * 0.79, math.sin(a) * 0.79, z + 0.03), scale=0.065, mat=toon("#ffe066" if i % 2 else "#b8ff6a", flat_glow=True), seg=10, rings=6))
+    pilot = sphere(loc=(0, 0, z + 0.27), scale=(0.14, 0.13, 0.16), mat=toon("#8fe36a"))
     parts.append(pilot)
     for s in (1, -1):
-        parts += _bare(sphere(loc=(s * 0.07, -0.12, z + 0.33), scale=(0.05, 0.03, 0.065), rot=(0, s * -20, 0), mat=toon("#141018", shade=1.0, rim=0.0), seg=10, rings=6))
-    parts += _helmet((0, 0, z + 0.22), 0.36)
-    beam = cone(loc=(0, 0, z * 0.5 - 0.06), r1=0.62, r2=0.26, depth=z - 0.12, verts=32, mat=toon("#c6ff8a", flat_glow=True, alpha=0.32))
-    parts += _bare(beam)
-    # today's fish, going up, against its will
-    fish = _small_fish((0.04, -0.1, 0.66), 0.27, col="#6fb6ff", fin="#3a7fd0")
-    eyes = _goggle((0.17, -0.27, 0.74), 0.07, look=(0.1, -0.5, 0.86), pupil=0.32)
-    drip = _bare(sphere(loc=(0.24, -0.1, 0.46), scale=(0.025, 0.025, 0.05), mat=toon("#cfefff", flat_glow=True)), sphere(loc=(-0.12, -0.1, 0.38), scale=(0.02, 0.02, 0.04), mat=toon("#cfefff", flat_glow=True)))
-    parts += _turn(fish + eyes, (0, -32, 0), (0.04, -0.1, 0.66)) + drip
+        parts += _bare(sphere(loc=(s * 0.065, -0.11, z + 0.3), scale=(0.048, 0.03, 0.06), rot=(0, s * -20, 0), mat=toon("#141018", shade=1.0, rim=0.0), seg=10, rings=6))
+    parts += _helmet((0, 0, z + 0.2), 0.33)
+    beam_m = toon("#c6ff8a", flat_glow=True, alpha=0.22)
+    beam_m.use_backface_culling = True
+    parts += _bare(cone(loc=(0, 0, z * 0.5 - 0.06), r1=0.66, r2=0.3, depth=z - 0.12, verts=32, mat=beam_m))
+    # today's fish, going up, tail first, against its will
+    fish = _small_fish((0.02, -0.6, 0.78), 0.32, col="#ff9a2e", fin="#e0641c")
+    eyes = _goggle((0.17, -0.8, 0.76), 0.1, look=(0.1, -0.6, 0.8), pupil=0.32)
+    parts += _turn(fish + eyes, (0, 34, 0), (0.02, -0.6, 0.78))
+    for x, zz, r in ((0.34, 0.44, 0.03), (-0.2, 0.36, 0.025), (0.08, 0.2, 0.02)):        # and what it was swimming in
+        parts += _bare(sphere(loc=(x, -0.62, zz), scale=(r, r, r * 1.8), mat=toon("#e6f7ff", flat_glow=True), seg=10, rings=6))
     return parts
 
 
@@ -551,14 +574,15 @@ def _glow_shroom():
         def dots(co, n, col=col, spot=spot):
             c = hexc(col)
             h2 = math.sin(co.x * 8.0 + 1.0) * math.sin(co.y * 8.5 + 2.0)
-            return hexc(spot) if h2 > 0.55 and co.z > 0.1 else mix(c, hexc("#ffffff"), 0.18 * max(co.z, 0.0))
+            return hexc(spot) if h2 > 0.55 and co.z > 0.25 else mix(c, hexc("#ffffff"), 0.18 * max(co.z, 0.0))
         _paint(cap, dots, ("shroom", col), emit=0.72)
         parts += [stem, cap]
-        parts += _bare(sphere(loc=(x, y, h + r * 0.1), scale=(r * 1.32, r * 1.32, r * 0.92), mat=toon(col, flat_glow=True, alpha=0.14), seg=24, rings=12))
+        parts += _bare(sphere(loc=(x, y, h + r * 0.1), scale=(r * 1.32, r * 1.32, r * 0.92), mat=toon(col, flat_glow=True, alpha=0.1), seg=24, rings=12))
     # the big one is asleep. Please be quiet
+    dark = "#0d4a50"
     for s in (1, -1):
-        parts += _happy((-0.14 + s * 0.13, -0.42, 0.94), 0.05, along=(1, 0, 0), col="#10363a")
-    parts += _bare(sphere(loc=(-0.14, -0.46, 0.82), scale=(0.035, 0.015, 0.03), mat=toon("#10363a", shade=1.0, rim=0.0), seg=10, rings=6))
+        parts += _bare(tube([(-0.14 + s * 0.27, -0.42, 0.98), (-0.14 + s * 0.18, -0.46, 0.93), (-0.14 + s * 0.09, -0.44, 0.98)], 0.02, mat=toon(dark, shade=1.0, rim=0.0), res=6))
+    parts += _bare(sphere(loc=(-0.14, -0.47, 0.86), scale=(0.05, 0.015, 0.035), mat=toon(dark, shade=1.0, rim=0.0), seg=10, rings=6))
     return parts
 
 
@@ -615,32 +639,28 @@ def _tiny_sub():
 
 
 def _sunken_tv():
-    wood = toon("#70482a")
-    box = cube(loc=(0, 0, 0.6), scale=(1.42, 1.04, 1.1), mat=wood, bevel=0.08)
-    frame = cube(loc=(-0.14, -0.53, 0.62), scale=(1.0, 0.04, 0.82), mat=toon("#2b2622"), bevel=0.015)
+    wood = toon("#7c5230")
+    box = cube(loc=(0, 0, 0.6), scale=(1.5, 1.04, 1.14), mat=wood, bevel=0.08)
+    frame = cube(loc=(-0.14, -0.53, 0.62), scale=(1.08, 0.04, 0.88), mat=toon("#2b2622"), bevel=0.015)
     parts = [box, frame]
     # the picture: colour bars, which is all that is on at this depth
     bars = ["#f4f4f4", "#ffd83a", "#3fd8d8", "#4fd65a", "#e84ad8", "#e8433f", "#3a5ae8"]
     for i, c in enumerate(bars):
-        parts += _bare(cube(loc=(-0.14 - 0.4 + i * 0.8 / 6, -0.555, 0.68), scale=(0.8 / 6 + 0.002, 0.008, 0.48), mat=toon(c, flat_glow=True)))
-    parts += _bare(cube(loc=(-0.14, -0.555, 0.34), scale=(0.8, 0.008, 0.18), mat=toon("#20242c", flat_glow=True)))
-    glow = sphere(loc=(-0.14, -0.62, 0.62), scale=(0.72, 0.18, 0.62), mat=toon("#cfe8ff", flat_glow=True, alpha=0.16), seg=20, rings=10)
-    parts += _bare(glow)
-    for z in (0.86, 0.6):                                   # the knobs
-        k = cyl(loc=(0.54, -0.54, z), r=0.08, depth=0.06, rot=(90, 0, 0), verts=12, mat=toon("#c9b48a"))
+        parts += _bare(cube(loc=(-0.14 - 0.44 + i * 0.88 / 6, -0.555, 0.7), scale=(0.88 / 6 + 0.002, 0.008, 0.52), mat=toon(c, flat_glow=True)))
+    parts += _bare(cube(loc=(-0.14, -0.555, 0.34), scale=(0.88 + 0.147, 0.008, 0.2), mat=toon("#20242c", flat_glow=True)))
+    for z in (0.9, 0.62):                                   # the knobs
+        k = cyl(loc=(0.58, -0.54, z), r=0.085, depth=0.06, rot=(90, 0, 0), verts=12, mat=toon("#d6c090"))
         parts.append(_thin(k, 0.6))
     for s, lean in ((-1, -0.42), (1, 0.48)):
-        parts.append(_thin(tube([(s * 0.06, 0, 1.14), (lean * 0.6, 0.02, 1.52), (lean, 0.04, 1.84)], 0.014, mat=toon("#a9b2b8"), res=3), 0.5))
-        parts.append(sphere(loc=(lean, 0.04, 1.86), scale=0.035, mat=toon("#a9b2b8"), seg=10, rings=6))
-    parts.append(cyl(loc=(0, 0, 1.17), r=0.13, depth=0.06, verts=16, mat=toon("#2b2622")))
-    for x, w in ((-0.62, 0.0), (0.68, 0.14)):              # weed, from the time it spent on the bottom
-        parts.append(_thin(tube([(x, -0.5, 0.12), (x - 0.04 + w, -0.54, 0.44), (x + 0.03 + w, -0.54, 0.72)], 0.03, mat=toon("#3fa86a"), taper=(1.0, 0.25)), 0.5))
-    _turn(parts, (-20, 9, 0), (0, 0, 0.2))
-    # and somebody is still watching
-    fish = _small_fish((-0.34, -0.98, 0.1), 0.2, col="#ff9a2e", fin="#e0641c")
-    parts += _turn(fish, (0, 0, 72), (-0.34, -0.98, 0.1))
-    parts += _bare(sphere(loc=(-0.3, -0.84, 0.21), scale=0.05, mat=toon("#141018", shade=1.0, rim=0.0), seg=10, rings=6))
-    return parts
+        parts.append(_thin(tube([(s * 0.06, 0, 1.14), (lean * 0.6, 0.02, 1.52), (lean, 0.04, 1.84)], 0.016, mat=toon("#a9b2b8"), res=3), 0.5))
+        parts.append(sphere(loc=(lean, 0.04, 1.86), scale=0.04, mat=toon("#a9b2b8"), seg=10, rings=6))
+    parts.append(cyl(loc=(0, 0, 1.2), r=0.14, depth=0.06, verts=16, mat=toon("#2b2622")))
+    for x, w in ((-0.7, 0.0), (0.72, 0.14)):               # weed, from the time it spent on the bottom
+        parts.append(_thin(tube([(x, -0.54, 0.12), (x - 0.04 + w, -0.58, 0.46), (x + 0.03 + w, -0.58, 0.76)], 0.035, mat=toon("#3fa86a"), taper=(1.0, 0.25)), 0.5))
+    for a in range(5):                                      # a starfish moved in
+        th = a / 5 * math.tau + 0.3
+        parts.append(_thin(sphere(loc=(0.56 + math.cos(th) * 0.075, -0.56, 0.2 + math.sin(th) * 0.075), scale=(0.08, 0.02, 0.03), rot=(0, -math.degrees(th), 0), mat=toon("#ff8a4a")), 0.4))
+    return _turn(parts, (-26, 10, 6), (0, 0, 0.0))
 
 
 BUILD = {"otter": _otter, "frog": _frog, "old_boot": _old_boot,
