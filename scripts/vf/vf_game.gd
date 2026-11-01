@@ -408,6 +408,7 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_quest_add("trips", 1)
 	_week_trip()
 	_v1_on_catch(res, caught)                  # 1.0: active play, event stars / fish / boss, shiny tickets
+	_gerald_cast()
 	trip_done.emit(res)
 	check_goals()
 	changed.emit()
@@ -436,6 +437,14 @@ func cast_reel(won: bool, cast_start_ms: int = -1) -> Dictionary:
 
 ## A little find on the water (vf_fun.gd) pays about what this many casts would bring in around here
 func pay_find(casts: float) -> int:
+	var pay := find_value(casts)
+	money += pay
+	stats.money_earned += pay
+	changed.emit()
+	return pay
+
+## what pay_find would pay now
+func find_value(casts: float) -> int:
 	var odds: Array = species_odds()
 	var names: Array = VFData.BIOMES[biome].fish
 	var each := 0.0
@@ -443,11 +452,7 @@ func pay_find(casts: float) -> int:
 		each += float(odds[k]) * fish_price(names[k])
 	var r: Dictionary = VFData.RODS[rod]
 	var n := (float(r.min) + float(r.max)) * 0.5 * fish_catch_mult() + boats_owned
-	var pay := maxi(1, int(round(each * n * sell_mult() * casts)))
-	money += pay
-	stats.money_earned += pay
-	changed.emit()
-	return pay
+	return maxi(1, int(round(each * n * sell_mult() * casts)))
 
 func set_catch_mode(m: String) -> void:
 	if m in VFData.CATCH_MODES and m != catch_mode:
@@ -937,6 +942,8 @@ func to_dict() -> Dictionary:
 		"ducks": ducks,
 		"v1": _v1_dict(),
 		"idle": _idle_dict(),
+		"gerald": gerald,
+		"hats_owned": hats_owned,
 	}
 
 var autosave := true
@@ -987,6 +994,7 @@ func _apply(d: Dictionary) -> void:
 	_tok_apply(d.get("tok", {}))           # FishTok (absent in old saves -> defaults)
 	_v1_apply(d.get("v1", {}))             # 1.0: pearls, packs, events, shinies, ads (absent before 1.0)
 	_idle_apply(d.get("idle", {}))         # idle: auto-fish, the fleet, the calendar & spin (absent before)
+	_gerald_apply(d.get("gerald", {}), d.get("hats_owned", []))
 	offline_check()                        # what the crews caught since this save was written
 
 func _ints(src: Dictionary) -> Dictionary:
@@ -2054,3 +2062,90 @@ func _idle_apply(d: Dictionary) -> void:
 	spin_day = String(d.get("spin_day", ""))
 	spins = maxi(0, int(d.get("spins", 0)))
 	_crew_accum = 0.0
+
+
+# ======================================================================
+# ---- Gerald
+# A rival to chase. Data in vf_data.gd (GERALD). vf_main._do_cast asks gerald_due(); vf_minigame.gd plays the round
+# (setup_rival) and vf_fun.rival_result() calls gerald_result(). All of it survives prestige.
+
+# stage: the row of VFData.GERALD he's on (its size: all over). tries: he's beaten you this many times on it. casts: since you last met.
+var gerald := {"stage": 0, "casts": 0, "tries": 0, "wins": 0, "losses": 0}
+var hats_owned: Array = ["straw"]         # hats you can wear (Gerald and Geraldine give theirs; the rest: VFData.HATS)
+
+## how many casts until he bites: 0 = he's due. -1 = he isn't here (another biome, too low a level, all over, still in the tutorial)
+func _gerald_wait() -> int:
+	var i := int(gerald.stage)
+	if i >= VFData.GERALD.size() or tutorial < 99: return -1
+	var s: Dictionary = VFData.GERALD[i]
+	if biome != s.biome or level < int(s.level): return -1
+	return maxi(0, VFData.gerald_need(i, int(gerald.tries)) - int(gerald.casts))
+
+func gerald_due() -> bool:
+	return _gerald_wait() == 0
+
+## due within about VFData.GERALD_TEASE casts: the stage teases him
+func gerald_soon() -> bool:
+	var w := _gerald_wait()
+	return w >= 0 and w <= VFData.GERALD_TEASE
+
+## every cast in his biome brings him closer
+func _gerald_cast() -> void:
+	var i := int(gerald.stage)
+	if i < VFData.GERALD.size() and biome == VFData.GERALD[i].biome:
+		gerald.casts = int(gerald.casts) + 1
+
+## The round against him is decided (instead of cast_reel: he isn't a catch). stage: the row it was played on.
+func gerald_result(won: bool) -> Dictionary:
+	var i := int(gerald.stage)
+	var out := {"caught": false, "escaped": false, "pay": 0, "line": "", "stage": i, "who": ""}
+	if i >= VFData.GERALD.size(): return out
+	var s: Dictionary = VFData.GERALD[i]
+	var said: Dictionary = VFData.GERALD_LINES[s.who]
+	out.who = s.who
+	gerald.casts = 0
+	_last_active = Time.get_unix_time_from_system()
+	_cd_override = -1.0
+	if won:
+		gerald.wins = int(gerald.wins) + 1
+		gerald.tries = 0
+		gerald.stage = i + 1
+		out.pay = pay_find(float(s.bounty))
+		if s.get("final", false):
+			out.caught = true
+			out.line = said.caught
+			var hat_id: String = VFData.GERALD_HATS[s.who]
+			if not hat_id in hats_owned: hats_owned.append(hat_id)
+		else:
+			out.escaped = true
+			out.line = String(said.escaped[rng.randi() % said.escaped.size()]) % VFData.GERALD_PLACES[VFData.GERALD[i + 1].biome]
+		_last_cast_ms = Time.get_ticks_msec()
+		_cd_override = VFData.MINIGAME_COOLDOWN
+	else:
+		gerald.losses = int(gerald.losses) + 1
+		gerald.tries = int(gerald.tries) + 1
+		out.pay = pay_find(VFData.GERALD_TIP)
+		out.line = said.lose[rng.randi() % said.lose.size()]
+	changed.emit()
+	save_game()
+	return out
+
+## For the WANTED pill and board: the stage he's on, or any row i. bounty: about what it pays you today. done: that row is
+## behind you (with no i: all of it is). met: you've played him at least once.
+func gerald_info(i := -1) -> Dictionary:
+	var at := int(gerald.stage)
+	var row := clampi(at if i < 0 else i, 0, VFData.GERALD.size() - 1)
+	var s: Dictionary = VFData.GERALD[row]
+	return {"who": s.who, "biome": s.biome, "level": int(s.level), "bounty": find_value(float(s.bounty)),
+		"met": int(gerald.wins) + int(gerald.losses) > 0, "done": at > row}
+
+func _gerald_apply(d, hats) -> void:
+	gerald = {"stage": 0, "casts": 0, "tries": 0, "wins": 0, "losses": 0}
+	if typeof(d) == TYPE_DICTIONARY:
+		gerald.stage = clampi(int(d.get("stage", 0)), 0, VFData.GERALD.size())
+		for k in ["casts", "tries", "wins", "losses"]:
+			gerald[k] = maxi(0, int(d.get(k, 0)))
+	hats_owned = ["straw"]
+	if typeof(hats) == TYPE_ARRAY:
+		for h in hats:
+			if not String(h) in hats_owned: hats_owned.append(String(h))
