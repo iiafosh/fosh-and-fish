@@ -180,6 +180,7 @@ func _launcher_closing() -> void:
 	_card_intro()
 	idle.on_shown()                            # what the crews caught while you were away
 	_coach_show()
+	_on_update_status()                        # (the update pill waits for the game)
 
 ## A few seconds after you last reached for it, the interface around the edges fades back so you can look at the water.
 ## Tapping the water to fish doesn't count as reaching for it.
@@ -2099,10 +2100,25 @@ func _check_capture() -> void:
 		get_tree().quit()
 		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:
-		# the title screen: as it opens, signing in over it, after Play
+		# the title screen: as it opens, its update states, signing in over it, after Play
+		# (--launcher-hold=SECONDS: a longer look first, for recording the movement)
+		var hold := 3.0
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--launcher-hold="): hold = float(a.substr(16))
+		await _shot(dir + "/launcher_opening.png")
 		Updater.check()
-		await _wait(3.0)
+		await _wait(hold)
 		await _shot(dir + "/launcher.png")
+		print("LAUNCHER logo=%s panel=%s size=%s" % [launcher.logo.get_rect(), launcher._panel_w(), launcher.size])
+		Updater.latest = {"version": "1.0"}
+		for st in ["available", "downloading", "ready", "error"]:
+			Updater.state = st
+			Updater.progress = 0.4
+			Updater.status_changed.emit()
+			await _wait(0.3)
+			await _shot(dir + "/launcher_update_%s.png" % st)
+		Updater.state = "idle"
+		Updater.status_changed.emit()
 		launcher._open_form("sign_in")
 		await _wait(0.6)
 		await _shot(dir + "/launcher_signin.png")
@@ -3106,7 +3122,7 @@ func _reel() -> void:
 # ================================================================ updates
 func _on_update_status() -> void:
 	var st: String = Updater.state
-	update_pill.visible = st in ["available", "full_needed", "downloading", "ready"]
+	update_pill.visible = st in ["available", "full_needed", "downloading", "ready"] and not launcher_open()   # (the title screen says it itself)
 	match st:
 		"downloading": update_pill.text = "Updating %d%%" % int(Updater.progress * 100.0)
 		"ready": update_pill.text = "Restart to update"
