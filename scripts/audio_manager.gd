@@ -94,7 +94,7 @@ func _ready() -> void:
 			var s = load(SFX + n + ".ogg")
 			if s: sounds[k].append(s)
 	# the cartoon sounds (tools/video/make_sfx.py)
-	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip"]:
+	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip", "laugh", "sting", "fanfare", "find_new", "ach", "hat_on"]:
 		var s = load("res://assets/audio/fun/%s.ogg" % n)
 		if s: sounds["fun_" + n] = [s]
 	for i in 2:
@@ -150,7 +150,8 @@ func save_settings() -> void:
 func apply_settings() -> void:
 	_set_bus("Music", music_on, music_volume)
 	_set_bus("SFX", sfx_on, sfx_volume)
-	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
+	# (a capture keeps the window its command line asked for, whatever the player's own setting says)
+	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"] and not Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--capture=")):
 		var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 		if DisplayServer.window_get_mode() != want and not (want == DisplayServer.WINDOW_MODE_WINDOWED and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MAXIMIZED):
 			DisplayServer.window_set_mode(want)
