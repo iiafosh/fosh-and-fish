@@ -902,6 +902,10 @@ func _build_card() -> void:
 
 func _show_card() -> void:
 	if radio.listening: return
+	if compact() and _banner_busy:             # phones: no room for both, the news goes first (_next_banner brings this back)
+		_card_waits = true
+		card.visible = false
+		return
 	var popping := not card.visible or card.modulate.a < 0.35
 	card.modulate.a = 1.0
 	card.visible = true
@@ -1353,7 +1357,7 @@ func _show_catch(res: Dictionary) -> void:
 		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(val)
 		card_body.add_child(row)
-	card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
+	if res.xp > 0: card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
 	if res.get("reel", "") == "win":
 		card_body.add_child(lbl("Reeled it in!  +%d%% fish" % int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), 14, C_TEAL))
 	elif res.get("reel", "") == "lose":
@@ -1918,8 +1922,9 @@ func _panel_prestige() -> void:
 			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. From your second prestige on, you also need every charm maxed.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)
-			var b := _act("PRESTIGE", Color("#1d4ed8"), func(): return VF.do_prestige(), c.ok)
+			var b := _act("PRESTIGE", C_GOLD, func(): return VF.do_prestige(), c.ok)
 			b.custom_minimum_size = Vector2(220, 52)
+			b.add_theme_font_size_override("font_size", 20)
 			panel_body.add_child(b)
 		"Shop":
 			var tip: Dictionary = VFData.prestige_guide(VF.prestige)
@@ -1930,7 +1935,7 @@ func _panel_prestige() -> void:
 				var d: Dictionary = VFData.PRESTIGE_PERKS[id]
 				var locked: bool = VF.prestige < d.unlock
 				var right: Control = lbl("Prestige %d" % d.unlock, 14, C_MUTED) if locked else \
-					_act("1 Azure", Color("#1d4ed8"), func(): return VF.buy_perk(id), VF.exotics.azure >= 1 and VF.pk(id) < VF.perk_cap())
+					_act("1 Azure", C_TEAL, func(): return VF.buy_perk(id), VF.exotics.azure >= 1 and VF.pk(id) < VF.perk_cap())
 				_add_to(g, _card(icon_for("exotic", "azure"), "%s [%s]  %d/%d" % [d.name, d.short, VF.pk(id), VF.perk_cap()], d.desc, right, locked, 48))
 		"Guide":
 			var intro := lbl("Community Prestige Shop buy order (IT International Ties, FW Fish Whisperer, AO Ancient One, BE Business Education, VF Virtual Fisher). \"Max\" only if you want to reach P160 level 25k.", 13, C_MUTED)
@@ -1946,7 +1951,7 @@ func _panel_prestige() -> void:
 				var gd: Dictionary = VFData.prestige_guide(r[1])
 				var hl: bool = r[1] == VF.prestige
 				var p := PanelContainer.new()
-				p.add_theme_stylebox_override("panel", sbox(Color("#1d4ed8") if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
+				p.add_theme_stylebox_override("panel", sbox(C_GOLD.lerp(C_PANEL2, 0.6) if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
 				p.add_child(lbl("P%s: %s%s" % [r[0], gd.main, (" / Max: " + gd.max) if gd.max != "" else ""], 13))
 				_add_to(g, p)
 			panel_body.add_child(lbl("Other prestiges in each range ending in 2,3,4,7,8,9 (or 3,4,8,9): SKIP and save Azure Fish.", 13, C_MUTED))
@@ -2791,6 +2796,7 @@ func _panel_settings() -> void:
 # ============================================================== onboarding
 var _banner_queue: Array = []
 var _banner_busy := false
+var _card_waits := false                     # a card is waiting for the banners to finish (phones)
 
 func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
 	_banner_queue.append([title, sub, tex, color])
@@ -2799,8 +2805,14 @@ func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
 func _next_banner() -> void:
 	if _banner_queue.is_empty():
 		_banner_busy = false
+		if _card_waits:
+			_card_waits = false
+			_show_card()
 		return
 	_banner_busy = true
+	if compact() and card.visible and card.modulate.a > 0.35:
+		_card_waits = true                     # (phones: no room for both. The card comes back after the news)
+		card.visible = false
 	var b: Array = _banner_queue.pop_front()
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.97), 18, 3, b[3], 14, 10))
@@ -2823,7 +2835,8 @@ func _next_banner() -> void:
 	p.position = Vector2((vw - p.size.x) * 0.5, -p.size.y - 10)
 	AudioManager.play_success()
 	var tw := p.create_tween()
-	tw.tween_property(p, "position:y", 112.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var below_goal: float = goal_box.get_global_rect().end.y + 8.0 if compact() else 0.0    # (phones: it's wide enough to be in the way)
+	tw.tween_property(p, "position:y", maxf(112.0, below_goal), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(2.2)
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)
