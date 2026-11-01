@@ -303,6 +303,7 @@ func _ready() -> void:
 	_say(line)
 	AudioManager.play_strike()
 	if rival != "": AudioManager.play_fun("sting", -6.0)
+	VFHaptics.buzz("gerald" if rival != "" else "bite")
 	AudioManager.play_sfx("splash", -4.0, 1.15)
 
 func _layer(parent: Control, r: Rect2, cb: Callable) -> Control:
@@ -518,6 +519,7 @@ func _play(delta: float) -> void:
 		if _tick_t <= 0.0:
 			_tick_t = 0.15
 			AudioManager.play_sfx("bubble", -17.0, 0.8 + progress * 0.9)
+			VFHaptics.buzz("reel")
 	else:
 		progress -= drain_rate * delta
 		_out_time += delta
@@ -738,6 +740,7 @@ func _finish(w: bool) -> void:
 	if rival == "": streak = streak + 1 if w else 0
 	VF.reel_rounds += 1
 	resolved.emit(w)
+	VFHaptics.buzz("win" if w else "lose")
 	if rival != "":
 		_finish_rival(w)
 		return

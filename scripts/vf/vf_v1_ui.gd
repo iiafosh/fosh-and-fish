@@ -230,6 +230,7 @@ func _on_shiny_ticket(species: String) -> void:
 
 ## the big moment: a white flash, sparkles, and the numbered shiny
 func celebrate(species: String, serial: int, left: int) -> void:
+	VFHaptics.buzz("shiny")
 	AudioManager.play_bell()
 	AudioManager.play_levelup()
 	var flash := ColorRect.new()

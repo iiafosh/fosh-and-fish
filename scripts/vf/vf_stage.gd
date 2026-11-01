@@ -1344,7 +1344,8 @@ func show_catch(res: Dictionary) -> float:
 	if sp.tex != null:
 		_dart = {"sp": sp, "from": _bobber + Vector2.from_angle(randf() * TAU) * 170.0, "pos": _bobber, "t": 0.0}
 	_catch = {"t": 0.0, "fight": CATCH_BITE, "burst": CATCH_BITE + CATCH_FIGHT[lv], "lv": lv, "best": best, "extras": _school(fish, int(res.get("count", 1))),
-		"nibbled": false, "on": false, "boil": 0.0}
+		"nibbled": false, "on": false, "boil": 0.0,
+		"felt": not VF.auto_cast, "reeled": res.get("reel", "") != ""}   # the phone buzzes: never on auto-fish, and the mini-game had its own bite
 	return CATCH_BITE + CATCH_FIGHT[lv] + CATCH_FLIGHT[lv]
 
 ## 2: a new species, an event fish, a boss, a pet. 1: the biome's best fish or a chest, now and then (not every cast)
@@ -1395,6 +1396,7 @@ func _tick_catch(delta: float) -> void:
 			_spray(_bobber, 7, 0.55)
 			play_anim("struggle" if c.lv > 0 else "bite")
 			AudioManager.play_bite()
+			if c.felt and not c.reeled: VFHaptics.buzz("bite")
 		if c.on and c.lv > 0:                     # it fights: the water boils, the rod nods
 			_rod_pull = 1.0 + sin(_t * 19.0) * 0.16
 			c.boil -= delta
@@ -1414,6 +1416,7 @@ func _tick_catch(delta: float) -> void:
 			f.land = 0.0
 			AudioManager.play_flop()
 			if f.lv > 0: burst("sparkle", deck_point())
+			if f.get("felt", false): VFHaptics.buzz("rare" if f.lv > 0 else "tap")
 		elif f.land >= 0.0:
 			f.land += delta
 	_leapers = _leapers.filter(func(f): return f.land < 0.6)
@@ -1445,19 +1448,19 @@ func _burst() -> void:
 	AudioManager.play_burst(lv)
 	if lv > 0: _last_big_show = _t
 	if lv == 2: _shake = 1.0
-	_leap(c.best, at, lv, 0.0, true)
+	_leap(c.best, at, lv, 0.0, true, c.felt)
 	var i := 0
 	for f in c.extras:
 		i += 1
 		_leap(f, at, 0, 0.05 * i, false)
 	get_tree().create_timer(0.14).timeout.connect(reel_in)
 
-func _leap(fish_name: String, from: Vector2, lv: int, delay: float, main: bool) -> void:
+func _leap(fish_name: String, from: Vector2, lv: int, delay: float, main: bool, felt := false) -> void:
 	var t: Texture2D = _tex("fish/%s.png" % VFData.slug(fish_name))
 	if t == null: return
 	var u: float = float(_scene.get("unit_px", 56.0))
 	var dist := from.distance_to(deck_point())
-	_leapers.append({"tex": t, "name": fish_name, "from": from + Vector2(randf_range(-10, 10), randf_range(-4, 4)), "t": -delay, "land": -1.0, "lv": lv, "main": main,
+	_leapers.append({"tex": t, "name": fish_name, "from": from + Vector2(randf_range(-10, 10), randf_range(-4, 4)), "t": -delay, "land": -1.0, "lv": lv, "main": main, "felt": felt,
 		"ofs": Vector2(randf_range(-30, 30), randf_range(-8, 12)) if not main else Vector2.ZERO,
 		"dur": CATCH_FLIGHT[lv] if main else randf_range(0.5, 0.64),
 		"h": clampf(dist * [0.5, 0.62, 0.8][lv], [110.0, 150.0, 240.0][lv], [230.0, 300.0, 400.0][lv]) * (1.0 if main else randf_range(0.7, 1.0)),
