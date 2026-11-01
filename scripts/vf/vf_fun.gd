@@ -190,6 +190,7 @@ func tour() -> void:
 		for k in leg[0]: m.sail._key(k, false)
 	# the mini-game's gags
 	m._set_catch_mode("reel")
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS
 	for step in [["Cod", "disguise", "win"], ["Pufferfish", "puff", "win"], ["Raw Salmon", "selfie", "win"], ["Rainbow Fish", "shark", "lose"]]:
 		VF._last_cast_ms = -100000
 		m._do_cast()
