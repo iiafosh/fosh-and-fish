@@ -99,6 +99,21 @@ func _on_poked(kind: String, at: Vector2) -> void:
 			_pay(5.0, at)
 			m.stage.say("And stay out!", 2.4)
 
+## the round against Gerald or Geraldine is decided: pay up. At the end of their run: the hat, and after Gerald, his mum.
+func rival_result(mg, won: bool) -> void:
+	var r: Dictionary = VF.gerald_result(won)
+	mg.rival_result = r
+	if int(r.pay) > 0:
+		m.v1.coins_to_wallet(m.get_viewport_rect().size * 0.5, int(r.pay))
+		AudioManager.play_coin()
+	if r.caught: mg.tree_exited.connect(_rival_caught.bind(r), CONNECT_DEFERRED)
+
+func _rival_caught(r: Dictionary) -> void:
+	m._toast("New hat: the %s! (Shop - Hats)" % VFData.GERALD_HATS[r.who], "unlock")
+	if r.who == "Gerald":
+		AudioManager.play_fun("pop", -6.0)
+		note("You caught my son. - Geraldine")
+
 ## the note out of a bottle, on a scrap of paper for a few seconds
 func note(text: String) -> void:
 	if is_instance_valid(_note_box): _note_box.queue_free()
@@ -167,6 +182,123 @@ func capture_test(dir: String) -> void:
 	await m.get_tree().create_timer(0.6).timeout
 	await m._shot(dir + "/fun_honk.png")
 	print("FUN honk done, say='%s'" % s._say_text)
+
+## godot --path . --resolution 1280x720 -- --capture=DIR --gerald-test : the whole chase, from the first meeting to the end of
+## his mum's run: he beats you, you beat him and he gets away, every gag of theirs, caught, the note, the tiara. Never saves.
+func gerald_test(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	var wait := func(secs: float): await tree.create_timer(secs).timeout
+	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"                # (he bites in Relax mode too)
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS
+	VF.tutorial = 99
+	VF.sail_hint = true
+	VF.level = 10
+	VF.rod = "Improved Rod"
+	VF.owned_rods = ["Plastic Rod", "Improved Rod"]
+	VF.changed.emit()
+	m._coach_show()
+	await wait.call(1.2)
+	VF.gerald.casts = VFData.gerald_need(0, 0) - 10
+	print("GERALD soon=%s due=%s info=%s" % [VF.gerald_soon(), VF.gerald_due(), VF.gerald_info()])
+	VF.gerald.casts = VFData.gerald_need(0, 0)
+	print("GERALD soon=%s due=%s" % [VF.gerald_soon(), VF.gerald_due()])
+	var trips: int = VF.stats.trips
+	VF._last_cast_ms = -100000
+	m._do_cast(true)
+	await wait.call(1.2)
+	print("GERALD auto-fish cast: minigame=%s trips +%d" % [m.minigame != null, VF.stats.trips - trips])
+	VF.gerald.casts = VFData.gerald_need(0, 0)
+	await _rival_round(dir, "1_first_meeting", "lose")
+	VF.gerald.casts = VFData.gerald_need(0, 1)
+	await _rival_round(dir, "2_beat_him", "win")
+	print("GERALD after a win: %s money=%d" % [VF.gerald, VF.money])
+	# every gag of his
+	VF.gerald = {"stage": 1, "casts": 999, "tries": 0, "wins": 1, "losses": 1}
+	VF.level = 60
+	VF.biome = "Volcanic"
+	VF.rod = "Lava Rod"
+	VF.owned_rods.append("Lava Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_gags(dir)
+	# the end of his run: caught, the crown, the note from his mum
+	VF.gerald = {"stage": 3, "casts": 999, "tries": 0, "wins": 3, "losses": 1}
+	VF.level = 250
+	VF.biome = "Sky"
+	VF.rod = "Infinity Rod"
+	VF.owned_rods.append("Infinity Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_round(dir, "3_caught_gerald", "win")
+	await wait.call(0.8)
+	await m._shot(dir + "/gerald_3_note_from_mum.png")
+	print("GERALD caught: %s hats=%s note=%s" % [VF.gerald, VF.hats_owned, is_instance_valid(_note_box)])
+	await wait.call(5.0)
+	# his mum
+	VF.gerald = {"stage": 4, "casts": 999, "tries": 0, "wins": 4, "losses": 1}
+	VF.level = 500
+	VF.biome = "Space"
+	VF.rod = "Space Rod"
+	VF.owned_rods.append("Space Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_round(dir, "4_geraldine_laughs", "lose")
+	VF.gerald.casts = 999
+	await _rival_gags(dir)
+	VF.gerald = {"stage": 6, "casts": 999, "tries": 0, "wins": 6, "losses": 2}
+	VF.level = 2500
+	VF.biome = "Abyss"
+	VF.rod = "Dark Rod"
+	VF.owned_rods.append("Dark Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_round(dir, "5_caught_geraldine", "win")
+	print("GERALD all done: %s hats=%s info=%s due=%s" % [VF.gerald, VF.hats_owned, VF.gerald_info(), VF.gerald_due()])
+
+## one round against the rival, played by the capture's bot, with a picture of each part
+func _rival_round(dir: String, name: String, outcome: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._last_cast_ms = -100000
+	m._do_cast()
+	while m.minigame == null:
+		await tree.process_frame
+	var mg = m.minigame
+	mg.auto = outcome
+	await tree.create_timer(1.5).timeout
+	await m._shot(dir + "/gerald_%s_play.png" % name)
+	if outcome == "win": mg.progress = 0.97
+	else:
+		mg.progress = minf(mg.progress, 0.3)
+		mg.time_limit = mg.play_t + 0.6
+	while is_instance_valid(mg) and mg.phase != "end":
+		await tree.process_frame
+	await tree.create_timer(0.3).timeout
+	await m._shot(dir + "/gerald_%s_end.png" % name)
+	await tree.create_timer(1.4).timeout
+	if is_instance_valid(mg): await m._shot(dir + "/gerald_%s_poster.png" % name)
+	while m.minigame != null:
+		await tree.process_frame
+	print("GERALD round %s: %s -> %s" % [name, outcome, VF.gerald])
+
+## the rival right now pulling each of their own gags
+func _rival_gags(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._last_cast_ms = -100000
+	m._do_cast()
+	while m.minigame == null:
+		await tree.process_frame
+	var mg = m.minigame
+	mg.auto = "win"
+	await tree.create_timer(0.9).timeout
+	for g in mg.RIVAL_GAGS[mg.rival]:
+		mg.test_gag(mg.rival, g)
+		await tree.create_timer(0.7).timeout
+		await m._shot(dir + "/gerald_gag_%s_%s.png" % [mg.rival.to_lower(), g])
+		await tree.create_timer(float(mg.GAGS[g].len)).timeout
+	mg.progress = 0.97
+	while m.minigame != null:
+		await tree.process_frame
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --rebirth-test : the first rebirth from the goal on the HUD to Prestige 1
 func rebirth_test(dir: String) -> void:

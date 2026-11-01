@@ -1163,13 +1163,14 @@ func _do_cast(auto := false) -> void:
 	AudioManager.play_cast()
 	var cast_start := Time.get_ticks_msec()
 	VF._last_cast_ms = cast_start              # cooldown starts the moment you cast
-	var reel: bool = VF.catch_mode == "reel" and not auto
+	var rival: bool = not auto and VF.gerald_due() and not overlay.visible and not _phone_open()    # Gerald bites in either mode
+	var reel: bool = (VF.catch_mode == "reel" or rival) and not auto
 	if reel: _reel_wait_until = cast_start + 3000
 	stage.cast(func():
 		AudioManager.play_splash()
 		if reel:
 			_reel_wait_until = 0
-			_start_minigame(cast_start)
+			_start_minigame(cast_start, rival)
 			return
 		VF._last_cast_ms = -100000
 		VF.auto_cast = auto
@@ -1179,15 +1180,19 @@ func _do_cast(auto := false) -> void:
 
 ## "Reel it in!" mode: the fish bites -> mini-game (vf_minigame.gd) -> VF.cast_reel(won).
 ## With a panel or the phone open there's no mini-game, just the normal catch.
-func _start_minigame(cast_start: int) -> void:
+func _start_minigame(cast_start: int, rival := false) -> void:
 	if overlay.visible or _phone_open():
 		VF.cast_reel(false, cast_start)
 		return
 	var script: GDScript = load("res://scripts/vf/vf_minigame.gd")
-	var biter: Array = script.pick_biter()
 	var mg: Control = script.new()
-	mg.setup(self, biter[0], biter[1])
-	mg.resolved.connect(func(won: bool): VF.cast_reel(won, cast_start))
+	if rival:
+		mg.setup_rival(self)
+		mg.resolved.connect(func(won: bool): fun.rival_result(mg, won))
+	else:
+		var biter: Array = script.pick_biter()
+		mg.setup(self, biter[0], biter[1])
+		mg.resolved.connect(func(won: bool): VF.cast_reel(won, cast_start))
 	mg.tree_exited.connect(func():
 		if minigame == mg: minigame = null
 		if is_instance_valid(stage): stage.reel_in())   # the catch comes in once the card closes
@@ -2047,6 +2052,10 @@ func _check_capture() -> void:
 		VF.changed.emit()
 		_coach_show()
 		await fun.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--gerald-test" in OS.get_cmdline_user_args():
+		await fun.gerald_test(dir)
 		get_tree().quit()
 		return
 	if "--rebirth-test" in OS.get_cmdline_user_args():

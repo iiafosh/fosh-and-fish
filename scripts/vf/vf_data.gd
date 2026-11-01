@@ -729,3 +729,60 @@ const SPIN := [
 	{"name": "10 Pearls",  "pearls": 10,                     "w": 6,  "color": Color("#6366f1")},
 	{"name": "JACKPOT",    "pearls": 50, "chest": "legendary", "w": 2, "color": Color("#ef4444")},
 ]
+
+
+# ================================================================== Gerald
+## Gerald (not in the bot, all DERIVED) is a fish who has decided you're his rival. Each row is one meeting: in that biome,
+## at that level, he bites instead of a fish, in either catch mode, never on auto-fish. "bounty": what beating him pays, in
+## casts' worth (VF.pay_find). Beat him on a row that isn't "final" and he gets away to the next one; on a "final" row he's
+## caught and gives his hat (GERALD_HATS), and after Gerald his mum starts. Lose and he laughs, leaves a tip (GERALD_TIP),
+## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing.
+const GERALD := [
+	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0},
+	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0},
+	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0},
+	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true},
+	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0},
+	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0},
+	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true},
+]
+const GERALD_HATS := {"Gerald": "crown", "Geraldine": "tiara"}
+const GERALD_TIP := 2.0
+const GERALD_FIRST := 80          # casts in the River before the first meeting (level 10 too: within about 15 minutes)
+const GERALD_TEASE := 10          # this many casts before he's due, the stage teases him (VF.gerald_soon)
+const GERALD_BACK := 45           # after he beats you he's back after this many casts, GERALD_BACK_STEP fewer each time ...
+const GERALD_BACK_STEP := 10
+const GERALD_BACK_MIN := 20       # ... but never at once
+const RIVAL_EASE := 0.3           # every time he has beaten you he's this much closer to easy (1 = as easy as he gets)
+## what he says when the round is decided ("%s" = where he's off to next)
+const GERALD_LINES := {
+	"Gerald": {
+		"lose": ["Here's a shrimp for your trouble.", "Tell your friends you met Gerald.", "You reel like my mum drives.", "Buy yourself a better hook. My treat."],
+		"escaped": ["Snip! See you in the %s.", "Oops, was that your line? I'll be in the %s.", "Nice try. Next stop: the %s."],
+		"caught": "Fine. You got me. Tell my mum I was brave.",
+	},
+	"Geraldine": {
+		"lose": ["Sit down, dear. Here's bus fare.", "You caught my son with THAT?", "I've had tougher sandwiches."],
+		"escaped": ["Snip. I have bridge club in the %s, dear.", "Do keep up. I'll be in the %s.", "Mind your manners in the %s."],
+		"caught": "Well. Somebody raised you properly. Take the tiara.",
+	},
+}
+
+## casts between meetings: every 60 to 120 for each new stage (a different number each, no dice), sooner after he beat you
+static func gerald_need(stage: int, tries: int) -> int:
+	if tries > 0: return maxi(GERALD_BACK_MIN, GERALD_BACK - GERALD_BACK_STEP * (tries - 1))
+	return GERALD_FIRST if stage <= 0 else 60 + (stage * 23) % 61
+
+## The rival's round: the rarest fish's difficulty (a beginner's first rounds stay easy, see ROOKIE_ROUNDS), a bit easier for
+## every time he has beaten you. His mum is a bit harder. Measured with tools/reel_sim.gd.
+static func rival_params(who: String, power: float, desktop: bool, tries: int, rounds := ROOKIE_ROUNDS) -> Dictionary:
+	var p := minigame_params(4, power, desktop, rounds)
+	if who == "Geraldine":
+		p.zone_h -= 0.03
+		p.fish_speed *= 1.1
+	var e := clampf(float(tries) * RIVAL_EASE, 0.0, 1.0)
+	p.zone_h = lerpf(p.zone_h, 0.5, e)
+	p.fish_speed *= 1.0 - 0.45 * e
+	p.drain_rate = lerpf(p.drain_rate, 0.05, e)
+	p.time_limit += 6.0 * e
+	return p

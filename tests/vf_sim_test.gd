@@ -306,6 +306,7 @@ func _init() -> void:
 	_test_idle()
 	_test_rookie_rounds()
 	_test_first_rebirth()
+	_test_gerald()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -315,6 +316,7 @@ func _with_autoloads() -> void:
 	v.autosave = false                   # (the autoload holds the real save: it must never be written from here)
 	v._apply(v._defaults.duplicate(true))
 	_test_rookie_bots(v)
+	_test_rival_bots(v)
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
 
@@ -416,6 +418,140 @@ func _test_first_rebirth() -> void:
 	check(said.size() == 1, "... only once")
 	g.do_prestige()
 	check(g.goals_done == VFData.STARTER_GOALS.size(), "being reborn finishes that goal")
+
+
+## Gerald, then his mum: when they turn up, what winning and losing do, and that it all survives
+func _test_gerald() -> void:
+	print("== Gerald")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	g.tutorial = 99
+	check(VFData.GERALD.size() == 7 and VFData.GERALD[3].get("final", false) and VFData.GERALD[6].get("final", false)
+		and not VFData.GERALD[0].get("final", false) and VFData.GERALD[4].who == "Geraldine", "seven stages: Gerald's four, then his mum's three")
+	var info: Dictionary = g.gerald_info()
+	check(info.who == "Gerald" and info.biome == "River" and info.level == 10 and not info.met and not info.done and info.bounty > 0, "before anything happens: he's in the River, unmet")
+	check(not g.gerald_due() and not g.gerald_soon(), "level 1: not yet")
+	var first: int = VFData.gerald_need(0, 0)
+	check(first == 80, "the first meeting is about 80 casts in")
+	g.level = 10
+	g.gerald.casts = first - 11
+	check(not g.gerald_soon() and not g.gerald_due(), "level 10, %d casts: nothing yet" % g.gerald.casts)
+	g.gerald.casts = first - 10
+	check(g.gerald_soon() and not g.gerald_due(), "10 casts to go: the stage can tease him")
+	g.gerald.casts = first
+	check(g.gerald_due() and g.gerald_soon(), "level 10 and enough casts: he's due")
+	g.tutorial = 2
+	check(not g.gerald_due(), "he waits for the tutorial, like every toy")
+	g.tutorial = 99
+	g.level = 9
+	check(not g.gerald_due(), "not below his level")
+	g.level = 60
+	g.biome = "Volcanic"
+	check(not g.gerald_due() and not g.gerald_soon(), "not in another biome")
+	g.biome = "River"
+	g.gerald.casts = 0
+	g._last_cast_ms = -100000
+	g.cast()
+	check(g.gerald.casts == 1, "a cast in his biome counts")
+	for s in VFData.GERALD.size():
+		check(VFData.gerald_need(s, 0) >= 60 and VFData.gerald_need(s, 0) <= 120, "stage %d: every %d casts" % [s, VFData.gerald_need(s, 0)])
+	# losing costs nothing, and he comes back sooner
+	g.rod = "Plastic Rod"
+	g.level = 10
+	g.gerald.casts = first
+	var m0: int = g.money
+	var lost: Dictionary = g.gerald_result(false)
+	check(not lost.caught and not lost.escaped and lost.pay > 0 and g.money == m0 + lost.pay and lost.line != "" and lost.stage == 0, "he wins: he laughs and pays a little ($%d): %s" % [lost.pay, lost.line])
+	check(g.gerald.stage == 0 and g.gerald.tries == 1 and g.gerald.losses == 1 and g.gerald.casts == 0, "he stays where he is, and the casts start over")
+	check(is_equal_approx(g.cur_cooldown(), g.cooldown()), "a lost round: the normal cooldown")
+	var need1: int = VFData.gerald_need(0, 1)
+	var need2: int = VFData.gerald_need(0, 2)
+	check(need1 < first and need2 < need1 and VFData.gerald_need(0, 50) >= 20, "he comes back sooner each time (%d, %d casts), never at once" % [need1, need2])
+	# winning a stage: the bounty, and he gets away
+	g.gerald.casts = need1
+	check(g.gerald_due(), "he's back")
+	m0 = g.money
+	var won: Dictionary = g.gerald_result(true)
+	check(won.escaped and not won.caught and won.pay > lost.pay and g.money == m0 + won.pay and won.line != "" and won.stage == 0, "you win: the bounty ($%d), and he gets away: %s" % [won.pay, won.line])
+	check(g.gerald.stage == 1 and g.gerald.tries == 0 and g.gerald.wins == 1 and g.gerald.casts == 0 and g.gerald_info().biome == "Volcanic", "he moves on to the Volcano")
+	check(g.gerald_info().met and not g.gerald_due(), "you've met now, and he's not due in the River any more")
+	check(absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001, "a won round: the next cast is ready like after any win")
+	# the final stage: caught, the crown, and his mum
+	g.gerald.stage = 3
+	g.level = 250
+	g.biome = "Sky"
+	g.rod = "Infinity Rod"
+	g.gerald.casts = VFData.gerald_need(3, 0)
+	check(g.gerald_due(), "stage 4: the Sky at level 250")
+	check(not "crown" in g.hats_owned, "no crown yet")
+	var caught: Dictionary = g.gerald_result(true)
+	check(caught.caught and not caught.escaped and caught.pay > 0 and "crown" in g.hats_owned and not "tiara" in g.hats_owned, "caught at last: a big payout ($%d) and the crown: %s" % [caught.pay, caught.line])
+	check(g.gerald_info().who == "Geraldine" and g.gerald_info().biome == "Space" and not g.gerald_info().done, "then his mum starts")
+	g.gerald.stage = 6
+	g.level = 2500
+	g.biome = "Abyss"
+	g.rod = "Dark Rod"
+	g.gerald.casts = VFData.gerald_need(6, 0)
+	var mum: Dictionary = g.gerald_result(true)
+	check(mum.caught and "tiara" in g.hats_owned and g.gerald_info().done, "Geraldine gives the tiara, and that's the end of it")
+	check(not g.gerald_due() and not g.gerald_soon(), "all done: nobody's due")
+	var after: Dictionary = g.gerald_result(true)
+	check(after.pay == 0 and not after.caught and int(g.gerald.stage) == 7, "a stray result after the end changes nothing")
+	var poster: Dictionary = g.gerald_info(1)
+	check(poster.who == "Gerald" and poster.biome == "Volcanic" and poster.bounty > 0 and poster.done, "a poster for any stage: stage 2 is stamped")
+	# it survives
+	g._apply(g._defaults.duplicate(true))
+	g.gerald = {"stage": 2, "casts": 17, "tries": 3, "wins": 2, "losses": 5}
+	g.hats_owned = ["straw", "crown"]
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g._apply(g._defaults.duplicate(true))
+	g._apply(sd)
+	check(g.gerald.stage == 2 and g.gerald.casts == 17 and g.gerald.tries == 3 and g.gerald.wins == 2 and g.gerald.losses == 5 and "crown" in g.hats_owned, "Gerald survives save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("gerald")
+	old.erase("hats_owned")
+	g._apply(old)
+	check(g.gerald.stage == 0 and g.gerald.casts == 0 and g.hats_owned == ["straw"], "a save from before Gerald loads with him unmet")
+	old = sd.duplicate(true)
+	old["gerald"] = {"stage": 99, "casts": -5}
+	g._apply(old)
+	check(g.gerald.stage == 7 and g.gerald.casts == 0 and g.gerald.losses == 0, "a damaged save can't break him")
+	g._apply(sd)
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.gerald.stage == 2 and g.gerald.losses == 5 and "crown" in g.hats_owned, "Gerald and the hats survive prestige")
+	var easy: Dictionary = VFData.rival_params("Gerald", 0.1, false, 3, 99)
+	var hard: Dictionary = VFData.rival_params("Gerald", 0.1, false, 0, 99)
+	var mum2: Dictionary = VFData.rival_params("Geraldine", 0.1, false, 0, 99)
+	check(easy.zone_h > hard.zone_h and easy.fish_speed < hard.fish_speed and easy.drain_rate < hard.drain_rate and easy.time_limit > hard.time_limit, "he gets easier every time you lose to him")
+	check(mum2.zone_h < hard.zone_h and mum2.fish_speed > hard.fish_speed, "his mum is harder")
+
+
+## Gerald in the real mini-game: a rival round works without his art, he's a real fight, and nobody gets stuck
+func _test_rival_bots(v) -> void:
+	print("== Gerald, played by bots")
+	var Bot = load("res://tests/reel_bot.gd")
+	seed(20261102)
+	check(not "Gerald" in load("res://scripts/vf/vf_minigame.gd").NAMES, "only the rival is called Gerald")
+	check("IOU: 3 shrimp. Signed, Gerald." in load("res://scripts/vf/vf_fun.gd").NOTES, "the bottle note with his name stays")
+	v._apply(v._defaults.duplicate(true))
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
+	v.rod = "Improved Rod"
+	var r0: int = v.reel_rounds
+	var one: Dictionary = Bot.play_rival(self, "sharp", 0)
+	check(v.reel_rounds == r0 + 1, "a round against him counts as a round, %s in %.1fs" % ["won" if one.won else "lost", one.secs])
+	var rates := []
+	for tries in 5:
+		rates.append(Bot.rival_rate(self, "novice", tries, 40))
+	check(rates[0] <= 0.5 and rates[3] >= 0.5 and rates[4] >= 0.8, "starter rods, a clumsy player: wins %s, as he gets easier" % [rates.map(func(x): return "%d%%" % int(x * 100.0))])
+	var sharp: float = Bot.rival_rate(self, "sharp", 0, 40)
+	check(sharp >= 0.4, "a good player can beat him the first time (%d%%)" % int(sharp * 100.0))
+	v.reel_rounds = 0
+	var rookie: float = Bot.rival_rate(self, "idle", 0, 40)
+	check(rookie >= 0.95, "someone who has never played a round isn't thrown in at the deep end (%d%%)" % int(rookie * 100.0))
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
 
 
 ## the same rounds, played for real: a player who does nothing, or nothing useful, still wins the first one
