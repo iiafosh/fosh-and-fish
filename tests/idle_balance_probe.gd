@@ -55,7 +55,7 @@ func _init() -> void:
 				var line := "  Lv %d after %s min  ($%s, %s, %d boats, %d crews)" % [lv, int(t / 60.0), g.fmt(g.money), g.rod, g.boats_owned, g.crews]
 				if g.crews > 0:
 					var secs: float = g.offline_cap_secs()
-					var n: float = g.crews * secs / g.crew_trip_secs() * g.offline_rate() * g.crew_trip_fish()
+					var n: float = g.crews * secs / g.crew_trip_secs() * g.offline_rate() * g.crew_trip_fish() * (1.0 + g.aquarium_income())
 					var odds: Array = g.species_odds()
 					var names: Array = VFData.BIOMES[g.biome].fish
 					var val := 0.0
@@ -75,6 +75,7 @@ func _init() -> void:
 						cast_val *= g.sell_mult() * 60.0 / g.cooldown()
 					line += "\n      4h away: %s fish, $%s (= %.0f min of active play), %s XP (= %.1f levels now)" % [
 						g.fmt(n), g.fmt(val), val / maxf(1.0, cast_val), g.fmt(xp), xp / maxf(1.0, g.xp_to_next())]
+					line += "  (aquarium +%d%%)" % int(round(g.aquarium_income() * 100.0))
 				print(line)
 		if reel: print("  rounds won %d%%, %.1fs from tap to tap" % [int(100.0 * rate.wins / rate.n), rate.secs / rate.n])
 		g.queue_free()

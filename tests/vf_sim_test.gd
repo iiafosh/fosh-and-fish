@@ -308,6 +308,7 @@ func _init() -> void:
 	_test_first_rebirth()
 	_test_gerald()
 	_test_finds()
+	_test_collecting()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -320,6 +321,7 @@ func _with_autoloads() -> void:
 	_test_rookie_bots(v)
 	_test_rival_bots(v)
 	_test_resident_timing(v)
+	_test_counters(v)
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
 
@@ -634,6 +636,168 @@ func _test_finds() -> void:
 	check(g.finds.otter == 4, "finds survive prestige")
 
 
+## collecting pays off: achievements, the Fish Book's stamps, the aquarium's visitors
+func _test_collecting() -> void:
+	print("== achievements")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var ids := {}
+	var jokes := 0
+	var well_formed := true
+	for a in VFData.ACHIEVEMENTS:
+		ids[a.id] = true
+		well_formed = well_formed and String(a.name) != "" and String(a.desc) != "" and String(a.stat) != "" and int(a.goal) > 0 and int(a.pearls) > 0 and int(a.pearls) <= 25
+		if a.get("joke", false): jokes += 1
+	check(ids.size() == VFData.ACHIEVEMENTS.size() and ids.size() >= 28 and ids.size() <= 36 and well_formed, "about 30 achievements (%d), each with a goal and a few Pearls" % ids.size())
+	check(jokes * 2 >= ids.size() - 4, "about half of them are jokes (%d)" % jokes)
+	check(g.ach_ready().is_empty(), "a new game has nothing to claim")
+	check(g.ach_claim("first_fish") == 0 and g.pearls == 0, "you can't claim what you haven't done")
+	check(g.ach_claim("nope") == 0, "an unknown id does nothing")
+	g.stat_add("honks")
+	g.stat_add("honks", 98)
+	check(g.stats.honks == 99 and not "honks_100" in g.ach_ready(), "99 honks: not yet")
+	g.stat_add("honks")
+	check("honks_100" in g.ach_ready(), "100 honks: ready to claim")
+	var def: Dictionary = VFData.ach_def("honks_100")
+	check(g.ach_claim("honks_100") == int(def.pearls) and g.pearls == int(def.pearls) and g.ach_claimed.has("honks_100"), "claiming pays its Pearls (%d)" % def.pearls)
+	check(g.ach_claim("honks_100") == 0 and g.pearls == int(def.pearls) and not "honks_100" in g.ach_ready(), "only once")
+	# what it reads from the game itself
+	g.level = 100
+	g.prestige = 1
+	g.discovered = {"Cod": 3, "Squid": 1}
+	g.finds = {"otter": 2, "frog": 1}
+	g.crews = 5
+	g.ducks = 12
+	g.gerald = {"stage": 4, "casts": 0, "tries": 0, "wins": 4, "losses": 6}
+	g.hats_owned = ["straw", "crown"]
+	check(g.stat_value("level") == 100 and g.stat_value("prestige") == 1 and g.stat_value("species") == 2 and g.stat_value("finds") == 2 and g.stat_value("crews") == 5
+		and g.stat_value("ducks") == 12 and g.stat_value("gerald_losses") == 6 and g.stat_value("gerald_caught") == 1 and g.stat_value("mum_caught") == 0 and g.stat_value("hats") == 2,
+		"it knows your level, species, finds, crews, ducks, hats and how it's going with Gerald")
+	check("gerald_5" in g.ach_ready() and "gerald_caught" in g.ach_ready() and "ducks_10" in g.ach_ready() and not "ducks_50" in g.ach_ready() and "rebirth" in g.ach_ready(), "the jokes count too")
+	# nothing is lost to a rebirth
+	g.level = VFData.prestige_level_req(1)
+	g.money = VFData.prestige_money_req(1)
+	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(1) / 8
+	g.stat_add("voyages", 3)
+	g.do_prestige()
+	check(g.level == 1 and g.crews == 0 and g.stat_value("level") >= 100 and g.stat_value("crews") == 5 and g.stats.voyages == 3 and "level_100" in g.ach_ready() and "crews_5" in g.ach_ready(), "a rebirth doesn't take back what you've done")
+	check(g.ach_claimed.has("honks_100"), "... or what you've claimed")
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.stats.erase("honks")
+	g.ach_claimed = {}
+	g._apply(sd)
+	check(g.stats.honks == 100 and g.ach_claimed.has("honks_100") and g.ach_claim("honks_100") == 0, "stats and claims survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("ach_claimed")
+	g._apply(old)
+	check(g.ach_claimed.is_empty(), "a save from before achievements has none claimed")
+	old = sd.duplicate(true)
+	old["ach_claimed"] = {"honks_100": true, "not_a_thing": true}
+	g._apply(old)
+	check(g.ach_claimed.has("honks_100") and not g.ach_claimed.has("not_a_thing"), "ids that don't exist are dropped")
+
+	print("== the Fish Book")
+	g._apply(g._defaults.duplicate(true))
+	g.level = 30
+	var base: float = g.sell_mult()
+	check(g.book_bonus("River") == 0.0 and not g.book_done("River"), "nothing caught: no stamp")
+	for f in VFData.BIOMES.River.fish.slice(0, 4): g.discovered[f] = 1
+	check(g.book_bonus("River") == 0.0, "four of the five: no stamp yet")
+	g.discovered[VFData.BIOMES.River.fish[4]] = 1
+	check(g.book_done("River") and is_equal_approx(g.book_bonus("River"), 0.05) and g.book_bonus("Abyss") == 0.0, "all five: a stamp and +5% in the River, not elsewhere")
+	check(is_equal_approx(g.sell_mult(), base * 1.05), "you sell for +5% in the River")
+	g.biome = "Abyss"
+	check(is_equal_approx(g.sell_mult(), base), "... and not anywhere else")
+	g.biome = "River"
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.book_done("River"), "stamps are permanent: they survive prestige")
+	check(g.stat_value("books") == 1 and "book_1" in g.ach_ready(), "and the first stamp is an achievement")
+
+	print("== the aquarium")
+	g._apply(g._defaults.duplicate(true))
+	check(g.aquarium_income() == 0.0, "an empty aquarium has no visitors")
+	g.discovered = {"Cod": 1}
+	check(is_equal_approx(g.aquarium_income(), VFData.AQUARIUM_MAX / VFData.FISH_ORDER.size()), "every species brings some")
+	for f in VFData.FISH_ORDER: g.discovered[f] = 1
+	check(is_equal_approx(g.aquarium_income(), 0.30), "every species: +30%")
+	g.discovered["Not a fish"] = 1
+	check(g.aquarium_income() <= 0.30 + 1e-6, "and never more than that")
+	g.discovered.erase("Not a fish")
+	g.level = 10
+	g.crews = 2
+	g.biome = "River"
+	var now := Time.get_unix_time_from_system()
+	g.discovered = {}
+	g.idle_seen = now - 3600.0
+	g.offline = {}
+	g.offline_check()
+	var plain: int = g.offline.n
+	check(g.offline.aquarium == 0.0, "an empty aquarium adds nothing while you're away")
+	for f in VFData.FISH_ORDER: g.discovered[f] = 1
+	g.idle_seen = now - 3600.0
+	g.offline = {}
+	g.offline_check()
+	check(absf(float(g.offline.n) / plain - 1.3) < 0.02 and is_equal_approx(g.offline.aquarium, 0.30), "a full one: +30%% on the catch while you're away (%d -> %d fish), and the card can say so" % [plain, g.offline.n])
+	var osd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g._apply(osd)
+	check(g.offline.has("aquarium") and is_equal_approx(g.offline.aquarium, 0.30), "it survives save -> load with the waiting catch")
+
+
+## the places that count: every stat an achievement needs goes up when the thing happens
+func _test_counters(v) -> void:
+	print("== what counts")
+	v._apply(v._defaults.duplicate(true))
+	v.tutorial = 99
+	v.biome = "River"
+	var known := ["level", "prestige", "species", "finds", "books", "crews", "ducks", "hats", "gerald_losses", "gerald_caught", "mum_caught",
+		"fish", "trips", "chests", "money_earned", "honks", "robbed", "thieves", "crab_pokes", "gull_pokes", "bottles", "reel_wins", "reel_losses", "perfect_rounds", "blanks", "glass_taps", "voyages"]
+	var all_known := true
+	for a in VFData.ACHIEVEMENTS:
+		if not a.stat in known:
+			all_known = false
+			print("  unknown stat: ", a.stat)
+	check(all_known, "every achievement's stat is one that's counted")
+	var Fun = load("res://scripts/vf/vf_fun.gd")
+	var m := FunMain.new()
+	m.stage = FunStageWithResidents.new()
+	m.tree_root = root
+	var f = Fun.new(m)
+	for kind in ["crab", "gull", "bottle", "thief", "thief_away"]:
+		m.stage.poked.emit(kind, Vector2.ZERO)
+	check(v.stats.get("crab_pokes", 0) == 1 and v.stats.get("gull_pokes", 0) == 1 and v.stats.get("bottles", 0) == 1 and v.stats.get("thieves", 0) == 1 and v.stats.get("robbed", 0) == 1,
+		"poking counts: crabs, gulls, bottles, thieves stopped, and being robbed")
+	f.honk()
+	check(v.stats.get("honks", 0) == 1, "honking counts")
+	var d0: int = v.ducks
+	m.stage.poked.emit("duck", Vector2.ZERO)
+	check(v.ducks == d0 + 1, "ducks count themselves")
+	var Bot = load("res://tests/reel_bot.gd")
+	seed(99)
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
+	v.rod = "Dark Rod"
+	v.stats.erase("reel_wins")
+	v.stats.erase("reel_losses")
+	Bot.play(self, "sharp", "Raw Fish", 0)
+	check(v.stats.get("reel_wins", 0) == 1, "winning a round counts")
+	v.rod = "Plastic Rod"
+	for i in 10: Bot.play(self, "hold", "Dark Tuna", 4)
+	check(v.stats.get("reel_losses", 0) >= 1, "losing a round counts (%d of 10)" % v.stats.get("reel_losses", 0))
+	var wins0: int = v.stats.get("reel_wins", 0)
+	var losses0: int = v.stats.get("reel_losses", 0)
+	Bot.play_rival(self, "sharp", 0)
+	check(v.stats.get("reel_wins", 0) == wins0 and v.stats.get("reel_losses", 0) == losses0, "a round against Gerald counts for Gerald, not for these")
+	v.level = 100
+	v.stats.erase("voyages")
+	check(v.select_biome("Volcanic") == "" and v.stats.get("voyages", 0) == 1, "sailing to another biome counts")
+	check(v.select_biome("Volcanic") == "" and v.stats.get("voyages", 0) == 1, "staying where you are doesn't")
+	check(v.select_biome("Abyss") != "" and v.stats.get("voyages", 0) == 1, "and neither does a trip you can't make")
+	v.biome = "River"
+	v._apply(v._defaults.duplicate(true))
+
+
 ## stand-ins for what vf_fun.gd asks of vf_main and the stage
 class FunStage:
 	signal poked(kind: String, at: Vector2)
@@ -643,6 +807,7 @@ class FunStage:
 	func spawn_thief() -> void: pass
 	func say(text: String, _secs := 3.4) -> void: said = text
 	func to_screen(p: Vector2) -> Vector2: return p
+	func on_honk() -> void: pass
 
 class FunStageWithResidents extends FunStage:
 	var sent := []
@@ -659,6 +824,7 @@ class FunMain:
 	var sail := {"state": "idle"}
 	var C_GOLD := Color.GOLD
 	var banners := []
+	var tree_root: Node
 	func launcher_open() -> bool: return false
 	func _phone_open() -> bool: return false
 	func money_str(n: float) -> String: return "$%d" % int(n)
@@ -666,6 +832,13 @@ class FunMain:
 	func _toast(_t: String, _k: String) -> void: pass
 	func ph(_n: String) -> Texture2D: return null
 	func _banner(title: String, _sub: String, _tex: Texture2D, _col: Color) -> void: banners.append(title)
+	func sbox(_c = null, _r = 0, _b = 0, _bc = null, _s = 0, _p = 0) -> StyleBoxFlat: return StyleBoxFlat.new()
+	func lbl(text = "", _size = 16, _col = null, _outline = 0) -> Label:
+		var l := Label.new()
+		l.text = str(text)
+		return l
+	func add_child(n: Node) -> void: tree_root.add_child(n)
+	func get_viewport_rect() -> Rect2: return Rect2(0, 0, 1280, 720)
 
 
 ## when a find turns up: one at a time, gone after FIND_SECS, never during a panel or the tutorial, safe until the stage can show one
