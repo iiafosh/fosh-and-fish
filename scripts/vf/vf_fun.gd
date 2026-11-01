@@ -54,6 +54,7 @@ func tick(delta: float) -> void:
 func honk() -> void:
 	if _honk_cd > 0.0: return
 	_honk_cd = 1.2
+	VFHaptics.buzz("honk")
 	AudioManager.play_fun("horn", -9.0, randf_range(0.97, 1.03))
 	m.stage.on_honk()
 	m.stage.say(HONKS.pick_random(), 2.4)
@@ -71,6 +72,7 @@ func _pay(casts: float, at: Vector2) -> void:
 	AudioManager.play_coin()
 
 func _on_poked(kind: String, at: Vector2) -> void:
+	VFHaptics.buzz("poke")
 	match kind:
 		"crab":
 			AudioManager.play_fun("squeak", -9.0, randf_range(0.9, 1.25))

@@ -2694,6 +2694,7 @@ func _setting_row(title: String, sub: String, on: bool, on_key: String, vol: flo
 	t.pressed.connect(func():
 		AudioManager.set_option(on_key, not on)
 		if on_key == "notify_on" and not on: notify.ask()
+		if on_key == "vibration_on" and not on: VFHaptics.buzz("bite")
 		_render_panel())
 	h.add_child(t)
 	panel_body.add_child(p)
@@ -2725,6 +2726,7 @@ func _panel_settings() -> void:
 	panel_body.add_child(cm)
 	_setting_row("Music", "The soundtrack by %s (pick tracks on the Radio, in the Menu)" % A.COMPOSER, A.music_on, "music_on", A.music_volume, "music_volume")
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
+	if is_touch() and not OS.has_feature("web_ios"): _setting_row("Vibration", "A soft buzz for bites, catches and pokes", A.vibration_on, "vibration_on")   # (Safari can't vibrate)
 	_setting_row("Scenery effects", "Wind, reflections, clouds, day and night. Turn off if the game runs slowly", A.scenery_fx, "scenery_fx")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
 		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
