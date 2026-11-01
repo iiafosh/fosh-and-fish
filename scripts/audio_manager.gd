@@ -69,6 +69,7 @@ var fullscreen := false
 var ui_size := 1.0           # interface size: 0.85 smaller, 1.0 normal, 1.15 bigger (Settings)
 var notify_on := false       # reminders while the game is in the background (vf_notify.gd; asks the browser first)
 var scenery_fx := true       # moving water, wind, reflections, clouds and nightfall (Settings; off for weak devices)
+var vibration_on := true     # the phone buzzes when something happens (vf_haptics.gd)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -93,7 +94,7 @@ func _ready() -> void:
 			var s = load(SFX + n + ".ogg")
 			if s: sounds[k].append(s)
 	# the cartoon sounds (tools/video/make_sfx.py)
-	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip"]:
+	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip", "laugh", "sting", "fanfare", "find_new", "ach", "hat_on"]:
 		var s = load("res://assets/audio/fun/%s.ogg" % n)
 		if s: sounds["fun_" + n] = [s]
 	for i in 2:
@@ -131,6 +132,7 @@ func load_settings() -> void:
 	ui_size = clampf(float(cf.get_value("display", "ui_size", ui_size)), 0.7, 1.4)
 	notify_on = bool(cf.get_value("game", "notify_on", notify_on))
 	scenery_fx = bool(cf.get_value("display", "scenery_fx", scenery_fx))
+	vibration_on = bool(cf.get_value("game", "vibration_on", vibration_on))
 
 func save_settings() -> void:
 	var cf := ConfigFile.new()
@@ -142,12 +144,14 @@ func save_settings() -> void:
 	cf.set_value("display", "ui_size", ui_size)
 	cf.set_value("game", "notify_on", notify_on)
 	cf.set_value("display", "scenery_fx", scenery_fx)
+	cf.set_value("game", "vibration_on", vibration_on)
 	cf.save(SETTINGS_PATH)
 
 func apply_settings() -> void:
 	_set_bus("Music", music_on, music_volume)
 	_set_bus("SFX", sfx_on, sfx_volume)
-	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
+	# (a capture keeps the window its command line asked for, whatever the player's own setting says)
+	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"] and not Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--capture=")):
 		var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 		if DisplayServer.window_get_mode() != want and not (want == DisplayServer.WINDOW_MODE_WINDOWED and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MAXIMIZED):
 			DisplayServer.window_set_mode(want)

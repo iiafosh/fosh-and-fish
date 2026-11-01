@@ -105,8 +105,9 @@ Dolphin = XP + treasure, Axolotl = treasure quality, Tuna = a bit of everything.
 
 ## 4. Prestige
 
-At **Level 250 + 440/440 charms + $5B** open **Prestige → Prestige**. You restart from level 1 but keep
-**pets, Hooks, league upgrades and prestige perks**, and get **1 Azure Fish**.
+Your first rebirth comes at **Level 60 + $5M**: open **Prestige → Prestige**. You restart from level 1 but keep
+**pets, Hooks, league upgrades and prestige perks**, and get **1 Azure Fish**. Later prestiges ask for more levels,
+more money and every charm maxed.
 
 Spend Azure Fish in **Prestige → Shop** (cap = 1 + prestige/5):
 International Ties (+10% everything), Business Education (+40% sell), Fish Whisperer (+25% catch),

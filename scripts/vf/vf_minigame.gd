@@ -69,6 +69,7 @@ var main                     # vf_main.gd (UI kit: lbl, sbox, keycap, is_touch, 
 var fish_name := ""
 var tier := 0
 var auto := ""               # capture tests: "win" / "lose" plays by itself
+var sim_hold := Callable()   # tests/reel_bot.gd: a simulated player
 var nick := "Gerald"
 
 var phase := "intro"         # intro -> play -> end
@@ -173,7 +174,7 @@ func setup(m, fname: String, ftier: int) -> void:
 	if tier >= 3: nick = ["Lord ", "Lady ", "Sir ", "The Great "].pick_random() + nick.trim_prefix("Sir ")
 	_fact = FACTS.pick_random()
 	reel_power = VFData.rod_reel_power(VF.rod)
-	var p := VFData.minigame_params(tier, reel_power, not main.is_touch())
+	var p := VFData.minigame_params(tier, reel_power, not main.is_touch(), VF.reel_rounds)
 	zone_h = p.zone_h
 	fish_speed = p.fish_speed
 	fill_rate = p.fill_rate
@@ -252,6 +253,7 @@ func _ready() -> void:
 	elif randf() < 0.55 and SAY_SPECIES.has(fish_name): line = SAY_SPECIES[fish_name]
 	_say(line)
 	AudioManager.play_strike()
+	VFHaptics.buzz("bite")
 	AudioManager.play_sfx("splash", -4.0, 1.15)
 
 func _layer(parent: Control, r: Rect2, cb: Callable) -> Control:
@@ -390,6 +392,7 @@ func _process(delta: float) -> void:
 	over_col.queue_redraw()
 
 func _holding() -> bool:
+	if sim_hold.is_valid(): return sim_hold.call()
 	if auto == "win":
 		return zone_y + _net_h() * 0.5 + zone_v * 0.22 < fish_y
 	if auto == "lose":
@@ -466,6 +469,7 @@ func _play(delta: float) -> void:
 		if _tick_t <= 0.0:
 			_tick_t = 0.15
 			AudioManager.play_sfx("bubble", -17.0, 0.8 + progress * 0.9)
+			VFHaptics.buzz("reel")
 	else:
 		progress -= drain_rate * delta
 		_out_time += delta
@@ -652,7 +656,9 @@ func _finish(w: bool) -> void:
 	hint.visible = false
 	skip_lbl.visible = true
 	streak = streak + 1 if w else 0
+	VF.reel_rounds += 1
 	resolved.emit(w)
+	VFHaptics.buzz("win" if w else "lose")
 	var tw := create_tween()
 	if w:
 		_face = "dizzy"

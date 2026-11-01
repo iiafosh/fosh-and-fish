@@ -221,8 +221,6 @@ def do_brand(only):
         BR.render_logo(os.path.join(d, "logo_3d.png"))
     if want("icon", only):
         BR.render_icon(os.path.join(d, "icon_3d.png"))
-    if want("title", only):
-        BR.render_title(d)
 
 
 def do_mini(only, man):
