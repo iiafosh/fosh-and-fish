@@ -2,7 +2,6 @@
 logo and icon their outline and shadow and cuts all the sizes.
     logo_3d.png    chunky golden letters; the "o" is a life ring, the dot on the "i" a bobber, a fish leaps off the top
     icon_3d.png    a fish leaping through a life ring
-    title_*.png    the loading screen's picture, in layers: the game's own River from a low camera at golden hour
     (fonts: build/boom/Fredoka-*.ttf, tools/video/boom_prep.py)
 """
 import math
@@ -11,18 +10,12 @@ import os
 import bmesh
 import bpy
 import numpy as np
-from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector
 
 import boom_fx as FX
-import vf_boats as B
-import vf_captain as C
 import vf_kit as K
 import vf_life as L
 import vf_models as M
-import vf_shop as SH
-import vf_topdown as TD
-import vf_vendor as V
 from vf_kit import cone, hexc, sphere, toon, torus, tube, vcolor
 
 GOLD = [(0.0, "#fff0b4"), (0.45, "#ffd144"), (1.0, "#ff9a28")]
@@ -234,171 +227,4 @@ def render_icon(path):
     K.frame_ortho(cam, fparts + [ring], 1.04)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     K.render(path)
-    K.SOFT[0] = False
-
-
-# ------------------------------------------------------------------- the loading screen's picture
-TITLE_CAM = ((-4.0, -13.5, 4.4), (86.0, 0.0, 0.0), 28.0)
-TITLE_BOAT = ("Rowboat", 0.25, -0.8, 165.0)    # which, x, y, which way the bow points (degrees)
-HILLS = [(-34, 96, 0, 46, 22, 15, "#86bdab"), (6, 118, 0, 62, 24, 20, "#9cc9c2"), (44, 92, 0, 44, 20, 13, "#8fc2ae"),
-         (-8, 76, 0, 34, 16, 8, "#6fae8f"), (26, 72, 0, 28, 14, 7, "#74b394"), (-46, 70, 0, 26, 14, 8, "#6dab8c")]
-CLOUDS = [(-96, 210, 62, 14.0), (-40, 240, 86, 11.0), (34, 200, 44, 9.0), (92, 215, 70, 15.0), (118, 240, 40, 11.0), (-124, 230, 34, 12.0), (8, 260, 112, 13.0)]
-
-
-def _cloud(x, y, z, s):
-    """soft heaps, lit from the low sun"""
-    back, front = toon("#ffdcc4", flat_glow=True), toon("#fffdf7", flat_glow=True)
-    out = []
-    for dx, dz, r in ((-1.5, -0.1, 0.8), (-0.6, 0.35, 1.05), (0.45, 0.5, 1.2), (1.5, 0.05, 0.85), (2.4, -0.25, 0.55), (-2.3, -0.3, 0.5)):
-        for mat, ox, oz, k, oy in ((back, 0.1, -0.14, 1.0, 2.0), (front, -0.05, 0.08, 0.95, 0.0)):
-            b = sphere(loc=(x + (dx + ox) * s, y + oy, z + (dz + oz) * s), scale=(r * s * k, 0.2, r * s * 0.82 * k), seg=32, rings=16, mat=mat)
-            b["no_outline"] = True
-            out.append(b)
-    return out
-
-
-def _drop_near_oar(hull, yaw):
-    """The oar on the camera's side would cut right across the captain: he's fishing, it's stowed. (A small loose piece of
-    the mesh sticking out past the hull, on the boat's side that yaw has turned toward the camera.)"""
-    sign = 1.0 if math.cos(math.radians(yaw)) < 0.0 else -1.0
-    for ob in hull:
-        bm = bmesh.new()
-        bm.from_mesh(ob.data)
-        seen, gone = set(), []
-        for v0 in bm.verts:
-            if v0.index in seen:
-                continue
-            piece, todo = [], [v0]
-            seen.add(v0.index)
-            while todo:
-                v = todo.pop()
-                piece.append(v)
-                for e in v.link_edges:
-                    n = e.other_vert(v)
-                    if n.index not in seen:
-                        seen.add(n.index)
-                        todo.append(n)
-            ys = [v.co.y * sign for v in piece]
-            if len(piece) < 60 and min(ys) > 0.3 and max(ys) > 1.0:
-                gone += piece
-        if gone:
-            bmesh.ops.delete(bm, geom=gone, context="VERTS")
-            bm.to_mesh(ob.data)
-            ob.data.update()
-        bm.free()
-
-
-def render_title(d):
-    """title_a.png everything but the boat, title_boat.png the boat and the captain alone (it bobs on the screen),
-    title_mask.png where the water is, title_sway.png what the wind moves; make_brand.py title() puts the water's
-    reflection in and bakes the layers the game loads"""
-    P = TD.BIOMES["River"]
-    K.clear_scene()
-    V.clear_library()
-    K.SOFT[0] = True
-    K.FOG.update({"color": None, "amount": 0.0})
-    K.setup_render(TD.W, 1080, samples=48, transparent=False)
-    K.setup_world(P["ambient"], 1.0, sky=[(0.0, "#ffdcb0"), (0.1, "#ffe9c9"), (0.28, "#bfe6e2"), (0.6, "#74c3e2"), (1.0, "#3b9bd0")])
-    s = K.sun((70, 0, -52), 1.2, color="#ffe6c4")
-    s.data.angle = math.radians(9)
-    bpy.context.scene.eevee.use_shadows = True
-    cam = K.make_camera(TD.CAM_ROT, ortho=False, lens=TD.LENS)
-    cam.location = TD.CAM_LOC
-    bpy.context.view_layer.update()
-    acts = C.load_actions()
-    # the River as it is in the game
-    spot = TD.shop_spot(P, cam)
-    TD.EXTRA_LIGHTS[:] = []
-    TD.EXTRA_AVOID[:] = [SH.to_world(k, spot)[:2] + (r,) for k, r in (((0.0, 2.0, 0), 7.5), ((3.5, -1.0, 0), 5.5), ((-3.0, -1.5, 0), 4.5), ((0.0, -5.0, 0), 5.0))]
-    parts = TD.build_scene("River", P)
-    shop, keeper, smoke = SH.build(spot, "River")
-    parts += shop
-    parts.append(TD.water(P))
-    K.outline_all(parts, 0.04)
-    # (the plants under the water are for looking down on: this close they're ghosts)
-    bpy.context.view_layer.update()
-    for o in bpy.data.objects:
-        if o.type == "MESH" and max(o.dimensions) < 8.0:
-            c = o.matrix_world @ (sum((Vector(b) for b in o.bound_box), Vector()) / 8.0)
-            if c.y < 3.0 and c.z < 0.6:
-                o.hide_render = True
-    for x, y, z, sx, sy, sz, col in HILLS:                # what's beyond it, fading into the haze
-        h = sphere(loc=(x, y, z), scale=(sx, sy, sz), seg=48, rings=24, mat=toon(col, rim=0.0, shade=0.9))
-        h["no_outline"] = True
-    for c in CLOUDS:
-        _cloud(*c)
-    # the boat, the captain, his rod and his line
-    which, bx, by, yaw = TITLE_BOAT
-    if os.environ.get("VF_TITLE_HULL"):                   # (to try another one)
-        which, bx, by, yaw = os.environ["VF_TITLE_HULL"].split(",")
-        bx, by, yaw = float(bx), float(by), float(yaw)
-    hull_parts, deck = B.build_boat(which)
-    seat = B.find_seat(hull_parts, deck)
-    hull = TD.clip_below(hull_parts)
-    _drop_near_oar(hull, yaw)
-    K.outline_all(hull, 0.035)
-    pivot = FX.empty("boat")
-    bpy.context.view_layer.update()
-    for o in hull:
-        w = o.matrix_world.copy()
-        o.parent = pivot
-        o.matrix_world = w
-    pivot.location = (bx, by, 0.0)
-    pivot.rotation_euler = (0, 0, math.radians(yaw))
-    bpy.context.view_layer.update()
-    # He sits where the game seats him, mirrored (the bow points left here): on the far side of the deck, his legs across
-    # it. The game turns him C.FACE from the camera toward the bow, in the boat's own terms; so here it's that, mirrored.
-    arm, meshes, root = C.build(face=(180.0 - C.FACE) + yaw - 360.0)
-    C.hat(arm, next(m for m in meshes if "Head" in m.name))
-    sit, fish = acts[C.SEAT], acts["Fishing_Idle"]
-    C.set_pose(arm, sit, C._span(sit, 0.5), fish, C._span(fish, 0.0))
-    root.location = pivot.matrix_world @ Vector((seat[0], -seat[1], seat[2]))
-    bpy.context.view_layer.update()
-    g = C.bone_world(arm, "handslot.r").to_translation()
-    tip = g + Vector((-0.8, -0.2, 0.56)).normalized() * 2.5
-    rod = tube([g, g + (tip - g) * 0.5 + Vector((0, 0, 0.05)), tip], 0.02, mat=toon("#d99a3e"))
-    float_at = Vector((tip.x - 1.6, tip.y - 0.9, 0.06))
-    line = tube([tip, (tip + float_at) * 0.5 + Vector((0, 0, -0.22)), float_at], 0.011, mat=toon("#f7f2e6", rim=0.0))
-    line["no_outline"] = True
-    ball = sphere(loc=float_at, scale=0.13, seg=24, rings=12)
-    vcolor(ball, lambda co, n: hexc("#d9281c") if co.z > 0.0 else hexc("#fdf9ef"))
-    ball.data.materials.clear()
-    ball.data.materials.append(toon(None, vcol="col", spec=0.08, rim=0.0, key=("float",)))
-    K.outline_all([rod, ball], 0.012)
-    boat_objs = set(hull) | set(meshes) | {rod, line, ball}
-    boat_objs |= {o for o in bpy.data.objects if o.type == "MESH" and o.parent is arm}
-    # the low camera
-    cam.location, rot, cam.data.lens = TITLE_CAM[0], TITLE_CAM[1], TITLE_CAM[2]
-    cam.rotation_euler = [math.radians(a) for a in rot]
-    bpy.context.view_layer.update()
-    sc = bpy.context.scene
-    v = world_to_camera_view(sc, cam, float_at)
-    print("TITLE float at", round(v.x, 4), round(1.0 - v.y, 4))
-    os.makedirs(d, exist_ok=True)
-    was = {o: o.hide_render for o in bpy.data.objects}
-    for o in boat_objs:
-        o.hide_render = True
-    K.render(os.path.join(d, "title_a.png"))
-    # the boat alone
-    for o in bpy.data.objects:
-        if o.type == "MESH":
-            o.hide_render = o not in boat_objs
-    sc.render.film_transparent = True
-    sc.render.image_settings.color_mode = "RGBA"
-    K.render(os.path.join(d, "title_boat.png"))
-    # where the water is (quarter res is plenty), what sways
-    for o, h in was.items():
-        o.hide_render = h
-    for o in boat_objs:
-        o.hide_render = True
-    sc.render.resolution_x, sc.render.resolution_y = TD.W // 2, 540
-    sc.eevee.taa_render_samples = 4
-    for o in list(bpy.data.objects):
-        if o.type == "MESH" and o.name.startswith("Plane"):
-            bpy.data.objects.remove(o)
-        elif o.type == "MESH":
-            o.is_holdout = True
-    TD.water(P, mask=True)
-    K.render(os.path.join(d, "title_mask.png"))
-    TD.render_sway(os.path.join(d, "title_sway.png"))
     K.SOFT[0] = False
