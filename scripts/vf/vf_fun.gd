@@ -20,6 +20,9 @@ const DUCK_MILESTONES := {10: "Ten ducks. The fish are concerned.", 25: "Twenty-
 const CAUGHT_LINES := ["One of them looked at you funny.", "They seemed disappointed.", "A crab saw the whole thing.", "They'll tell their friends.",
 	"Nobody clapped. But they could have.", "Smells like success. And fish.", "One of them owes you money."]
 const EMPTY_LINES := ["The fish are on a break.", "Not even a boot.", "The bobber is judging you."]
+const TEASES := {"Gerald": ["Something big just laughed at you.", "Was that a moustache?", "Something down there knows your name."],
+	"Geraldine": ["Something big just tutted at you.", "Was that a pearl necklace?", "Something down there disapproves of your hat."]}
+const TEASE_MAX := 2             # his shape passes this often before each meeting: a tease, not a nag
 
 var m                            # vf_main
 var _find_wait := 25.0
@@ -29,6 +32,8 @@ var _pay_cd := 0.0               # poking pays a little, not all the time
 var _honk_cd := 0.0
 var _resident_wait := 40.0       # until the next find turns up
 var _resident_left := 0.0        # the one out there now: how long it stays
+var _tease_wait := 0.0
+var _teases := 0
 var _note_box: PanelContainer
 
 func _init(main) -> void:
@@ -47,6 +52,7 @@ func tick(delta: float) -> void:
 	if _resident_left <= 0.0:
 		_resident_wait -= delta
 		if _resident_wait <= 0.0: _send_resident()
+	_tick_tease(delta)
 	_thief_wait -= delta
 	if _thief_wait <= 0.0:
 		_thief_wait = randf_range(150.0, 300.0)
@@ -64,6 +70,17 @@ func _send_resident() -> void:
 	if id == "": return
 	m.stage.spawn_resident(id)
 	_resident_left = VFData.FIND_SECS
+
+## the rival's close: now and then his shape swims past the boat (no more than TEASE_MAX times until you've met)
+func _tick_tease(delta: float) -> void:
+	if not VF.gerald_soon():
+		_teases = 0
+		_tease_wait = 3.0
+		return
+	_tease_wait -= delta
+	if _tease_wait > 0.0 or _teases >= TEASE_MAX: return
+	_tease_wait = randf_range(50.0, 90.0)
+	if m.stage.spawn_gerald(TEASES[VF.gerald_info().who].pick_random()): _teases += 1
 
 ## tap the boat, or H
 func honk() -> void:
@@ -238,6 +255,12 @@ func gerald_test(dir: String) -> void:
 	await wait.call(1.2)
 	VF.gerald.casts = VFData.gerald_need(0, 0) - 10
 	print("GERALD soon=%s due=%s info=%s" % [VF.gerald_soon(), VF.gerald_due(), VF.gerald_info()])
+	if m.stage.spawn_gerald(TEASES.Gerald[0]):
+		await wait.call(7.0)
+		await m._shot(dir + "/gerald_0_shape.png")
+		print("GERALD shape: on the water, says '%s'" % m.stage._say_text)
+	else:
+		print("GERALD shape: no life/gerald.png yet")
 	VF.gerald.casts = VFData.gerald_need(0, 0)
 	print("GERALD soon=%s due=%s" % [VF.gerald_soon(), VF.gerald_due()])
 	var trips: int = VF.stats.trips
@@ -373,6 +396,7 @@ func finds_test(dir: String) -> void:
 	var total := 0
 	for id in VF.finds: total += int(VF.finds[id])
 	print("FINDS done: %d of %d found, %d taps" % [VF.finds.size(), VFData.finds_total(), total])
+	await m.stage.residents_test(dir)
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --rebirth-test : the first rebirth from the goal on the HUD to Prestige 1
 func rebirth_test(dir: String) -> void:

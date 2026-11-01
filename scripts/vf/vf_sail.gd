@@ -328,7 +328,7 @@ func _unhandled_input(e: InputEvent) -> void:
 			if state != "idle":
 				get_viewport().set_input_as_handled()          # no casting mid-voyage
 				return
-			if hit_boat(e.position):
+			if hit_boat(e.position) and not stage.on_resident(e.position):
 				dragging = true
 				_drag_to = stage.to_scene(e.position)
 				_grab = _drag_to - stage.boat_pos

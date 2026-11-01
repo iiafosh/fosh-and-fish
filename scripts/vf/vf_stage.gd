@@ -119,12 +119,19 @@ var merchant_hit: Control
 var merchant_tag: PanelContainer
 var _smoke: CPUParticles2D
 var _glints: CPUParticles2D
-signal poked(kind: String, at: Vector2)     # you tapped a crab, a gull, a bottle, a duck or the thief (vf_fun.gd)
+signal poked(kind: String, at: Vector2)     # you tapped a crab, a gull, a bottle, a duck, the thief or a find, "find:<id>" (vf_fun.gd)
 const CRAB_HOP := 70.0
 const FIND_LIFE := 40.0
+const FIND_REACH := 320.0         # a resident answers a tap when the boat is this close (scene px)
+const FIND_HIT := 72.0            # how near a tap has to be to hit a find
+const FIND_SHOP_GAP := 240.0      # residents keep this far from the shop: they're a reason to sail
+const FIND_ASHORE := ["lava_crab"]    # on the sand, if the biome has a beach for it
+const FIND_EDGE := 70.0           # room around a resident on screen, so nothing covers it (scene px)
+const CARD_H := 230.0             # the catch card's usual height, for keeping clear of it while it's hidden
 var _say_text := ""
 var _say_t := 0.0
 var _floaters: Array = []
+var _resident := {}               # the find out there now (spawn_resident): one at a time
 var _thief := {}
 
 # ---- sailing state (driven by vf_sail.gd; see the "sailing" section below)
@@ -873,6 +880,7 @@ func _spawn_life() -> void:
 	_gulls.clear()
 	_crabs.clear()
 	_floaters.clear()
+	_resident = {}
 	_thief = {}
 	_say_t = 0.0
 	if not _species.is_empty():
@@ -932,9 +940,16 @@ func _process(delta: float) -> void:
 			b.wait -= delta
 			continue
 		b.pos += b.vel * delta
-		if b.pos.x > SCENE.x + 500:
+		if b.kind == "gerald":
+			if b.line != "" and (b.pos.x - boat_pos.x) * b.vel.x > 0.0:      # he's just gone by
+				say(b.line)
+				AudioManager.play_fun("laugh", -17.0, 0.8)
+				if not VF.auto_on: VFHaptics.buzz("gerald")
+				b.line = ""
+		elif b.pos.x > SCENE.x + 500:
 			b.pos = Vector2(-500, SCENE.y * randf_range(0.6, 0.95))
 			b.wait = randf_range(15, 35)
+	_big = _big.filter(func(b): return b.kind != "gerald" or absf(b.pos.x - SCENE.x * 0.5) < SCENE.x * 0.5 + 500.0)
 	for g in _gulls:
 		# wander: ease the turn rate toward a slowly changing target
 		var want := sin(_t * 0.23 + g.ph) * 0.35 + sin(_t * 0.07 + g.ph * 2.0) * 0.25
@@ -1025,15 +1040,18 @@ func _life_draw(layer: Control, sp: Dictionary, p: Vector2, ang: float, scale_px
 	layer.draw_set_transform(p, -rest if flip else rest, Vector2(-sc if flip else sc, sc))
 	layer.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fi * cell, row * cell, cell, cell), col)
 
+const BIG_LEN := {"whale": 11.0, "manta": 7.0, "gerald": 10.0}    # how long, in the scene's units
+
 func _draw_life() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
 	for b in _big:
 		if b.wait > 0.0: continue
-		var len_px := u * (11.0 if b.kind == "whale" else 7.0)
+		var len_px: float = u * BIG_LEN[b.kind]
 		var big_info: Dictionary = manifest.get("life", {}).get("big", {"cell": 192, "frames": 8})
 		var sp := {"tex": b.tex, "frames": big_info.frames, "cell": float(big_info.cell), "rows": 1, "unit_px": float(big_info.cell)}
 		_life_draw(life_layer, sp, b.pos + Vector2(30, 40), b.vel.angle(), len_px, Color(0, 0.05, 0.1, 0.12))
-		_life_draw(life_layer, sp, b.pos, b.vel.angle(), len_px, Color(water_tint.r, water_tint.g, water_tint.b, 0.35).lerp(Color(1, 1, 1, 0.35), 0.3))
+		var col := Color(0.02, 0.06, 0.09, 0.62) if b.kind == "gerald" else Color(water_tint.r, water_tint.g, water_tint.b, 0.35).lerp(Color(1, 1, 1, 0.35), 0.3)
+		_life_draw(life_layer, sp, b.pos, b.vel.angle(), len_px, col)
 	for f in _fish:
 		var depth := _mask_px(f.pos).g
 		var fish_px: float = u * 0.8 * f.size
@@ -1609,6 +1627,17 @@ func say(text: String, secs := 3.4) -> void:
 ## a tap on the scene: if it hit something that's there for poking, it reacts -> true (no cast then)
 func poke(screen: Vector2) -> bool:
 	var p := to_scene(screen)
+	if on_resident(screen):
+		var spot: Vector2 = _resident.pos
+		if boat_pos.distance_to(spot) > FIND_REACH:
+			say("Too far. Sail closer!", 2.6)
+			return true
+		var id: String = _resident.id
+		_resident = {}
+		_add_ripple(spot, 46.0, 2.0)
+		burst("sparkle", spot)
+		poked.emit("find:" + id, spot)
+		return true
 	for f in _floaters:
 		if (f.pos as Vector2).distance_to(p) < 72.0:
 			var at: Vector2 = f.pos
@@ -1662,6 +1691,73 @@ func spawn_find(kind: String) -> void:
 		"dir": 1.0 if heading.x >= 0.0 else -1.0})
 	_add_ripple(p, 40.0, 2.0)
 
+## One of the biome's finds turns up somewhere worth sailing to (vf_fun.gd picks which and when). Its art is life/find_<id>.png with
+## life.finds.<id> in the manifest; until that exists it's a bottle.
+func spawn_resident(id: String) -> void:
+	var ashore: bool = id in FIND_ASHORE
+	var spot = _resident_spot(true) if ashore else null
+	if spot == null:
+		ashore = false
+		spot = _resident_spot(false)
+	if spot == null: return
+	var tex := _tex("life/find_%s.png" % id)
+	var real: bool = tex != null and manifest.get("life", {}).get("finds", {}).has(id)
+	_resident = {"id": id, "art": id if real else "bottle", "tex": tex if real else _tex("life/bottle.png"), "pos": spot, "ashore": ashore,
+		"t": 0.0, "ph": randf() * TAU, "dir": 1.0 if randf() < 0.5 else -1.0}
+	if not ashore: _add_ripple(spot, 40.0, 2.0)
+
+## somewhere away from the shop and (if there's room for that) out of reach of the boat, where the boat can get close, and where
+## nothing on screen covers it
+func _resident_spot(ashore: bool) -> Variant:
+	var edge := FIND_EDGE * root.scale.x
+	var hud := _hud_rects(edge)
+	var view := Rect2(global_position, size).grow(-edge)
+	var shop := _shop_rect().grow(FIND_SHOP_GAP)
+	for far in [FIND_REACH + 150.0, FIND_REACH + 30.0, 0.0]:
+		var spot = _rand_point(func(q):
+			if not (_on_beach(q) if ashore else _open_water(q)) or shop.has_point(q) or q.distance_to(boat_pos) < far: return false
+			var at := to_screen(q)
+			return view.has_point(at) and not hud.any(func(r): return r.has_point(at)) and _boat_gets_near(q), 400)
+		if spot != null: return spot
+	return null
+
+## what's drawn over the stage, in to_screen's units, a little bigger. The catch card counts even while it's hidden: it's back after
+## the next catch.
+func _hud_rects(grow_by: float) -> Array:
+	var m = get_parent()
+	var out := []
+	for c in m.get_children():
+		if c != self: _add_hud(c, out, grow_by)
+	out.append(Rect2(m.card.global_position, Vector2(m.card.size.x, maxf(m.card.size.y, CARD_H))).grow(grow_by))
+	return out
+
+func _add_hud(n: Node, out: Array, grow_by: float) -> void:
+	if n is CanvasItem and not n.visible: return
+	if n is Button or n is PanelContainer or n is Label: out.append((n as Control).get_global_rect().grow(grow_by))
+	for c in n.get_children(): _add_hud(c, out, grow_by)
+
+func _boat_gets_near(q: Vector2) -> bool:
+	var sail = get_parent().sail
+	for r in [FIND_REACH * 0.5, FIND_REACH * 0.85]:
+		for i in 8:
+			if sail._fits(q + Vector2.from_angle(TAU * i / 8.0) * r): return true
+	return false
+
+## a tap on the find? (vf_sail.gd: then it isn't a tap on the boat, even right beside the hull)
+func on_resident(screen: Vector2) -> bool:
+	return not _resident.is_empty() and (_resident.pos as Vector2).distance_to(to_scene(screen)) < FIND_HIT
+
+## Gerald's close (vf_fun.gd, VF.gerald_soon): his shape swims past the boat, and as he goes by he says so. false while his picture
+## (life/gerald.png, the whale's format) doesn't exist yet.
+func spawn_gerald(line: String) -> bool:
+	var t := _tex("life/gerald.png")
+	if t == null: return false
+	var dir := 1.0 if randf() < 0.5 else -1.0
+	var y := clampf(boat_pos.y + (170.0 if boat_pos.y < 760.0 else -170.0) + randf_range(-30.0, 30.0), 620.0, 900.0)    # (water from edge to edge in every biome)
+	_big.append({"tex": t, "kind": "gerald", "pos": Vector2(SCENE.x * 0.5 - dir * (SCENE.x * 0.5 + 460.0), y), "wait": 0.0,
+		"vel": Vector2(dir * 190.0, randf_range(-6.0, 6.0)), "line": line})
+	return true
+
 func spawn_thief() -> void:
 	var left := randf() < 0.5
 	_thief = {"pos": Vector2(-120.0 if left else SCENE.x + 120.0, randf_range(0.28, 0.6) * SCENE.y), "vel": Vector2(205.0 if left else -205.0, randf_range(-18.0, 18.0)),
@@ -1675,6 +1771,10 @@ func _tick_finds(delta: float) -> void:
 		f.pos += f.vel * delta
 		if randf() < delta * 0.35: _add_ripple(f.pos, 30.0, 1.5, 0.0)
 	_floaters = _floaters.filter(func(f): return f.t < FIND_LIFE and _in_water(f.pos, 0.05))
+	if not _resident.is_empty():
+		_resident.t += delta
+		if randf() < delta * 0.35 and not _resident.ashore: _add_ripple(_resident.pos, 30.0, 1.5, 0.0)
+		if _resident.t >= VFData.FIND_SECS: _resident = {}
 	if not _thief.is_empty():
 		_thief.pos += _thief.vel * delta
 		_thief.fr += delta * 16.0
@@ -1683,22 +1783,105 @@ func _tick_finds(delta: float) -> void:
 func _draw_finds() -> void:
 	var info: Dictionary = manifest.get("life", {}).get("finds", {})
 	if info.is_empty(): return
-	var u: float = float(_scene.get("unit_px", 56.0))
-	var cell: float = info.cell
 	for f in _floaters:
-		var a := clampf(minf(f.t / 0.8, (FIND_LIFE - f.t) / 1.5), 0.0, 1.0)
-		var s: float = u * 1.35 / float(info[f.kind])
-		var at: Vector2 = f.pos + Vector2(0.0, sin(f.t * 1.8 + f.ph) * 3.0)
-		life_layer.draw_set_transform(f.pos + Vector2(0, 12), 0.0, Vector2(1.0, 0.38))
-		life_layer.draw_circle(Vector2.ZERO, u * 0.72, Color(0.02, 0.12, 0.18, 0.16 * a))
-		life_layer.draw_set_transform(at, sin(f.t * 1.1 + f.ph) * 0.09, Vector2(s * f.dir, s))
-		life_layer.draw_texture_rect(f.tex, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), false, Color(1, 1, 1, a))
-		var g := fmod(f.t + f.ph, 2.6)                      # now and then it catches the light, so you notice
-		if g < 0.55 and _star_tex:
-			var k := sin(g / 0.55 * PI)
-			var st := 52.0 * k
-			life_layer.draw_set_transform(at + Vector2(u * 0.4, -u * 0.5), g * 2.0, Vector2.ONE)
-			life_layer.draw_texture_rect(_star_tex, Rect2(-st * 0.5, -st * 0.5, st, st), false, Color(1, 1, 0.92, 0.85 * k * a))
+		_draw_find(f, float(info[f.kind]), float(info.cell), FIND_LIFE, 1.0)
+	if not _resident.is_empty():
+		_draw_find(_resident, float(info[_resident.art]), float(info.cell), VFData.FIND_SECS, 0.0 if _resident.ashore else 1.0)
+
+## afloat: 1 bobs on the water, 0 stands still on the sand
+func _draw_find(f: Dictionary, unit_px: float, cell: float, life: float, afloat: float) -> void:
+	var u: float = float(_scene.get("unit_px", 56.0))
+	var a := clampf(minf(f.t / 0.8, (life - f.t) / 1.5), 0.0, 1.0)
+	var s: float = u * 1.35 / unit_px
+	var at: Vector2 = f.pos + Vector2(0.0, sin(f.t * 1.8 + f.ph) * 3.0 * afloat)
+	life_layer.draw_set_transform(f.pos + Vector2(0, 12), 0.0, Vector2(1.0, 0.38))
+	life_layer.draw_circle(Vector2.ZERO, u * 0.72, Color(0.02, 0.12, 0.18, 0.16 * a))
+	life_layer.draw_set_transform(at, sin(f.t * 1.1 + f.ph) * 0.09 * afloat, Vector2(s * f.dir, s))
+	life_layer.draw_texture_rect(f.tex, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), false, Color(1, 1, 1, a))
+	var g := fmod(f.t + f.ph, 2.6)                      # now and then it catches the light, so you notice
+	if g < 0.55 and _star_tex:
+		var k := sin(g / 0.55 * PI)
+		var st := 52.0 * k
+		life_layer.draw_set_transform(at + Vector2(u * 0.4, -u * 0.5), g * 2.0, Vector2.ONE)
+		life_layer.draw_texture_rect(_star_tex, Rect2(-st * 0.5, -st * 0.5, st, st), false, Color(1, 1, 0.92, 0.85 * k * a))
+
+## --finds-test (vf_fun.gd): where residents end up in every biome wherever the boat is, real taps from too far and from close by, and
+## when they leave. Prints RESIDENT lines. Never saves.
+func residents_test(dir: String) -> void:
+	var m = get_parent()
+	var sail = m.sail
+	var tree := get_tree()
+	var heard := []
+	poked.connect(func(kind, _at): heard.append(kind))
+	var fails := 0
+	var order: Array = VFData.BIOME_ORDER + VFData.BIOME_ORDER
+	for n in order.size():
+		var b: String = order[n]
+		VF.biome = b
+		if n == VFData.BIOME_ORDER.size(): VF.boats_owned = VFData.BOAT_ORDER.find("Cruise Ship") + 1     # the second time round: a big hull, with less room and more in the way
+		VF.changed.emit()
+		await tree.create_timer(0.5).timeout
+		var ids: Array = VFData.FINDS[b].keys()
+		var home := boat_pos
+		var bad := {"no spot": 0, "on land": 0, "by the shop": 0, "under the HUD": 0, "off screen": 0, "boat can't get near": 0, "already in reach": 0}
+		var edge := FIND_EDGE * root.scale.x
+		var hud := _hud_rects(0.0)
+		for i in 90:
+			var from = _rand_point(func(q): return sail._fits(q), 300)
+			if from != null: boat_pos = from
+			_resident = {}
+			spawn_resident(ids[i % ids.size()])
+			if _resident.is_empty():
+				bad["no spot"] += 1
+				continue
+			var p: Vector2 = _resident.pos
+			var at := to_screen(p)
+			if not (_on_beach(p) if _resident.ashore else _open_water(p)): bad["on land"] += 1
+			if _shop_rect().grow(FIND_SHOP_GAP * 0.9).has_point(p): bad["by the shop"] += 1
+			if hud.any(func(r): return r.has_point(at)): bad["under the HUD"] += 1
+			if not Rect2(global_position, size).grow(-edge * 0.9).has_point(at): bad["off screen"] += 1
+			if not _boat_gets_near(p): bad["boat can't get near"] += 1
+			if p.distance_to(boat_pos) <= FIND_REACH: bad["already in reach"] += 1
+		boat_pos = home
+		_resident = {}
+		_ripples.clear()
+		for k in bad:
+			if bad[k] > 0 and k != "already in reach": fails += 1
+		print("RESIDENT %s with the %s: 90 spots, %s" % [b, _boat, bad])
+		for id in ids:
+			spawn_resident(id)
+			var spot: Vector2 = _resident.pos
+			_say_t = 0.0
+			await _test_tap(spot)
+			var told: bool = _say_t > 0.0 and _say_text == "Too far. Sail closer!" and not _resident.is_empty()
+			if id == ids[0]: await m._shot(dir + "/finds_%s_too_far_%d.png" % [VFData.slug(b), n / VFData.BIOME_ORDER.size()])
+			var near = _rand_point(func(q): return q.distance_to(spot) < FIND_REACH - 20.0 and q.distance_to(spot) > 120.0 and sail._fits(q), 2000)
+			if near != null: boat_pos = near
+			_place_boat()
+			heard.clear()
+			await _test_tap(spot)
+			var found: bool = heard == ["find:" + id] and _resident.is_empty() and not m.overlay.visible
+			print("RESIDENT %s %s at %s: tap from %d px away says 'too far': %s; tap from %d px finds it: %s" % [b, id, spot.round(), home.distance_to(spot), told, spot.distance_to(boat_pos), found])
+			if not told or not found: fails += 1
+			boat_pos = home
+			_place_boat()
+			await tree.process_frame
+		spawn_resident(ids[0])
+		_resident.t = VFData.FIND_SECS - 0.1
+		await tree.create_timer(0.3).timeout
+		if not _resident.is_empty(): fails += 1
+		spawn_resident(ids[0])
+		VF.biome = VFData.BIOME_ORDER[(VFData.BIOME_ORDER.find(b) + 1) % VFData.BIOME_ORDER.size()]
+		VF.changed.emit()
+		await tree.process_frame
+		if not _resident.is_empty(): fails += 1
+	print("RESIDENT %s (%d failures)" % ["PASS" if fails == 0 else "FAILED", fails])
+
+## a real tap, through the HUD and everything else that's on top
+func _test_tap(p: Vector2) -> void:
+	get_parent()._tap(get_viewport().get_final_transform() * to_screen(p))
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 ## the resting spot for casts when the player hasn't aimed: open water ahead of the boat
 ## (the authored bobber offset, mirrored when the boat faces left), else the nearest open water
