@@ -244,8 +244,8 @@ func _play(slug: String) -> void:
 	now.stream_paused = false
 	now.volume_db = -40.0 if old.playing else 0.0
 	now.play()
-	_music_tween = create_tween().set_parallel().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	if old.playing:
+		_music_tween = create_tween().set_parallel().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 		_music_tween.tween_property(old, "volume_db", -60.0, FADE).set_trans(Tween.TRANS_SINE)
 		_music_tween.tween_property(now, "volume_db", 0.0, FADE).set_trans(Tween.TRANS_SINE)
 		_music_tween.chain().tween_callback(old.stop)
