@@ -476,6 +476,7 @@ func _test_gerald() -> void:
 	var won: Dictionary = g.gerald_result(true)
 	check(won.escaped and not won.caught and won.pay > lost.pay and g.money == m0 + won.pay and won.line != "" and won.stage == 0, "you win: the bounty ($%d), and he gets away: %s" % [won.pay, won.line])
 	check(g.gerald.stage == 1 and g.gerald.tries == 0 and g.gerald.wins == 1 and g.gerald.casts == 0 and g.gerald_info().biome == "Volcanic", "he moves on to the Volcano")
+	check("the Volcano" in won.line and not "%" in won.line, "and says so")
 	check(g.gerald_info().met and not g.gerald_due(), "you've met now, and he's not due in the River any more")
 	check(absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001, "a won round: the next cast is ready like after any win")
 	# the final stage: caught, the crown, and his mum

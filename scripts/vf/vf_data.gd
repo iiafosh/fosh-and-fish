@@ -753,17 +753,18 @@ const GERALD_TEASE := 10          # this many casts before he's due, the stage t
 const GERALD_BACK := 45           # after he beats you he's back after this many casts, GERALD_BACK_STEP fewer each time ...
 const GERALD_BACK_STEP := 10
 const GERALD_BACK_MIN := 20       # ... but never at once
-const RIVAL_EASE := 0.3           # every time he has beaten you he's this much closer to easy (1 = as easy as he gets)
+const RIVAL_EASE := 0.25          # every time he has beaten you he's this much closer to easy (1 = as easy as he gets)
+const GERALD_PLACES := {"River": "the River", "Volcanic": "the Volcano", "Ocean": "the Ocean", "Sky": "the Sky", "Space": "Space", "Alien": "the Alien sea", "Abyss": "the Abyss"}
 ## what he says when the round is decided ("%s" = where he's off to next)
 const GERALD_LINES := {
 	"Gerald": {
 		"lose": ["Here's a shrimp for your trouble.", "Tell your friends you met Gerald.", "You reel like my mum drives.", "Buy yourself a better hook. My treat."],
-		"escaped": ["Snip! See you in the %s.", "Oops, was that your line? I'll be in the %s.", "Nice try. Next stop: the %s."],
+		"escaped": ["Snip! See you in %s.", "Oops, was that your line? I'll be in %s.", "Nice try. Next stop: %s."],
 		"caught": "Fine. You got me. Tell my mum I was brave.",
 	},
 	"Geraldine": {
 		"lose": ["Sit down, dear. Here's bus fare.", "You caught my son with THAT?", "I've had tougher sandwiches."],
-		"escaped": ["Snip. I have bridge club in the %s, dear.", "Do keep up. I'll be in the %s.", "Mind your manners in the %s."],
+		"escaped": ["Snip. I have bridge club in %s, dear.", "Do keep up. I'll be in %s.", "Mind your manners in %s."],
 		"caught": "Well. Somebody raised you properly. Take the tiara.",
 	},
 }

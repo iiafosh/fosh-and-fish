@@ -291,11 +291,14 @@ func _rival_gags(dir: String) -> void:
 	var mg = m.minigame
 	mg.auto = "win"
 	await tree.create_timer(0.9).timeout
+	var fill: float = mg.fill_rate
+	mg.fill_rate = 0.0                     # (the round doesn't end while they go through their act)
 	for g in mg.RIVAL_GAGS[mg.rival]:
 		mg.test_gag(mg.rival, g)
 		await tree.create_timer(0.7).timeout
 		await m._shot(dir + "/gerald_gag_%s_%s.png" % [mg.rival.to_lower(), g])
 		await tree.create_timer(float(mg.GAGS[g].len)).timeout
+	mg.fill_rate = fill
 	mg.progress = 0.97
 	while m.minigame != null:
 		await tree.process_frame

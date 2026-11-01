@@ -2118,7 +2118,7 @@ func gerald_result(won: bool) -> Dictionary:
 			if not hat_id in hats_owned: hats_owned.append(hat_id)
 		else:
 			out.escaped = true
-			out.line = String(said.escaped[rng.randi() % said.escaped.size()]) % VFData.GERALD[i + 1].biome
+			out.line = String(said.escaped[rng.randi() % said.escaped.size()]) % VFData.GERALD_PLACES[VFData.GERALD[i + 1].biome]
 		_last_cast_ms = Time.get_ticks_msec()
 		_cd_override = VFData.MINIGAME_COOLDOWN
 	else:
