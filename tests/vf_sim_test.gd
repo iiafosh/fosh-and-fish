@@ -309,6 +309,7 @@ func _init() -> void:
 	_test_gerald()
 	_test_finds()
 	_test_collecting()
+	_test_hats()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -744,6 +745,99 @@ func _test_collecting() -> void:
 	var osd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
 	g._apply(osd)
 	check(g.offline.has("aquarium") and is_equal_approx(g.offline.aquarium, 0.30), "it survives save -> load with the waiting catch")
+
+
+## hats: bought with money, the special ones earned, and they buy nothing but laughs
+func _test_hats() -> void:
+	print("== hats")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var slugs := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]
+	var well_formed := true
+	for id in slugs:
+		var d: Dictionary = VFData.HATS.get(id, {})
+		well_formed = well_formed and String(d.get("name", "")) != "" and d.has("price") and not d.has("pearls")
+	check(VFData.HATS.size() == slugs.size() and VFData.HAT_ORDER == slugs and well_formed, "the eleven hats of the missing list, none of them for Pearls")
+	check(g.hats_owned == ["straw"] and g.hat == "straw", "a new game: the straw hat, and he's wearing it")
+	check(g.hat_price("straw") == 0 and g.hat_lock("straw") == "", "the straw hat is free")
+	# buying
+	g.money = 0
+	check(g.buy_hat("pirate") != "" and not "pirate" in g.hats_owned and g.hat == "straw", "no money, no hat")
+	var price: int = g.hat_price("pirate")
+	check(price > 0, "the pirate hat costs $%d for a new player" % price)
+	g.money = price + 5
+	check(g.buy_hat("pirate") == "" and "pirate" in g.hats_owned and g.money == 5 and g.hat == "pirate", "buying costs its price, and he puts it on")
+	g.money = price
+	check(g.buy_hat("pirate") != "" and g.money == price, "you can't buy it twice")
+	check(g.buy_hat("nope") != "" and g.money == price and not "nope" in g.hats_owned, "there's no such hat")
+	# wearing
+	g.wear_hat("straw")
+	check(g.hat == "straw", "any hat you own goes on")
+	g.wear_hat("chef")
+	check(g.hat == "straw", "not one you don't own")
+	g.wear_hat("nope")
+	check(g.hat == "straw", "not one that doesn't exist")
+	# prices follow your progress, and rise along the list
+	var rising := true
+	var last := 0
+	for id in ["pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero"]:
+		rising = rising and g.hat_price(id) > last
+		last = g.hat_price(id)
+	check(rising, "they cost more along the list")
+	var early: int = g.hat_price("viking")
+	g.level = 500
+	g.rod = "Space Rod"
+	g.biome = "Space"
+	g.boats_owned = 6
+	check(g.hat_price("viking") > early * 100, "prices scale with progress ($%d, later $%d)" % [early, g.hat_price("viking")])
+	g.rod = "Plastic Rod"
+	g.biome = "River"
+	g.boats_owned = 0
+	g.level = 1
+	# earned ones
+	g.money = 1000000000
+	g.ducks = 24
+	check(g.buy_hat("duck") != "" and "25" in g.hat_lock("duck") and not "duck" in g.hats_owned, "the duck hat needs 25 rubber ducks: %s" % g.hat_lock("duck"))
+	g.ducks = 25
+	var m0: int = g.money
+	check(g.hat_lock("duck") == "" and g.buy_hat("duck") == "" and "duck" in g.hats_owned and g.money == m0, "at 25 it's yours, free")
+	check(g.buy_hat("crown") != "" and g.buy_hat("tiara") != "" and not "crown" in g.hats_owned and not "tiara" in g.hats_owned and g.money == m0, "no amount of money buys the crown or the tiara")
+	check(g.hat_lock("crown") != "" and g.hat_lock("tiara") != "", "they say how to get them: %s / %s" % [g.hat_lock("crown"), g.hat_lock("tiara")])
+	g.gerald = {"stage": 3, "casts": 0, "tries": 0, "wins": 3, "losses": 0}
+	g.gerald_result(true)
+	g.wear_hat("crown")
+	check(g.hat == "crown" and g.hat_lock("crown") == "", "catch Gerald and the crown goes on")
+	# nothing but laughs
+	var before := [g.fish_catch_mult(), g.fish_quality_mult(), g.sell_mult(), g.xp_mult(), g.treasure_chance(), g.treasure_quality(), g.cooldown(), g.crew_trip_secs(), g.offline_rate(), VFData.rod_reel_power(g.rod)]
+	var same := true
+	for id in g.hats_owned:
+		g.wear_hat(id)
+		same = same and before == [g.fish_catch_mult(), g.fish_quality_mult(), g.sell_mult(), g.xp_mult(), g.treasure_chance(), g.treasure_quality(), g.cooldown(), g.crew_trip_secs(), g.offline_rate(), VFData.rod_reel_power(g.rod)]
+	check(same, "hats change nothing: catch, quality, price, XP, treasure, cooldown, crews, reel power")
+	# they're kept
+	g.wear_hat("duck")
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.hat = "straw"
+	g.hats_owned = ["straw"]
+	g._apply(sd)
+	check(g.hat == "duck" and "pirate" in g.hats_owned and "crown" in g.hats_owned, "hats survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("hat")
+	old.erase("hats_owned")
+	g._apply(old)
+	check(g.hat == "straw" and g.hats_owned == ["straw"], "a save from before hats: the straw hat")
+	old = sd.duplicate(true)
+	old["hats_owned"] = ["pirate", "not_a_hat", "pirate"]
+	old["hat"] = "tiara"
+	g._apply(old)
+	check(g.hats_owned == ["straw", "pirate"] and g.hat == "straw", "a damaged save: hats that don't exist are dropped, and he never wears one he doesn't own")
+	g._apply(sd)
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.hat == "duck" and "pirate" in g.hats_owned and "crown" in g.hats_owned, "hats survive prestige")
+	check(g.stat_value("hats") == g.hats_owned.size(), "they count for Hat Person")
 
 
 ## the places that count: every stat an achievement needs goes up when the thing happens
