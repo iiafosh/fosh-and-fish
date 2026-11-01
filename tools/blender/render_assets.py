@@ -204,9 +204,13 @@ def do_life(only, man):
     fish = old.get("fish", {})
     fish.update(e["fish"])
     e["fish"] = fish
-    for k in ("gull", "crab", "finds"):
+    for k in ("gull", "crab"):
         if k not in e and k in old:
             e[k] = old[k]
+    finds = old.get("finds", {})
+    finds.update(e.get("finds", {}))
+    if finds:
+        e["finds"] = finds
     man["life"] = e
 
 
@@ -224,7 +228,7 @@ def do_mini(only, man):
     d = os.path.join(OUT, "mini")
     os.makedirs(d, exist_ok=True)
     e = man.setdefault("mini", {"cell": LF.MINI_CELL, "frames": LF.MINI_FRAMES, "fish": {}})
-    for name in LF.BIOME_FISH:
+    for name in LF.BIOME_FISH + list(LF.RV.RIVALS):
         if want(name, only):
             e["fish"][name] = LF.render_mini(name, os.path.join(d, slug(name) + ".png"))
 
