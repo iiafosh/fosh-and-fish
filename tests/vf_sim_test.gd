@@ -307,6 +307,7 @@ func _init() -> void:
 	_test_rookie_rounds()
 	_test_first_rebirth()
 	_test_gerald()
+	_test_finds()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -318,6 +319,7 @@ func _with_autoloads() -> void:
 	v._apply(v._defaults.duplicate(true))
 	_test_rookie_bots(v)
 	_test_rival_bots(v)
+	_test_resident_timing(v)
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
 
@@ -550,6 +552,169 @@ func _test_gerald() -> void:
 	var mum2: Dictionary = VFData.rival_params("Geraldine", 0.1, false, 0, 99)
 	check(easy.zone_h > hard.zone_h and easy.fish_speed < hard.fish_speed and easy.drain_rate < hard.drain_rate and easy.time_limit > hard.time_limit, "he gets easier every time you lose to him")
 	check(mum2.zone_h < hard.zone_h and mum2.fish_speed > hard.fish_speed, "his mum is harder")
+
+
+## finds when sailing: the 21 residents, what tapping one pays, which one turns up next, and that they're kept
+func _test_finds() -> void:
+	print("== finds")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var want := {"River": ["otter", "frog", "old_boot"], "Volcanic": ["capybara", "lava_crab", "marshmallow"], "Ocean": ["turtle", "fake_fin", "treasure"],
+		"Sky": ["cloud_sheep", "kite", "paper_plane"], "Space": ["astro_cat", "satellite", "space_duck"], "Alien": ["ufo", "blob", "glow_shroom"],
+		"Abyss": ["anglerfish", "tiny_sub", "sunken_tv"]}
+	var ok := VFData.FINDS.size() == VFData.BIOME_ORDER.size()
+	for b in want:
+		var ids: Array = VFData.FINDS[b].keys()
+		ok = ok and ids == want[b] and VFData.FINDS[b][want[b][2]].rare and not VFData.FINDS[b][want[b][0]].rare and not VFData.FINDS[b][want[b][1]].rare
+		for id in ids:
+			var d: Dictionary = VFData.FINDS[b][id]
+			ok = ok and String(d.name) != "" and String(d.line) != "" and VFData.find_def(id) == d
+	check(ok and VFData.finds_total() == 21, "every biome has its three finds, and the third is the rare one (%d in all)" % VFData.finds_total())
+	check(VFData.find_def("nope").is_empty(), "an unknown id isn't a find")
+	# tapping one
+	var worth: int = g.find_value(VFData.FIND_FIRST)
+	var m0: int = g.money
+	var r1: Dictionary = g.find_tapped("otter")
+	check(r1.first and r1.pay == worth and g.money == m0 + worth and r1.line == VFData.FINDS.River.otter.line and g.finds.otter == 1, "the first otter pays about 10 casts' worth ($%d) and says its line" % r1.pay)
+	check(absf(float(worth) / g.find_value(1.0) - 10.0) < 0.5 and VFData.FIND_FIRST == 10.0 and VFData.FIND_AGAIN == 0.5, "the numbers from the missing list")
+	var r2: Dictionary = g.find_tapped("otter")
+	check(not r2.first and r2.pay == 0 and g.finds.otter == 2 and r2.line != "", "tapping it again right away pays nothing, but it still counts and still talks")
+	g._find_paid_at -= VFData.FIND_PAY_CD + 1.0
+	var r3: Dictionary = g.find_tapped("otter")
+	check(not r3.first and r3.pay == g.find_value(VFData.FIND_AGAIN) and r3.pay < r1.pay, "after the cooldown a repeat pays a little ($%d)" % r3.pay)
+	check(g.find_tapped("otter").pay == 0, "... and the cooldown starts over")
+	var r4: Dictionary = g.find_tapped("frog")
+	check(r4.first and r4.pay > 0, "a new find always pays, cooldown or not")
+	m0 = g.money
+	var bad: Dictionary = g.find_tapped("nope")
+	check(not bad.first and bad.pay == 0 and bad.line == "" and g.money == m0 and not g.finds.has("nope"), "an unknown id does nothing")
+	check(g.finds.size() == 2, "2 of 21 found")
+	# what turns up next
+	g.finds = {}
+	g.biome = "Ocean"
+	var seen := {}
+	for i in 400: seen[g.find_pick()] = true
+	check(seen.keys().size() == 2 and seen.has("turtle") and seen.has("fake_fin"), "nothing found yet: the two common ones of this biome come first (%s)" % [seen.keys()])
+	g.finds = {"turtle": 1}
+	seen = {}
+	for i in 100: seen[g.find_pick()] = true
+	check(seen.keys() == ["fake_fin"], "the one you haven't found comes before the one you have")
+	g.finds = {"turtle": 1, "fake_fin": 3}
+	var rare := 0
+	for i in 2000:
+		if g.find_pick() == "treasure": rare += 1
+	check(absf(rare / 2000.0 - VFData.FIND_RARE) < 0.05, "both found: the rare one turns up %d%% of the time" % int(rare / 20.0))
+	g.finds = {"turtle": 1, "fake_fin": 3, "treasure": 1}
+	rare = 0
+	for i in 2000:
+		if g.find_pick() == "treasure": rare += 1
+	check(absf(rare / 2000.0 - VFData.FIND_RARE) < 0.05, "all found: they keep turning up, the rare one less often (%d%%)" % int(rare / 20.0))
+	for b in VFData.BIOME_ORDER:
+		g.biome = b
+		check(VFData.FINDS[b].has(g.find_pick()), "%s: only its own finds turn up" % b)
+	# they're kept
+	g.finds = {"otter": 4, "treasure": 1}
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.finds = {}
+	g._apply(sd)
+	check(g.finds == {"otter": 4, "treasure": 1}, "finds survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("finds")
+	g._apply(old)
+	check(g.finds.is_empty(), "a save from before finds has none")
+	old = sd.duplicate(true)
+	old["finds"] = {"otter": 2, "not_a_find": 9}
+	g._apply(old)
+	check(g.finds == {"otter": 2}, "ids that don't exist are dropped")
+	g._apply(sd)
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.finds.otter == 4, "finds survive prestige")
+
+
+## stand-ins for what vf_fun.gd asks of vf_main and the stage
+class FunStage:
+	signal poked(kind: String, at: Vector2)
+	var night_amount := 0.0
+	var said := ""
+	func spawn_find(_kind: String) -> void: pass
+	func spawn_thief() -> void: pass
+	func say(text: String, _secs := 3.4) -> void: said = text
+	func to_screen(p: Vector2) -> Vector2: return p
+
+class FunStageWithResidents extends FunStage:
+	var sent := []
+	func spawn_resident(id: String) -> void: sent.append(id)
+
+class FunUI:
+	func coins_to_wallet(_from: Vector2, _n: int) -> void: pass
+
+class FunMain:
+	var stage
+	var v1 := FunUI.new()
+	var overlay := {"visible": false}
+	var minigame = null
+	var sail := {"state": "idle"}
+	var C_GOLD := Color.GOLD
+	var banners := []
+	func launcher_open() -> bool: return false
+	func _phone_open() -> bool: return false
+	func money_str(n: float) -> String: return "$%d" % int(n)
+	func _float_text(_t: String, _at: Vector2, _c: Color) -> void: pass
+	func _toast(_t: String, _k: String) -> void: pass
+	func ph(_n: String) -> Texture2D: return null
+	func _banner(title: String, _sub: String, _tex: Texture2D, _col: Color) -> void: banners.append(title)
+
+
+## when a find turns up: one at a time, gone after FIND_SECS, never during a panel or the tutorial, safe until the stage can show one
+func _test_resident_timing(v) -> void:
+	print("== when a find turns up")
+	v._apply(v._defaults.duplicate(true))
+	v.tutorial = 99
+	v.biome = "River"
+	var Fun = load("res://scripts/vf/vf_fun.gd")
+	var plain := FunMain.new()
+	plain.stage = FunStage.new()
+	var f1 = Fun.new(plain)
+	for i in 400: f1.tick(1.0)
+	check(true, "no spawn_resident on the stage yet: nothing happens, nothing breaks")
+	var m := FunMain.new()
+	var st := FunStageWithResidents.new()
+	m.stage = st
+	var f = Fun.new(m)
+	var t := 0.0
+	var at := []
+	var gaps_ok := true
+	while t < 1800.0:
+		f.tick(1.0)
+		t += 1.0
+		while at.size() < st.sent.size(): at.append(t)
+	for i in range(1, at.size()):
+		if at[i] - at[i - 1] < VFData.FIND_SECS + VFData.FIND_WAIT[0] - 1.0 or at[i] - at[i - 1] > VFData.FIND_SECS + VFData.FIND_WAIT[1] + 1.0: gaps_ok = false
+	check(at.size() >= 7 and gaps_ok, "one at a time: %d in half an hour, none while the last is still out" % at.size())
+	check(st.sent[0] in ["otter", "frog"], "the first one is a common one you haven't found (%s)" % st.sent[0])
+	var n: int = st.sent.size()
+	m.overlay.visible = true
+	for i in 400: f.tick(1.0)
+	check(st.sent.size() == n, "nothing new turns up behind an open panel")
+	m.overlay.visible = false
+	v.tutorial = 2
+	for i in 400: f.tick(1.0)
+	check(st.sent.size() == n, "toys wait for the tutorial")
+	v.tutorial = 99
+	f._resident_left = 50.0
+	var money0: int = v.money
+	st.poked.emit("find:old_boot", Vector2(100, 100))
+	check(st.said == VFData.FINDS.River.old_boot.line and v.money > money0 and m.banners.size() == 1 and v.finds.has("old_boot") and f._resident_left <= 0.0,
+		"tapping one: it says its line, pays, gets its banner, and the next can come")
+	st.poked.emit("find:old_boot", Vector2(100, 100))
+	check(m.banners.size() == 1 and v.finds.old_boot == 2, "the banner is only for the first time")
+	st.poked.emit("crab", Vector2(100, 100))
+	check(v.finds.size() == 1, "a crab isn't a find")
+	check(f.catch_line({"count": 0, "chest": {"tier": "rare"}}) == "" and f.catch_line({"count": 0, "chest": {}}) != "", "a goal's chest card doesn't say the fish are on a break")
+	v._apply(v._defaults.duplicate(true))
 
 
 ## Gerald in the real mini-game: a rival round works without his art, he's a real fight, and nobody gets stuck

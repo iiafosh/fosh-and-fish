@@ -787,3 +787,62 @@ static func rival_params(who: String, power: float, desktop: bool, tries: int, r
 	p.drain_rate = lerpf(p.drain_rate, 0.05, e)
 	p.time_limit += 6.0 * e
 	return p
+
+
+# =================================================================== finds
+## Things to find when sailing (not in the bot, all DERIVED): three residents in every biome, away from the shop, so sailing has
+## a reason. One at a time turns up (VF.find_pick, vf_fun.gd) and stays about FIND_SECS. Tap it from close by: the first time pays
+## about FIND_FIRST casts' worth, later ones about FIND_AGAIN, at most once every FIND_PAY_CD seconds. "rare": turns up less often.
+const FINDS := {
+	"River": {
+		"otter": {"name": "Otter", "line": "Floating on its back. Living better than you.", "rare": false},
+		"frog": {"name": "Frog", "line": "Sits on a lily pad. Has never once been in a hurry.", "rare": false},
+		"old_boot": {"name": "Old Boot", "line": "A tiny fish lives in it. The rent is very reasonable.", "rare": true},
+	},
+	"Volcanic": {
+		"capybara": {"name": "Capybara", "line": "In a hot spring. It has no notes.", "rare": false},
+		"lava_crab": {"name": "Lava Crab", "line": "Walks sideways, on fire. Doesn't want to talk about it.", "rare": false},
+		"marshmallow": {"name": "Marshmallow", "line": "Toasting on a stick. Nobody's holding the stick.", "rare": true},
+	},
+	"Ocean": {
+		"turtle": {"name": "Turtle", "line": "That barnacle is a hat now. It's very proud of it.", "rare": false},
+		"fake_fin": {"name": "Fake Fin", "line": "A little fish with a shark fin on a stick. Please act scared.", "rare": false},
+		"treasure": {"name": "Treasure Chest", "line": "On a sandbar. The map was wrong about everything else.", "rare": true},
+	},
+	"Sky": {
+		"cloud_sheep": {"name": "Cloud Sheep", "line": "Baa. It's raining a little. Sorry.", "rare": false},
+		"kite": {"name": "Lost Kite", "line": "Its string goes nowhere. It's fine. It's on a journey.", "rare": false},
+		"paper_plane": {"name": "Paper Plane", "line": "Someone wrote HELP on it, then made a plane. Priorities.", "rare": true},
+	},
+	"Space": {
+		"astro_cat": {"name": "Astro Cat", "line": "It knocked the moon off a table. It would do it again.", "rare": false},
+		"satellite": {"name": "Satellite", "line": "Picks up one station. It's all fish news.", "rare": false},
+		"space_duck": {"name": "Space Duck", "line": "In a helmet. Still squeaks. Nobody knows how.", "rare": true},
+	},
+	"Alien": {
+		"ufo": {"name": "UFO", "line": "Beaming up a fish. The fish seems into it.", "rare": false},
+		"blob": {"name": "Blob", "line": "Three eyes. All of them disappointed.", "rare": false},
+		"glow_shroom": {"name": "Glow Shroom", "line": "Glows when you compliment it. Go on.", "rare": true},
+	},
+	"Abyss": {
+		"anglerfish": {"name": "Anglerfish", "line": "Has a lamp. Won't share.", "rare": false},
+		"tiny_sub": {"name": "Tiny Sub", "line": "The captain waves. He's very small. Wave back.", "rare": false},
+		"sunken_tv": {"name": "Sunken TV", "line": "Still on. It's showing you. Right now.", "rare": true},
+	},
+}
+const FIND_FIRST := 10.0
+const FIND_AGAIN := 0.5
+const FIND_PAY_CD := 60.0
+const FIND_SECS := 90.0
+const FIND_WAIT := [45.0, 120.0]  # seconds between one leaving and the next turning up
+const FIND_RARE := 0.25           # once you've found the other two: how often the rare one is the one that turns up
+
+static func find_def(id: String) -> Dictionary:
+	for b in FINDS:
+		if FINDS[b].has(id): return FINDS[b][id]
+	return {}
+
+static func finds_total() -> int:
+	var n := 0
+	for b in FINDS: n += FINDS[b].size()
+	return n

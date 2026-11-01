@@ -944,6 +944,7 @@ func to_dict() -> Dictionary:
 		"idle": _idle_dict(),
 		"gerald": gerald,
 		"hats_owned": hats_owned,
+		"finds": finds,
 	}
 
 var autosave := true
@@ -995,6 +996,7 @@ func _apply(d: Dictionary) -> void:
 	_v1_apply(d.get("v1", {}))             # 1.0: pearls, packs, events, shinies, ads (absent before 1.0)
 	_idle_apply(d.get("idle", {}))         # idle: auto-fish, the fleet, the calendar & spin (absent before)
 	_gerald_apply(d.get("gerald", {}), d.get("hats_owned", []))
+	_finds_apply(d.get("finds", {}))
 	offline_check()                        # what the crews caught since this save was written
 
 func _ints(src: Dictionary) -> Dictionary:
@@ -2149,3 +2151,46 @@ func _gerald_apply(d, hats) -> void:
 	if typeof(hats) == TYPE_ARRAY:
 		for h in hats:
 			if not String(h) in hats_owned: hats_owned.append(String(h))
+
+
+# ======================================================================
+# ---- Finds
+# Three residents to find in every biome. Data in vf_data.gd (FINDS). vf_fun.gd decides when one turns up, the stage draws it
+# and sends poked("find:<id>") when you tap it from close by. Survives prestige.
+
+var finds := {}                           # id -> times found
+var _find_paid_at := -1000.0              # unix time a find last paid
+
+## You tapped this one. first: you'd never found it. pay: what it paid (a repeat pays nothing during the cooldown).
+func find_tapped(id: String) -> Dictionary:
+	var d := VFData.find_def(id)
+	if d.is_empty(): return {"first": false, "pay": 0, "line": ""}
+	var first := not finds.has(id)
+	finds[id] = int(finds.get(id, 0)) + 1
+	var now := Time.get_unix_time_from_system()
+	var pay := 0
+	if first or now - _find_paid_at >= VFData.FIND_PAY_CD:
+		pay = pay_find(VFData.FIND_FIRST if first else VFData.FIND_AGAIN)
+		_find_paid_at = now
+	save_game()
+	return {"first": first, "pay": pay, "line": d.line}
+
+## which one turns up next in this biome: the two common ones until you've found them, then any of them, the rare one less often
+func find_pick() -> String:
+	var here: Dictionary = VFData.FINDS.get(biome, {})
+	var common := []
+	var rare := ""
+	for id in here:
+		if here[id].rare: rare = id
+		else: common.append(id)
+	if common.is_empty(): return rare
+	var fresh := common.filter(func(id): return not finds.has(id))
+	if not fresh.is_empty(): return fresh[rng.randi() % fresh.size()]
+	if rare != "" and rng.randf() < VFData.FIND_RARE: return rare
+	return common[rng.randi() % common.size()]
+
+func _finds_apply(d) -> void:
+	finds = {}
+	if typeof(d) != TYPE_DICTIONARY: return
+	for id in d:
+		if not VFData.find_def(String(id)).is_empty(): finds[String(id)] = maxi(1, int(d[id]))
