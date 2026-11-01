@@ -302,7 +302,6 @@ func _init() -> void:
 	check(VFData.ui_scale_for(800.0) == 1.0 and VFData.ui_scale_for(0.0) == 1.0, "tablet / unknown -> desktop layout")
 	check(VFData.ui_scale_for(200.0) <= 1.6, "tiny screens are capped")
 
-	_test_haptics()
 	_test_v1()
 	_test_idle()
 	_test_rookie_rounds()
@@ -312,6 +311,7 @@ func _init() -> void:
 
 ## the tests that play the real mini-game need the autoloads, which exist from the first frame on
 func _with_autoloads() -> void:
+	_test_haptics()
 	var v = load("res://tests/reel_bot.gd").vf()
 	v.autosave = false                   # (the autoload holds the real save: it must never be written from here)
 	v._apply(v._defaults.duplicate(true))
@@ -323,20 +323,22 @@ func _with_autoloads() -> void:
 ## the phone's vibration stays short and gentle, whoever tunes it (docs/MISSING_LIST.md part 2)
 func _test_haptics() -> void:
 	print("== haptics")
+	var H = load("res://scripts/vf/vf_haptics.gd")      # (not by its class name: it uses AudioManager, and this file compiles before the autoloads exist)
 	var want := ["tap", "bite", "reel", "win", "lose", "rare", "shiny", "honk", "poke", "gerald"]
-	check(want.all(func(k): return VFHaptics.KINDS.has(k)) and VFHaptics.KINDS.size() == want.size(), "all %d kinds are there" % want.size())
+	check(want.all(func(k): return H.KINDS.has(k)) and H.KINDS.size() == want.size(), "all %d kinds are there" % want.size())
 	var longest := 0
 	var hardest := 0.0
 	var pattern := 0
-	for k in VFHaptics.KINDS:
+	for k in H.KINDS:
 		var total := 0
-		for p in VFHaptics.KINDS[k]:
+		for p in H.KINDS[k]:
 			longest = maxi(longest, p[0])
 			hardest = maxf(hardest, p[1])
 			total += p[0]
-		pattern = maxi(pattern, total + (VFHaptics.KINDS[k].size() - 1) * VFHaptics.PAUSE_MS)
+		pattern = maxi(pattern, total + (H.KINDS[k].size() - 1) * H.PAUSE_MS)
 	check(longest <= 80 and hardest <= 0.6 and pattern <= 400, "gentle: longest pulse %d ms, strength %.2f, longest pattern %d ms" % [longest, hardest, pattern])
-	check(VFHaptics.KINDS.keys().filter(func(k): return VFHaptics.KINDS[k].size() > 1).all(func(k): return k in ["rare", "shiny", "gerald"]), "only rare, shiny and gerald are patterns")
+	check(H.KINDS.keys().filter(func(k): return H.KINDS[k].size() > 1).all(func(k): return k in ["rare", "shiny", "gerald"]), "only rare, shiny and gerald are patterns")
+	check(not H._too_soon("reel") and H._too_soon("reel") and not H._too_soon("tap"), "the mini-game's ticks are thinned out, nothing else waits")
 
 
 ## the first rounds of Reel it in!: new games start in that mode, old saves don't, the first rounds are easier

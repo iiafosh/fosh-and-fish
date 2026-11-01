@@ -28,15 +28,11 @@ static func buzz(kind: String) -> void:
 	if not KINDS.has(kind):
 		push_error("VFHaptics: no kind called " + kind)
 		return
-	if not _switched_on() or _too_soon(kind): return
+	if not AudioManager.vibration_on or _too_soon(kind): return
 	if _capturing():
 		print("HAPTIC ", kind)
 	elif OS.has_feature("mobile") or OS.has_feature("web_android"):
 		_play(KINDS[kind])
-
-## (looked up, not named: tests/vf_sim_test.gd loads this file before the autoloads exist, to check the table above)
-static func _switched_on() -> bool:
-	return (Engine.get_main_loop() as SceneTree).root.get_node("AudioManager").vibration_on
 
 static func _too_soon(kind: String) -> bool:
 	if kind != "reel": return false
