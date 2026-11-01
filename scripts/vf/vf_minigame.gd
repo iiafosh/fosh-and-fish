@@ -252,6 +252,7 @@ func _ready() -> void:
 	elif randf() < 0.55 and SAY_SPECIES.has(fish_name): line = SAY_SPECIES[fish_name]
 	_say(line)
 	AudioManager.play_strike()
+	VFHaptics.buzz("bite")
 	AudioManager.play_sfx("splash", -4.0, 1.15)
 
 func _layer(parent: Control, r: Rect2, cb: Callable) -> Control:
@@ -466,6 +467,7 @@ func _play(delta: float) -> void:
 		if _tick_t <= 0.0:
 			_tick_t = 0.15
 			AudioManager.play_sfx("bubble", -17.0, 0.8 + progress * 0.9)
+			VFHaptics.buzz("reel")
 	else:
 		progress -= drain_rate * delta
 		_out_time += delta
@@ -653,6 +655,7 @@ func _finish(w: bool) -> void:
 	skip_lbl.visible = true
 	streak = streak + 1 if w else 0
 	resolved.emit(w)
+	VFHaptics.buzz("win" if w else "lose")
 	var tw := create_tween()
 	if w:
 		_face = "dizzy"

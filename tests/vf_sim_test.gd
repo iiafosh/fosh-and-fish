@@ -302,11 +302,31 @@ func _init() -> void:
 	check(VFData.ui_scale_for(800.0) == 1.0 and VFData.ui_scale_for(0.0) == 1.0, "tablet / unknown -> desktop layout")
 	check(VFData.ui_scale_for(200.0) <= 1.6, "tiny screens are capped")
 
+	_test_haptics()
 	_test_v1()
 	_test_idle()
 
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
+
+
+## the phone's vibration stays short and gentle, whoever tunes it (docs/MISSING_LIST.md part 2)
+func _test_haptics() -> void:
+	print("== haptics")
+	var want := ["tap", "bite", "reel", "win", "lose", "rare", "shiny", "honk", "poke", "gerald"]
+	check(want.all(func(k): return VFHaptics.KINDS.has(k)) and VFHaptics.KINDS.size() == want.size(), "all %d kinds are there" % want.size())
+	var longest := 0
+	var hardest := 0.0
+	var pattern := 0
+	for k in VFHaptics.KINDS:
+		var total := 0
+		for p in VFHaptics.KINDS[k]:
+			longest = maxi(longest, p[0])
+			hardest = maxf(hardest, p[1])
+			total += p[0]
+		pattern = maxi(pattern, total + (VFHaptics.KINDS[k].size() - 1) * VFHaptics.PAUSE_MS)
+	check(longest <= 80 and hardest <= 0.6 and pattern <= 400, "gentle: longest pulse %d ms, strength %.2f, longest pattern %d ms" % [longest, hardest, pattern])
+	check(VFHaptics.KINDS.keys().filter(func(k): return VFHaptics.KINDS[k].size() > 1).all(func(k): return k in ["rare", "shiny", "gerald"]), "only rare, shiny and gerald are patterns")
 
 
 ## 1.0: easier economy, events, packs & Pearls, ads, shinies, exclusive rods, saves
