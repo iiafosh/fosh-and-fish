@@ -401,8 +401,8 @@ def extrude_poly(points, depth, loc=(0, 0, 0), rot=(0, 0, 0), mat=None, scale=1.
     return _finish(ob, mat, False, None)
 
 
-def tube(points, radius=0.05, mat=None, taper=None, res=8, name=None):
-    """Bezier tube through points -> mesh. taper: (start_scale, end_scale)."""
+def tube(points, radius=0.05, mat=None, taper=None, res=8, name=None, radii=None):
+    """Bezier tube through points -> mesh. taper: (start_scale, end_scale). radii: a scale for each point instead."""
     cu = bpy.data.curves.new("tube", "CURVE")
     cu.dimensions = "3D"
     cu.bevel_depth = radius
@@ -418,6 +418,8 @@ def tube(points, radius=0.05, mat=None, taper=None, res=8, name=None):
         if taper:
             t = i / max(1, len(points) - 1)
             bp.radius = taper[0] * (1 - t) + taper[1] * t
+        if radii:
+            bp.radius = radii[i]
     ob = bpy.data.objects.new(name or "tube", cu)
     bpy.context.collection.objects.link(ob)
     bpy.context.view_layer.objects.active = ob

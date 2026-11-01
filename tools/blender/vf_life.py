@@ -14,6 +14,7 @@ from mathutils import Matrix, Vector
 
 import vf_kit as K
 import vf_models as M
+import vf_rival as RV
 import vf_topdown as TD
 import vf_vendor as V
 from vf_kit import cone, extrude_poly, hexc, mix, sphere, toon, torus, tube, vcolor
@@ -273,7 +274,7 @@ MINI_FRAMES = 4
 def render_mini(name, out_path):
     """Reel it in!: the species close up from the side, swimming, without its eyes: the mini-game draws a cartoon face
     on it. -> where the face goes, 0..1 of a cell"""
-    spec = M.FISH_SPECS[name]
+    spec = RV.RIVALS.get(name) or M.FISH_SPECS[name]
     K.clear_scene()
     V.clear_library()
     K.SOFT[0] = True
@@ -282,11 +283,14 @@ def render_mini(name, out_path):
     s = K.sun((55, 0, 20), 1.0)
     s.data.angle = math.radians(7)
     cam = K.make_camera((82, 0, 0), ortho=True)
-    parts = _build_puffer(spec, lips=False) if spec.get("puffer") else M.build_fish(spec)
+    if spec.get("rival"):
+        parts = RV.build(spec)
+    else:
+        parts = _build_puffer(spec, lips=False) if spec.get("puffer") else M.build_fish(spec)
     bpy.context.view_layer.update()
     eye, er = None, 0.0
     for p in list(parts):
-        if p.type == "MESH" and p.get("no_outline") and len(p.data.vertices) >= 50:      # (not the little sparkles)
+        if p.type == "MESH" and p.get("no_outline") and not p.get("decal") and len(p.data.vertices) >= 50:      # (not the little sparkles)
             at, r = p.matrix_world.translation.copy(), max(p.dimensions) * 0.5
             if at.y < 0.0 and r > er:
                 eye, er = at, r
@@ -310,7 +314,10 @@ def render_mini(name, out_path):
     tmp = tempfile.mkdtemp()
     paths = []
     for f in range(MINI_FRAMES):
-        _pose(baked, fn, f / MINI_FRAMES * math.tau)
+        if spec.get("rival"):
+            RV.pose(baked, f / MINI_FRAMES * math.tau)
+        else:
+            _pose(baked, fn, f / MINI_FRAMES * math.tau)
         p = os.path.join(tmp, "f%d.png" % f)
         K.render(p)
         paths.append(p)
@@ -318,6 +325,8 @@ def render_mini(name, out_path):
     K.SOFT[0] = False
     # (a squid's face looks the other way, toward its tentacles)
     e, m = K.project(cam, eye), K.project(cam, eye + (Vector((-er * 0.4, 0.0, -er * 2.4)) if spec.get("squid") else Vector((er * 2.0, 0.0, -er * 2.0))))
+    if spec.get("mouth"):
+        m = K.project(cam, spec["mouth"])
     return {"eye": [round(e[0] / MINI_CELL, 4), round(e[1] / MINI_CELL, 4)], "mouth": [round(m[0] / MINI_CELL, 4), round(m[1] / MINI_CELL, 4)],
             "er": round(er / span, 4)}
 
@@ -510,6 +519,25 @@ def render_big(model, out_path):
     K.SOFT[0] = False
 
 
+def render_shape(out_path):
+    """the big dark shape that swims past the boat, heading right, in the whale's format"""
+    cam = _setup(BIG_CELL)
+    root, baked = _bake(RV.build_shape())
+    K.outline_all([p for p, _ in baked], 0.05)
+    root.location.x = 0.23              # (the tail is longer than the nose: this centres him in the cell)
+    _frame(cam, 1.6)
+    tmp = tempfile.mkdtemp()
+    paths = []
+    for f in range(BIG_FRAMES):
+        RV.pose(baked, f / BIG_FRAMES * math.tau)
+        bpy.context.view_layer.update()
+        p = os.path.join(tmp, "f%d.png" % f)
+        K.render(p)
+        paths.append(p)
+    _sheet([paths], out_path, BIG_CELL)
+    K.SOFT[0] = False
+
+
 def render_all(out_dir, only=None):
     """-> the manifest's "life" entry"""
     os.makedirs(out_dir, exist_ok=True)
@@ -529,4 +557,6 @@ def render_all(out_dir, only=None):
     for m in ("whale", "manta"):
         if want(m):
             render_big(m, os.path.join(out_dir, m + ".png"))
+    if want("gerald"):
+        render_shape(os.path.join(out_dir, "gerald.png"))
     return e
