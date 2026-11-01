@@ -2218,7 +2218,10 @@ func _check_capture() -> void:
 		await _shot(dir + "/on4_shop.png")
 		_close_panel()
 		await get_tree().create_timer(0.8).timeout
+		while _banner_busy: await get_tree().process_frame
+		await get_tree().create_timer(0.3).timeout
 		await _shot(dir + "/on5_goals.png")
+		print("LAST STEP: tutorial %d, coach %s" % [VF.tutorial, _coach.visible])
 		_open_panel("inventory")
 		await get_tree().create_timer(0.5).timeout
 		await _shot(dir + "/on6_collection.png")
@@ -2886,8 +2889,9 @@ func _coach_next(step: int) -> void:
 	VF.save_game()
 	_coach_show()
 	if step == 4:
-		get_tree().create_timer(7.0).timeout.connect(func():
-			if VF.tutorial == 4: _coach_next(99))
+		while _banner_busy: await get_tree().process_frame      # (the bubble waits for them: its 7 s start after)
+		await get_tree().create_timer(7.0).timeout
+		if VF.tutorial == 4: _coach_next(99)
 
 ## the very first round of the mini-game: the coach says how it's played, whatever step the tutorial is on
 func _coach_round() -> bool:
