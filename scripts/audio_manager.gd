@@ -69,6 +69,7 @@ var fullscreen := false
 var ui_size := 1.0           # interface size: 0.85 smaller, 1.0 normal, 1.15 bigger (Settings)
 var notify_on := false       # reminders while the game is in the background (vf_notify.gd; asks the browser first)
 var scenery_fx := true       # moving water, wind, reflections, clouds and nightfall (Settings; off for weak devices)
+var vibration_on := true     # the phone buzzes when something happens (vf_haptics.gd)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -131,6 +132,7 @@ func load_settings() -> void:
 	ui_size = clampf(float(cf.get_value("display", "ui_size", ui_size)), 0.7, 1.4)
 	notify_on = bool(cf.get_value("game", "notify_on", notify_on))
 	scenery_fx = bool(cf.get_value("display", "scenery_fx", scenery_fx))
+	vibration_on = bool(cf.get_value("game", "vibration_on", vibration_on))
 
 func save_settings() -> void:
 	var cf := ConfigFile.new()
@@ -142,6 +144,7 @@ func save_settings() -> void:
 	cf.set_value("display", "ui_size", ui_size)
 	cf.set_value("game", "notify_on", notify_on)
 	cf.set_value("display", "scenery_fx", scenery_fx)
+	cf.set_value("game", "vibration_on", vibration_on)
 	cf.save(SETTINGS_PATH)
 
 func apply_settings() -> void:
