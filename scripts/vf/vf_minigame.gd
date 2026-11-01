@@ -737,7 +737,10 @@ func _finish(w: bool) -> void:
 	_puff = 0.0
 	hint.visible = false
 	skip_lbl.visible = true
-	if rival == "": streak = streak + 1 if w else 0
+	if rival == "":
+		streak = streak + 1 if w else 0
+		VF.stat_add("reel_wins" if w else "reel_losses")
+		if w and perfect: VF.stat_add("perfect_rounds")
 	VF.reel_rounds += 1
 	resolved.emit(w)
 	VFHaptics.buzz("win" if w else "lose")

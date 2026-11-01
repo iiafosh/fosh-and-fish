@@ -198,7 +198,7 @@ func sell_mult() -> float:
 
 ## 1.0: the easier economy, Supporter Pack perks, the shiny collection, Golden Hour and Double Money (ads)
 func extra_money_mult() -> float:
-	return VFData.EASE * (1.0 + perk("money") + shiny_bonus()) * event_mult("money") * (2.0 if money2x_left() > 0.0 else 1.0)
+	return VFData.EASE * (1.0 + perk("money") + shiny_bonus()) * event_mult("money") * (2.0 if money2x_left() > 0.0 else 1.0) * (1.0 + book_bonus(biome))
 
 ## Beginner's Luck (not in the bot): new players level faster so chests and boosts
 ## (level 10) arrive in the first session. x3 below level 10, fading to x1 at level 25.
@@ -403,6 +403,7 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	res.levels = level - lvl_before
 	stats.trips += 1
 	stats.fish += n
+	if n <= 0: stat_add("blanks")
 	trips_without_pet += 1
 	_quest_add("fish", n)
 	_quest_add("trips", 1)
@@ -710,6 +711,7 @@ func select_bait(b: String) -> void:
 
 func select_biome(b: String) -> String:
 	if level < VFData.BIOMES[b].level: return "%s unlocks at level %d." % [b, VFData.BIOMES[b].level]
+	if b != biome: stat_add("voyages")
 	biome = b
 	changed.emit()
 	return ""
@@ -895,6 +897,8 @@ func prestige_check() -> Dictionary:
 
 func do_prestige() -> String:
 	if not prestige_check().ok: return "Requirements not met."
+	stats["best_level"] = stat_value("level")      # (what you reached still counts for achievements)
+	stats["best_crews"] = stat_value("crews")
 	prestige += 1
 	exotics = {"gold": 0, "emerald": 0, "lava": 0, "diamond": 0, "azure": int(exotics.azure) + 1}
 	level = 1
@@ -945,6 +949,7 @@ func to_dict() -> Dictionary:
 		"gerald": gerald,
 		"hats_owned": hats_owned,
 		"finds": finds,
+		"ach_claimed": ach_claimed,
 	}
 
 var autosave := true
@@ -997,6 +1002,7 @@ func _apply(d: Dictionary) -> void:
 	_idle_apply(d.get("idle", {}))         # idle: auto-fish, the fleet, the calendar & spin (absent before)
 	_gerald_apply(d.get("gerald", {}), d.get("hats_owned", []))
 	_finds_apply(d.get("finds", {}))
+	_ach_apply(d.get("ach_claimed", {}))
 	offline_check()                        # what the crews caught since this save was written
 
 func _ints(src: Dictionary) -> Dictionary:
@@ -1957,12 +1963,14 @@ func offline_check() -> void:
 	idle_seen = now
 	if first or away < VFData.OFFLINE_MIN or crews <= 0: return
 	var secs := minf(away, offline_cap_secs())
-	var n := int(round(crews * secs / crew_trip_secs() * offline_rate() * crew_trip_fish()))
+	var visitors := aquarium_income()
+	var n := int(round(crews * secs / crew_trip_secs() * offline_rate() * crew_trip_fish() * (1.0 + visitors)))
 	if n <= 0: return
 	var caught := _distribute(n)
 	var gx := 0.0
 	for f in caught: gx += caught[f] * VFData.FISH[f].xp
-	var o: Dictionary = offline if not offline.is_empty() else {"away": 0.0, "secs": 0.0, "n": 0, "xp": 0, "fish": {}}
+	var o: Dictionary = offline if not offline.is_empty() else {"away": 0.0, "secs": 0.0, "n": 0, "xp": 0, "fish": {}, "aquarium": 0.0}
+	o.aquarium = visitors
 	o.away = float(o.away) + away
 	o.secs = float(o.secs) + secs
 	o.n = int(o.n) + n
@@ -2060,7 +2068,7 @@ func _idle_apply(d: Dictionary) -> void:
 			if VFData.FISH.has(String(f)) and int(o.fish[f]) > 0: fish[String(f)] = int(o.fish[f])
 		if not fish.is_empty():
 			offline = {"away": float(o.get("away", 0.0)), "secs": float(o.get("secs", 0.0)), "n": int(o.get("n", 0)),
-				"xp": maxi(0, int(o.get("xp", 0))), "fish": fish}
+				"xp": maxi(0, int(o.get("xp", 0))), "fish": fish, "aquarium": float(o.get("aquarium", 0.0))}
 	spin_day = String(d.get("spin_day", ""))
 	spins = maxi(0, int(d.get("spins", 0)))
 	_crew_accum = 0.0
@@ -2194,3 +2202,79 @@ func _finds_apply(d) -> void:
 	if typeof(d) != TYPE_DICTIONARY: return
 	for id in d:
 		if not VFData.find_def(String(id)).is_empty(): finds[String(id)] = maxi(1, int(d[id]))
+
+
+# ======================================================================
+# ---- Collecting: achievements, the Fish Book's stamps, the aquarium's visitors
+# Data in vf_data.gd (ACHIEVEMENTS, BOOK_BONUS, AQUARIUM_MAX), screens in vf_collect_ui.gd. It all survives prestige. `stats` is the
+# dictionary at the top of this file: its counters only ever go up.
+
+var ach_claimed := {}                     # id -> true
+
+## n more of something an achievement counts
+func stat_add(id: String, n := 1) -> void:
+	stats[id] = int(stats.get(id, 0)) + n
+
+## how far along an achievement's stat is
+func stat_value(id: String) -> int:
+	match id:
+		"level": return maxi(level, int(stats.get("best_level", 0)))
+		"crews": return maxi(crews, int(stats.get("best_crews", 0)))
+		"prestige": return prestige
+		"species": return discovered.size()
+		"finds": return finds.size()
+		"ducks": return ducks
+		"hats": return hats_owned.size()
+		"gerald_losses": return int(gerald.losses)
+		"gerald_caught": return 1 if int(gerald.stage) > _gerald_last_of("Gerald") else 0
+		"mum_caught": return 1 if int(gerald.stage) > _gerald_last_of("Geraldine") else 0
+		"books":
+			var n := 0
+			for b in VFData.BIOME_ORDER:
+				if book_done(b): n += 1
+			return n
+	return int(stats.get(id, 0))
+
+## the last row of VFData.GERALD for who
+func _gerald_last_of(who: String) -> int:
+	var at := VFData.GERALD.size() - 1
+	while at > 0 and VFData.GERALD[at].who != who: at -= 1
+	return at
+
+## the achievements you've reached and not claimed yet (the Menu's badge: their count)
+func ach_ready() -> Array:
+	var out := []
+	for a in VFData.ACHIEVEMENTS:
+		if not ach_claimed.has(a.id) and stat_value(a.stat) >= int(a.goal): out.append(a.id)
+	return out
+
+## Claim one. Returns the Pearls it paid (0: not ready, or already claimed).
+func ach_claim(id: String) -> int:
+	if not id in ach_ready(): return 0
+	var pay := int(VFData.ach_def(id).pearls)
+	ach_claimed[id] = true
+	pearls += pay
+	changed.emit()
+	save_game()
+	return pay
+
+func _ach_apply(d) -> void:
+	ach_claimed = {}
+	if typeof(d) != TYPE_DICTIONARY: return
+	for id in d:
+		if not VFData.ach_def(String(id)).is_empty(): ach_claimed[String(id)] = true
+
+## every fish of this biome caught at least once: its stamp in the Fish Book
+func book_done(b: String) -> bool:
+	if not VFData.BIOMES.has(b): return false
+	for f in VFData.BIOMES[b].fish:
+		if not discovered.has(f): return false
+	return true
+
+## what the stamp is worth in that biome
+func book_bonus(b: String) -> float:
+	return VFData.BOOK_BONUS if book_done(b) else 0.0
+
+## The aquarium: every species you've caught swims in it, and visitors pay. What it adds to the catch while you're away.
+func aquarium_income() -> float:
+	return minf(VFData.AQUARIUM_MAX, VFData.AQUARIUM_MAX * discovered.size() / VFData.FISH_ORDER.size())
