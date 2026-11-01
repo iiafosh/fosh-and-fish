@@ -1778,7 +1778,9 @@ func _tick_finds(delta: float) -> void:
 	if not _thief.is_empty():
 		_thief.pos += _thief.vel * delta
 		_thief.fr += delta * 16.0
-		if _thief.pos.x < -200.0 or _thief.pos.x > SCENE.x + 200.0: _thief = {}
+		if _thief.pos.x < -200.0 or _thief.pos.x > SCENE.x + 200.0:
+			_thief = {}
+			poked.emit("thief_away", Vector2.ZERO)
 
 func _draw_finds() -> void:
 	var info: Dictionary = manifest.get("life", {}).get("finds", {})

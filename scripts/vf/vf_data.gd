@@ -846,3 +846,71 @@ static func finds_total() -> int:
 	var n := 0
 	for b in FINDS: n += FINDS[b].size()
 	return n
+
+
+# ============================================================== collecting
+## Achievements (not in the bot, all DERIVED): a goal to reach, a few Pearls to claim, about half of them jokes. "stat" is what
+## VF.stat_value reads: something about the game itself, or a counter in VF.stats that goes up when the thing happens (VF.stat_add).
+const ACHIEVEMENTS := [
+	{"id": "first_fish", "name": "It's a Start", "desc": "Catch your first fish.", "stat": "fish", "goal": 1, "pearls": 2},
+	{"id": "fish_1k", "name": "A Thousand Fish", "desc": "Catch 1,000 fish.", "stat": "fish", "goal": 1000, "pearls": 5},
+	{"id": "fish_100k", "name": "Overfishing", "desc": "Catch 100,000 fish. Leave some for the others.", "stat": "fish", "goal": 100000, "pearls": 15},
+	{"id": "trips_1k", "name": "Regular", "desc": "Cast 1,000 times.", "stat": "trips", "goal": 1000, "pearls": 5},
+	{"id": "species_10", "name": "Getting the Hang of It", "desc": "Discover 10 species.", "stat": "species", "goal": 10, "pearls": 5},
+	{"id": "species_all", "name": "Every Fish", "desc": "Discover all 20 species.", "stat": "species", "goal": 20, "pearls": 25},
+	{"id": "level_25", "name": "Not a Beginner", "desc": "Reach level 25.", "stat": "level", "goal": 25, "pearls": 5},
+	{"id": "level_100", "name": "Salty", "desc": "Reach level 100.", "stat": "level", "goal": 100, "pearls": 10},
+	{"id": "million", "name": "First Million", "desc": "Earn $1M in all.", "stat": "money_earned", "goal": 1000000, "pearls": 5},
+	{"id": "billion", "name": "Fish Tycoon", "desc": "Earn $1B in all.", "stat": "money_earned", "goal": 1000000000, "pearls": 15},
+	{"id": "chests_100", "name": "Treasure Hunter", "desc": "Open 100 chests.", "stat": "chests", "goal": 100, "pearls": 5},
+	{"id": "rebirth", "name": "Born Again", "desc": "Your first rebirth.", "stat": "prestige", "goal": 1, "pearls": 15},
+	{"id": "finds_7", "name": "Sightseer", "desc": "Find 7 residents while sailing.", "stat": "finds", "goal": 7, "pearls": 5},
+	{"id": "finds_all", "name": "Seen It All", "desc": "Find all 21 residents.", "stat": "finds", "goal": 21, "pearls": 25},
+	{"id": "book_1", "name": "First Stamp", "desc": "Finish a biome in the Fish Book.", "stat": "books", "goal": 1, "pearls": 5},
+	{"id": "crews_5", "name": "Admiral", "desc": "Hire 5 crews.", "stat": "crews", "goal": 5, "pearls": 5},
+	{"id": "won_100", "name": "Reel Good", "desc": "Win 100 rounds of Reel it in!", "stat": "reel_wins", "goal": 100, "pearls": 5},
+	{"id": "perfect_10", "name": "Not a Scratch", "desc": "Win 10 rounds without the fish slipping out once.", "stat": "perfect_rounds", "goal": 10, "pearls": 5},
+	{"id": "honks_100", "name": "Honk If You're Lonely", "desc": "Honk the boat 100 times.", "stat": "honks", "goal": 100, "pearls": 5, "joke": true},
+	{"id": "robbed", "name": "Mugged by a Gull", "desc": "Let a gull fly off with your fish.", "stat": "robbed", "goal": 1, "pearls": 3, "joke": true},
+	{"id": "thieves_10", "name": "Neighbourhood Watch", "desc": "Stop 10 thieving gulls.", "stat": "thieves", "goal": 10, "pearls": 5, "joke": true},
+	{"id": "gerald_5", "name": "Gerald's Favourite", "desc": "Lose to Gerald 5 times.", "stat": "gerald_losses", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "gerald_caught", "name": "Moustache Envy", "desc": "Catch Gerald. Finally.", "stat": "gerald_caught", "goal": 1, "pearls": 10, "joke": true},
+	{"id": "mum_caught", "name": "Sorry, Mrs. Gerald", "desc": "Catch Geraldine.", "stat": "mum_caught", "goal": 1, "pearls": 25, "joke": true},
+	{"id": "ducks_10", "name": "It's Just a Phase", "desc": "Collect 10 rubber ducks.", "stat": "ducks", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "ducks_50", "name": "The Ducks Are Concerned", "desc": "Collect 50 rubber ducks.", "stat": "ducks", "goal": 50, "pearls": 10, "joke": true},
+	{"id": "crabs_100", "name": "Crab Botherer", "desc": "Poke crabs 100 times. They know things.", "stat": "crab_pokes", "goal": 100, "pearls": 5, "joke": true},
+	{"id": "gulls_50", "name": "Gull Friend", "desc": "Poke gulls 50 times. They hate it.", "stat": "gull_pokes", "goal": 50, "pearls": 3, "joke": true},
+	{"id": "bottles_10", "name": "Pen Pal", "desc": "Read 10 messages in bottles.", "stat": "bottles", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "lost_25", "name": "They Seemed Nice", "desc": "Let 25 fish get away.", "stat": "reel_losses", "goal": 25, "pearls": 3, "joke": true},
+	{"id": "blanks_10", "name": "Not Even a Boot", "desc": "Catch nothing at all, 10 times.", "stat": "blanks", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "hats_5", "name": "Hat Person", "desc": "Own 5 hats.", "stat": "hats", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "glass_50", "name": "Please Don't Tap the Glass", "desc": "Tap the aquarium 50 times.", "stat": "glass_taps", "goal": 50, "pearls": 3, "joke": true},
+	{"id": "voyages_25", "name": "Are We There Yet?", "desc": "Sail to another biome 25 times.", "stat": "voyages", "goal": 25, "pearls": 5, "joke": true},
+]
+const BOOK_BONUS := 0.05          # every fish of a biome in the Fish Book: this much more money there, for good
+const AQUARIUM_MAX := 0.30        # every species in the aquarium: visitors add this much to the catch while you're away
+
+static func ach_def(id: String) -> Dictionary:
+	for a in ACHIEVEMENTS:
+		if a.id == id: return a
+	return {}
+
+
+# ==================================================================== hats
+## Silly hats for the captain (not in the bot, all DERIVED). They buy nothing but laughs: no stat looks at them. "price" is in casts'
+## worth (VF.hat_price), so it follows your progress; none is sold for Pearls. "ducks": yours once you've found that many rubber
+## ducks. "from": Gerald or Geraldine gives it when they're caught (VFData.GERALD_HATS).
+const HATS := {
+	"straw": {"name": "Straw Hat", "price": 0.0, "desc": "This hat has seen things."},
+	"pirate": {"name": "Pirate Hat", "price": 15.0, "desc": "Arr. That's all he knows."},
+	"chef": {"name": "Chef's Hat", "price": 25.0, "desc": "The fish don't find this funny."},
+	"propeller": {"name": "Propeller Cap", "price": 40.0, "desc": "Doesn't make the boat go faster. He checked."},
+	"viking": {"name": "Viking Helmet", "price": 60.0, "desc": "For raiding the buffet."},
+	"traffic_cone": {"name": "Traffic Cone", "price": 80.0, "desc": "Nobody asked where he got it."},
+	"top_hat": {"name": "Top Hat", "price": 120.0, "desc": "Very distinguished. Still smells of fish."},
+	"sombrero": {"name": "Sombrero", "price": 160.0, "desc": "Shade for the whole boat."},
+	"duck": {"name": "Duck Hat", "price": 0.0, "ducks": 25, "desc": "It squeaks when he thinks."},
+	"crown": {"name": "Gerald's Crown", "price": 0.0, "from": "Gerald", "desc": "He wants it back. He can't have it."},
+	"tiara": {"name": "Geraldine's Tiara", "price": 0.0, "from": "Geraldine", "desc": "Sit up straight."},
+}
+const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]

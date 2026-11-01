@@ -86,6 +86,7 @@ func _tick_tease(delta: float) -> void:
 func honk() -> void:
 	if _honk_cd > 0.0: return
 	_honk_cd = 1.2
+	VF.stat_add("honks")
 	VFHaptics.buzz("honk")
 	AudioManager.play_fun("horn", -9.0, randf_range(0.97, 1.03))
 	m.stage.on_honk()
@@ -106,23 +107,29 @@ func _show_pay(n: int, at: Vector2) -> void:
 	AudioManager.play_coin()
 
 func _on_poked(kind: String, at: Vector2) -> void:
+	if kind == "thief_away":             # (nobody touched anything: it just got away with it)
+		VF.stat_add("robbed")
+		return
 	VFHaptics.buzz("poke")
 	if kind.begins_with("find:"):
 		_found(kind.substr(5), at)
 		return
 	match kind:
 		"crab":
+			VF.stat_add("crab_pokes")
 			AudioManager.play_fun("squeak", -9.0, randf_range(0.9, 1.25))
 			if randf() < 0.25: m.stage.say("Leave the crabs alone. They know things.", 2.8)
 			if _pay_cd <= 0.0:
 				_pay_cd = 20.0
 				_pay(0.15, at)
 		"gull":
+			VF.stat_add("gull_pokes")
 			AudioManager.play_fun("squawk", -10.0, randf_range(0.9, 1.15))
 			if _pay_cd <= 0.0:
 				_pay_cd = 20.0
 				_pay(0.15, at)
 		"bottle":
+			VF.stat_add("bottles")
 			AudioManager.play_fun("pop", -6.0)
 			_pay(3.0, at)
 			note(NOTES.pick_random())
@@ -133,6 +140,7 @@ func _on_poked(kind: String, at: Vector2) -> void:
 			_pay(1.0 + minf(VF.ducks, 20.0) * 0.1, at)
 			m._toast("Rubber duck #%d! %s" % [VF.ducks, DUCK_MILESTONES.get(VF.ducks, DUCK_LINES.pick_random())], "quest")
 		"thief":
+			VF.stat_add("thieves")
 			AudioManager.play_fun("squawk", -7.0, 0.85)
 			AudioManager.play_fun("ding", -9.0)
 			_pay(5.0, at)
