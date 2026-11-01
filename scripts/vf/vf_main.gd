@@ -301,7 +301,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return                                 # one question at a time
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
-		if stage.poke(event.position): return  # a crab, a gull, a bottle...
+		if VF.tutorial >= 99 and stage.poke(event.position): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
 		_do_cast()
@@ -484,7 +484,7 @@ func _short_side_dp() -> float:
 ## Nodes under something tagged "fixed_fonts" (the FishTok phone, drawn as a tiny phone) keep their sizes.
 const PHONE_MIN_FONT := 13
 
-func _min_font(n: Control) -> void:
+func _min_font(n) -> void:                     # (not typed: a label freed before this deferred call couldn't even get in)
 	if not is_instance_valid(n) or not n.is_inside_tree(): return
 	var p: Node = n
 	while p != null and p != self:
@@ -2206,7 +2206,7 @@ func _check_capture() -> void:
 		await _shot(dir + "/on0_cast.png")
 		print("START: welcome card %s, coach %s" % [card.visible, _coach.visible])
 		var trips_before: int = VF.stats.trips
-		await _onboarding_round(dir + "/on1_first_round.png")
+		await _onboarding_round(dir, "on1_first_round.png")
 		print("TAP_CASTS %d, tutorial %d, rounds %d" % [VF.stats.trips - trips_before, VF.tutorial, VF.reel_rounds])
 		await get_tree().create_timer(2.0).timeout
 		await _shot(dir + "/on2_sell.png")
@@ -2232,14 +2232,18 @@ func _check_capture() -> void:
 		await get_tree().create_timer(0.1).timeout
 		await _shot(dir + "/on7_menu.png")
 		_close_panel()
-		await _onboarding_round(dir + "/on8_second_round.png")
+		await _onboarding_round(dir, "on8_second_round.png")
 		print("ROUND 2: coach %s, question %s" % [_coach.visible, _reel_ask])
 		await get_tree().create_timer(1.0).timeout
-		await _onboarding_round()
+		await _onboarding_round(dir)
 		print("ROUND 3: rounds %d, question due %s" % [VF.reel_rounds, _reel_ask])
 		var t0 := Time.get_ticks_msec()
 		while _reel_card == null and Time.get_ticks_msec() - t0 < 6000:
 			await get_tree().process_frame
+		if _reel_card == null:
+			print("QUESTION: never came")
+			get_tree().quit()
+			return
 		await get_tree().create_timer(0.6).timeout
 		await _shot(dir + "/on9_question.png")
 		for b in _reel_card.find_children("*", "Button", true, false):
@@ -2255,7 +2259,7 @@ func _check_capture() -> void:
 			if b.text.begins_with("Keep reeling"): b.pressed.emit()
 		await get_tree().create_timer(0.4).timeout
 		print("KEEP REELING: mode %s, card gone %s" % [VF.catch_mode, _reel_card == null])
-		await _onboarding_round()
+		await _onboarding_round(dir)
 		print("ROUND 4: rounds %d, question due %s" % [VF.reel_rounds, _reel_ask])
 		get_tree().quit()
 		return
@@ -2289,17 +2293,25 @@ func _check_capture() -> void:
 	get_tree().quit()
 
 ## --onboarding: a tap on open water, then hands off until that round of the mini-game is over
-func _onboarding_round(shot := "") -> void:
-	VF._last_cast_ms = -100000
-	_tap(get_viewport().get_final_transform() * (get_viewport_rect().size * Vector2(0.55, 0.62)))
-	var t0 := Time.get_ticks_msec()
-	while minigame == null and Time.get_ticks_msec() - t0 < 6000:
-		await get_tree().process_frame
+func _onboarding_round(dir: String, shot := "") -> void:
+	var at := get_viewport_rect().size * Vector2(0.55, 0.62)
+	var tries := 0
+	while minigame == null and tries < 5:
+		tries += 1
+		VF._last_cast_ms = -100000
+		_tap(get_viewport().get_final_transform() * at)
+		at += Vector2(70.0, -30.0)                 # (past the tutorial a gull or a toy can be in the way, and it gets poked instead)
+		var t0 := Time.get_ticks_msec()
+		while minigame == null and Time.get_ticks_msec() - t0 < 2500:
+			await get_tree().process_frame
+	if tries > 1: print("ONBOARDING: took %d taps to start a round" % tries)
 	if minigame == null:
-		print("ONBOARDING: the tap started no round")
+		print("ONBOARDING: the tap started no round. can_cast='%s' mode=%s sail=%s overlay=%s(%s) question=%s phone=%s wait=%d back=%s tutorial=%d at=%s" % [VF.can_cast(), VF.catch_mode,
+			sail.state, overlay.visible, _panel_kind, _reel_card != null, _phone_open(), _reel_wait_until - Time.get_ticks_msec(), idle.back_card != null, VF.tutorial, at])
+		await _shot(dir + "/on_no_round.png")
 		return
 	await get_tree().create_timer(1.0).timeout
-	if shot != "": await _shot(shot)
+	if shot != "": await _shot(dir + "/" + shot)
 	while minigame != null:
 		await get_tree().process_frame
 
