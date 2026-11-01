@@ -948,6 +948,7 @@ func to_dict() -> Dictionary:
 		"idle": _idle_dict(),
 		"gerald": gerald,
 		"hats_owned": hats_owned,
+		"hat": hat,
 		"finds": finds,
 		"ach_claimed": ach_claimed,
 	}
@@ -1000,7 +1001,8 @@ func _apply(d: Dictionary) -> void:
 	_tok_apply(d.get("tok", {}))           # FishTok (absent in old saves -> defaults)
 	_v1_apply(d.get("v1", {}))             # 1.0: pearls, packs, events, shinies, ads (absent before 1.0)
 	_idle_apply(d.get("idle", {}))         # idle: auto-fish, the fleet, the calendar & spin (absent before)
-	_gerald_apply(d.get("gerald", {}), d.get("hats_owned", []))
+	_gerald_apply(d.get("gerald", {}))
+	_hats_apply(d.get("hats_owned", []), d.get("hat", "straw"))
 	_finds_apply(d.get("finds", {}))
 	_ach_apply(d.get("ach_claimed", {}))
 	offline_check()                        # what the crews caught since this save was written
@@ -2081,7 +2083,6 @@ func _idle_apply(d: Dictionary) -> void:
 
 # stage: the row of VFData.GERALD he's on (its size: all over). tries: he's beaten you this many times on it. casts: since you last met.
 var gerald := {"stage": 0, "casts": 0, "tries": 0, "wins": 0, "losses": 0}
-var hats_owned: Array = ["straw"]         # hats you can wear (Gerald and Geraldine give theirs; the rest: VFData.HATS)
 
 ## how many casts until he bites: 0 = he's due. -1 = he isn't here (another biome, too low a level, all over, still in the tutorial)
 func _gerald_wait() -> int:
@@ -2149,16 +2150,12 @@ func gerald_info(i := -1) -> Dictionary:
 	return {"who": s.who, "biome": s.biome, "level": int(s.level), "bounty": find_value(float(s.bounty)),
 		"met": int(gerald.wins) + int(gerald.losses) > 0, "done": at > row}
 
-func _gerald_apply(d, hats) -> void:
+func _gerald_apply(d) -> void:
 	gerald = {"stage": 0, "casts": 0, "tries": 0, "wins": 0, "losses": 0}
 	if typeof(d) == TYPE_DICTIONARY:
 		gerald.stage = clampi(int(d.get("stage", 0)), 0, VFData.GERALD.size())
 		for k in ["casts", "tries", "wins", "losses"]:
 			gerald[k] = maxi(0, int(d.get(k, 0)))
-	hats_owned = ["straw"]
-	if typeof(hats) == TYPE_ARRAY:
-		for h in hats:
-			if not String(h) in hats_owned: hats_owned.append(String(h))
 
 
 # ======================================================================
@@ -2278,3 +2275,49 @@ func book_bonus(b: String) -> float:
 ## The aquarium: every species you've caught swims in it, and visitors pay. What it adds to the catch while you're away.
 func aquarium_income() -> float:
 	return minf(VFData.AQUARIUM_MAX, VFData.AQUARIUM_MAX * discovered.size() / VFData.FISH_ORDER.size())
+
+
+# ======================================================================
+# ---- Hats
+# Silly hats for the captain. Data in vf_data.gd (HATS). The stage draws VF.hat, the shop sells them. Nothing else looks at them:
+# they buy nothing but laughs. They survive prestige.
+
+var hats_owned: Array = ["straw"]
+var hat := "straw"
+
+## what it costs today (0: not for sale, see hat_lock)
+func hat_price(id: String) -> int:
+	var price := float(VFData.HATS.get(id, {}).get("price", 0.0))
+	return find_value(price) if price > 0.0 else 0
+
+## why you can't get this one yet ("" = you can, if you have the money)
+func hat_lock(id: String) -> String:
+	if id in hats_owned or not VFData.HATS.has(id): return ""
+	var d: Dictionary = VFData.HATS[id]
+	if d.has("ducks") and ducks < int(d.ducks): return "Find %d rubber ducks (%d so far)." % [int(d.ducks), ducks]
+	if d.has("from"): return "Catch %s." % d.from
+	return ""
+
+## Get it and put it on. Returns "" or why not.
+func buy_hat(id: String) -> String:
+	if not VFData.HATS.has(id): return "There's no such hat."
+	if id in hats_owned: return "You already have it."
+	var why := hat_lock(id)
+	if why != "": return why
+	if not _spend(hat_price(id)): return "Not enough money."
+	hats_owned.append(id)
+	wear_hat(id)
+	return ""
+
+func wear_hat(id: String) -> void:
+	if not id in hats_owned or id == hat: return
+	hat = id
+	changed.emit()
+	save_game()
+
+func _hats_apply(owned, worn) -> void:
+	hats_owned = ["straw"]
+	if typeof(owned) == TYPE_ARRAY:
+		for h in owned:
+			if VFData.HATS.has(String(h)) and not String(h) in hats_owned: hats_owned.append(String(h))
+	hat = String(worn) if String(worn) in hats_owned else "straw"

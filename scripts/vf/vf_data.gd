@@ -894,3 +894,23 @@ static func ach_def(id: String) -> Dictionary:
 	for a in ACHIEVEMENTS:
 		if a.id == id: return a
 	return {}
+
+
+# ==================================================================== hats
+## Silly hats for the captain (not in the bot, all DERIVED). They buy nothing but laughs: no stat looks at them. "price" is in casts'
+## worth (VF.hat_price), so it follows your progress; none is sold for Pearls. "ducks": yours once you've found that many rubber
+## ducks. "from": Gerald or Geraldine gives it when they're caught (VFData.GERALD_HATS).
+const HATS := {
+	"straw": {"name": "Straw Hat", "price": 0.0, "desc": "This hat has seen things."},
+	"pirate": {"name": "Pirate Hat", "price": 15.0, "desc": "Arr. That's all he knows."},
+	"chef": {"name": "Chef's Hat", "price": 25.0, "desc": "The fish don't find this funny."},
+	"propeller": {"name": "Propeller Cap", "price": 40.0, "desc": "Doesn't make the boat go faster. He checked."},
+	"viking": {"name": "Viking Helmet", "price": 60.0, "desc": "For raiding the buffet."},
+	"traffic_cone": {"name": "Traffic Cone", "price": 80.0, "desc": "Nobody asked where he got it."},
+	"top_hat": {"name": "Top Hat", "price": 120.0, "desc": "Very distinguished. Still smells of fish."},
+	"sombrero": {"name": "Sombrero", "price": 160.0, "desc": "Shade for the whole boat."},
+	"duck": {"name": "Duck Hat", "price": 0.0, "ducks": 25, "desc": "It squeaks when he thinks."},
+	"crown": {"name": "Gerald's Crown", "price": 0.0, "from": "Gerald", "desc": "He wants it back. He can't have it."},
+	"tiara": {"name": "Geraldine's Tiara", "price": 0.0, "from": "Geraldine", "desc": "Sit up straight."},
+}
+const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]
