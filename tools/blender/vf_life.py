@@ -12,6 +12,7 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
+import vf_finds as FD
 import vf_kit as K
 import vf_models as M
 import vf_rival as RV
@@ -264,6 +265,23 @@ def render_find(kind, out_path):
     K.render(out_path)
     K.SOFT[0] = False
     return round(FIND_CELL / 2.3, 3)
+
+
+def render_resident(kind, out_path):
+    """one of the things you find when sailing (vf_finds), filling its picture -> sheet px per model unit"""
+    cam = _setup(FIND_CELL, samples=16)
+    root, baked = _bake(FD.build(kind))
+    K.outline_all([p for p, _ in baked], 0.032)
+    a = np.concatenate([v for _, v in baked])
+    Rc = cam.rotation_euler.to_matrix()
+    right, up, fwd = Rc @ Vector((1, 0, 0)), Rc @ Vector((0, 1, 0)), Rc @ Vector((0, 0, -1))
+    sx, sy = a @ np.array(right), a @ np.array(up)
+    span = max(float(sx.max() - sx.min()), float(sy.max() - sy.min())) * 1.04 + 0.08
+    cam.location = right * float(sx.max() + sx.min()) * 0.5 + up * float(sy.max() + sy.min()) * 0.5 - fwd * 60.0
+    cam.data.ortho_scale = span
+    K.render(out_path)
+    K.SOFT[0] = False
+    return round(FIND_CELL / span, 3)
 
 
 # ------------------------------------------------------------------- the mini-game's fish
@@ -523,7 +541,7 @@ def render_shape(out_path):
     """the big dark shape that swims past the boat, heading right, in the whale's format"""
     cam = _setup(BIG_CELL)
     root, baked = _bake(RV.build_shape())
-    K.outline_all([p for p, _ in baked], 0.05)
+    K.outline_all([p for p, _ in baked], 0.05, color="#0a1119")
     root.location.x = 0.23              # (the tail is longer than the nose: this centres him in the cell)
     _frame(cam, 1.6)
     tmp = tempfile.mkdtemp()
@@ -554,6 +572,9 @@ def render_all(out_dir, only=None):
     for f in ("duck", "bottle"):
         if want(f):
             e.setdefault("finds", {"cell": FIND_CELL})[f] = render_find(f, os.path.join(out_dir, f + ".png"))
+    for f in FD.RESIDENTS:
+        if want(f):
+            e.setdefault("finds", {"cell": FIND_CELL})[f] = render_resident(f, os.path.join(out_dir, "find_%s.png" % f))
     for m in ("whale", "manta"):
         if want(m):
             render_big(m, os.path.join(out_dir, m + ".png"))

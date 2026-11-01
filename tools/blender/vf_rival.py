@@ -15,12 +15,12 @@ from vf_kit import cone, hexc, ico, mix, sphere, toon, tube, vcolor
 
 RIVALS = {
     "Gerald": dict(rival=True, top="#8fa24e", belly="#f4ecc2", blotch="#566a32", fin="#c8743a", fin2="#8a4522",
-                   hair="#4a2c18", hair2="#8a5c36", mouth=(0.94, -0.3, -0.3), eye=(0.6, 0.17), eye_r=0.15),
+                   hair="#4a2c18", hair2="#8a5c36", mouth=(1.04, -0.3, -0.41), eye=(0.6, 0.17), eye_r=0.15),
     "Geraldine": dict(rival=True, mum=True, top="#7fa27a", belly="#f6f0d4", blotch="#517458", fin="#d9708a", fin2="#a3425e",
-                      hair="#2f2430", hair2="#dcd2ea", mouth=(1.08, -0.2, -0.13), eye=(0.6, 0.17), eye_r=0.15),
+                      hair="#2f2430", hair2="#dcd2ea", mouth=(1.1, -0.2, -0.13), eye=(0.6, 0.17), eye_r=0.15),
 }
 TOP_H, BELLY_H, WIDE = 0.8, 0.86, 0.72
-FOLDS = ((0.05, 0.1), (0.6, 0.08))      # (where along him, how deep)
+FOLDS = ((0.62, 0.07),)                 # (his chins: where along him, how deep)
 
 
 def _shape(co):
@@ -160,7 +160,7 @@ def _moustache(spec):
 
 
 def _eyebrows(spec):
-    """thick, furious, and they've never met a comb"""
+    """thick, furious, and they have never met a comb"""
     hair = toon(spec["hair"])
     ex, ez = spec["eye"]
     parts = []
@@ -194,12 +194,12 @@ def _old_hooks():
     """the one that got away, many times: rusty hooks in his lip and the line he snapped"""
     steel, line = toon("#a9b2b8"), toon("#eef2f0")
     parts = []
-    for x, y, z in ((1.03, -0.14, -0.44), (0.86, -0.3, -0.5)):
+    for x, y, z in ((1.08, -0.14, -0.5), (0.88, -0.3, -0.55)):
         h = tube([(x, y, z + 0.05), (x + 0.01, y, z - 0.08), (x - 0.03, y, z - 0.15), (x - 0.11, y, z - 0.11), (x - 0.12, y, z - 0.05)], 0.019, mat=steel, res=8)
         h["outline_k"] = 0.45
         h["wob"] = "lip"
         parts.append(h)
-    a = tube([(1.03, -0.14, -0.4), (1.12, -0.2, -0.6), (0.98, -0.26, -0.82), (1.06, -0.28, -1.0)], 0.0095, mat=line, res=10)
+    a = tube([(1.08, -0.14, -0.46), (1.17, -0.2, -0.66), (1.03, -0.26, -0.84), (1.11, -0.28, -1.02)], 0.0095, mat=line, res=10)
     a["outline_k"] = 0.32
     a["wob"] = "line"
     parts.append(a)
@@ -276,21 +276,22 @@ def _fins(spec, body, torn=True):
     return parts
 
 
-def build_gerald(spec):
+def build_gerald(spec, details=True):
     body = _body(spec)
     bpy.context.view_layer.update()
     parts = [body] + _fins(spec, body)
     parts += _face_eyes(spec, body) + _eyebrows(spec) + _moustache(spec)
     nose = sphere(loc=(1.07, 0.0, 0.08), scale=(0.18, 0.2, 0.165), mat=toon("#d9685e", spec=0.25))
     nose["wob"] = "still"
-    lip = sphere(loc=(0.93, 0.0, -0.41), scale=(0.2, 0.3, 0.105), mat=toon("#c8675a"))
+    lip = sphere(loc=(0.99, 0.0, -0.43), scale=(0.23, 0.32, 0.125), mat=toon("#c8675a"))
     lip["wob"] = "lip"
-    # his last hair, and he's very proud of it
+    # his last hair, and he is very proud of it
     hair = tube([(0.24, 0, 0.76), (0.27, 0, 0.95), (0.39, 0, 1.03), (0.49, 0, 0.94)], 0.024, mat=toon(spec["hair"]), res=8)
     hair["outline_k"] = 0.5
     hair["wob"] = "brow"
     parts += [nose, lip, hair]
-    parts += _old_hooks() + _tattoo(body)
+    if details:
+        parts += _old_hooks() + _tattoo(body)
     return parts
 
 
@@ -298,7 +299,7 @@ def _pearls(body):
     """a good string of pearls, round her neck and resting on all that bosom, and a smaller one for Sundays"""
     pearl = toon("#fbf6ec", spec=0.5, rim=0.25)
     out = []
-    for n, x0, reach, r, lift in ((13, 0.1, 0.34, 0.078, 0.04), (11, 0.02, 0.26, 0.052, 0.03)):
+    for n, x0, reach, r, lift in ((13, -0.08, 0.32, 0.078, 0.04), (11, -0.16, 0.24, 0.052, 0.03)):
         for i in range(n):
             t = i / (n - 1)
             x, z = x0 + reach * math.sin(math.pi * t) ** 0.8, 0.5 - 1.14 * t
@@ -310,10 +311,10 @@ def _pearls(body):
 
 
 def _bow():
-    """big. Bigger. It's held on by willpower"""
+    """big. Bigger. It is held on by willpower"""
     silk, dark = toon("#ec3f78", spec=0.2), toon("#b42658")
     out = []
-    at = Vector((0.2, -0.2, 1.18))
+    at = Vector((0.2, -0.2, 1.08))
     for s in (-1, 1):
         lobe = sphere(scale=1.0, seg=32, rings=20, mat=silk)
 
@@ -369,8 +370,8 @@ def build_geraldine(spec):
         c["wob"] = "still"
         parts.append(c)
     # a mouth like a closed purse
-    upper = sphere(loc=(1.0, 0.0, -0.09), scale=(0.12, 0.19, 0.065), mat=toon("#d42c4f", spec=0.3))
-    lower = sphere(loc=(0.98, 0.0, -0.19), scale=(0.13, 0.21, 0.08), mat=toon("#e83a5e", spec=0.3))
+    upper = sphere(loc=(1.01, 0.0, -0.08), scale=(0.15, 0.24, 0.085), mat=toon("#d42c4f", spec=0.3))
+    lower = sphere(loc=(0.99, 0.0, -0.21), scale=(0.17, 0.26, 0.105), mat=toon("#e83a5e", spec=0.3))
     for o in (upper, lower):
         o["wob"] = "still"
     parts += [upper, lower]
@@ -415,19 +416,19 @@ def pose(baked, ph):
             k = np.clip((-0.86 - a[:, 0]) / 0.62, 0.0, 1.0)
             o[:, 2] += (0.08 + k) * np.sin(ph - 0.5 - k * 1.1) * 0.2
             o[:, 1] += (0.08 + k) * np.cos(ph) * 0.26
-            o[:, 0] += k * (np.abs(np.cos(ph)) * 0.1)                           # (it swings toward you, and looks shorter)
+            o[:, 0] += k * (np.abs(np.cos(ph)) * 0.12)                          # (it swings toward you, and looks shorter)
         elif kind == "dorsal":
             k = np.clip((a[:, 2] - 0.55) / 0.5, 0.0, 1.0)
-            o[:, 0] -= k * (0.5 + 0.5 * np.sin(ph - 1.0)) * 0.08
-            o[:, 2] -= k * (0.5 + 0.5 * np.sin(ph - 1.0)) * 0.04
+            o[:, 0] -= k * (0.5 + 0.5 * np.sin(ph - 1.0)) * 0.1
+            o[:, 2] -= k * (0.5 + 0.5 * np.sin(ph - 1.0)) * 0.05
         elif kind in ("paddle", "fin"):
             r = p["root"].to_list()
             k = np.clip(np.hypot(a[:, 0] - r[0], a[:, 2] - r[2]) / 0.3, 0.0, 1.0)
-            n, sw = (2.0, 0.16) if kind == "paddle" else (1.0, 0.04)
+            n, sw = (2.0, 0.17) if kind == "paddle" else (1.0, 0.05)
             o[:, 2] += k * np.sin(ph * n) * sw
             o[:, 0] += k * np.cos(ph * n) * sw * 0.5
         elif kind == "tash":
-            o[:, 2] += np.clip((0.9 - a[:, 0]) / 0.65, 0.0, 1.0) ** 1.6 * np.sin(ph - 1.2) * 0.1
+            o[:, 2] += np.clip((0.9 - a[:, 0]) / 0.65, 0.0, 1.0) ** 1.6 * np.sin(ph - 1.2) * 0.09
         elif kind == "brow":
             o[:, 2] += (0.5 + 0.5 * np.sin(ph * 2.0)) * 0.012
         elif kind == "line":
