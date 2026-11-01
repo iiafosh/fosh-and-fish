@@ -70,6 +70,7 @@ var _last_cast_ms := -100000
 var _cd_override := -1.0                  # cooldown of the last cast when it was not the normal one (mini-game win)
 var reel_result := ""                     # "win" / "lose" while cast_reel() runs (-> result "reel")
 var _worker_accum := 0.0
+var _rebirth_told := false                # the "Rebirth ready!" toast was shown (once a run, once a session)
 
 var _defaults := {}
 
@@ -881,7 +882,7 @@ func _week_trip() -> void:
 func prestige_check() -> Dictionary:
 	var lv_req := VFData.prestige_level_req(prestige)
 	var m_req := VFData.prestige_money_req(prestige)
-	var c_req := VFData.charm_total_cap(prestige)
+	var c_req := VFData.prestige_charm_req(prestige)
 	return {
 		"level": [level, lv_req], "money": [money, m_req], "charms": [charms_total(), c_req],
 		"ok": level >= lv_req and money >= m_req and charms_total() >= c_req,
@@ -909,7 +910,9 @@ func do_prestige() -> String:
 	specials = {}
 	charms = {}
 	boosts = {"fish": 0.0, "treasure": 0.0, "worker": 0.0}
+	_rebirth_told = false
 	toast.emit("Welcome to Prestige %d! +1 Azure Fish. Guide pick: %s" % [prestige, VFData.prestige_guide(prestige).main], "prestige")
+	check_goals()
 	save_game()
 	changed.emit()
 	return ""
@@ -1033,6 +1036,7 @@ func goal_progress(gdef: Dictionary) -> int:
 		"level": return level
 		"boats": return boats_owned
 		"crews": return crews
+		"prestige": return prestige
 	return 0
 
 func goal_reward_text(r: Dictionary) -> String:
@@ -1045,6 +1049,9 @@ func goal_reward_text(r: Dictionary) -> String:
 	return ", ".join(bits)
 
 func check_goals() -> void:
+	if not _rebirth_told and prestige_check().ok:
+		_rebirth_told = true
+		toast.emit("Rebirth ready! Menu - Prestige: a fresh start, and an Azure Fish.", "unlock")
 	while goals_done < VFData.STARTER_GOALS.size():
 		var gdef: Dictionary = VFData.STARTER_GOALS[goals_done]
 		if goal_progress(gdef) < int(gdef.goal): return

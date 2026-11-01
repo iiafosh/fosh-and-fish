@@ -436,15 +436,21 @@ const SPECIAL_QUESTS := [
 	{"id": "pet",        "name": "Pet Locator",      "stat": "pets",     "goal": 1},
 ]
 
-## Prestige requirements. P0 -> P1 is from the Prestige 0 Guide
-## (440/440 charms, Level 250, $5B). Later prestiges are DERIVED so the
-## level requirement reaches the 25k cap around P160 (as the community
-## buy-order chart notes).
+## Prestige requirements. The first rebirth (P0 -> P1) is DERIVED and easier than the Prestige 0 Guide's 440/440
+## charms, Level 250, $5B, on purpose: that was days of play for a first goal, this is about 4 to 6 hours
+## (tools/pace_sim.gd). Later prestiges are DERIVED so the level requirement reaches the 25k cap around P160
+## (as the community buy-order chart notes), and they need every charm.
+const FIRST_REBIRTH_LEVEL := 60
+const FIRST_REBIRTH_MONEY := 5_000_000
+
 static func prestige_level_req(p: int) -> int:
-	return mini(25000, 250 + 150 * p)
+	return FIRST_REBIRTH_LEVEL if p <= 0 else mini(25000, 250 + 150 * p)
 
 static func prestige_money_req(p: int) -> int:
-	return int(5_000_000_000.0 * pow(1.6, p))
+	return FIRST_REBIRTH_MONEY if p <= 0 else int(5_000_000_000.0 * pow(1.6, p))
+
+static func prestige_charm_req(p: int) -> int:
+	return 0 if p <= 0 else charm_total_cap(p)
 
 static func charm_tier_cap(p: int) -> int:
 	return 10 + p if p <= 99 else 2 * p - 88
@@ -511,7 +517,7 @@ static func slug(name: String) -> String:
 
 ## Beginner goals shown one at a time under the HUD. Not part of the bot —
 ## they give new players a short-term target and speed up the first levels.
-## stat: fish | sells | rods | bait_casts | species | level | boats | crews
+## stat: fish | sells | rods | bait_casts | species | level | boats | crews | prestige
 ## (new goals go at the end: saves only count how many are done)
 const STARTER_GOALS := [
 	{"id": "first_fish", "text": "Catch your first fish", "stat": "fish", "goal": 1, "reward": {"money": 20}},
@@ -525,6 +531,9 @@ const STARTER_GOALS := [
 	{"id": "boat", "text": "Buy your first boat (Rowboat)", "stat": "boats", "goal": 1, "reward": {"money": 1500}},
 	{"id": "lv10", "text": "Reach level 10 — chests & boosts unlock", "stat": "level", "goal": 10, "reward": {"chest": "epic", "gold": 12, "emerald": 6}},
 	{"id": "crew", "text": "Hire a crew: they fish for you (Menu - Fleet)", "stat": "crews", "goal": 1, "reward": {"chest": "rare"}},
+	# (these two say FIRST_REBIRTH_LEVEL and FIRST_REBIRTH_MONEY: tests/vf_sim_test.gd checks they match)
+	{"id": "lv60", "text": "Reach level 60: your first rebirth is close", "stat": "level", "goal": FIRST_REBIRTH_LEVEL, "reward": {"chest": "rare"}},
+	{"id": "rebirth", "text": "Your first rebirth: have $5M, then Menu - Prestige", "stat": "prestige", "goal": 1, "reward": {"chest": "legendary"}},
 ]
 
 

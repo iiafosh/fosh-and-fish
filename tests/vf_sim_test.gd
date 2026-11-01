@@ -305,6 +305,7 @@ func _init() -> void:
 	_test_v1()
 	_test_idle()
 	_test_rookie_rounds()
+	_test_first_rebirth()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -366,6 +367,55 @@ func _test_rookie_rounds() -> void:
 		check(r0.time_limit > r1.time_limit and r1.time_limit > r2.time_limit and r2.time_limit > r3.time_limit, "%s: there's more time in the first rounds" % kinds)
 	var rare: Dictionary = VFData.minigame_params(4, 0.0, false, 0)
 	check(rare.zone_h == VFData.minigame_params(0, 0.0, false, 0).zone_h, "a rare fish on the very first round gets the same big net")
+
+
+## the first rebirth is within reach; the ones after it are as far as they were
+func _test_first_rebirth() -> void:
+	print("== the first rebirth")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var lv: int = VFData.prestige_level_req(0)
+	var cash: int = VFData.prestige_money_req(0)
+	check(lv < 250 and cash < 5000000000 and VFData.prestige_charm_req(0) == 0, "the first rebirth asks for less than the bot's P0 (Lv%d, $%s, no charms)" % [lv, g.fmt(cash)])
+	g.level = lv
+	g.money = cash - 1
+	check(not g.prestige_check().ok and g.do_prestige() != "" and g.prestige == 0, "a dollar short: not yet")
+	g.level = lv - 1
+	g.money = cash
+	check(not g.prestige_check().ok, "a level short: not yet")
+	g.level = lv
+	check(g.prestige_check().ok and g.prestige_check().charms == [0, 0], "the level and the money are enough, no charms needed")
+	check(g.do_prestige() == "" and g.prestige == 1 and g.level == 1 and g.money == 0 and g.exotics.azure == 1, "reborn: back to level 1, with an Azure Fish")
+	check(VFData.prestige_level_req(1) == 400 and VFData.prestige_money_req(1) == 8000000000 and VFData.prestige_charm_req(1) == VFData.charm_total_cap(1)
+		and VFData.prestige_level_req(10) == 1750 and VFData.prestige_charm_req(10) == VFData.charm_total_cap(10), "later prestiges ask for what they always did")
+	g.level = 400
+	g.money = 8000000000
+	check(not g.prestige_check().ok, "the second rebirth still needs every charm")
+	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(1) / 8
+	check(g.prestige_check().ok, "... and then it's ready")
+	g._apply(g._defaults.duplicate(true))
+	check(VFData.charm_total_cap(0) == 440 and g.charms_total() == 0, "the charm caps themselves don't change")
+	# it's on the screen: the last starter goal is the rebirth, and you're told when it's ready
+	var said := []
+	g.toast.connect(func(text, _kind): said.append(text))
+	g.level = lv
+	g.money = cash
+	g.goals_done = VFData.STARTER_GOALS.size() - 1
+	var last: Dictionary = g.current_goal()
+	var before: Dictionary = VFData.STARTER_GOALS[-2]
+	check(before.goal == lv and str(lv) in before.text and last.id == "rebirth" and ("$" + g.fmt(cash)) in last.text and g.goal_progress(last) == 0,
+		"the last starter goals are the first rebirth, with the real numbers: %s / %s" % [before.text, last.text])
+	var guide := ""
+	for entry in VFGuide.TABS["Prestige"]: guide += entry[2]
+	check(("Level %d" % lv) in guide and ("$" + g.fmt(cash)) in guide, "the guide says the real numbers")
+	g.check_goals()
+	check(said.size() == 1 and "rebirth" in said[0].to_lower(), "you're told once when the rebirth is ready: %s" % ("" if said.is_empty() else said[0]))
+	g.check_goals()
+	check(said.size() == 1, "... only once")
+	g.do_prestige()
+	check(g.goals_done == VFData.STARTER_GOALS.size(), "being reborn finishes that goal")
 
 
 ## the same rounds, played for real: a player who does nothing, or nothing useful, still wins the first one
