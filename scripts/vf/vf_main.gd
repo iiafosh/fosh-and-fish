@@ -295,9 +295,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE and overlay.visible:
 			_close_panel()
 		return                                 # the title screen is up: no casting, no menu keys
+	if _reel_card != null:
+		if event is InputEventKey and event.pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE]:
+			_reel_choice(VF.catch_mode)
+		return                                 # one question at a time
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
-		if stage.poke(event.position): return  # a crab, a gull, a bottle...
+		if VF.tutorial >= 99 and stage.poke(event.position): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
 		_do_cast()
@@ -480,7 +484,7 @@ func _short_side_dp() -> float:
 ## Nodes under something tagged "fixed_fonts" (the FishTok phone, drawn as a tiny phone) keep their sizes.
 const PHONE_MIN_FONT := 13
 
-func _min_font(n: Control) -> void:
+func _min_font(n) -> void:                     # (not typed: a label freed before this deferred call couldn't even get in)
 	if not is_instance_valid(n) or not n.is_inside_tree(): return
 	var p: Node = n
 	while p != null and p != self:
@@ -898,6 +902,10 @@ func _build_card() -> void:
 
 func _show_card() -> void:
 	if radio.listening: return
+	if compact() and _banner_busy:             # phones: no room for both, the news goes first (_next_banner brings this back)
+		_card_waits = true
+		card.visible = false
+		return
 	var popping := not card.visible or card.modulate.a < 0.35
 	card.modulate.a = 1.0
 	card.visible = true
@@ -1154,7 +1162,7 @@ func _apply_biome() -> void:
 # ================================================================ actions
 ## auto: an auto-fish cast (vf_idle_ui): always a Relax cast, no mini-game
 func _do_cast(auto := false) -> void:
-	if sail.busy() or minigame != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
+	if sail.busy() or minigame != null or _reel_card != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
 	var why: String = VF.can_cast()
 	if why == "cooldown":
 		return
@@ -1193,7 +1201,9 @@ func _start_minigame(cast_start: int, rival := false) -> void:
 	else:
 		var biter: Array = script.pick_biter()
 		mg.setup(self, biter[0], biter[1])
-		mg.resolved.connect(func(won: bool): VF.cast_reel(won, cast_start))
+		mg.resolved.connect(func(won: bool):
+			_reel_ask = VF.reel_rounds == VFData.ROOKIE_ROUNDS      # (it's been counted: the last easy round ends with a question, after the catch)
+			VF.cast_reel(won, cast_start))
 	mg.tree_exited.connect(func():
 		if minigame == mg: minigame = null
 		if is_instance_valid(stage): stage.reel_in())   # the catch comes in once the card closes
@@ -1239,6 +1249,7 @@ func _reveal_trip(res: Dictionary) -> void:
 	if res.pet != "":
 		AudioManager.play_success()
 		stage.burst("magic", stage._bobber)
+	if _reel_ask: get_tree().create_timer(1.3).timeout.connect(_ask_reel)    # (a moment to see what you caught)
 
 func _on_level_up(new_level: int, reward: int) -> void:
 	AudioManager.play_levelup()
@@ -1320,14 +1331,14 @@ func _clear(node: Node) -> void:
 		c.queue_free()
 
 func _card_intro() -> void:
-	if compact() and VF.tutorial == 0:
-		card.visible = false    # phones: the "tap the water" tip needs that space first; the first catch card follows
+	if VF.tutorial < 99:
+		card.visible = false    # the coach's bubble is all there is to read in the first minute; the first catch card follows
 		return
 	_show_card()
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
-	var guide := "Follow the arrow — or open the Guide from the Menu." if is_touch() else "Follow the arrow — or press G for the guide."
-	for t in [guide, "Finish the goals under your level for rewards.", "Made by afosh."]:
+	var guide := "The full guide is in the Menu." if is_touch() else "Press G for the full guide."
+	for t in [guide, "Finish the goals under your level for rewards."]:
 		var l := lbl("• " + t, 14, C_MUTED)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 320
@@ -1351,7 +1362,7 @@ func _show_catch(res: Dictionary) -> void:
 		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(val)
 		card_body.add_child(row)
-	card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
+	if res.xp > 0: card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
 	if res.get("reel", "") == "win":
 		card_body.add_child(lbl("Reeled it in!  +%d%% fish" % int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), 14, C_TEAL))
 	elif res.get("reel", "") == "lose":
@@ -1916,8 +1927,9 @@ func _panel_prestige() -> void:
 			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. From your second prestige on, you also need every charm maxed.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)
-			var b := _act("PRESTIGE", Color("#1d4ed8"), func(): return VF.do_prestige(), c.ok)
+			var b := _act("PRESTIGE", C_GOLD, func(): return VF.do_prestige(), c.ok)
 			b.custom_minimum_size = Vector2(220, 52)
+			b.add_theme_font_size_override("font_size", 20)
 			panel_body.add_child(b)
 		"Shop":
 			var tip: Dictionary = VFData.prestige_guide(VF.prestige)
@@ -1928,7 +1940,7 @@ func _panel_prestige() -> void:
 				var d: Dictionary = VFData.PRESTIGE_PERKS[id]
 				var locked: bool = VF.prestige < d.unlock
 				var right: Control = lbl("Prestige %d" % d.unlock, 14, C_MUTED) if locked else \
-					_act("1 Azure", Color("#1d4ed8"), func(): return VF.buy_perk(id), VF.exotics.azure >= 1 and VF.pk(id) < VF.perk_cap())
+					_act("1 Azure", C_TEAL, func(): return VF.buy_perk(id), VF.exotics.azure >= 1 and VF.pk(id) < VF.perk_cap())
 				_add_to(g, _card(icon_for("exotic", "azure"), "%s [%s]  %d/%d" % [d.name, d.short, VF.pk(id), VF.perk_cap()], d.desc, right, locked, 48))
 		"Guide":
 			var intro := lbl("Community Prestige Shop buy order (IT International Ties, FW Fish Whisperer, AO Ancient One, BE Business Education, VF Virtual Fisher). \"Max\" only if you want to reach P160 level 25k.", 13, C_MUTED)
@@ -1944,7 +1956,7 @@ func _panel_prestige() -> void:
 				var gd: Dictionary = VFData.prestige_guide(r[1])
 				var hl: bool = r[1] == VF.prestige
 				var p := PanelContainer.new()
-				p.add_theme_stylebox_override("panel", sbox(Color("#1d4ed8") if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
+				p.add_theme_stylebox_override("panel", sbox(C_GOLD.lerp(C_PANEL2, 0.6) if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
 				p.add_child(lbl("P%s: %s%s" % [r[0], gd.main, (" / Max: " + gd.max) if gd.max != "" else ""], 13))
 				_add_to(g, p)
 			panel_body.add_child(lbl("Other prestiges in each range ending in 2,3,4,7,8,9 (or 3,4,8,9): SKIP and save Azure Fish.", 13, C_MUTED))
@@ -2197,39 +2209,71 @@ func _check_capture() -> void:
 		get_tree().quit()
 		return
 	if "--onboarding" in OS.get_cmdline_user_args():
+		# a new player's first minute, with real taps on the water: each cast waits for its round of the mini-game to end
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 0
 		VF.changed.emit()
+		_card_intro()
 		_coach_show()
 		await get_tree().create_timer(1.0).timeout
 		await _shot(dir + "/on0_cast.png")
+		print("START: welcome card %s, coach %s" % [card.visible, _coach.visible])
 		var trips_before: int = VF.stats.trips
-		for i in 6:
-			VF._last_cast_ms = -100000
-			var at: Vector2 = stage.bobber_screen() + Vector2(40, 30)
-			for pressed in [true, false]:
-				var ev := InputEventMouseButton.new()
-				ev.button_index = MOUSE_BUTTON_LEFT
-				ev.pressed = pressed
-				ev.position = at
-				ev.global_position = at
-				Input.parse_input_event(ev)
-			await get_tree().create_timer(0.7).timeout
-		print("TAP_CASTS ", VF.stats.trips - trips_before)
-		await get_tree().create_timer(0.6).timeout
-		await _shot(dir + "/on1_sell.png")
+		await _onboarding_round(dir, "on1_first_round.png")
+		print("TAP_CASTS %d, tutorial %d, rounds %d" % [VF.stats.trips - trips_before, VF.tutorial, VF.reel_rounds])
+		await get_tree().create_timer(2.0).timeout
+		await _shot(dir + "/on2_sell.png")
 		_do_sell()
 		await get_tree().create_timer(2.6).timeout
-		await _shot(dir + "/on2_merchant.png")
+		await _shot(dir + "/on3_merchant.png")
 		stage.merchant_clicked.emit()
 		await get_tree().create_timer(0.6).timeout
-		await _shot(dir + "/on3_shop.png")
+		await _shot(dir + "/on4_shop.png")
 		_close_panel()
 		await get_tree().create_timer(0.8).timeout
-		await _shot(dir + "/on4_goals.png")
+		while _banner_busy: await get_tree().process_frame
+		await get_tree().create_timer(0.3).timeout
+		await _shot(dir + "/on5_goals.png")
+		print("LAST STEP: tutorial %d, coach %s" % [VF.tutorial, _coach.visible])
 		_open_panel("inventory")
 		await get_tree().create_timer(0.5).timeout
-		await _shot(dir + "/on5_collection.png")
+		await _shot(dir + "/on6_collection.png")
+		_close_panel()
+		_open_panel("menu")
+		await get_tree().create_timer(0.5).timeout
+		panel_scroll.scroll_vertical = 100000      # (the credit's at the very end)
+		await get_tree().create_timer(0.1).timeout
+		await _shot(dir + "/on7_menu.png")
+		_close_panel()
+		await _onboarding_round(dir, "on8_second_round.png")
+		print("ROUND 2: coach %s, question %s" % [_coach.visible, _reel_ask])
+		await get_tree().create_timer(1.0).timeout
+		await _onboarding_round(dir)
+		print("ROUND 3: rounds %d, question due %s" % [VF.reel_rounds, _reel_ask])
+		var t0 := Time.get_ticks_msec()
+		while _reel_card == null and Time.get_ticks_msec() - t0 < 6000:
+			await get_tree().process_frame
+		if _reel_card == null:
+			print("QUESTION: never came")
+			get_tree().quit()
+			return
+		await get_tree().create_timer(0.6).timeout
+		await _shot(dir + "/on9_question.png")
+		for b in _reel_card.find_children("*", "Button", true, false):
+			if b.text == "Just relax": b.pressed.emit()
+		await get_tree().create_timer(0.6).timeout
+		await _shot(dir + "/on10_relax.png")
+		print("JUST RELAX: mode %s, card gone %s" % [VF.catch_mode, _reel_card == null])
+		VF.set_catch_mode("reel")
+		_reel_ask = true
+		_ask_reel()
+		await get_tree().create_timer(0.3).timeout
+		for b in _reel_card.find_children("*", "Button", true, false):
+			if b.text.begins_with("Keep reeling"): b.pressed.emit()
+		await get_tree().create_timer(0.4).timeout
+		print("KEEP REELING: mode %s, card gone %s" % [VF.catch_mode, _reel_card == null])
+		await _onboarding_round(dir)
+		print("ROUND 4: rounds %d, question due %s" % [VF.reel_rounds, _reel_ask])
 		get_tree().quit()
 		return
 	if demo != "":
@@ -2260,6 +2304,29 @@ func _check_capture() -> void:
 		await get_tree().create_timer(0.4).timeout
 		await _shot(dir + "/panel_%s%s.png" % [p[0], ("_" + p[1].to_lower().replace(" / ", "_")) if p[1] != "" else ""])
 	get_tree().quit()
+
+## --onboarding: a tap on open water, then hands off until that round of the mini-game is over
+func _onboarding_round(dir: String, shot := "") -> void:
+	var at := get_viewport_rect().size * Vector2(0.55, 0.62)
+	var tries := 0
+	while minigame == null and tries < 5:
+		tries += 1
+		VF._last_cast_ms = -100000
+		_tap(get_viewport().get_final_transform() * at)
+		at += Vector2(70.0, -30.0)                 # (past the tutorial a gull or a toy can be in the way, and it gets poked instead)
+		var t0 := Time.get_ticks_msec()
+		while minigame == null and Time.get_ticks_msec() - t0 < 2500:
+			await get_tree().process_frame
+	if tries > 1: print("ONBOARDING: took %d taps to start a round" % tries)
+	if minigame == null:
+		print("ONBOARDING: the tap started no round. can_cast='%s' mode=%s sail=%s overlay=%s(%s) question=%s phone=%s wait=%d back=%s tutorial=%d at=%s" % [VF.can_cast(), VF.catch_mode,
+			sail.state, overlay.visible, _panel_kind, _reel_card != null, _phone_open(), _reel_wait_until - Time.get_ticks_msec(), idle.back_card != null, VF.tutorial, at])
+		await _shot(dir + "/on_no_round.png")
+		return
+	await get_tree().create_timer(1.0).timeout
+	if shot != "": await _shot(dir + "/" + shot)
+	while minigame != null:
+		await get_tree().process_frame
 
 ## Reel-it-in mode end to end: toggle, cast, play the mini-game to a WIN and to a LOSS (simulated input)
 func _minigame_test(dir: String) -> void:
@@ -2757,6 +2824,7 @@ func _panel_settings() -> void:
 # ============================================================== onboarding
 var _banner_queue: Array = []
 var _banner_busy := false
+var _card_waits := false                     # a card is waiting for the banners to finish (phones)
 
 func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
 	_banner_queue.append([title, sub, tex, color])
@@ -2765,8 +2833,14 @@ func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
 func _next_banner() -> void:
 	if _banner_queue.is_empty():
 		_banner_busy = false
+		if _card_waits:
+			_card_waits = false
+			_show_card()
 		return
 	_banner_busy = true
+	if compact() and card.visible and card.modulate.a > 0.35:
+		_card_waits = true                     # (phones: no room for both. The card comes back after the news)
+		card.visible = false
 	var b: Array = _banner_queue.pop_front()
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.97), 18, 3, b[3], 14, 10))
@@ -2789,7 +2863,8 @@ func _next_banner() -> void:
 	p.position = Vector2((vw - p.size.x) * 0.5, -p.size.y - 10)
 	AudioManager.play_success()
 	var tw := p.create_tween()
-	tw.tween_property(p, "position:y", 112.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var below_goal: float = goal_box.get_global_rect().end.y + 8.0 if compact() else 0.0    # (phones: it's wide enough to be in the way)
+	tw.tween_property(p, "position:y", maxf(112.0, below_goal), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(2.2)
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)
@@ -2809,13 +2884,14 @@ var _coach_label: Label
 var _coach_t := 0.0
 
 const COACH_TEXT := {
-	0: "Tap the water to cast your line!
-(hold it down to keep fishing)",
+	0: "Tap the water to cast your line!",
 	1: "Nice catch! Your fish are in the hold.\nTap SELL to turn them into money.",
 	2: "Now visit the fish shop to spend it —\ntap the merchant on the island.",
 	3: "Better rods catch more and rarer fish.\nSave $500 for the Improved Rod, then come back!",
-	4: "Your goals live here — finish them for rewards.\nPress G any time for the full guide. Happy fishing!",
+	4: "Your goals live here — finish them for rewards.\nThe full guide is in the Menu. Happy fishing!",
 }
+const COACH_FIRST_ROUND := "Hold %s:\nthe net goes up.\nLet go: it sinks.\nKeep the fish inside!"
+var _coach_first := false                    # the bubble's on the first round of the mini-game
 
 func _build_coach() -> void:
 	_coach = Control.new()
@@ -2838,17 +2914,27 @@ func _coach_next(step: int) -> void:
 	VF.save_game()
 	_coach_show()
 	if step == 4:
-		get_tree().create_timer(7.0).timeout.connect(func():
-			if VF.tutorial == 4: _coach_next(99))
+		while _banner_busy: await get_tree().process_frame      # (the bubble waits for them: its 7 s start after)
+		await get_tree().create_timer(7.0).timeout
+		if VF.tutorial == 4: _coach_next(99)
+
+## the very first round of the mini-game: the coach says how it's played, whatever step the tutorial is on
+func _coach_round() -> bool:
+	return minigame != null and VF.reel_rounds == 0
 
 func _coach_show() -> void:
 	if _coach == null: return
-	_coach.visible = COACH_TEXT.has(VF.tutorial) and not launcher_open()
+	var first := _coach_round()
+	_coach.visible = (first or COACH_TEXT.has(VF.tutorial)) and not launcher_open()
 	if _coach.visible:
-		_coach_label.text = COACH_TEXT[VF.tutorial]
+		_coach_label.text = COACH_FIRST_ROUND % ("anywhere" if is_touch() else "the mouse or Space") if first else COACH_TEXT[VF.tutorial]
+		_coach_bubble.reset_size()
 		move_child(_coach, get_child_count() - 1)
 
 func _coach_target() -> Vector2:
+	if _coach_round():                         # the window of water with the net in it
+		var mg = minigame
+		return mg.card.get_global_transform() * (mg.COL.position + Vector2(0.0, mg.COL.size.y * 0.5))
 	match VF.tutorial:
 		0: return stage.bobber_screen()
 		1: return sell_btn.get_global_rect().get_center() + Vector2(0, -sell_btn.size.y * 0.5)
@@ -2859,8 +2945,15 @@ func _coach_target() -> Vector2:
 	return get_viewport_rect().size * 0.5
 
 func _process_coach(delta: float) -> void:
-	if _coach == null or not COACH_TEXT.has(VF.tutorial): return
-	_coach.visible = (not overlay.visible or VF.tutorial == 3) and not launcher_open()
+	if _coach == null: return
+	var first := _coach_round()
+	if first != _coach_first:                  # (the round began or ended: the bubble says something else now)
+		_coach_first = first
+		_coach_show()
+	if not first and not COACH_TEXT.has(VF.tutorial): return
+	# (with the line in the air, a round on, a question open or a banner where the bubble goes, the tutorial's steps wait)
+	var busy: bool = minigame != null or _reel_card != null or Time.get_ticks_msec() < _reel_wait_until or (_banner_busy and VF.tutorial in [2, 4])
+	_coach.visible = first or ((not overlay.visible or VF.tutorial == 3) and not launcher_open() and not busy)
 	if not _coach.visible: return
 	_coach_t += delta
 	var tgt := _coach_target()
@@ -2869,30 +2962,105 @@ func _process_coach(delta: float) -> void:
 	var below := VF.tutorial in [2, 4]
 	var bp := tgt + (Vector2(-bs.x * 0.5, 46) if below else Vector2(-bs.x * 0.5, -bs.y - 58))
 	if VF.tutorial == 3: bp = Vector2((vs.x - bs.x) * 0.5, 8)        # above the shop panel, not over its tabs
+	if first: bp = tgt - Vector2(bs.x + 54.0, bs.y * 0.5)            # beside the card, its arrow on the net
 	bp.x = clampf(bp.x, 12, vs.x - bs.x - 12)
 	bp.y = clampf(bp.y, 12, vs.y - bs.y - 12)
 	_coach_bubble.position = bp
 	_coach.queue_redraw()
 
 func _draw_coach() -> void:
-	if VF.tutorial == 3: return
+	var first := _coach_round()
+	if VF.tutorial == 3 and not first: return
 	var tgt := _coach_target()
 	var bob := sin(_coach_t * 5.0) * 7.0
-	var below := VF.tutorial in [2, 4]
-	var dir := -1.0 if below else 1.0          # arrow points down at the target unless the bubble is below
-	var tip := tgt + Vector2(0, -12 * dir + bob * dir)
-	var base := tip + Vector2(0, -34 * dir)
-	var pts := PackedVector2Array([tip, base + Vector2(-20, 0), base + Vector2(20, 0)])
-	_coach.draw_colored_polygon(PackedVector2Array([tip + Vector2(2, 3), base + Vector2(-18, 3), base + Vector2(22, 3)]), Color(0, 0, 0, 0.25))
-	_coach.draw_colored_polygon(pts, Color("#ffcf3f"))
-	_coach.draw_polyline(PackedVector2Array([tip, base + Vector2(-20, 0), base + Vector2(20, 0), tip]), Color("#3b2c20"), 3.0, true)
-	if VF.tutorial == 0:
+	# the arrow points down at the target, up if the bubble is below it, sideways at the net in the first round
+	var d := Vector2.RIGHT if first else (Vector2.UP if VF.tutorial in [2, 4] else Vector2.DOWN)
+	var tip := tgt - d * (12.0 + bob)
+	var base := tip - d * 34.0
+	var side := d.orthogonal() * 20.0
+	var drop := Vector2(2, 3)
+	_coach.draw_colored_polygon(PackedVector2Array([tip + drop, base - side + drop, base + side + drop]), Color(0, 0, 0, 0.25))
+	_coach.draw_colored_polygon(PackedVector2Array([tip, base - side, base + side]), Color("#ffcf3f"))
+	_coach.draw_polyline(PackedVector2Array([tip, base - side, base + side, tip]), Color("#3b2c20"), 3.0, true)
+	if VF.tutorial == 0 and not first:
 		var r := 26.0 + fmod(_coach_t * 30.0, 30.0)
 		_coach.draw_arc(tgt, r, 0, TAU, 40, Color(1, 1, 1, 1.0 - (r - 26.0) / 30.0), 3.0, true)
+
+# ---- the last easy round of the mini-game ends with one friendly question, asked once
+var _reel_ask := false                       # it's due, after this catch
+var _reel_card: Control
+
+func _ask_reel() -> void:
+	if not _reel_ask or _reel_card != null: return
+	if _banner_busy:
+		get_tree().create_timer(0.5).timeout.connect(_ask_reel)      # (after the news)
+		return
+	if overlay.visible or _phone_open() or minigame != null or sail.busy() or Time.get_ticks_msec() < _reel_wait_until: return    # (busy: after the next catch)
+	_reel_ask = false
+	_reel_card = Control.new()
+	_reel_card.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reel_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.1, 0.14, 0.5)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reel_card.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reel_card.add_child(center)
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", sbox(Color("#0b3a44", 0.97), 26, 3, Color("#ffd75e"), 26, 24))
+	p.custom_minimum_size.x = 560
+	center.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	p.add_child(v)
+	var pct := int(round(VFData.MINIGAME_FISH_BONUS * 100.0))
+	var title := lbl("You've got the hang of this!", 28, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	var body := lbl("Reeling them in catches +%d%% fish.\nJust relaxing catches plenty, and your thumbs get the day off." % pct, 16, Color(1, 1, 1, 0.85))
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(body)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	var keep := btn("Keep reeling (+%d%% fish)" % pct, C_GOOD, 18, 280)
+	keep.custom_minimum_size.y = 48
+	keep.pressed.connect(func(): _reel_choice("reel"))
+	row.add_child(keep)
+	var calm := btn("Just relax", C_NEUTRAL, 18, 170)
+	calm.custom_minimum_size.y = 48
+	calm.pressed.connect(func(): _reel_choice("relax"))
+	row.add_child(calm)
+	v.add_child(row)
+	var note := lbl("Change your mind any time: it's the pill next to the cast button.", 13, Color(1, 1, 1, 0.65))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(note)
+	add_child(_reel_card)
+	AudioManager.play_success()
+	await get_tree().process_frame
+	if not is_instance_valid(p): return
+	p.pivot_offset = p.size * 0.5
+	p.scale = Vector2(0.6, 0.6)
+	p.create_tween().tween_property(p, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _reel_choice(mode: String) -> void:
+	if _reel_card == null: return
+	AudioManager.play_click()
+	var c := _reel_card
+	_reel_card = null
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tw := c.create_tween()
+	tw.tween_property(c, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(c.queue_free)
+	if mode != VF.catch_mode: _set_catch_mode(mode)
 
 # a well-progressed save for screenshots and the demo video (never saved)
 func _veteran(demo: String) -> void:
 	VF.catch_mode = "relax"                     # demo screenshots: no mini-game popping up
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS + 1   # (and when there is one: no coach, no question)
 	VF.owned_rods = []
 	var lv: int = VFData.BIOMES[demo].level
 	VF.level = maxi(lv, 120)
@@ -3330,6 +3498,9 @@ func _panel_menu() -> void:
 		var kind: String = t[0]
 		b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
 		g.add_child(b)
+	var by := lbl("Made by afosh", 13, C_MUTED)
+	by.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel_body.add_child(by)
 
 # ================================================================== phone
 ## The phone + FishTok live in vf_phone.gd (state in VF's FishTok section).
