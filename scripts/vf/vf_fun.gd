@@ -60,7 +60,7 @@ func tick(delta: float) -> void:
 	_quip_wait -= delta
 	if _quip_wait <= 0.0:
 		_quip_wait = randf_range(45.0, 110.0)
-		m.stage.say(QUIPS.pick_random())
+		if m.stage._say_t <= 0.0: m.stage.say(QUIPS.pick_random())      # (never over something that's being said)
 
 ## one find at a time, the stage puts it somewhere worth sailing to and takes it away after VFData.FIND_SECS
 func _send_resident() -> void:
