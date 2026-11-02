@@ -123,7 +123,8 @@ signal poked(kind: String, at: Vector2)     # you tapped a crab, a gull, a bottl
 const CRAB_HOP := 70.0
 const FIND_LIFE := 40.0
 const FIND_REACH := 320.0         # a resident answers a tap when the boat is this close (scene px)
-const FIND_HIT := 84.0            # how near a tap has to be to hit a resident
+const TAP_MIN := 30.0             # on a touch screen nothing you can poke is smaller than this each way from its middle (layout units: a fingertip)
+var _art_boxes := {}              # a picture (or a cell of a sheet) -> the part of it that's drawn, for tap areas
 const FIND_SHOP_GAP := 240.0      # residents keep this far from the shop: they're a reason to sail
 const FIND_ASHORE := ["capybara", "lava_crab"]    # on the sand, if the biome has a beach for it
 const FIND_AIR := ["cloud_sheep", "kite", "paper_plane", "astro_cat", "satellite", "space_duck", "ufo"]    # hanging over the water (the rest are cut off at the waterline)
@@ -1647,8 +1648,13 @@ func poke(screen: Vector2) -> bool:
 		burst("sparkle", spot)
 		poked.emit("find:" + id, spot)
 		return true
+	var u: float = float(_scene.get("unit_px", 56.0))
+	var life: Dictionary = manifest.get("life", {})
+	var finds: Dictionary = life.get("finds", {})
+	var gull: Dictionary = life.get("gull", {})
+	var wings := Rect2(float(gull.get("glide", 0)) * float(gull.get("cell", 0)), 2.0 * float(gull.get("cell", 0)), float(gull.get("cell", 0)), float(gull.get("cell", 0)))    # side on, wings out
 	for f in _floaters:
-		if (f.pos as Vector2).distance_to(p) < 72.0:
+		if _tap_box(f.tex, u * 1.35 / float(finds[f.kind]), Rect2(0, 0, finds.cell, finds.cell), f.dir).has_point(p - f.pos):
 			var at: Vector2 = f.pos
 			var kind: String = f.kind
 			_floaters.erase(f)
@@ -1656,14 +1662,15 @@ func poke(screen: Vector2) -> bool:
 			burst("splash", at)
 			poked.emit(kind, at)
 			return true
-	if not _thief.is_empty() and (_thief.pos as Vector2).distance_to(p) < 100.0:
+	if not _thief.is_empty() and _tap_box(_tex("life/gull.png"), u * 0.68 / float(gull.unit_px), wings, 1.0, 24.0).has_point(p - _thief.pos):     # (it's in a hurry)
 		var at: Vector2 = _thief.pos
 		_thief = {}
 		burst("sparkle", at)
 		poked.emit("thief", at)
 		return true
+	var crab: Dictionary = life.get("crab", {})
 	for c in _crabs:
-		if (c.pos as Vector2).distance_to(p) < 58.0:
+		if _tap_box(c.tex, u * 0.42 / float(crab.unit_px), Rect2(0, 0, crab.cell, crab.cell)).has_point(p - c.pos):
 			c.hop = 1.0
 			c.wait = 0.0
 			c.dir = 1.0 if c.pos.x >= p.x else -1.0
@@ -1671,12 +1678,32 @@ func poke(screen: Vector2) -> bool:
 			return true
 	if night_amount < 0.6:
 		for g in _gulls:
-			if (g.pos as Vector2).distance_to(p) < 72.0:
+			if _tap_box(g.tex, u * 0.62 / float(gull.unit_px), wings).has_point(p - g.pos):
 				g.scared = 1.6
 				g.ang += randf_range(-0.9, 0.9)
 				poked.emit("gull", g.pos)
 				return true
 	return false
+
+## Where a creature is on screen, around the point it's drawn at (scene px): a tap in here pokes it, a tap beside it still casts. It's
+## the picture's own outline (region: its cell on a sheet), a little bigger, and on a touch screen never smaller than a fingertip.
+func _tap_box(tex: Texture2D, scale: float, region: Rect2, dir := 1.0, slack := 8.0) -> Rect2:
+	var used := _art_box(tex, region)
+	var r := Rect2((used.position - region.size * 0.5) * scale, used.size * scale)
+	if dir < 0.0: r.position.x = -r.end.x
+	r = r.grow(slack)
+	var finger: float = TAP_MIN / root.scale.x if get_parent().is_touch() else 0.0
+	var more := (Vector2(finger, finger) * 2.0 - r.size).max(Vector2.ZERO) * 0.5
+	return r.grow_individual(more.x, more.y, more.x, more.y)
+
+func _art_box(tex: Texture2D, region: Rect2) -> Rect2:
+	var key := "%s %s" % [tex.resource_path, region]
+	if not _art_boxes.has(key):
+		var img := tex.get_image()
+		if img.is_compressed(): img.decompress()
+		var used := img.get_region(Rect2i(region)).get_used_rect()
+		_art_boxes[key] = Rect2(used) if used.size.x > 0 else Rect2(Vector2.ZERO, region.size)
+	return _art_boxes[key]
 
 ## the horn: everything nearby jumps
 func on_honk() -> void:
@@ -1750,7 +1777,50 @@ func _boat_gets_near(q: Vector2) -> bool:
 
 ## a tap on the find? (vf_sail.gd: then it isn't a tap on the boat, even right beside the hull)
 func on_resident(screen: Vector2) -> bool:
-	return not _resident.is_empty() and (_resident.pos as Vector2).distance_to(to_scene(screen)) < FIND_HIT
+	if _resident.is_empty(): return false
+	var finds: Dictionary = manifest.get("life", {}).get("finds", {})
+	var s: float = float(_scene.get("unit_px", 56.0)) * 1.35 / float(finds[_resident.id])
+	return _tap_box(_resident.tex, s, Rect2(0, 0, finds.cell, finds.cell), _resident.dir, 12.0).has_point(to_scene(screen) - _resident.pos)     # (12: it bobs)
+
+## --fun-test (vf_fun.gd): a tap on each thing you can poke pokes it, a tap just beside it doesn't. Prints TAP lines.
+func tap_areas_test() -> void:
+	var tree := get_tree()
+	var heard := []
+	var listen := func(kind, _at): heard.append(kind)
+	poked.connect(listen)
+	spawn_find("duck")
+	spawn_find("bottle")
+	spawn_thief()
+	spawn_resident(VFData.FINDS[_biome].keys()[0])
+	await tree.create_timer(1.0).timeout
+	var u: float = float(_scene.get("unit_px", 56.0))
+	var life: Dictionary = manifest.get("life", {})
+	var finds: Dictionary = life.finds
+	var wings := Rect2(float(life.gull.glide) * float(life.gull.cell), 2.0 * float(life.gull.cell), life.gull.cell, life.gull.cell)
+	var cell := Rect2(0, 0, finds.cell, finds.cell)
+	var targets := []                   # [name, where it is now, its tap box]
+	for f in _floaters: targets.append([f.kind, f.pos, _tap_box(f.tex, u * 1.35 / float(finds[f.kind]), cell, f.dir)])
+	if not _resident.is_empty(): targets.append([_resident.id, _resident.pos, _tap_box(_resident.tex, u * 1.35 / float(finds[_resident.id]), cell, _resident.dir, 12.0)])
+	if not _crabs.is_empty(): targets.append(["crab", _crabs[0].pos, _tap_box(_crabs[0].tex, u * 0.42 / float(life.crab.unit_px), Rect2(0, 0, life.crab.cell, life.crab.cell))])
+	if not _gulls.is_empty(): targets.append(["gull", _gulls[0].pos, _tap_box(_gulls[0].tex, u * 0.62 / float(life.gull.unit_px), wings)])
+	if not _thief.is_empty(): targets.append(["thief", _thief.pos, _tap_box(_tex("life/gull.png"), u * 0.68 / float(life.gull.unit_px), wings, 1.0, 24.0)])
+	var fails := 0
+	for t in targets:
+		var name: String = t[0]
+		var box: Rect2 = t[2]
+		if name == _resident.get("id", ""): boat_pos = t[1] + Vector2(0, 200)      # (close enough to be found)
+		var beside: Vector2 = t[1] + Vector2(box.end.x + 16.0, box.get_center().y)
+		heard.clear()
+		var hit_beside := poke(to_screen(beside)) and heard.has(_kind_of(name))
+		heard.clear()
+		var hit_on := poke(to_screen(t[1] + box.get_center())) and heard.has(_kind_of(name))
+		print("TAP %s: %dx%d scene px, a tap on it pokes it: %s, 16 px past its edge: %s" % [name, box.size.x, box.size.y, hit_on, hit_beside])
+		if not hit_on or hit_beside: fails += 1
+	poked.disconnect(listen)
+	print("TAP %s (%d failures)" % ["PASS" if fails == 0 else "FAILED", fails])
+
+func _kind_of(name: String) -> String:
+	return "find:" + name if VFData.find_def(name).size() > 0 else name
 
 ## Gerald or his mum is close (vf_fun.gd, VF.gerald_soon): the shape swims past the boat, and as it goes by you hear about it
 func spawn_gerald(line: String) -> void:

@@ -60,7 +60,7 @@ func tick(delta: float) -> void:
 	_quip_wait -= delta
 	if _quip_wait <= 0.0:
 		_quip_wait = randf_range(45.0, 110.0)
-		if m.stage._say_t <= 0.0: m.stage.say(QUIPS.pick_random())      # (never over something that's being said)
+		m.stage.say(QUIPS.pick_random())
 
 ## one find at a time, the stage puts it somewhere worth sailing to and takes it away after VFData.FIND_SECS
 func _send_resident() -> void:
@@ -245,6 +245,7 @@ func capture_test(dir: String) -> void:
 	await m.get_tree().create_timer(0.6).timeout
 	await m._shot(dir + "/fun_honk.png")
 	print("FUN honk done, say='%s'" % s._say_text)
+	await s.tap_areas_test()
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --gerald-test : the whole chase, from the first meeting to the end of
 ## his mum's run: he beats you, you beat him and he gets away, every gag of theirs, caught, the note, the tiara. Never saves.
