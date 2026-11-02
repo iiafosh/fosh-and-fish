@@ -729,3 +729,188 @@ const SPIN := [
 	{"name": "10 Pearls",  "pearls": 10,                     "w": 6,  "color": Color("#6366f1")},
 	{"name": "JACKPOT",    "pearls": 50, "chest": "legendary", "w": 2, "color": Color("#ef4444")},
 ]
+
+
+# ================================================================== Gerald
+## Gerald (not in the bot, all DERIVED) is a fish who has decided you're his rival. Each row is one meeting: in that biome,
+## at that level, he bites instead of a fish, in either catch mode, never on auto-fish. "bounty": what beating him pays, in
+## casts' worth (VF.pay_find). Beat him on a row that isn't "final" and he gets away to the next one; on a "final" row he's
+## caught and gives his hat (GERALD_HATS), and after Gerald his mum starts. Lose and he laughs, leaves a tip (GERALD_TIP),
+## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing.
+const GERALD := [
+	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0},
+	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0},
+	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0},
+	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true},
+	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0},
+	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0},
+	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true},
+]
+const GERALD_HATS := {"Gerald": "crown", "Geraldine": "tiara"}
+const GERALD_TIP := 2.0
+const GERALD_FIRST := 80          # casts in the River before the first meeting (level 10 too: within about 15 minutes)
+const GERALD_TEASE := 10          # this many casts before he's due, the stage teases him (VF.gerald_soon)
+const GERALD_BACK := 45           # after he beats you he's back after this many casts, GERALD_BACK_STEP fewer each time ...
+const GERALD_BACK_STEP := 10
+const GERALD_BACK_MIN := 20       # ... but never at once
+const RIVAL_EASE := 0.25          # every time he has beaten you he's this much closer to easy (1 = as easy as he gets)
+const GERALD_PLACES := {"River": "the River", "Volcanic": "the Volcano", "Ocean": "the Ocean", "Sky": "the Sky", "Space": "Space", "Alien": "the Alien sea", "Abyss": "the Abyss"}
+## what he says when the round is decided ("%s" = where he's off to next)
+const GERALD_LINES := {
+	"Gerald": {
+		"lose": ["Here's a shrimp for your trouble.", "Tell your friends you met Gerald.", "You reel like my mum drives.", "Buy yourself a better hook. My treat."],
+		"escaped": ["Snip! See you in %s.", "Oops, was that your line? I'll be in %s.", "Nice try. Next stop: %s."],
+		"caught": "Fine. You got me. Tell my mum I was brave.",
+	},
+	"Geraldine": {
+		"lose": ["Sit down, dear. Here's bus fare.", "You caught my son with THAT?", "I've had tougher sandwiches."],
+		"escaped": ["Snip. I have bridge club in %s, dear.", "Do keep up. I'll be in %s.", "Mind your manners in %s."],
+		"caught": "Well. Somebody raised you properly. Take the tiara.",
+	},
+}
+
+## casts between meetings: every 60 to 120 for each new stage (a different number each, no dice), sooner after he beat you
+static func gerald_need(stage: int, tries: int) -> int:
+	if tries > 0: return maxi(GERALD_BACK_MIN, GERALD_BACK - GERALD_BACK_STEP * (tries - 1))
+	return GERALD_FIRST if stage <= 0 else 60 + (stage * 23) % 61
+
+## The rival's round: the rarest fish's difficulty (a beginner's first rounds stay easy, see ROOKIE_ROUNDS), a bit easier for
+## every time he has beaten you. His mum is a bit harder. Measured with tools/reel_sim.gd.
+static func rival_params(who: String, power: float, desktop: bool, tries: int, rounds := ROOKIE_ROUNDS) -> Dictionary:
+	var p := minigame_params(4, power, desktop, rounds)
+	if who == "Geraldine":
+		p.zone_h -= 0.03
+		p.fish_speed *= 1.1
+	var e := clampf(float(tries) * RIVAL_EASE, 0.0, 1.0)
+	p.zone_h = lerpf(p.zone_h, 0.5, e)
+	p.fish_speed *= 1.0 - 0.45 * e
+	p.drain_rate = lerpf(p.drain_rate, 0.05, e)
+	p.time_limit += 6.0 * e
+	return p
+
+
+# =================================================================== finds
+## Things to find when sailing (not in the bot, all DERIVED): three residents in every biome, away from the shop, so sailing has
+## a reason. One at a time turns up (VF.find_pick, vf_fun.gd) and stays about FIND_SECS. Tap it from close by: the first time pays
+## about FIND_FIRST casts' worth, later ones about FIND_AGAIN, at most once every FIND_PAY_CD seconds. "rare": turns up less often.
+const FINDS := {
+	"River": {
+		"otter": {"name": "Otter", "line": "Floating on its back. Living better than you.", "rare": false},
+		"frog": {"name": "Frog", "line": "Sits on a lily pad. Has never once been in a hurry.", "rare": false},
+		"old_boot": {"name": "Old Boot", "line": "A tiny fish lives in it. The rent is very reasonable.", "rare": true},
+	},
+	"Volcanic": {
+		"capybara": {"name": "Capybara", "line": "In a hot spring. It has no notes.", "rare": false},
+		"lava_crab": {"name": "Lava Crab", "line": "Walks sideways, on fire. Doesn't want to talk about it.", "rare": false},
+		"marshmallow": {"name": "Marshmallow", "line": "Toasting on a stick. Nobody's holding the stick.", "rare": true},
+	},
+	"Ocean": {
+		"turtle": {"name": "Turtle", "line": "That barnacle is a hat now. It's very proud of it.", "rare": false},
+		"fake_fin": {"name": "Fake Fin", "line": "A little fish with a shark fin on a stick. Please act scared.", "rare": false},
+		"treasure": {"name": "Treasure Chest", "line": "On a sandbar. The map was wrong about everything else.", "rare": true},
+	},
+	"Sky": {
+		"cloud_sheep": {"name": "Cloud Sheep", "line": "Baa. It's raining a little. Sorry.", "rare": false},
+		"kite": {"name": "Lost Kite", "line": "Its string goes nowhere. It's fine. It's on a journey.", "rare": false},
+		"paper_plane": {"name": "Paper Plane", "line": "Someone wrote HELP on it, then made a plane. Priorities.", "rare": true},
+	},
+	"Space": {
+		"astro_cat": {"name": "Astro Cat", "line": "It knocked the moon off a table. It would do it again.", "rare": false},
+		"satellite": {"name": "Satellite", "line": "Picks up one station. It's all fish news.", "rare": false},
+		"space_duck": {"name": "Space Duck", "line": "In a helmet. Still squeaks. Nobody knows how.", "rare": true},
+	},
+	"Alien": {
+		"ufo": {"name": "UFO", "line": "Beaming up a fish. The fish seems into it.", "rare": false},
+		"blob": {"name": "Blob", "line": "Three eyes. All of them disappointed.", "rare": false},
+		"glow_shroom": {"name": "Glow Shroom", "line": "Glows when you compliment it. Go on.", "rare": true},
+	},
+	"Abyss": {
+		"anglerfish": {"name": "Anglerfish", "line": "Has a lamp. Won't share.", "rare": false},
+		"tiny_sub": {"name": "Tiny Sub", "line": "The captain waves. He's very small. Wave back.", "rare": false},
+		"sunken_tv": {"name": "Sunken TV", "line": "Still on. It's showing you. Right now.", "rare": true},
+	},
+}
+const FIND_FIRST := 10.0
+const FIND_AGAIN := 0.5
+const FIND_PAY_CD := 60.0
+const FIND_SECS := 90.0
+const FIND_WAIT := [45.0, 120.0]  # seconds between one leaving and the next turning up
+const FIND_RARE := 0.25           # once you've found the other two: how often the rare one is the one that turns up
+
+static func find_def(id: String) -> Dictionary:
+	for b in FINDS:
+		if FINDS[b].has(id): return FINDS[b][id]
+	return {}
+
+static func finds_total() -> int:
+	var n := 0
+	for b in FINDS: n += FINDS[b].size()
+	return n
+
+
+# ============================================================== collecting
+## Achievements (not in the bot, all DERIVED): a goal to reach, a few Pearls to claim, about half of them jokes. "stat" is what
+## VF.stat_value reads: something about the game itself, or a counter in VF.stats that goes up when the thing happens (VF.stat_add).
+const ACHIEVEMENTS := [
+	{"id": "first_fish", "name": "It's a Start", "desc": "Catch your first fish.", "stat": "fish", "goal": 1, "pearls": 2},
+	{"id": "fish_1k", "name": "A Thousand Fish", "desc": "Catch 1,000 fish.", "stat": "fish", "goal": 1000, "pearls": 5},
+	{"id": "fish_100k", "name": "Overfishing", "desc": "Catch 100,000 fish. Leave some for the others.", "stat": "fish", "goal": 100000, "pearls": 15},
+	{"id": "trips_1k", "name": "Regular", "desc": "Cast 1,000 times.", "stat": "trips", "goal": 1000, "pearls": 5},
+	{"id": "species_10", "name": "Getting the Hang of It", "desc": "Discover 10 species.", "stat": "species", "goal": 10, "pearls": 5},
+	{"id": "species_all", "name": "Every Fish", "desc": "Discover all 20 species.", "stat": "species", "goal": 20, "pearls": 25},
+	{"id": "level_25", "name": "Not a Beginner", "desc": "Reach level 25.", "stat": "level", "goal": 25, "pearls": 5},
+	{"id": "level_100", "name": "Salty", "desc": "Reach level 100.", "stat": "level", "goal": 100, "pearls": 10},
+	{"id": "million", "name": "First Million", "desc": "Earn $1M in all.", "stat": "money_earned", "goal": 1000000, "pearls": 5},
+	{"id": "billion", "name": "Fish Tycoon", "desc": "Earn $1B in all.", "stat": "money_earned", "goal": 1000000000, "pearls": 15},
+	{"id": "chests_100", "name": "Treasure Hunter", "desc": "Open 100 chests.", "stat": "chests", "goal": 100, "pearls": 5},
+	{"id": "rebirth", "name": "Born Again", "desc": "Your first rebirth.", "stat": "prestige", "goal": 1, "pearls": 15},
+	{"id": "finds_7", "name": "Sightseer", "desc": "Find 7 residents while sailing.", "stat": "finds", "goal": 7, "pearls": 5},
+	{"id": "finds_all", "name": "Seen It All", "desc": "Find all 21 residents.", "stat": "finds", "goal": 21, "pearls": 25},
+	{"id": "book_1", "name": "First Stamp", "desc": "Finish a biome in the Fish Book.", "stat": "books", "goal": 1, "pearls": 5},
+	{"id": "crews_5", "name": "Admiral", "desc": "Hire 5 crews.", "stat": "crews", "goal": 5, "pearls": 5},
+	{"id": "won_100", "name": "Reel Good", "desc": "Win 100 rounds of Reel it in!", "stat": "reel_wins", "goal": 100, "pearls": 5},
+	{"id": "perfect_10", "name": "Not a Scratch", "desc": "Win 10 rounds without the fish slipping out once.", "stat": "perfect_rounds", "goal": 10, "pearls": 5},
+	{"id": "honks_100", "name": "Honk If You're Lonely", "desc": "Honk the boat 100 times.", "stat": "honks", "goal": 100, "pearls": 5, "joke": true},
+	{"id": "robbed", "name": "Mugged by a Gull", "desc": "Let a gull fly off with your fish.", "stat": "robbed", "goal": 1, "pearls": 3, "joke": true},
+	{"id": "thieves_10", "name": "Neighbourhood Watch", "desc": "Stop 10 thieving gulls.", "stat": "thieves", "goal": 10, "pearls": 5, "joke": true},
+	{"id": "gerald_5", "name": "Gerald's Favourite", "desc": "Lose to Gerald 5 times.", "stat": "gerald_losses", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "gerald_caught", "name": "Moustache Envy", "desc": "Catch Gerald. Finally.", "stat": "gerald_caught", "goal": 1, "pearls": 10, "joke": true},
+	{"id": "mum_caught", "name": "Sorry, Mrs. Gerald", "desc": "Catch Geraldine.", "stat": "mum_caught", "goal": 1, "pearls": 25, "joke": true},
+	{"id": "ducks_10", "name": "It's Just a Phase", "desc": "Collect 10 rubber ducks.", "stat": "ducks", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "ducks_50", "name": "The Ducks Are Concerned", "desc": "Collect 50 rubber ducks.", "stat": "ducks", "goal": 50, "pearls": 10, "joke": true},
+	{"id": "crabs_100", "name": "Crab Botherer", "desc": "Poke crabs 100 times. They know things.", "stat": "crab_pokes", "goal": 100, "pearls": 5, "joke": true},
+	{"id": "gulls_50", "name": "Gull Friend", "desc": "Poke gulls 50 times. They hate it.", "stat": "gull_pokes", "goal": 50, "pearls": 3, "joke": true},
+	{"id": "bottles_10", "name": "Pen Pal", "desc": "Read 10 messages in bottles.", "stat": "bottles", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "lost_25", "name": "They Seemed Nice", "desc": "Let 25 fish get away.", "stat": "reel_losses", "goal": 25, "pearls": 3, "joke": true},
+	{"id": "blanks_10", "name": "Not Even a Boot", "desc": "Catch nothing at all, 10 times.", "stat": "blanks", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "hats_5", "name": "Hat Person", "desc": "Own 5 hats.", "stat": "hats", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "glass_50", "name": "Please Don't Tap the Glass", "desc": "Tap the aquarium 50 times.", "stat": "glass_taps", "goal": 50, "pearls": 3, "joke": true},
+	{"id": "voyages_25", "name": "Are We There Yet?", "desc": "Sail to another biome 25 times.", "stat": "voyages", "goal": 25, "pearls": 5, "joke": true},
+]
+const BOOK_BONUS := 0.05          # every fish of a biome in the Fish Book: this much more money there, for good
+const AQUARIUM_MAX := 0.30        # every species in the aquarium: visitors add this much to the catch while you're away
+
+static func ach_def(id: String) -> Dictionary:
+	for a in ACHIEVEMENTS:
+		if a.id == id: return a
+	return {}
+
+
+# ==================================================================== hats
+## Silly hats for the captain (not in the bot, all DERIVED). They buy nothing but laughs: no stat looks at them. "price" is in casts'
+## worth (VF.hat_price), so it follows your progress; none is sold for Pearls. "ducks": yours once you've found that many rubber
+## ducks. "from": Gerald or Geraldine gives it when they're caught (VFData.GERALD_HATS).
+const HATS := {
+	"straw": {"name": "Straw Hat", "price": 0.0, "desc": "This hat has seen things."},
+	"pirate": {"name": "Pirate Hat", "price": 15.0, "desc": "Arr. That's all he knows."},
+	"chef": {"name": "Chef's Hat", "price": 25.0, "desc": "The fish don't find this funny."},
+	"propeller": {"name": "Propeller Cap", "price": 40.0, "desc": "Doesn't make the boat go faster. He checked."},
+	"viking": {"name": "Viking Helmet", "price": 60.0, "desc": "For raiding the buffet."},
+	"traffic_cone": {"name": "Traffic Cone", "price": 80.0, "desc": "Nobody asked where he got it."},
+	"top_hat": {"name": "Top Hat", "price": 120.0, "desc": "Very distinguished. Still smells of fish."},
+	"sombrero": {"name": "Sombrero", "price": 160.0, "desc": "Shade for the whole boat."},
+	"duck": {"name": "Duck Hat", "price": 0.0, "ducks": 25, "desc": "It squeaks when he thinks."},
+	"crown": {"name": "Gerald's Crown", "price": 0.0, "from": "Gerald", "desc": "He wants it back. He can't have it."},
+	"tiara": {"name": "Geraldine's Tiara", "price": 0.0, "from": "Geraldine", "desc": "Sit up straight."},
+}
+const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]

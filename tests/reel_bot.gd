@@ -37,6 +37,7 @@ class StubMain:
 	func ph(_name = "") -> Texture2D: return null
 	func icon_for(_kind = "", _name = "") -> Texture2D: return null
 	func keycap(_text = "") -> Control: return Control.new()
+	func money_str(n: float) -> String: return "$%d" % int(n)
 
 ## one round from the first bite to the result. Returns {"won": bool, "secs": float} (the round's length).
 static func play(tree: SceneTree, bot: String, fish: String, tier: int, touch := true, dt := 1.0 / 30.0) -> Dictionary:
@@ -44,6 +45,27 @@ static func play(tree: SceneTree, bot: String, fish: String, tier: int, touch :=
 	main.touch = touch
 	var mg: Control = load("res://scripts/vf/vf_minigame.gd").new()
 	mg.setup(main, fish, tier)
+	return _run(tree, mg, bot, dt)
+
+## one round against the rival of VF.gerald's stage, as if they had lost to him `tries` times (nothing is paid or saved)
+static func play_rival(tree: SceneTree, bot: String, tries: int, touch := true, dt := 1.0 / 30.0) -> Dictionary:
+	var main := StubMain.new()
+	main.touch = touch
+	VF.gerald.tries = tries
+	var mg: Control = load("res://scripts/vf/vf_minigame.gd").new()
+	mg.setup_rival(main)
+	return _run(tree, mg, bot, dt)
+
+static func rival_rate(tree: SceneTree, bot: String, tries: int, n: int) -> float:
+	var rounds: int = VF.reel_rounds
+	var wins := 0
+	for i in n:
+		if play_rival(tree, bot, tries).won: wins += 1
+		VF.reel_rounds = rounds
+	VF.gerald.tries = 0
+	return float(wins) / float(n)
+
+static func _run(tree: SceneTree, mg: Control, bot: String, dt: float) -> Dictionary:
 	tree.root.add_child(mg)
 	mg.set_process(false)
 	mg.phase = "play"

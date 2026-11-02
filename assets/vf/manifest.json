@@ -4204,9 +4204,30 @@
    "unit_px": 27.429
   },
   "finds": {
+   "anglerfish": 48.143,
+   "astro_cat": 50.261,
+   "blob": 58.582,
    "bottle": 48.696,
+   "capybara": 41.843,
    "cell": 112,
-   "duck": 48.696
+   "cloud_sheep": 57.29,
+   "duck": 48.696,
+   "fake_fin": 65.861,
+   "frog": 45.826,
+   "glow_shroom": 53.39,
+   "kite": 44.021,
+   "lava_crab": 40.146,
+   "marshmallow": 64.432,
+   "old_boot": 54.513,
+   "otter": 49.195,
+   "paper_plane": 43.107,
+   "satellite": 42.189,
+   "space_duck": 54.692,
+   "sunken_tv": 51.707,
+   "tiny_sub": 47.946,
+   "treasure": 44.471,
+   "turtle": 47.998,
+   "ufo": 42.987
   },
   "fish": {
    "Alien Fish": 31.614,
@@ -4360,6 +4381,28 @@
     "mouth": [
      0.6411,
      0.3759
+    ]
+   },
+   "Gerald": {
+    "er": 0.0464,
+    "eye": [
+     0.7299,
+     0.4915
+    ],
+    "mouth": [
+     0.8661,
+     0.6585
+    ]
+   },
+   "Geraldine": {
+    "er": 0.048,
+    "eye": [
+     0.7518,
+     0.5429
+    ],
+    "mouth": [
+     0.9121,
+     0.6223
     ]
    },
    "Guardian": {

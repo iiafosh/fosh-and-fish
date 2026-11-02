@@ -306,6 +306,10 @@ func _init() -> void:
 	_test_idle()
 	_test_rookie_rounds()
 	_test_first_rebirth()
+	_test_gerald()
+	_test_finds()
+	_test_collecting()
+	_test_hats()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -316,6 +320,9 @@ func _with_autoloads() -> void:
 	v.autosave = false                   # (the autoload holds the real save: it must never be written from here)
 	v._apply(v._defaults.duplicate(true))
 	_test_rookie_bots(v)
+	_test_rival_bots(v)
+	_test_resident_timing(v)
+	_test_counters(v)
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
 
@@ -438,6 +445,568 @@ func _test_first_rebirth() -> void:
 	check(said.size() == 1, "... only once")
 	g.do_prestige()
 	check(g.goals_done == VFData.STARTER_GOALS.size(), "being reborn finishes that goal")
+
+
+## Gerald, then his mum: when they turn up, what winning and losing do, and that it all survives
+func _test_gerald() -> void:
+	print("== Gerald")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	g.tutorial = 99
+	check(VFData.GERALD.size() == 7 and VFData.GERALD[3].get("final", false) and VFData.GERALD[6].get("final", false)
+		and not VFData.GERALD[0].get("final", false) and VFData.GERALD[4].who == "Geraldine", "seven stages: Gerald's four, then his mum's three")
+	var info: Dictionary = g.gerald_info()
+	check(info.who == "Gerald" and info.biome == "River" and info.level == 10 and not info.met and not info.done and info.bounty > 0, "before anything happens: he's in the River, unmet")
+	check(not g.gerald_due() and not g.gerald_soon(), "level 1: not yet")
+	var first: int = VFData.gerald_need(0, 0)
+	check(first == 80, "the first meeting is about 80 casts in")
+	g.level = 10
+	g.gerald.casts = first - 11
+	check(not g.gerald_soon() and not g.gerald_due(), "level 10, %d casts: nothing yet" % g.gerald.casts)
+	g.gerald.casts = first - 10
+	check(g.gerald_soon() and not g.gerald_due(), "10 casts to go: the stage can tease him")
+	g.gerald.casts = first
+	check(g.gerald_due() and g.gerald_soon(), "level 10 and enough casts: he's due")
+	g.tutorial = 2
+	check(not g.gerald_due(), "he waits for the tutorial, like every toy")
+	g.tutorial = 99
+	g.level = 9
+	check(not g.gerald_due(), "not below his level")
+	g.level = 60
+	g.biome = "Volcanic"
+	check(not g.gerald_due() and not g.gerald_soon(), "not in another biome")
+	g.biome = "River"
+	g.gerald.casts = 0
+	g._last_cast_ms = -100000
+	g.cast()
+	check(g.gerald.casts == 1, "a cast in his biome counts")
+	for s in VFData.GERALD.size():
+		check(VFData.gerald_need(s, 0) >= 60 and VFData.gerald_need(s, 0) <= 120, "stage %d: every %d casts" % [s, VFData.gerald_need(s, 0)])
+	# losing costs nothing, and he comes back sooner
+	g.rod = "Plastic Rod"
+	g.level = 10
+	g.gerald.casts = first
+	var m0: int = g.money
+	var lost: Dictionary = g.gerald_result(false)
+	check(not lost.caught and not lost.escaped and lost.pay > 0 and g.money == m0 + lost.pay and lost.line != "" and lost.stage == 0, "he wins: he laughs and pays a little ($%d): %s" % [lost.pay, lost.line])
+	check(g.gerald.stage == 0 and g.gerald.tries == 1 and g.gerald.losses == 1 and g.gerald.casts == 0, "he stays where he is, and the casts start over")
+	check(is_equal_approx(g.cur_cooldown(), g.cooldown()), "a lost round: the normal cooldown")
+	var need1: int = VFData.gerald_need(0, 1)
+	var need2: int = VFData.gerald_need(0, 2)
+	check(need1 < first and need2 < need1 and VFData.gerald_need(0, 50) >= 20, "he comes back sooner each time (%d, %d casts), never at once" % [need1, need2])
+	# winning a stage: the bounty, and he gets away
+	g.gerald.casts = need1
+	check(g.gerald_due(), "he's back")
+	m0 = g.money
+	var won: Dictionary = g.gerald_result(true)
+	check(won.escaped and not won.caught and won.pay > lost.pay and g.money == m0 + won.pay and won.line != "" and won.stage == 0, "you win: the bounty ($%d), and he gets away: %s" % [won.pay, won.line])
+	check(g.gerald.stage == 1 and g.gerald.tries == 0 and g.gerald.wins == 1 and g.gerald.casts == 0 and g.gerald_info().biome == "Volcanic", "he moves on to the Volcano")
+	check("the Volcano" in won.line and not "%" in won.line, "and says so")
+	check(g.gerald_info().met and not g.gerald_due(), "you've met now, and he's not due in the River any more")
+	check(absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001, "a won round: the next cast is ready like after any win")
+	# the final stage: caught, the crown, and his mum
+	g.gerald.stage = 3
+	g.level = 250
+	g.biome = "Sky"
+	g.rod = "Infinity Rod"
+	g.gerald.casts = VFData.gerald_need(3, 0)
+	check(g.gerald_due(), "stage 4: the Sky at level 250")
+	check(not "crown" in g.hats_owned, "no crown yet")
+	var caught: Dictionary = g.gerald_result(true)
+	check(caught.caught and not caught.escaped and caught.pay > 0 and "crown" in g.hats_owned and not "tiara" in g.hats_owned, "caught at last: a big payout ($%d) and the crown: %s" % [caught.pay, caught.line])
+	check(g.gerald_info().who == "Geraldine" and g.gerald_info().biome == "Space" and not g.gerald_info().done, "then his mum starts")
+	g.gerald.stage = 6
+	g.level = 2500
+	g.biome = "Abyss"
+	g.rod = "Dark Rod"
+	g.gerald.casts = VFData.gerald_need(6, 0)
+	var mum: Dictionary = g.gerald_result(true)
+	check(mum.caught and "tiara" in g.hats_owned and g.gerald_info().done, "Geraldine gives the tiara, and that's the end of it")
+	check(not g.gerald_due() and not g.gerald_soon(), "all done: nobody's due")
+	var after: Dictionary = g.gerald_result(true)
+	check(after.pay == 0 and not after.caught and int(g.gerald.stage) == 7, "a stray result after the end changes nothing")
+	var poster: Dictionary = g.gerald_info(1)
+	check(poster.who == "Gerald" and poster.biome == "Volcanic" and poster.bounty > 0 and poster.done, "a poster for any stage: stage 2 is stamped")
+	# it survives
+	g._apply(g._defaults.duplicate(true))
+	g.gerald = {"stage": 2, "casts": 17, "tries": 3, "wins": 2, "losses": 5}
+	g.hats_owned = ["straw", "crown"]
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g._apply(g._defaults.duplicate(true))
+	g._apply(sd)
+	check(g.gerald.stage == 2 and g.gerald.casts == 17 and g.gerald.tries == 3 and g.gerald.wins == 2 and g.gerald.losses == 5 and "crown" in g.hats_owned, "Gerald survives save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("gerald")
+	old.erase("hats_owned")
+	g._apply(old)
+	check(g.gerald.stage == 0 and g.gerald.casts == 0 and g.hats_owned == ["straw"], "a save from before Gerald loads with him unmet")
+	old = sd.duplicate(true)
+	old["gerald"] = {"stage": 99, "casts": -5}
+	g._apply(old)
+	check(g.gerald.stage == 7 and g.gerald.casts == 0 and g.gerald.losses == 0, "a damaged save can't break him")
+	g._apply(sd)
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.gerald.stage == 2 and g.gerald.losses == 5 and "crown" in g.hats_owned, "Gerald and the hats survive prestige")
+	var easy: Dictionary = VFData.rival_params("Gerald", 0.1, false, 3, 99)
+	var hard: Dictionary = VFData.rival_params("Gerald", 0.1, false, 0, 99)
+	var mum2: Dictionary = VFData.rival_params("Geraldine", 0.1, false, 0, 99)
+	check(easy.zone_h > hard.zone_h and easy.fish_speed < hard.fish_speed and easy.drain_rate < hard.drain_rate and easy.time_limit > hard.time_limit, "he gets easier every time you lose to him")
+	check(mum2.zone_h < hard.zone_h and mum2.fish_speed > hard.fish_speed, "his mum is harder")
+
+
+## finds when sailing: the 21 residents, what tapping one pays, which one turns up next, and that they're kept
+func _test_finds() -> void:
+	print("== finds")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var want := {"River": ["otter", "frog", "old_boot"], "Volcanic": ["capybara", "lava_crab", "marshmallow"], "Ocean": ["turtle", "fake_fin", "treasure"],
+		"Sky": ["cloud_sheep", "kite", "paper_plane"], "Space": ["astro_cat", "satellite", "space_duck"], "Alien": ["ufo", "blob", "glow_shroom"],
+		"Abyss": ["anglerfish", "tiny_sub", "sunken_tv"]}
+	var ok := VFData.FINDS.size() == VFData.BIOME_ORDER.size()
+	for b in want:
+		var ids: Array = VFData.FINDS[b].keys()
+		ok = ok and ids == want[b] and VFData.FINDS[b][want[b][2]].rare and not VFData.FINDS[b][want[b][0]].rare and not VFData.FINDS[b][want[b][1]].rare
+		for id in ids:
+			var d: Dictionary = VFData.FINDS[b][id]
+			ok = ok and String(d.name) != "" and String(d.line) != "" and VFData.find_def(id) == d
+	check(ok and VFData.finds_total() == 21, "every biome has its three finds, and the third is the rare one (%d in all)" % VFData.finds_total())
+	check(VFData.find_def("nope").is_empty(), "an unknown id isn't a find")
+	# tapping one
+	var worth: int = g.find_value(VFData.FIND_FIRST)
+	var m0: int = g.money
+	var r1: Dictionary = g.find_tapped("otter")
+	check(r1.first and r1.pay == worth and g.money == m0 + worth and r1.line == VFData.FINDS.River.otter.line and g.finds.otter == 1, "the first otter pays about 10 casts' worth ($%d) and says its line" % r1.pay)
+	check(absf(float(worth) / g.find_value(1.0) - 10.0) < 0.5 and VFData.FIND_FIRST == 10.0 and VFData.FIND_AGAIN == 0.5, "the numbers from the missing list")
+	var r2: Dictionary = g.find_tapped("otter")
+	check(not r2.first and r2.pay == 0 and g.finds.otter == 2 and r2.line != "", "tapping it again right away pays nothing, but it still counts and still talks")
+	g._find_paid_at -= VFData.FIND_PAY_CD + 1.0
+	var r3: Dictionary = g.find_tapped("otter")
+	check(not r3.first and r3.pay == g.find_value(VFData.FIND_AGAIN) and r3.pay < r1.pay, "after the cooldown a repeat pays a little ($%d)" % r3.pay)
+	check(g.find_tapped("otter").pay == 0, "... and the cooldown starts over")
+	var r4: Dictionary = g.find_tapped("frog")
+	check(r4.first and r4.pay > 0, "a new find always pays, cooldown or not")
+	m0 = g.money
+	var bad: Dictionary = g.find_tapped("nope")
+	check(not bad.first and bad.pay == 0 and bad.line == "" and g.money == m0 and not g.finds.has("nope"), "an unknown id does nothing")
+	check(g.finds.size() == 2, "2 of 21 found")
+	# what turns up next
+	g.finds = {}
+	g.biome = "Ocean"
+	var seen := {}
+	for i in 400: seen[g.find_pick()] = true
+	check(seen.keys().size() == 2 and seen.has("turtle") and seen.has("fake_fin"), "nothing found yet: the two common ones of this biome come first (%s)" % [seen.keys()])
+	g.finds = {"turtle": 1}
+	seen = {}
+	for i in 100: seen[g.find_pick()] = true
+	check(seen.keys() == ["fake_fin"], "the one you haven't found comes before the one you have")
+	g.finds = {"turtle": 1, "fake_fin": 3}
+	var rare := 0
+	for i in 2000:
+		if g.find_pick() == "treasure": rare += 1
+	check(absf(rare / 2000.0 - VFData.FIND_RARE) < 0.05, "both found: the rare one turns up %d%% of the time" % int(rare / 20.0))
+	g.finds = {"turtle": 1, "fake_fin": 3, "treasure": 1}
+	rare = 0
+	for i in 2000:
+		if g.find_pick() == "treasure": rare += 1
+	check(absf(rare / 2000.0 - VFData.FIND_RARE) < 0.05, "all found: they keep turning up, the rare one less often (%d%%)" % int(rare / 20.0))
+	for b in VFData.BIOME_ORDER:
+		g.biome = b
+		check(VFData.FINDS[b].has(g.find_pick()), "%s: only its own finds turn up" % b)
+	# they're kept
+	g.finds = {"otter": 4, "treasure": 1}
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.finds = {}
+	g._apply(sd)
+	check(g.finds == {"otter": 4, "treasure": 1}, "finds survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("finds")
+	g._apply(old)
+	check(g.finds.is_empty(), "a save from before finds has none")
+	old = sd.duplicate(true)
+	old["finds"] = {"otter": 2, "not_a_find": 9}
+	g._apply(old)
+	check(g.finds == {"otter": 2}, "ids that don't exist are dropped")
+	g._apply(sd)
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.finds.otter == 4, "finds survive prestige")
+
+
+## collecting pays off: achievements, the Fish Book's stamps, the aquarium's visitors
+func _test_collecting() -> void:
+	print("== achievements")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var ids := {}
+	var jokes := 0
+	var well_formed := true
+	for a in VFData.ACHIEVEMENTS:
+		ids[a.id] = true
+		well_formed = well_formed and String(a.name) != "" and String(a.desc) != "" and String(a.stat) != "" and int(a.goal) > 0 and int(a.pearls) > 0 and int(a.pearls) <= 25
+		if a.get("joke", false): jokes += 1
+	check(ids.size() == VFData.ACHIEVEMENTS.size() and ids.size() >= 28 and ids.size() <= 36 and well_formed, "about 30 achievements (%d), each with a goal and a few Pearls" % ids.size())
+	check(jokes * 2 >= ids.size() - 4, "about half of them are jokes (%d)" % jokes)
+	check(g.ach_ready().is_empty(), "a new game has nothing to claim")
+	check(g.ach_claim("first_fish") == 0 and g.pearls == 0, "you can't claim what you haven't done")
+	check(g.ach_claim("nope") == 0, "an unknown id does nothing")
+	g.stat_add("honks")
+	g.stat_add("honks", 98)
+	check(g.stats.honks == 99 and not "honks_100" in g.ach_ready(), "99 honks: not yet")
+	g.stat_add("honks")
+	check("honks_100" in g.ach_ready(), "100 honks: ready to claim")
+	var def: Dictionary = VFData.ach_def("honks_100")
+	check(g.ach_claim("honks_100") == int(def.pearls) and g.pearls == int(def.pearls) and g.ach_claimed.has("honks_100"), "claiming pays its Pearls (%d)" % def.pearls)
+	check(g.ach_claim("honks_100") == 0 and g.pearls == int(def.pearls) and not "honks_100" in g.ach_ready(), "only once")
+	# what it reads from the game itself
+	g.level = 100
+	g.prestige = 1
+	g.discovered = {"Cod": 3, "Squid": 1}
+	g.finds = {"otter": 2, "frog": 1}
+	g.crews = 5
+	g.ducks = 12
+	g.gerald = {"stage": 4, "casts": 0, "tries": 0, "wins": 4, "losses": 6}
+	g.hats_owned = ["straw", "crown"]
+	check(g.stat_value("level") == 100 and g.stat_value("prestige") == 1 and g.stat_value("species") == 2 and g.stat_value("finds") == 2 and g.stat_value("crews") == 5
+		and g.stat_value("ducks") == 12 and g.stat_value("gerald_losses") == 6 and g.stat_value("gerald_caught") == 1 and g.stat_value("mum_caught") == 0 and g.stat_value("hats") == 2,
+		"it knows your level, species, finds, crews, ducks, hats and how it's going with Gerald")
+	check("gerald_5" in g.ach_ready() and "gerald_caught" in g.ach_ready() and "ducks_10" in g.ach_ready() and not "ducks_50" in g.ach_ready() and "rebirth" in g.ach_ready(), "the jokes count too")
+	# nothing is lost to a rebirth
+	g.level = VFData.prestige_level_req(1)
+	g.money = VFData.prestige_money_req(1)
+	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(1) / 8
+	g.stat_add("voyages", 3)
+	g.do_prestige()
+	check(g.level == 1 and g.crews == 0 and g.stat_value("level") >= 100 and g.stat_value("crews") == 5 and g.stats.voyages == 3 and "level_100" in g.ach_ready() and "crews_5" in g.ach_ready(), "a rebirth doesn't take back what you've done")
+	check(g.ach_claimed.has("honks_100"), "... or what you've claimed")
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.stats.erase("honks")
+	g.ach_claimed = {}
+	g._apply(sd)
+	check(g.stats.honks == 100 and g.ach_claimed.has("honks_100") and g.ach_claim("honks_100") == 0, "stats and claims survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("ach_claimed")
+	g._apply(old)
+	check(g.ach_claimed.is_empty(), "a save from before achievements has none claimed")
+	old = sd.duplicate(true)
+	old["ach_claimed"] = {"honks_100": true, "not_a_thing": true}
+	g._apply(old)
+	check(g.ach_claimed.has("honks_100") and not g.ach_claimed.has("not_a_thing"), "ids that don't exist are dropped")
+
+	print("== the Fish Book")
+	g._apply(g._defaults.duplicate(true))
+	g.level = 30
+	var base: float = g.sell_mult()
+	check(g.book_bonus("River") == 0.0 and not g.book_done("River"), "nothing caught: no stamp")
+	for f in VFData.BIOMES.River.fish.slice(0, 4): g.discovered[f] = 1
+	check(g.book_bonus("River") == 0.0, "four of the five: no stamp yet")
+	g.discovered[VFData.BIOMES.River.fish[4]] = 1
+	check(g.book_done("River") and is_equal_approx(g.book_bonus("River"), 0.05) and g.book_bonus("Abyss") == 0.0, "all five: a stamp and +5% in the River, not elsewhere")
+	check(is_equal_approx(g.sell_mult(), base * 1.05), "you sell for +5% in the River")
+	g.biome = "Abyss"
+	check(is_equal_approx(g.sell_mult(), base), "... and not anywhere else")
+	g.biome = "River"
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.book_done("River"), "stamps are permanent: they survive prestige")
+	check(g.stat_value("books") == 1 and "book_1" in g.ach_ready(), "and the first stamp is an achievement")
+
+	print("== the aquarium")
+	g._apply(g._defaults.duplicate(true))
+	check(g.aquarium_income() == 0.0, "an empty aquarium has no visitors")
+	g.discovered = {"Cod": 1}
+	check(is_equal_approx(g.aquarium_income(), VFData.AQUARIUM_MAX / VFData.FISH_ORDER.size()), "every species brings some")
+	for f in VFData.FISH_ORDER: g.discovered[f] = 1
+	check(is_equal_approx(g.aquarium_income(), 0.30), "every species: +30%")
+	g.discovered["Not a fish"] = 1
+	check(g.aquarium_income() <= 0.30 + 1e-6, "and never more than that")
+	g.discovered.erase("Not a fish")
+	g.level = 10
+	g.crews = 2
+	g.biome = "River"
+	var now := Time.get_unix_time_from_system()
+	g.discovered = {}
+	g.idle_seen = now - 3600.0
+	g.offline = {}
+	g.offline_check()
+	var plain: int = g.offline.n
+	check(g.offline.aquarium == 0.0, "an empty aquarium adds nothing while you're away")
+	for f in VFData.FISH_ORDER: g.discovered[f] = 1
+	g.idle_seen = now - 3600.0
+	g.offline = {}
+	g.offline_check()
+	check(absf(float(g.offline.n) / plain - 1.3) < 0.02 and is_equal_approx(g.offline.aquarium, 0.30), "a full one: +30%% on the catch while you're away (%d -> %d fish), and the card can say so" % [plain, g.offline.n])
+	var osd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g._apply(osd)
+	check(g.offline.has("aquarium") and is_equal_approx(g.offline.aquarium, 0.30), "it survives save -> load with the waiting catch")
+
+
+## hats: bought with money, the special ones earned, and they buy nothing but laughs
+func _test_hats() -> void:
+	print("== hats")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	var slugs := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]
+	var well_formed := true
+	for id in slugs:
+		var d: Dictionary = VFData.HATS.get(id, {})
+		well_formed = well_formed and String(d.get("name", "")) != "" and d.has("price") and not d.has("pearls")
+	check(VFData.HATS.size() == slugs.size() and VFData.HAT_ORDER == slugs and well_formed, "the eleven hats of the missing list, none of them for Pearls")
+	check(g.hats_owned == ["straw"] and g.hat == "straw", "a new game: the straw hat, and he's wearing it")
+	check(g.hat_price("straw") == 0 and g.hat_lock("straw") == "", "the straw hat is free")
+	# buying
+	g.money = 0
+	check(g.buy_hat("pirate") != "" and not "pirate" in g.hats_owned and g.hat == "straw", "no money, no hat")
+	var price: int = g.hat_price("pirate")
+	check(price > 0, "the pirate hat costs $%d for a new player" % price)
+	g.money = price + 5
+	check(g.buy_hat("pirate") == "" and "pirate" in g.hats_owned and g.money == 5 and g.hat == "pirate", "buying costs its price, and he puts it on")
+	g.money = price
+	check(g.buy_hat("pirate") != "" and g.money == price, "you can't buy it twice")
+	check(g.buy_hat("nope") != "" and g.money == price and not "nope" in g.hats_owned, "there's no such hat")
+	# wearing
+	g.wear_hat("straw")
+	check(g.hat == "straw", "any hat you own goes on")
+	g.wear_hat("chef")
+	check(g.hat == "straw", "not one you don't own")
+	g.wear_hat("nope")
+	check(g.hat == "straw", "not one that doesn't exist")
+	# prices follow your progress, and rise along the list
+	var rising := true
+	var last := 0
+	for id in ["pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero"]:
+		rising = rising and g.hat_price(id) > last
+		last = g.hat_price(id)
+	check(rising, "they cost more along the list")
+	var early: int = g.hat_price("viking")
+	g.level = 500
+	g.rod = "Space Rod"
+	g.biome = "Space"
+	g.boats_owned = 6
+	check(g.hat_price("viking") > early * 100, "prices scale with progress ($%d, later $%d)" % [early, g.hat_price("viking")])
+	g.rod = "Plastic Rod"
+	g.biome = "River"
+	g.boats_owned = 0
+	g.level = 1
+	# earned ones
+	g.money = 1000000000
+	g.ducks = 24
+	check(g.buy_hat("duck") != "" and "25" in g.hat_lock("duck") and not "duck" in g.hats_owned, "the duck hat needs 25 rubber ducks: %s" % g.hat_lock("duck"))
+	g.ducks = 25
+	var m0: int = g.money
+	check(g.hat_lock("duck") == "" and g.buy_hat("duck") == "" and "duck" in g.hats_owned and g.money == m0, "at 25 it's yours, free")
+	check(g.buy_hat("crown") != "" and g.buy_hat("tiara") != "" and not "crown" in g.hats_owned and not "tiara" in g.hats_owned and g.money == m0, "no amount of money buys the crown or the tiara")
+	check(g.hat_lock("crown") != "" and g.hat_lock("tiara") != "", "they say how to get them: %s / %s" % [g.hat_lock("crown"), g.hat_lock("tiara")])
+	g.gerald = {"stage": 3, "casts": 0, "tries": 0, "wins": 3, "losses": 0}
+	g.gerald_result(true)
+	g.wear_hat("crown")
+	check(g.hat == "crown" and g.hat_lock("crown") == "", "catch Gerald and the crown goes on")
+	# nothing but laughs
+	var before := [g.fish_catch_mult(), g.fish_quality_mult(), g.sell_mult(), g.xp_mult(), g.treasure_chance(), g.treasure_quality(), g.cooldown(), g.crew_trip_secs(), g.offline_rate(), VFData.rod_reel_power(g.rod)]
+	var same := true
+	for id in g.hats_owned:
+		g.wear_hat(id)
+		same = same and before == [g.fish_catch_mult(), g.fish_quality_mult(), g.sell_mult(), g.xp_mult(), g.treasure_chance(), g.treasure_quality(), g.cooldown(), g.crew_trip_secs(), g.offline_rate(), VFData.rod_reel_power(g.rod)]
+	check(same, "hats change nothing: catch, quality, price, XP, treasure, cooldown, crews, reel power")
+	# they're kept
+	g.wear_hat("duck")
+	var sd: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	g.hat = "straw"
+	g.hats_owned = ["straw"]
+	g._apply(sd)
+	check(g.hat == "duck" and "pirate" in g.hats_owned and "crown" in g.hats_owned, "hats survive save -> load")
+	var old: Dictionary = sd.duplicate(true)
+	old.erase("hat")
+	old.erase("hats_owned")
+	g._apply(old)
+	check(g.hat == "straw" and g.hats_owned == ["straw"], "a save from before hats: the straw hat")
+	old = sd.duplicate(true)
+	old["hats_owned"] = ["pirate", "not_a_hat", "pirate"]
+	old["hat"] = "tiara"
+	g._apply(old)
+	check(g.hats_owned == ["straw", "pirate"] and g.hat == "straw", "a damaged save: hats that don't exist are dropped, and he never wears one he doesn't own")
+	g._apply(sd)
+	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	g.do_prestige()
+	check(g.hat == "duck" and "pirate" in g.hats_owned and "crown" in g.hats_owned, "hats survive prestige")
+	check(g.stat_value("hats") == g.hats_owned.size(), "they count for Hat Person")
+
+
+## the places that count: every stat an achievement needs goes up when the thing happens
+func _test_counters(v) -> void:
+	print("== what counts")
+	v._apply(v._defaults.duplicate(true))
+	v.tutorial = 99
+	v.biome = "River"
+	var known := ["level", "prestige", "species", "finds", "books", "crews", "ducks", "hats", "gerald_losses", "gerald_caught", "mum_caught",
+		"fish", "trips", "chests", "money_earned", "honks", "robbed", "thieves", "crab_pokes", "gull_pokes", "bottles", "reel_wins", "reel_losses", "perfect_rounds", "blanks", "glass_taps", "voyages"]
+	var all_known := true
+	for a in VFData.ACHIEVEMENTS:
+		if not a.stat in known:
+			all_known = false
+			print("  unknown stat: ", a.stat)
+	check(all_known, "every achievement's stat is one that's counted")
+	var Fun = load("res://scripts/vf/vf_fun.gd")
+	var m := FunMain.new()
+	m.stage = FunStageWithResidents.new()
+	m.tree_root = root
+	var f = Fun.new(m)
+	for kind in ["crab", "gull", "bottle", "thief", "thief_away"]:
+		m.stage.poked.emit(kind, Vector2.ZERO)
+	check(v.stats.get("crab_pokes", 0) == 1 and v.stats.get("gull_pokes", 0) == 1 and v.stats.get("bottles", 0) == 1 and v.stats.get("thieves", 0) == 1 and v.stats.get("robbed", 0) == 1,
+		"poking counts: crabs, gulls, bottles, thieves stopped, and being robbed")
+	f.honk()
+	check(v.stats.get("honks", 0) == 1, "honking counts")
+	var d0: int = v.ducks
+	m.stage.poked.emit("duck", Vector2.ZERO)
+	check(v.ducks == d0 + 1, "ducks count themselves")
+	var Bot = load("res://tests/reel_bot.gd")
+	seed(99)
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
+	v.rod = "Dark Rod"
+	v.stats.erase("reel_wins")
+	v.stats.erase("reel_losses")
+	Bot.play(self, "sharp", "Raw Fish", 0)
+	check(v.stats.get("reel_wins", 0) == 1, "winning a round counts")
+	v.rod = "Plastic Rod"
+	for i in 10: Bot.play(self, "hold", "Dark Tuna", 4)
+	check(v.stats.get("reel_losses", 0) >= 1, "losing a round counts (%d of 10)" % v.stats.get("reel_losses", 0))
+	var wins0: int = v.stats.get("reel_wins", 0)
+	var losses0: int = v.stats.get("reel_losses", 0)
+	Bot.play_rival(self, "sharp", 0)
+	check(v.stats.get("reel_wins", 0) == wins0 and v.stats.get("reel_losses", 0) == losses0, "a round against Gerald counts for Gerald, not for these")
+	v.level = 100
+	v.stats.erase("voyages")
+	check(v.select_biome("Volcanic") == "" and v.stats.get("voyages", 0) == 1, "sailing to another biome counts")
+	check(v.select_biome("Volcanic") == "" and v.stats.get("voyages", 0) == 1, "staying where you are doesn't")
+	check(v.select_biome("Abyss") != "" and v.stats.get("voyages", 0) == 1, "and neither does a trip you can't make")
+	v.biome = "River"
+	v._apply(v._defaults.duplicate(true))
+
+
+## stand-ins for what vf_fun.gd asks of vf_main and the stage
+class FunStage:
+	signal poked(kind: String, at: Vector2)
+	var night_amount := 0.0
+	var said := ""
+	func spawn_find(_kind: String) -> void: pass
+	func spawn_thief() -> void: pass
+	func say(text: String, _secs := 3.4) -> void: said = text
+	func to_screen(p: Vector2) -> Vector2: return p
+	func on_honk() -> void: pass
+
+class FunStageWithResidents extends FunStage:
+	var sent := []
+	func spawn_resident(id: String) -> void: sent.append(id)
+
+class FunUI:
+	func coins_to_wallet(_from: Vector2, _n: int) -> void: pass
+
+class FunMain:
+	var stage
+	var v1 := FunUI.new()
+	var overlay := {"visible": false}
+	var minigame = null
+	var sail := {"state": "idle"}
+	var C_GOLD := Color.GOLD
+	var banners := []
+	var tree_root: Node
+	func launcher_open() -> bool: return false
+	func _phone_open() -> bool: return false
+	func money_str(n: float) -> String: return "$%d" % int(n)
+	func _float_text(_t: String, _at: Vector2, _c: Color) -> void: pass
+	func _toast(_t: String, _k: String) -> void: pass
+	func ph(_n: String) -> Texture2D: return null
+	func _banner(title: String, _sub: String, _tex: Texture2D, _col: Color) -> void: banners.append(title)
+	func sbox(_c = null, _r = 0, _b = 0, _bc = null, _s = 0, _p = 0) -> StyleBoxFlat: return StyleBoxFlat.new()
+	func lbl(text = "", _size = 16, _col = null, _outline = 0) -> Label:
+		var l := Label.new()
+		l.text = str(text)
+		return l
+	func add_child(n: Node) -> void: tree_root.add_child(n)
+	func get_viewport_rect() -> Rect2: return Rect2(0, 0, 1280, 720)
+
+
+## when a find turns up: one at a time, gone after FIND_SECS, never during a panel or the tutorial, safe until the stage can show one
+func _test_resident_timing(v) -> void:
+	print("== when a find turns up")
+	v._apply(v._defaults.duplicate(true))
+	v.tutorial = 99
+	v.biome = "River"
+	var Fun = load("res://scripts/vf/vf_fun.gd")
+	var plain := FunMain.new()
+	plain.stage = FunStage.new()
+	var f1 = Fun.new(plain)
+	for i in 400: f1.tick(1.0)
+	check(true, "no spawn_resident on the stage yet: nothing happens, nothing breaks")
+	var m := FunMain.new()
+	var st := FunStageWithResidents.new()
+	m.stage = st
+	var f = Fun.new(m)
+	var t := 0.0
+	var at := []
+	var gaps_ok := true
+	while t < 1800.0:
+		f.tick(1.0)
+		t += 1.0
+		while at.size() < st.sent.size(): at.append(t)
+	for i in range(1, at.size()):
+		if at[i] - at[i - 1] < VFData.FIND_SECS + VFData.FIND_WAIT[0] - 1.0 or at[i] - at[i - 1] > VFData.FIND_SECS + VFData.FIND_WAIT[1] + 1.0: gaps_ok = false
+	check(at.size() >= 7 and gaps_ok, "one at a time: %d in half an hour, none while the last is still out" % at.size())
+	check(st.sent[0] in ["otter", "frog"], "the first one is a common one you haven't found (%s)" % st.sent[0])
+	var n: int = st.sent.size()
+	m.overlay.visible = true
+	for i in 400: f.tick(1.0)
+	check(st.sent.size() == n, "nothing new turns up behind an open panel")
+	m.overlay.visible = false
+	v.tutorial = 2
+	for i in 400: f.tick(1.0)
+	check(st.sent.size() == n, "toys wait for the tutorial")
+	v.tutorial = 99
+	f._resident_left = 50.0
+	var money0: int = v.money
+	st.poked.emit("find:old_boot", Vector2(100, 100))
+	check(st.said == VFData.FINDS.River.old_boot.line and v.money > money0 and m.banners.size() == 1 and v.finds.has("old_boot") and f._resident_left <= 0.0,
+		"tapping one: it says its line, pays, gets its banner, and the next can come")
+	st.poked.emit("find:old_boot", Vector2(100, 100))
+	check(m.banners.size() == 1 and v.finds.old_boot == 2, "the banner is only for the first time")
+	st.poked.emit("crab", Vector2(100, 100))
+	check(v.finds.size() == 1, "a crab isn't a find")
+	check(f.catch_line({"count": 0, "chest": {"tier": "rare"}}) == "" and f.catch_line({"count": 0, "chest": {}}) != "", "a goal's chest card doesn't say the fish are on a break")
+	v._apply(v._defaults.duplicate(true))
+
+
+## Gerald in the real mini-game: a rival round works without his art, he's a real fight, and nobody gets stuck
+func _test_rival_bots(v) -> void:
+	print("== Gerald, played by bots")
+	var Bot = load("res://tests/reel_bot.gd")
+	seed(20261102)
+	check(not "Gerald" in load("res://scripts/vf/vf_minigame.gd").NAMES, "only the rival is called Gerald")
+	check("IOU: 3 shrimp. Signed, Gerald." in load("res://scripts/vf/vf_fun.gd").NOTES, "the bottle note with his name stays")
+	v._apply(v._defaults.duplicate(true))
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
+	v.rod = "Improved Rod"
+	var r0: int = v.reel_rounds
+	var one: Dictionary = Bot.play_rival(self, "sharp", 0)
+	check(v.reel_rounds == r0 + 1, "a round against him counts as a round, %s in %.1fs" % ["won" if one.won else "lost", one.secs])
+	var rates := []
+	for tries in 5:
+		rates.append(Bot.rival_rate(self, "novice", tries, 40))
+	check(rates[0] <= 0.5 and rates[3] >= 0.5 and rates[4] >= 0.8, "starter rods, a clumsy player: wins %s, as he gets easier" % [rates.map(func(x): return "%d%%" % int(x * 100.0))])
+	var sharp: float = Bot.rival_rate(self, "sharp", 0, 40)
+	check(sharp >= 0.4, "a good player can beat him the first time (%d%%)" % int(sharp * 100.0))
+	v.reel_rounds = 0
+	var rookie: float = Bot.rival_rate(self, "idle", 0, 40)
+	check(rookie >= 0.95, "someone who has never played a round isn't thrown in at the deep end (%d%%)" % int(rookie * 100.0))
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
 
 
 ## the same rounds, played for real: a player who does nothing, or nothing useful, still wins the first one

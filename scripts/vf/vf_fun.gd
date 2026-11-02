@@ -27,6 +27,8 @@ var _thief_wait := 90.0
 var _quip_wait := 30.0
 var _pay_cd := 0.0               # poking pays a little, not all the time
 var _honk_cd := 0.0
+var _resident_wait := 40.0       # until the next find turns up
+var _resident_left := 0.0        # the one out there now: how long it stays
 var _note_box: PanelContainer
 
 func _init(main) -> void:
@@ -36,11 +38,15 @@ func _init(main) -> void:
 func tick(delta: float) -> void:
 	_pay_cd -= delta
 	_honk_cd -= delta
+	_resident_left -= delta
 	if VF.tutorial < 99 or m.launcher_open() or m.overlay.visible or m.minigame != null or m._phone_open() or m.sail.state != "idle": return
 	_find_wait -= delta
 	if _find_wait <= 0.0:
 		_find_wait = randf_range(40.0, 100.0)
 		m.stage.spawn_find("duck" if randf() < 0.3 else "bottle")
+	if _resident_left <= 0.0:
+		_resident_wait -= delta
+		if _resident_wait <= 0.0: _send_resident()
 	_thief_wait -= delta
 	if _thief_wait <= 0.0:
 		_thief_wait = randf_range(150.0, 300.0)
@@ -50,10 +56,20 @@ func tick(delta: float) -> void:
 		_quip_wait = randf_range(45.0, 110.0)
 		m.stage.say(QUIPS.pick_random())
 
+## one find at a time, the stage puts it somewhere worth sailing to and takes it away after VFData.FIND_SECS
+func _send_resident() -> void:
+	_resident_wait = randf_range(VFData.FIND_WAIT[0], VFData.FIND_WAIT[1])
+	if not m.stage.has_method("spawn_resident"): return
+	var id: String = VF.find_pick()
+	if id == "": return
+	m.stage.spawn_resident(id)
+	_resident_left = VFData.FIND_SECS
+
 ## tap the boat, or H
 func honk() -> void:
 	if _honk_cd > 0.0: return
 	_honk_cd = 1.2
+	VF.stat_add("honks")
 	VFHaptics.buzz("honk")
 	AudioManager.play_fun("horn", -9.0, randf_range(0.97, 1.03))
 	m.stage.on_honk()
@@ -61,31 +77,42 @@ func honk() -> void:
 
 ## a little line on the catch card now and then ("" most of the time)
 func catch_line(res: Dictionary) -> String:
-	if res.count <= 0: return EMPTY_LINES.pick_random()
+	if res.count <= 0: return "" if not res.get("chest", {}).is_empty() else EMPTY_LINES.pick_random()    # (a goal's chest isn't a bad catch)
 	return CAUGHT_LINES.pick_random() if randf() < 0.22 else ""
 
 func _pay(casts: float, at: Vector2) -> void:
-	var n: int = VF.pay_find(casts)
+	_show_pay(VF.pay_find(casts), at)
+
+func _show_pay(n: int, at: Vector2) -> void:
 	var sp: Vector2 = m.stage.to_screen(at)
 	m._float_text("+%s" % m.money_str(n), sp + Vector2(0, -36), m.C_GOLD)
 	m.v1.coins_to_wallet(sp, n)
 	AudioManager.play_coin()
 
 func _on_poked(kind: String, at: Vector2) -> void:
+	if kind == "thief_away":             # (nobody touched anything: it just got away with it)
+		VF.stat_add("robbed")
+		return
 	VFHaptics.buzz("poke")
+	if kind.begins_with("find:"):
+		_found(kind.substr(5), at)
+		return
 	match kind:
 		"crab":
+			VF.stat_add("crab_pokes")
 			AudioManager.play_fun("squeak", -9.0, randf_range(0.9, 1.25))
 			if randf() < 0.25: m.stage.say("Leave the crabs alone. They know things.", 2.8)
 			if _pay_cd <= 0.0:
 				_pay_cd = 20.0
 				_pay(0.15, at)
 		"gull":
+			VF.stat_add("gull_pokes")
 			AudioManager.play_fun("squawk", -10.0, randf_range(0.9, 1.15))
 			if _pay_cd <= 0.0:
 				_pay_cd = 20.0
 				_pay(0.15, at)
 		"bottle":
+			VF.stat_add("bottles")
 			AudioManager.play_fun("pop", -6.0)
 			_pay(3.0, at)
 			note(NOTES.pick_random())
@@ -96,10 +123,41 @@ func _on_poked(kind: String, at: Vector2) -> void:
 			_pay(1.0 + minf(VF.ducks, 20.0) * 0.1, at)
 			m._toast("Rubber duck #%d! %s" % [VF.ducks, DUCK_MILESTONES.get(VF.ducks, DUCK_LINES.pick_random())], "quest")
 		"thief":
+			VF.stat_add("thieves")
 			AudioManager.play_fun("squawk", -7.0, 0.85)
 			AudioManager.play_fun("ding", -9.0)
 			_pay(5.0, at)
 			m.stage.say("And stay out!", 2.4)
+
+## you tapped a find, from close enough
+func _found(id: String, at: Vector2) -> void:
+	_resident_left = 0.0
+	var d: Dictionary = VFData.find_def(id)
+	if d.is_empty(): return
+	var r: Dictionary = VF.find_tapped(id)
+	m.stage.say(r.line, 4.0)
+	if r.first:
+		VFHaptics.buzz("rare")
+		AudioManager.play_fun("find_new", -5.0)
+		m._banner("New find: %s!" % d.name, "%d of %d found (Fish Book)" % [VF.finds.size(), VFData.finds_total()], m.ph("sparkle"), Color("#2f8f9e"))
+	else:
+		AudioManager.play_fun("ding", -11.0)
+	if int(r.pay) > 0: _show_pay(int(r.pay), at)
+
+## the round against Gerald or Geraldine is decided: pay up. At the end of their run: the hat, and after Gerald, his mum.
+func rival_result(mg, won: bool) -> void:
+	var r: Dictionary = VF.gerald_result(won)
+	mg.rival_result = r
+	if int(r.pay) > 0:
+		m.v1.coins_to_wallet(m.get_viewport_rect().size * 0.5, int(r.pay))
+		AudioManager.play_coin()
+	if r.caught: mg.tree_exited.connect(_rival_caught.bind(r), CONNECT_DEFERRED)
+
+func _rival_caught(r: Dictionary) -> void:
+	m._toast("New hat: the %s! (Shop - Hats)" % VFData.GERALD_HATS[r.who], "unlock")
+	if r.who == "Gerald":
+		AudioManager.play_fun("pop", -6.0)
+		note("You caught my son. - Geraldine")
 
 ## the note out of a bottle, on a scrap of paper for a few seconds
 func note(text: String) -> void:
@@ -169,6 +227,160 @@ func capture_test(dir: String) -> void:
 	await m.get_tree().create_timer(0.6).timeout
 	await m._shot(dir + "/fun_honk.png")
 	print("FUN honk done, say='%s'" % s._say_text)
+
+## godot --path . --resolution 1280x720 -- --capture=DIR --gerald-test : the whole chase, from the first meeting to the end of
+## his mum's run: he beats you, you beat him and he gets away, every gag of theirs, caught, the note, the tiara. Never saves.
+func gerald_test(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	var wait := func(secs: float): await tree.create_timer(secs).timeout
+	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"                # (he bites in Relax mode too)
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS
+	VF.tutorial = 99
+	VF.sail_hint = true
+	VF.level = 10
+	VF.rod = "Improved Rod"
+	VF.owned_rods = ["Plastic Rod", "Improved Rod"]
+	VF.changed.emit()
+	m._coach_show()
+	await wait.call(1.2)
+	VF.gerald.casts = VFData.gerald_need(0, 0) - 10
+	print("GERALD soon=%s due=%s info=%s" % [VF.gerald_soon(), VF.gerald_due(), VF.gerald_info()])
+	VF.gerald.casts = VFData.gerald_need(0, 0)
+	print("GERALD soon=%s due=%s" % [VF.gerald_soon(), VF.gerald_due()])
+	var trips: int = VF.stats.trips
+	VF._last_cast_ms = -100000
+	m._do_cast(true)
+	await wait.call(1.2)
+	print("GERALD auto-fish cast: minigame=%s trips +%d" % [m.minigame != null, VF.stats.trips - trips])
+	VF.gerald.casts = VFData.gerald_need(0, 0)
+	await _rival_round(dir, "1_first_meeting", "lose")
+	VF.gerald.casts = VFData.gerald_need(0, 1)
+	await _rival_round(dir, "2_beat_him", "win")
+	print("GERALD after a win: %s money=%d" % [VF.gerald, VF.money])
+	# every gag of his
+	VF.gerald = {"stage": 1, "casts": 999, "tries": 0, "wins": 1, "losses": 1}
+	VF.level = 60
+	VF.biome = "Volcanic"
+	VF.rod = "Lava Rod"
+	VF.owned_rods.append("Lava Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_gags(dir)
+	# the end of his run: caught, the crown, the note from his mum
+	VF.gerald = {"stage": 3, "casts": 999, "tries": 0, "wins": 3, "losses": 1}
+	VF.level = 250
+	VF.biome = "Sky"
+	VF.rod = "Infinity Rod"
+	VF.owned_rods.append("Infinity Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_round(dir, "3_caught_gerald", "win")
+	await wait.call(0.8)
+	await m._shot(dir + "/gerald_3_note_from_mum.png")
+	print("GERALD caught: %s hats=%s note=%s" % [VF.gerald, VF.hats_owned, is_instance_valid(_note_box)])
+	await wait.call(5.0)
+	# his mum
+	VF.gerald = {"stage": 4, "casts": 999, "tries": 0, "wins": 4, "losses": 1}
+	VF.level = 500
+	VF.biome = "Space"
+	VF.rod = "Space Rod"
+	VF.owned_rods.append("Space Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_round(dir, "4_geraldine_laughs", "lose")
+	VF.gerald.casts = 999
+	await _rival_gags(dir)
+	VF.gerald = {"stage": 6, "casts": 999, "tries": 0, "wins": 6, "losses": 2}
+	VF.level = 2500
+	VF.biome = "Abyss"
+	VF.rod = "Dark Rod"
+	VF.owned_rods.append("Dark Rod")
+	VF.changed.emit()
+	await wait.call(2.0)
+	await _rival_round(dir, "5_caught_geraldine", "win")
+	print("GERALD all done: %s hats=%s info=%s due=%s" % [VF.gerald, VF.hats_owned, VF.gerald_info(), VF.gerald_due()])
+
+## one round against the rival, played by the capture's bot, with a picture of each part
+func _rival_round(dir: String, name: String, outcome: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._last_cast_ms = -100000
+	m._do_cast()
+	while m.minigame == null:
+		await tree.process_frame
+	var mg = m.minigame
+	mg.auto = outcome
+	await tree.create_timer(1.5).timeout
+	await m._shot(dir + "/gerald_%s_play.png" % name)
+	if outcome == "win": mg.progress = 0.97
+	else:
+		mg.progress = minf(mg.progress, 0.3)
+		mg.time_limit = mg.play_t + 0.6
+	while is_instance_valid(mg) and mg.phase != "end":
+		await tree.process_frame
+	await tree.create_timer(0.3).timeout
+	await m._shot(dir + "/gerald_%s_end.png" % name)
+	await tree.create_timer(1.4).timeout
+	if is_instance_valid(mg): await m._shot(dir + "/gerald_%s_poster.png" % name)
+	while m.minigame != null:
+		await tree.process_frame
+	print("GERALD round %s: %s -> %s" % [name, outcome, VF.gerald])
+
+## the rival right now pulling each of their own gags
+func _rival_gags(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._last_cast_ms = -100000
+	m._do_cast()
+	while m.minigame == null:
+		await tree.process_frame
+	var mg = m.minigame
+	mg.auto = "win"
+	await tree.create_timer(0.9).timeout
+	var fill: float = mg.fill_rate
+	mg.fill_rate = 0.0                     # (the round doesn't end while they go through their act)
+	for g in mg.RIVAL_GAGS[mg.rival]:
+		mg.test_gag(mg.rival, g)
+		await tree.create_timer(0.7).timeout
+		await m._shot(dir + "/gerald_gag_%s_%s.png" % [mg.rival.to_lower(), g])
+		await tree.create_timer(float(mg.GAGS[g].len)).timeout
+	mg.fill_rate = fill
+	mg.progress = 0.97
+	while m.minigame != null:
+		await tree.process_frame
+
+## godot --path . --resolution 1280x720 -- --capture=DIR --finds-test : every find of every biome, tapped twice. It shows them on
+## the water once the stage has stage.spawn_resident. Never saves.
+func finds_test(dir: String) -> void:
+	var tree: SceneTree = m.get_tree()
+	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
+	VF.tutorial = 99
+	VF.sail_hint = true
+	VF.level = 2500
+	VF.rod = "Dark Rod"
+	VF.owned_rods = ["Plastic Rod", "Dark Rod"]
+	print("FINDS stage has spawn_resident: %s" % m.stage.has_method("spawn_resident"))
+	for b in VFData.BIOME_ORDER:
+		VF.biome = b
+		VF.changed.emit()
+		await tree.create_timer(2.2).timeout
+		for id in VFData.FINDS[b]:
+			if m.stage.has_method("spawn_resident"):
+				m.stage.spawn_resident(id)
+				await tree.create_timer(0.8).timeout
+				await m._shot(dir + "/finds_%s_%s.png" % [VFData.slug(b), id])
+			var money0: int = VF.money
+			_on_poked("find:" + id, m.stage.boat_pos + Vector2(220, -60))
+			print("FINDS %s %s first tap: +$%d, found %d of %d: %s" % [b, id, VF.money - money0, VF.finds.size(), VFData.finds_total(), m.stage._say_text])
+			await tree.create_timer(1.3).timeout
+			await m._shot(dir + "/finds_%s_%s_tapped.png" % [VFData.slug(b), id])
+			money0 = VF.money
+			_on_poked("find:" + id, m.stage.boat_pos + Vector2(220, -60))
+			print("FINDS %s %s tapped again: +$%d" % [b, id, VF.money - money0])
+			await tree.create_timer(0.4).timeout
+	var total := 0
+	for id in VF.finds: total += int(VF.finds[id])
+	print("FINDS done: %d of %d found, %d taps" % [VF.finds.size(), VFData.finds_total(), total])
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --rebirth-test : the first rebirth from the goal on the HUD to Prestige 1
 func rebirth_test(dir: String) -> void:

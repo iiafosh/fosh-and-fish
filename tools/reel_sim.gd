@@ -16,6 +16,10 @@ func _run() -> void:
 	var table_only := ""                 # -- --table=novice : only the table tools/reel_model.gd uses
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--table="): table_only = a.substr(8)
+	if table_only == "rival":
+		_rival_table(Bot, V)
+		quit()
+		return
 	if table_only != "":
 		_table(Bot, V, table_only)
 		quit()
@@ -52,3 +56,18 @@ func _table(Bot, V, bot: String) -> void:
 				long += float(one.secs)
 			row += "  t%d %3d%% %.1fs" % [tier, int(round(100.0 * wins / (N / 2))), long / (N / 2)]
 		print(row)
+
+## the rival, stage by stage with a rod you could have by then: how often each bot wins, by how many times he has beaten them
+func _rival_table(Bot, V) -> void:
+	V.reel_rounds = VFData.ROOKIE_ROUNDS
+	var rods := ["Improved Rod", "Lava Rod", "Oceanium Rod", "Infinity Rod", "Space Rod", "Alien Rod", "Dark Rod"]
+	for bot in ["novice", "sharp"]:
+		print("== the rival, %s on a phone: wins after he has beaten you 0, 1, 2, 3, 4 times" % bot)
+		for i in VFData.GERALD.size():
+			V.gerald.stage = i
+			V.rod = rods[i]
+			var row := "   %-9s %-8s %-13s" % [VFData.GERALD[i].who, VFData.GERALD[i].biome, rods[i]]
+			for tries in 5:
+				row += " %3d%%" % int(round(100.0 * Bot.rival_rate(self, bot, tries, 30)))
+			print(row)
+	V.gerald.stage = 0
