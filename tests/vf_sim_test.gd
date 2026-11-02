@@ -455,6 +455,9 @@ func _test_gerald() -> void:
 	root.add_child(g)
 	g._apply(g._defaults.duplicate(true))
 	g.tutorial = 99
+	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/vf/manifest.json"))
+	for who in VFData.GERALD_HATS:
+		check(manifest.mini.fish.has(who) and FileAccess.file_exists("res://assets/vf/mini/%s.png" % VFData.slug(who)), "%s has a picture for the mini-game" % who)
 	check(VFData.GERALD.size() == 7 and VFData.GERALD[3].get("final", false) and VFData.GERALD[6].get("final", false)
 		and not VFData.GERALD[0].get("final", false) and VFData.GERALD[4].who == "Geraldine", "seven stages: Gerald's four, then his mum's three")
 	var info: Dictionary = g.gerald_info()
@@ -576,6 +579,10 @@ func _test_finds() -> void:
 			ok = ok and String(d.name) != "" and String(d.line) != "" and VFData.find_def(id) == d
 	check(ok and VFData.finds_total() == 21, "every biome has its three finds, and the third is the rare one (%d in all)" % VFData.finds_total())
 	check(VFData.find_def("nope").is_empty(), "an unknown id isn't a find")
+	var longest := 0
+	for b in VFData.FINDS:
+		for id in VFData.FINDS[b]: longest = maxi(longest, String(VFData.FINDS[b][id].line).length())
+	check(longest <= 70, "every line fits the captain's one-line bubble (longest: %d characters)" % longest)
 	# tapping one
 	var worth: int = g.find_value(VFData.FIND_FIRST)
 	var m0: int = g.money
