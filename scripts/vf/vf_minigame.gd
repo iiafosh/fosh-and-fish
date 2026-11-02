@@ -41,8 +41,7 @@ const SAY_CAUGHT := ["Hey! Let go!", "This is fine.", "Okay, that tickles!", "Un
 const SAY_ALMOST := ["Wait wait, let's talk!", "I have a family! (I don't)", "MOMMYYY!", "I'll pay you 3 shrimp!", "Not the frying pan!", "I know a guy!"]
 const SAY_WIN := ["Fine. You win. THIS time.", "Tell my story...", "Ugh. GG.", "I'm too pretty for a bucket!"]
 const SAY_LOSE := ["PFFFT! Bye, loser!", "Later, sucker!", "blub blub, see ya!", "Git gud, fisher!"]
-# the rival (VF.gerald): the species that stands in for them until their picture exists, and what they say
-const RIVAL_STAND_IN := {"Gerald": "Pufferfish", "Geraldine": "Cod"}
+# the rival (VF.gerald): what they say
 const RIVAL_WHO := {"Gerald": "It's Gerald. Of course it's Gerald.", "Geraldine": "Geraldine has arrived. Sit up straight."}
 const RIVAL_SAY := {
 	"Gerald": {
@@ -100,7 +99,6 @@ var nick := ""
 var rival := ""              # "Gerald" / "Geraldine": this round is against them (setup_rival)
 var rival_result := {}       # VF.gerald_result: vf_fun hands it over the moment the round is decided
 var _met := false            # you've played the rival before
-var _stand_in := false       # a species wears the rival's look until their picture exists
 var _poster_line := ""       # what the WANTED poster says instead of the usual jokes
 var _heavy_bag := false      # what's weighing the net down is a handbag
 
@@ -235,17 +233,13 @@ func _use_params(p: Dictionary) -> void:
 ## the fish's picture and where its face goes
 func _load_fish() -> void:
 	var mini: Dictionary = main.stage.manifest.get("mini", {})
-	var fishes: Dictionary = mini.get("fish", {})
-	var key := fish_name
-	_stand_in = not fishes.has(key) and RIVAL_STAND_IN.has(key)
-	if _stand_in: key = RIVAL_STAND_IN[key]
-	var info: Dictionary = fishes.get(key, {})
+	var info: Dictionary = mini.get("fish", {}).get(fish_name, {})
 	if info.is_empty():
 		_sp = {}
 		return
 	var cell: float = mini.cell
 	var k := FISH_PX / cell
-	_sp = {"tex": main.stage._tex("mini/%s.png" % VFData.slug(key)), "frames": int(mini.frames), "cell": cell,
+	_sp = {"tex": main.stage._tex("mini/%s.png" % VFData.slug(fish_name)), "frames": int(mini.frames), "cell": cell,
 		"eye": (Vector2(info.eye[0], info.eye[1]) - Vector2(0.5, 0.5)) * FISH_PX,
 		"mouth": (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * FISH_PX,
 		"er": maxf(float(info.er) * cell * k * 1.9, 11.0)}
@@ -1213,29 +1207,10 @@ func _draw_fish(c: CanvasItem, at: Vector2, rot: float, sq: Vector2, face: Strin
 				_ellipse(c, m, 4.0, 4.0, Color("#3a1420"))
 			else:
 				c.draw_arc(m + Vector2(-3, -5), 6.0, PI * 0.2, PI * 0.8, 8, ink, 2.5, true)  # smirk
-	if _stand_in: _rival_look(c, e, m, er)
 	if shades:
 		_shades(c, e, er)
 	elif _shades_k > 0.01 and phase == "end" and not won:
 		_shades(c, e + Vector2(0, -130.0 * (1.0 - _shades_k)), er)
-
-## a species standing in for the rival wears their look (Gerald: a moustache and eyebrows; Geraldine: pearls, a bow, a flat brow)
-func _rival_look(c: CanvasItem, e: Vector2, m: Vector2, er: float) -> void:
-	if fish_name == "Geraldine":
-		for i in 7:
-			var at := m + Vector2(-20.0 + i * 6.0, 16.0 + sin(i * 0.9) * 4.0)
-			c.draw_circle(at, 4.5, Color("#fdf9ee"))
-			c.draw_arc(at, 4.5, 0, TAU, 12, Color("#b8ad93"), 1.2, true)
-		var bow := e + Vector2(-er * 0.5, -er * 2.5)
-		for sd in [-1.0, 1.0]:
-			c.draw_colored_polygon(PackedVector2Array([bow, bow + Vector2(sd * 28.0, -14.0), bow + Vector2(sd * 28.0, 14.0)]), Color("#e05a8a"))
-		c.draw_circle(bow, 6.5, Color("#b83a68"))
-		c.draw_line(e + Vector2(-er * 1.1, -er * 1.25), e + Vector2(er * 1.1, -er * 1.25), INK, 4.5, true)
-		return
-	var tash := m + Vector2(2.0, -er * 0.2)
-	for sd in [-1.0, 1.0]:
-		c.draw_colored_polygon(PackedVector2Array([tash, tash + Vector2(sd * 13.0, -4.0), tash + Vector2(sd * 27.0, -10.0), tash + Vector2(sd * 19.0, 6.0), tash + Vector2(sd * 5.0, 8.0)]), Color("#2f2118"))
-	c.draw_line(e + Vector2(-er * 1.4, -er * 1.0), e + Vector2(er * 1.2, -er * 1.65), INK, 6.5, true)
 
 func _shades(c: CanvasItem, e: Vector2, er: float) -> void:
 	var s := er * 1.25
