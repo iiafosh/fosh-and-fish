@@ -796,38 +796,38 @@ static func rival_params(who: String, power: float, desktop: bool, tries: int, r
 const FINDS := {
 	"River": {
 		"otter": {"name": "Otter", "line": "Floating on its back. Living better than you.", "rare": false},
-		"frog": {"name": "Frog", "line": "Sits on a lily pad. Has never once been in a hurry.", "rare": false},
-		"old_boot": {"name": "Old Boot", "line": "A tiny fish lives in it. The rent is very reasonable.", "rare": true},
+		"frog": {"name": "Frog", "line": "It has its own rod. It's not giving you tips.", "rare": false},
+		"old_boot": {"name": "Old Boot", "line": "A tiny fish lives in it. Nice window. The rent is very reasonable.", "rare": true},
 	},
 	"Volcanic": {
-		"capybara": {"name": "Capybara", "line": "In a hot spring. It has no notes.", "rare": false},
-		"lava_crab": {"name": "Lava Crab", "line": "Walks sideways, on fire. Doesn't want to talk about it.", "rare": false},
-		"marshmallow": {"name": "Marshmallow", "line": "Toasting on a stick. Nobody's holding the stick.", "rare": true},
+		"capybara": {"name": "Capybara", "line": "In a hot spring, an orange on its head. It has no notes.", "rare": false},
+		"lava_crab": {"name": "Lava Crab", "line": "Lives in lava. Wears oven gloves. It's not taking any chances.", "rare": false},
+		"marshmallow": {"name": "Marshmallow", "line": "Toasted on one side. Very worried about the other.", "rare": true},
 	},
 	"Ocean": {
-		"turtle": {"name": "Turtle", "line": "That barnacle is a hat now. It's very proud of it.", "rare": false},
+		"turtle": {"name": "Turtle", "line": "A hat of barnacles. It took eighty years. Worth it.", "rare": false},
 		"fake_fin": {"name": "Fake Fin", "line": "A little fish with a shark fin on a stick. Please act scared.", "rare": false},
 		"treasure": {"name": "Treasure Chest", "line": "On a sandbar. The map was wrong about everything else.", "rare": true},
 	},
 	"Sky": {
-		"cloud_sheep": {"name": "Cloud Sheep", "line": "Baa. It's raining a little. Sorry.", "rare": false},
+		"cloud_sheep": {"name": "Cloud Sheep", "line": "It has never touched the ground. It's heard good things.", "rare": false},
 		"kite": {"name": "Lost Kite", "line": "Its string goes nowhere. It's fine. It's on a journey.", "rare": false},
-		"paper_plane": {"name": "Paper Plane", "line": "Someone wrote HELP on it, then made a plane. Priorities.", "rare": true},
+		"paper_plane": {"name": "Paper Plane", "line": "Homework, with a big red F. It flies better than it scored.", "rare": true},
 	},
 	"Space": {
 		"astro_cat": {"name": "Astro Cat", "line": "It knocked the moon off a table. It would do it again.", "rare": false},
-		"satellite": {"name": "Satellite", "line": "Picks up one station. It's all fish news.", "rare": false},
-		"space_duck": {"name": "Space Duck", "line": "In a helmet. Still squeaks. Nobody knows how.", "rare": true},
+		"satellite": {"name": "Satellite", "line": "Mended with tape. Picks up one station. It's all fish news.", "rare": false},
+		"space_duck": {"name": "Space Duck", "line": "Helmet. Jetpack. Still squeaks. Nobody knows how.", "rare": true},
 	},
 	"Alien": {
-		"ufo": {"name": "UFO", "line": "Beaming up a fish. The fish seems into it.", "rare": false},
-		"blob": {"name": "Blob", "line": "Three eyes. All of them disappointed.", "rare": false},
-		"glow_shroom": {"name": "Glow Shroom", "line": "Glows when you compliment it. Go on.", "rare": true},
+		"ufo": {"name": "UFO", "line": "Beaming up a fish, tail first. The pilot is new.", "rare": false},
+		"blob": {"name": "Blob", "line": "Three eyes, one tooth. All of them disappointed.", "rare": false},
+		"glow_shroom": {"name": "Glow Shroom", "line": "Glows when you compliment it. The big one's asleep, so whisper.", "rare": true},
 	},
 	"Abyss": {
-		"anglerfish": {"name": "Anglerfish", "line": "Has a lamp. Won't share.", "rare": false},
-		"tiny_sub": {"name": "Tiny Sub", "line": "The captain waves. He's very small. Wave back.", "rare": false},
-		"sunken_tv": {"name": "Sunken TV", "line": "Still on. It's showing you. Right now.", "rare": true},
+		"anglerfish": {"name": "Anglerfish", "line": "That's a kitchen light bulb. Don't ask where it plugs in.", "rare": false},
+		"tiny_sub": {"name": "Tiny Sub", "line": "A bath toy with a crew of one. Very serious. Wave back.", "rare": false},
+		"sunken_tv": {"name": "Sunken TV", "line": "Still on. Only colour bars. The starfish says it gets good.", "rare": true},
 	},
 }
 const FIND_FIRST := 10.0
