@@ -80,7 +80,8 @@ func _tick_tease(delta: float) -> void:
 	_tease_wait -= delta
 	if _tease_wait > 0.0 or _teases >= TEASE_MAX: return
 	_tease_wait = randf_range(50.0, 90.0)
-	if m.stage.spawn_gerald(TEASES[VF.gerald_info().who].pick_random()): _teases += 1
+	_teases += 1
+	m.stage.spawn_gerald(TEASES[VF.gerald_info().who].pick_random())
 
 ## tap the boat, or H
 func honk() -> void:
@@ -263,12 +264,15 @@ func gerald_test(dir: String) -> void:
 	await wait.call(1.2)
 	VF.gerald.casts = VFData.gerald_need(0, 0) - 10
 	print("GERALD soon=%s due=%s info=%s" % [VF.gerald_soon(), VF.gerald_due(), VF.gerald_info()])
-	if m.stage.spawn_gerald(TEASES.Gerald[0]):
-		await wait.call(7.0)
-		await m._shot(dir + "/gerald_0_shape.png")
-		print("GERALD shape: on the water, says '%s'" % m.stage._say_text)
-	else:
-		print("GERALD shape: no life/gerald.png yet")
+	for i in TEASE_MAX + 2:                # (however long it takes you to meet him)
+		_tease_wait = 0.0
+		await tree.process_frame
+		await tree.process_frame
+	print("GERALD teases while he's close: %d, at most %d" % [_teases, TEASE_MAX])
+	VF.gerald.casts = 0
+	await tree.process_frame
+	await tree.process_frame
+	print("GERALD teases once he's far off again: %d" % _teases)
 	VF.gerald.casts = VFData.gerald_need(0, 0)
 	print("GERALD soon=%s due=%s" % [VF.gerald_soon(), VF.gerald_due()])
 	var trips: int = VF.stats.trips
@@ -323,6 +327,16 @@ func gerald_test(dir: String) -> void:
 	await wait.call(2.0)
 	await _rival_round(dir, "5_caught_geraldine", "win")
 	print("GERALD all done: %s hats=%s info=%s due=%s" % [VF.gerald, VF.hats_owned, VF.gerald_info(), VF.gerald_due()])
+	for row in VFData.GERALD:              # their shape going past the boat, wherever they turn up
+		VF.biome = row.biome
+		VF.changed.emit()
+		await wait.call(1.0)
+		m.stage.spawn_gerald(TEASES[row.who][0])
+		var shape: Dictionary = m.stage._big.back()
+		shape.pos.x = m.stage.boat_pos.x - signf(shape.vel.x) * 240.0
+		await wait.call(1.9)
+		await m._shot(dir + "/gerald_shape_%s_%s.png" % [row.who.to_lower(), VFData.slug(row.biome)])
+		print("GERALD shape %s %s: says '%s'" % [row.who, row.biome, m.stage._say_text])
 
 ## one round against the rival, played by the capture's bot, with a picture of each part
 func _rival_round(dir: String, name: String, outcome: String) -> void:

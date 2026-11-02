@@ -123,10 +123,13 @@ signal poked(kind: String, at: Vector2)     # you tapped a crab, a gull, a bottl
 const CRAB_HOP := 70.0
 const FIND_LIFE := 40.0
 const FIND_REACH := 320.0         # a resident answers a tap when the boat is this close (scene px)
-const FIND_HIT := 72.0            # how near a tap has to be to hit a find
+const FIND_HIT := 84.0            # how near a tap has to be to hit a resident
 const FIND_SHOP_GAP := 240.0      # residents keep this far from the shop: they're a reason to sail
-const FIND_ASHORE := ["lava_crab"]    # on the sand, if the biome has a beach for it
-const FIND_EDGE := 70.0           # room around a resident on screen, so nothing covers it (scene px)
+const FIND_ASHORE := ["capybara", "lava_crab"]    # on the sand, if the biome has a beach for it
+const FIND_AIR := ["cloud_sheep", "kite", "paper_plane", "astro_cat", "satellite", "space_duck", "ufo"]    # hanging over the water (the rest are cut off at the waterline)
+const FIND_EDGE := 100.0          # room around a resident on screen, so nothing covers it and it isn't cut off (scene px)
+## how a find sits: how far it bobs, how far it rocks, how far below it its shadow falls
+const FIND_SITS := {"water": {"bob": 3.0, "rock": 0.09, "shadow": 12.0}, "sand": {"bob": 0.0, "rock": 0.0, "shadow": 34.0}, "air": {"bob": 9.0, "rock": 0.05, "shadow": 96.0}}
 const CARD_H := 230.0             # the catch card's usual height, for keeping clear of it while it's hidden
 var _say_text := ""
 var _say_t := 0.0
@@ -1040,7 +1043,13 @@ func _life_draw(layer: Control, sp: Dictionary, p: Vector2, ang: float, scale_px
 	layer.draw_set_transform(p, -rest if flip else rest, Vector2(-sc if flip else sc, sc))
 	layer.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fi * cell, row * cell, cell, cell), col)
 
-const BIG_LEN := {"whale": 11.0, "manta": 7.0, "gerald": 10.0}    # how long, in the scene's units
+const BIG_LEN := {"whale": 11.0, "manta": 7.0, "gerald": 7.0}    # how long, in the scene's units
+
+## He's a dark shape under the water, which on the darkest water would be no shape at all: there he's a pale one (the colour
+## multiplies his dark sheet, so these numbers brighten it).
+func _gerald_col() -> Color:
+	return Color(4.5, 5.5, 6.5, 0.4) if water_tint.get_luminance() < 0.12 else Color(1, 1, 1, 0.5)
+
 
 func _draw_life() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
@@ -1050,7 +1059,7 @@ func _draw_life() -> void:
 		var big_info: Dictionary = manifest.get("life", {}).get("big", {"cell": 192, "frames": 8})
 		var sp := {"tex": b.tex, "frames": big_info.frames, "cell": float(big_info.cell), "rows": 1, "unit_px": float(big_info.cell)}
 		_life_draw(life_layer, sp, b.pos + Vector2(30, 40), b.vel.angle(), len_px, Color(0, 0.05, 0.1, 0.12))
-		var col := Color(0.02, 0.06, 0.09, 0.62) if b.kind == "gerald" else Color(water_tint.r, water_tint.g, water_tint.b, 0.35).lerp(Color(1, 1, 1, 0.35), 0.3)
+		var col := _gerald_col() if b.kind == "gerald" else Color(water_tint.r, water_tint.g, water_tint.b, 0.35).lerp(Color(1, 1, 1, 0.35), 0.3)
 		_life_draw(life_layer, sp, b.pos, b.vel.angle(), len_px, col)
 	for f in _fish:
 		var depth := _mask_px(f.pos).g
@@ -1691,20 +1700,16 @@ func spawn_find(kind: String) -> void:
 		"dir": 1.0 if heading.x >= 0.0 else -1.0})
 	_add_ripple(p, 40.0, 2.0)
 
-## One of the biome's finds turns up somewhere worth sailing to (vf_fun.gd picks which and when). Its art is life/find_<id>.png with
-## life.finds.<id> in the manifest; until that exists it's a bottle.
+## One of the biome's finds turns up somewhere worth sailing to (vf_fun.gd picks which and when)
 func spawn_resident(id: String) -> void:
-	var ashore: bool = id in FIND_ASHORE
-	var spot = _resident_spot(true) if ashore else null
-	if spot == null:
-		ashore = false
-		spot = _resident_spot(false)
+	var sits := "air" if id in FIND_AIR else "water"
+	var spot = _resident_spot(true) if id in FIND_ASHORE else null
+	if spot != null: sits = "sand"
+	else: spot = _resident_spot(false)
 	if spot == null: return
-	var tex := _tex("life/find_%s.png" % id)
-	var real: bool = tex != null and manifest.get("life", {}).get("finds", {}).has(id)
-	_resident = {"id": id, "art": id if real else "bottle", "tex": tex if real else _tex("life/bottle.png"), "pos": spot, "ashore": ashore,
-		"t": 0.0, "ph": randf() * TAU, "dir": 1.0 if randf() < 0.5 else -1.0}
-	if not ashore: _add_ripple(spot, 40.0, 2.0)
+	_resident = {"id": id, "tex": _tex("life/find_%s.png" % id), "pos": spot, "sits": sits, "t": 0.0, "ph": randf() * TAU,
+		"dir": 1.0 if id == "paper_plane" or randf() < 0.5 else -1.0}       # (it has a big F on its wing, the rest can be mirrored)
+	if sits == "water": _add_ripple(spot, 40.0, 2.0)
 
 ## somewhere away from the shop and (if there's room for that) out of reach of the boat, where the boat can get close, and where
 ## nothing on screen covers it
@@ -1747,16 +1752,14 @@ func _boat_gets_near(q: Vector2) -> bool:
 func on_resident(screen: Vector2) -> bool:
 	return not _resident.is_empty() and (_resident.pos as Vector2).distance_to(to_scene(screen)) < FIND_HIT
 
-## Gerald's close (vf_fun.gd, VF.gerald_soon): his shape swims past the boat, and as he goes by he says so. false while his picture
-## (life/gerald.png, the whale's format) doesn't exist yet.
-func spawn_gerald(line: String) -> bool:
+## Gerald or his mum is close (vf_fun.gd, VF.gerald_soon): the shape swims past the boat, and as it goes by you hear about it
+func spawn_gerald(line: String) -> void:
 	var t := _tex("life/gerald.png")
-	if t == null: return false
+	if t == null: return
 	var dir := 1.0 if randf() < 0.5 else -1.0
 	var y := clampf(boat_pos.y + (170.0 if boat_pos.y < 760.0 else -170.0) + randf_range(-30.0, 30.0), 620.0, 900.0)    # (water from edge to edge in every biome)
 	_big.append({"tex": t, "kind": "gerald", "pos": Vector2(SCENE.x * 0.5 - dir * (SCENE.x * 0.5 + 460.0), y), "wait": 0.0,
 		"vel": Vector2(dir * 190.0, randf_range(-6.0, 6.0)), "line": line})
-	return true
 
 func spawn_thief() -> void:
 	var left := randf() < 0.5
@@ -1773,7 +1776,7 @@ func _tick_finds(delta: float) -> void:
 	_floaters = _floaters.filter(func(f): return f.t < FIND_LIFE and _in_water(f.pos, 0.05))
 	if not _resident.is_empty():
 		_resident.t += delta
-		if randf() < delta * 0.35 and not _resident.ashore: _add_ripple(_resident.pos, 30.0, 1.5, 0.0)
+		if randf() < delta * 0.35 and _resident.sits == "water": _add_ripple(_resident.pos, 30.0, 1.5, 0.0)
 		if _resident.t >= VFData.FIND_SECS: _resident = {}
 	if not _thief.is_empty():
 		_thief.pos += _thief.vel * delta
@@ -1786,19 +1789,18 @@ func _draw_finds() -> void:
 	var info: Dictionary = manifest.get("life", {}).get("finds", {})
 	if info.is_empty(): return
 	for f in _floaters:
-		_draw_find(f, float(info[f.kind]), float(info.cell), FIND_LIFE, 1.0)
+		_draw_find(f, float(info[f.kind]), float(info.cell), FIND_LIFE, FIND_SITS.water)
 	if not _resident.is_empty():
-		_draw_find(_resident, float(info[_resident.art]), float(info.cell), VFData.FIND_SECS, 0.0 if _resident.ashore else 1.0)
+		_draw_find(_resident, float(info[_resident.id]), float(info.cell), VFData.FIND_SECS, FIND_SITS[_resident.sits])
 
-## afloat: 1 bobs on the water, 0 stands still on the sand
-func _draw_find(f: Dictionary, unit_px: float, cell: float, life: float, afloat: float) -> void:
+func _draw_find(f: Dictionary, unit_px: float, cell: float, life: float, sits: Dictionary) -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
 	var a := clampf(minf(f.t / 0.8, (life - f.t) / 1.5), 0.0, 1.0)
 	var s: float = u * 1.35 / unit_px
-	var at: Vector2 = f.pos + Vector2(0.0, sin(f.t * 1.8 + f.ph) * 3.0 * afloat)
-	life_layer.draw_set_transform(f.pos + Vector2(0, 12), 0.0, Vector2(1.0, 0.38))
+	var at: Vector2 = f.pos + Vector2(0.0, sin(f.t * 1.8 + f.ph) * float(sits.bob))
+	life_layer.draw_set_transform(f.pos + Vector2(0, sits.shadow), 0.0, Vector2(1.0, 0.38))
 	life_layer.draw_circle(Vector2.ZERO, u * 0.72, Color(0.02, 0.12, 0.18, 0.16 * a))
-	life_layer.draw_set_transform(at, sin(f.t * 1.1 + f.ph) * 0.09 * afloat, Vector2(s * f.dir, s))
+	life_layer.draw_set_transform(at, sin(f.t * 1.1 + f.ph) * float(sits.rock), Vector2(s * f.dir, s))
 	life_layer.draw_texture_rect(f.tex, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), false, Color(1, 1, 1, a))
 	var g := fmod(f.t + f.ph, 2.6)                      # now and then it catches the light, so you notice
 	if g < 0.55 and _star_tex:
@@ -1838,7 +1840,7 @@ func residents_test(dir: String) -> void:
 				continue
 			var p: Vector2 = _resident.pos
 			var at := to_screen(p)
-			if not (_on_beach(p) if _resident.ashore else _open_water(p)): bad["on land"] += 1
+			if not (_on_beach(p) if _resident.sits == "sand" else _open_water(p)): bad["on land"] += 1
 			if _shop_rect().grow(FIND_SHOP_GAP * 0.9).has_point(p): bad["by the shop"] += 1
 			if hud.any(func(r): return r.has_point(at)): bad["under the HUD"] += 1
 			if not Rect2(global_position, size).grow(-edge * 0.9).has_point(at): bad["off screen"] += 1
