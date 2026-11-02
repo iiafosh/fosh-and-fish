@@ -2992,6 +2992,9 @@ var _reel_card: Control
 
 func _ask_reel() -> void:
 	if not _reel_ask or _reel_card != null: return
+	if _banner_busy:
+		get_tree().create_timer(0.5).timeout.connect(_ask_reel)      # (after the news)
+		return
 	if overlay.visible or _phone_open() or minigame != null or sail.busy() or Time.get_ticks_msec() < _reel_wait_until: return    # (busy: after the next catch)
 	_reel_ask = false
 	_reel_card = Control.new()
