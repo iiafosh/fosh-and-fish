@@ -104,6 +104,7 @@ var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N
 var _portrait_note: CanvasLayer
 var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
 var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
+var collect                    # vf_collect_ui.gd: the WANTED board, finds, achievements, the aquarium, hats
 var _calm_idle := 0.0
 var _calm_a := 1.0
 
@@ -124,6 +125,8 @@ func _ready() -> void:
 	idle.build_hud()
 	radio.build_hud()
 	fun = load("res://scripts/vf/vf_fun.gd").new(self)
+	collect = load("res://scripts/vf/vf_collect_ui.gd").new(self)
+	collect.build_hud()
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
@@ -212,6 +215,7 @@ func _process(delta: float) -> void:
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
+		if collect: collect.refresh_badges()       # achievements to claim
 	_process_coach(delta)
 	if _fling != 0.0:
 		if panel_scroll and overlay.visible:
@@ -1532,10 +1536,10 @@ func _avg_fish() -> float:
 
 # ================================================================= panels
 const PANEL_TABS := {
-	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League"],
+	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League", "Hats"],
 	"store": ["Packs", "Pearls", "Pearl Shop", "Free"],
 	"events": ["Events", "Event Shop"],
-	"inventory": ["Fish", "Shiny", "Event fish"],
+	"inventory": ["Fish", "Finds", "Shiny", "Event fish"],
 	"prestige": ["Prestige", "Shop", "Guide"],
 	"fleet": ["Crews", "Upgrades"],
 	"daily": ["Calendar", "Spin"],
@@ -1565,7 +1569,8 @@ func _render_panel() -> void:
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
-		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio"}
+		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
+		"achievements": "Achievements", "aquarium": "Aquarium"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1605,6 +1610,9 @@ func _render_panel() -> void:
 		"fleet": idle.panel_fleet(_panel_tab)
 		"daily": idle.panel_daily(_panel_tab)
 		"radio": radio.panel_radio()
+		"wanted": collect.panel_wanted()
+		"achievements": collect.panel_achievements()
+		"aquarium": collect.panel_aquarium()
 
 ## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -1660,6 +1668,9 @@ func _panel_inventory() -> void:
 	if _panel_tab == "Event fish":
 		v1.tab_event_fish()
 		return
+	if _panel_tab == "Finds":
+		collect.tab_finds()
+		return
 	var total: int = VF.inventory_value()
 	var head := HBoxContainer.new()
 	var l := lbl("Hold value: %s   (sell multiplier ×%.2f)" % [money_str(total), VF.sell_mult()], 16)
@@ -1677,6 +1688,7 @@ func _panel_inventory() -> void:
 	if g.get_child_count() == 0:
 		panel_body.add_child(lbl("Your hold is empty. Go fish!", 16, C_MUTED))
 	panel_body.add_child(lbl("Fish collection  %d / %d" % [VF.discovered.size(), VFData.FISH_ORDER.size()], 18))
+	collect.book_stamps()
 	var dex := _grid(10)
 	for f in VFData.FISH_ORDER:
 		var known: bool = VF.discovered.has(f)
@@ -1694,6 +1706,8 @@ func _panel_inventory() -> void:
 
 func _panel_shop() -> void:
 	match _panel_tab:
+		"Hats":
+			collect.tab_hats()
 		"Rods":
 			var g := _grid(2)
 			for r in VFData.ROD_ORDER:
@@ -2174,6 +2188,10 @@ func _check_capture() -> void:
 		await _wait(1.2)
 		await _shot(dir + "/launcher_after_play.png")
 		print("LAUNCHER closed=%s stage=%s" % [not launcher_open(), stage.visible])
+		get_tree().quit()
+		return
+	if "--collect-test" in OS.get_cmdline_user_args():
+		await collect.capture_test(dir)
 		get_tree().quit()
 		return
 	if "--v1-test" in OS.get_cmdline_user_args():
@@ -3443,6 +3461,9 @@ const MENU_TILES := [
 	["fleet", "Fleet", "sailboat", "", "Crews that fish for you"],
 	["daily", "Daily", "gift", "", "Calendar & the daily spin"],
 	["radio", "Radio", "music-notes", "", "The soundtrack, or just listen"],
+	["achievements", "Achievements", "trophy", "", "Goals, jokes & a few Pearls"],
+	["aquarium", "Aquarium", "fish", "", "Your fish, swimming. Visitors pay"],
+	["wanted", "Wanted", "target", "", "Gerald, and the bounty"],
 ]
 
 const MENU_COLORS := {
@@ -3450,7 +3471,8 @@ const MENU_COLORS := {
 	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
 	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
 	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"), "fleet": Color("#0e7490"),
-	"daily": Color("#f97316"), "radio": Color("#db2777"),
+	"daily": Color("#f97316"), "radio": Color("#db2777"), "achievements": Color("#c98b1c"), "aquarium": Color("#238b9c"),
+	"wanted": Color("#a8854d"),
 }
 
 func _panel_menu() -> void:
@@ -3458,6 +3480,7 @@ func _panel_menu() -> void:
 	g.add_theme_constant_override("h_separation", 12)
 	g.add_theme_constant_override("v_separation", 12)
 	for t in MENU_TILES:
+		if t[0] == "wanted" and not VF.gerald_info().met: continue        # (he hasn't turned up yet)
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -3495,6 +3518,10 @@ func _panel_menu() -> void:
 			sub.text = "Update available!"
 			sub.add_theme_color_override("font_color", C_GOOD)
 		if t[0] == "account": sub.text = account_ui.tile_subtitle()
+		if t[0] == "achievements" and not VF.ach_ready().is_empty():
+			bubble.add_theme_stylebox_override("panel", sbox(C_GOOD, 12, 0, Color.TRANSPARENT, 7))
+			sub.text = "%d ready to claim!" % VF.ach_ready().size()
+			sub.add_theme_color_override("font_color", C_GOOD)
 		var kind: String = t[0]
 		b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
 		g.add_child(b)

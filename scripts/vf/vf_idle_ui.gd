@@ -254,6 +254,8 @@ func _fill_back() -> void:
 	v.add_child(m.lbl("%s fish" % VF.commas(int(o.n)), 44, C_SUN, 6))
 	var xp := int(o.xp)
 	v.add_child(m.lbl("worth about %s  ·  +%s XP" % [m.money_str(VF.offline_value()), VF.commas(xp) if xp < 1000000 else VF.fmt(xp)], 17, Color("#7ef0c6")))
+	if float(o.get("aquarium", 0.0)) > 0.0:
+		v.add_child(m.lbl("including +%d%% from your aquarium's visitors" % int(round(float(o.aquarium) * 100.0)), 14, Color(1, 1, 1, 0.75)))
 	var names: Array = (o.fish as Dictionary).keys()
 	names.sort_custom(func(a, b): return int(o.fish[a]) * VFData.FISH[a].price > int(o.fish[b]) * VFData.FISH[b].price)
 	var row := HBoxContainer.new()
