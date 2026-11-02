@@ -237,6 +237,11 @@ def do_fisher(man):
     man["fisher"] = CR.render_fisher(os.path.join(OUT, "fisher"))
 
 
+def do_hats(only, man):
+    import vf_hats as H
+    man["hats"] = H.render(os.path.join(OUT, "hats"), only)
+
+
 def do_merchant(man):
     man["merchant"] = CR.render_merchant(os.path.join(OUT, "merchant"))
 
@@ -299,6 +304,8 @@ def main():
             do_brand(only)
         elif c == "fisher":
             do_fisher(man)
+        elif c == "hats":
+            do_hats(only, man)
         elif c == "rods_hand":
             do_rods_hand(only, man)
         elif c == "merchant":

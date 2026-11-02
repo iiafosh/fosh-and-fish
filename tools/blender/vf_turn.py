@@ -114,9 +114,9 @@ def render(name, out_dir, slug):
     foot.hide_render = True
     hull = TD.clip_below(parts)
     K.outline_all(hull, 0.035)
-    # the captain sits where the stage puts his sprite in the side view
+    # the captain sits where the stage puts his sprite in the side view. No hat: vf_hats.py draws his hat on top
     arm, meshes, root = C.build()
-    C.hat(arm, next(m for m in meshes if "Head" in m.name))
+    anchor = C.hat_anchor(arm, next(m for m in meshes if "Head" in m.name))
     sit = _acts[C.SEAT]
     C.set_pose(arm, sit, C._span(sit, 0.5))
     root.location = seat
@@ -148,12 +148,15 @@ def render(name, out_dir, slug):
     _size(cell)
     # the boat
     tmp = tempfile.mkdtemp()
-    paths = []
+    paths, heads = [], []
     for i, ang in enumerate(ANGLES):
         pivot.rotation_euler = (0, 0, math.radians(ang))
+        bpy.context.view_layer.update()
         p = os.path.join(tmp, "h%02d.png" % i)
         K.render(p)
         paths.append(p)
+        x, y = K.project(cam, C.bone_world(arm, "head") @ anchor)
+        heads.append([round(x / cell, 4), round(y / cell, 4)])
     L._sheet(_rows(paths), os.path.join(out_dir, slug + ".png"), cell)
     # foam and reflection: only their own meshes show
     for o in bpy.data.objects:
@@ -171,4 +174,4 @@ def render(name, out_dir, slug):
         rects.append([round((sx.min() - cx) / span + 0.5, 4), round(0.5 - (sy.max() - cy) / span, 4),
                       round((sx.max() - cx) / span + 0.5, 4), round(0.5 - (sy.min() - cy) / span, 4)])
     return {"step": STEP, "cols": COLS, "cell": cell, "unit_px": round(cell / span, 3), "origin": [round(-cx / span + 0.5, 4), round(0.5 + cy / span, 4)],
-            "rects": rects, "foam_cell": FOAM_CELL, "reflect_cell": REFLECT_CELL, "foam_pad": TD.FOAM_PAD, "reflect_pad": TD.REFLECT_PAD}
+            "rects": rects, "head": heads, "foam_cell": FOAM_CELL, "reflect_cell": REFLECT_CELL, "foam_pad": TD.FOAM_PAD, "reflect_pad": TD.REFLECT_PAD}

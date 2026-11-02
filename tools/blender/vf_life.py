@@ -74,8 +74,8 @@ def _frame(cam, radius, centre_z=0.0):
     cam.data.ortho_scale = radius * 2.0
 
 
-def _sheet(rows, out_path, cell):
-    """rows of frame files -> one sheet"""
+def _sheet(rows, out_path, cell, clean=False):
+    """rows of frame files -> one sheet. clean: no colour left in the see-through pixels (much smaller files)"""
     n = len(rows[0])
     img = np.zeros((cell * len(rows), cell * n, 4), dtype=np.float32)
     for r, row in enumerate(rows):
@@ -86,6 +86,8 @@ def _sheet(rows, out_path, cell):
             # (image rows run bottom-up)
             y0 = (len(rows) - 1 - r) * cell
             img[y0:y0 + cell, c * cell:(c + 1) * cell] = px
+    if clean:
+        img[img[..., 3] <= 0.0] = 0.0
     out = bpy.data.images.new("sheet", n * cell, len(rows) * cell, alpha=True)
     out.pixels = img.ravel().tolist()
     out.filepath_raw = out_path
