@@ -134,6 +134,7 @@ const FIND_SITS := {"water": {"bob": 3.0, "rock": 0.09, "shadow": 12.0}, "sand":
 const CARD_H := 230.0             # the catch card's usual height, for keeping clear of it while it's hidden
 var _say_text := ""
 var _say_t := 0.0
+var _say_box := Rect2()                  # where the line's bubble was drawn, in the scene (say_rect)
 var _floaters: Array = []
 var _resident := {}               # the find out there now (spawn_resident): one at a time
 var _thief := {}
@@ -1176,6 +1177,7 @@ func _draw_say() -> void:
 	var pad := Vector2(14, 8) * k
 	var box := Rect2(head + Vector2(-w.x * 0.5 - pad.x, -w.y - pad.y * 2.0 - 30.0 * k), w + pad * 2.0)
 	box.position.x = clampf(box.position.x, 12.0, SCENE.x - box.size.x - 12.0)
+	_say_box = box
 	var a := clampf(_say_t / 0.3, 0.0, 1.0)
 	over.modulate.a = 1.0
 	var sb := StyleBoxFlat.new()
@@ -1637,6 +1639,12 @@ func say(text: String, secs := 3.4) -> void:
 ## is a line showing over his head? (vf_fun.gd: his mutterings wait their turn)
 func talking() -> bool:
 	return _say_t > 0.0
+
+## where that line is on the screen (an empty Rect2 when there's none): vf_main keeps its banners clear of it
+func say_rect() -> Rect2:
+	if not talking() or _say_box.size == Vector2.ZERO: return Rect2()
+	var a := to_screen(_say_box.position)
+	return Rect2(a, to_screen(_say_box.end) - a)
 
 ## a tap on the scene: if it hit something that's there for poking, it reacts -> true (no cast then)
 func poke(screen: Vector2) -> bool:

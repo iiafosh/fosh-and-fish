@@ -911,6 +911,8 @@ func _show_card() -> void:
 		card.visible = false
 		return
 	var popping := not card.visible or card.modulate.a < 0.35
+	var sb := card.get_theme_stylebox("panel") as StyleBoxFlat
+	if sb: sb.bg_color.a = 1.0 if compact() else C_LIGHT.a       # (phones: it lies over the lane signs, they mustn't show through)
 	card.modulate.a = 1.0
 	card.visible = true
 	if popping: v1.pop_card()
@@ -1550,12 +1552,14 @@ const PANEL_TABS := {
 func _open_panel(kind: String, tab: String = "") -> void:
 	if VF.tutorial == 2 and kind == "shop":
 		_coach_next(3)
+	var opening := not overlay.visible
+	var fresh := opening or kind != _panel_kind or (tab != "" and tab != _panel_tab)
 	_panel_kind = kind
 	_panel_tab = tab if tab != "" else (PANEL_TABS[kind][0] if PANEL_TABS.has(kind) else "")
-	var opening := not overlay.visible
 	overlay.visible = true
 	if launcher_open(): move_child(overlay, get_child_count() - 1)    # over the title screen
 	_render_panel()
+	if fresh: panel_scroll.scroll_vertical = 0      # (another panel starts at its top, not where the Menu was scrolled to)
 	if opening: v1.pop_panel()
 
 func _close_panel() -> void:
@@ -1586,7 +1590,7 @@ func _render_panel() -> void:
 			b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 				b.add_theme_color_override(k, C_TEXT if on else C_MUTED)
-			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel())
+			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel(); panel_scroll.scroll_vertical = 0)
 			panel_tabs.add_child(b)
 	tabs_track.visible = PANEL_TABS.has(_panel_kind)
 	panel_back.visible = _panel_kind != "menu" and not launcher_open()   # from the title screen: just Close
@@ -2882,7 +2886,11 @@ func _next_banner() -> void:
 	AudioManager.play_success()
 	var tw := p.create_tween()
 	var below_goal: float = goal_box.get_global_rect().end.y + 8.0 if compact() else 0.0    # (phones: it's wide enough to be in the way)
-	tw.tween_property(p, "position:y", maxf(112.0, below_goal), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var y := maxf(112.0, below_goal)
+	var said: Rect2 = stage.say_rect()                     # the captain's line (a find's, say): the banner goes round it
+	if said.has_area() and Rect2(Vector2((vw - p.size.x) * 0.5, y), p.size).grow(6.0).intersects(said):
+		y = said.end.y + 10.0 if said.end.y + 10.0 + p.size.y < get_viewport_rect().size.y - 110.0 else maxf(8.0, said.position.y - p.size.y - 10.0)
+	tw.tween_property(p, "position:y", y, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(2.2)
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)
