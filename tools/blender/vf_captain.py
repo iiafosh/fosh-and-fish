@@ -29,9 +29,15 @@ UPPER = ("spine", "chest", "head", "upperarm.l", "lowerarm.l", "wrist.l", "hand.
          "upperarm.r", "lowerarm.r", "wrist.r", "hand.r", "handslot.r")
 
 
+_ACTS = {}
+
+
 def load_actions():
-    """every animation of the Rig_Medium sets -> {name: action}; the mannequins they come with are removed"""
-    out = {}
+    """every animation of the Rig_Medium sets -> {name: action}; the mannequins they come with are removed. Once per
+    Blender run: the actions outlive clear_scene, and importing them again would rename them"""
+    if _ACTS:
+        return _ACTS
+    out = _ACTS
     for fn in ACTION_FILES:
         before = set(bpy.data.objects)
         known = set(bpy.data.actions)
@@ -89,13 +95,22 @@ def trim_hair(head, above):
     head.data.update()
 
 
+def hat_seat(head):
+    """where a hat sits on his head, worked out at rest (right after build): the point, and half his head's width"""
+    lo, hi = V.world_bbox([head])
+    r = (hi.x - lo.x) * 0.5 * 0.82
+    return Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, hi.z - r * 0.46)), r
+
+
+def hat_anchor(arm, head):
+    """that point in the head bone's space: wherever his head goes, the hat goes (vf_hats.py)"""
+    return bone_world(arm, "head").inverted() @ hat_seat(head)[0]
+
+
 def hat(arm, head, col="#ffc93a", band_col="#e39b1c", brim_r=1.42):
     """a yellow rain hat, low-poly, on the head bone (the hair under it is trimmed)"""
     yellow, band = toon(col), toon(band_col)
-    lo, hi = V.world_bbox([head])
-    r = (hi.x - lo.x) * 0.5 * 0.82
-    z = hi.z - r * 0.46
-    cx, cy = (lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5
+    (cx, cy, z), r = hat_seat(head)
     trim_hair(head, z - r * 0.1)
     brim = K.cone(loc=(cx, cy, z), r1=r * brim_r, r2=r * 0.84, depth=r * 0.18, verts=24, mat=yellow)
     crown = K.cyl(loc=(cx, cy, z + r * 0.3), r=r * 0.86, depth=r * 0.52, verts=24, mat=yellow)
@@ -103,6 +118,12 @@ def hat(arm, head, col="#ffc93a", band_col="#e39b1c", brim_r=1.42):
     rib = K.cyl(loc=(cx, cy, z + r * 0.13), r=r * 0.885, depth=r * 0.13, verts=24, mat=band)
     parts = [brim, crown, top, rib]
     K.outline_all(parts, 0.012)
+    on_head(arm, parts)
+    return parts
+
+
+def on_head(arm, parts):
+    """parent these to the head bone, where they are"""
     bpy.context.view_layer.update()
     for p in parts:
         w = p.matrix_world.copy()
@@ -111,7 +132,6 @@ def hat(arm, head, col="#ffc93a", band_col="#e39b1c", brim_r=1.42):
         p.parent_bone = "head"
         bpy.context.view_layer.update()
         p.matrix_world = w
-    return parts
 
 
 def build(name="Ranger", height=HEIGHT, face=FACE, swatches=None):
@@ -208,6 +228,69 @@ def _span(action, k):
     return action.frame_range[0] + (action.frame_range[1] - action.frame_range[0]) * k
 
 
+# ------------------------------------------------------------------- hats
+# The hats are drawn over the sheets (vf_hats.py), one picture per way his head can face: sitting, at each angle of the
+# boat's turn (0 is the side view), then two more for the side view: fishing, and cheering with his head back.
+HAT_ANGLES = list(range(-90, 91, 15))
+HAT_FISH, HAT_CHEER = len(HAT_ANGLES), len(HAT_ANGLES) + 1
+_CHEER = []
+
+
+def _cheer_k(arm, acts):
+    """the moment of the cheer the hats are drawn at: his head furthest back"""
+    if not _CHEER:
+        sit = acts[SEAT]
+        set_pose(arm, sit, _span(sit, 0.5))
+        face = Vector((math.sin(math.radians(FACE)), -math.cos(math.radians(FACE)), 0.0))
+        fwd = bone_world(arm, "head").to_3x3().normalized().inverted() @ face
+        c = acts["Cheering"]
+        best = []
+        for i in range(21):
+            set_pose(arm, c, _span(c, i / 20.0))
+            best.append(((bone_world(arm, "head").to_3x3().normalized() @ fwd).z, i / 20.0))
+        _CHEER.append(min(best)[1])
+    return _CHEER[0]
+
+
+def hat_pose(arm, acts, root, view):
+    """pose him and turn him for one of the hats' pictures"""
+    sit = acts[SEAT]
+    if view == HAT_FISH:
+        fish = acts["Fishing_Idle"]
+        set_pose(arm, sit, _span(sit, 0.5), fish, _span(fish, 0.0))
+    elif view == HAT_CHEER:
+        set_pose(arm, acts["Cheering"], _span(acts["Cheering"], _cheer_k(arm, acts)))
+    else:
+        set_pose(arm, sit, _span(sit, 0.5))
+    ang = HAT_ANGLES[view] if view < HAT_FISH else 0.0
+    root.rotation_euler = (0, 0, math.radians(FACE + ang))
+    bpy.context.view_layer.update()
+
+
+def hat_views(arm, acts, root):
+    """how his head is turned in each of the hats' pictures -> [world rotation]"""
+    out = []
+    for v in range(HAT_CHEER + 1):
+        hat_pose(arm, acts, root, v)
+        out.append(bone_world(arm, "head").to_3x3().normalized())
+    root.rotation_euler = (0, 0, math.radians(FACE))
+    bpy.context.view_layer.update()
+    return out
+
+
+def hat_place(arm, anchor, views, pt, right, up):
+    """where the hat goes in this frame -> [x, y, rot, view]: 0..1 of the cell, radians clockwise on the screen, and
+    which of the hat's pictures is nearest to how his head is turned now"""
+    m = bone_world(arm, "head")
+    R = m.to_3x3().normalized()
+    q = R.to_quaternion()
+    v = min(range(len(views)), key=lambda i: q.rotation_difference(views[i].to_quaternion()).angle)
+    tip = views[HAT_ANGLES.index(0)].inverted() @ Vector((0, 0, 1))       # (the head's own "up")
+    a, b = R @ tip, views[v] @ tip
+    rot = math.atan2(a.dot(right), a.dot(up)) - math.atan2(b.dot(right), b.dot(up))
+    return pt(m @ anchor) + [round(rot, 3), v]
+
+
 def render(out_dir, setup):
     """Render every animation to out_dir/<anim>.png; returns the manifest "fisher" entry (the stage's format:
     frames, fps, rod_grip / rod_tip / head per frame in 0..1 of the cell, the anchor "feet")."""
@@ -215,7 +298,8 @@ def render(out_dir, setup):
     cam = setup(CELL)
     acts = load_actions()
     arm, meshes, root = build()
-    hat(arm, next(m for m in meshes if "Head" in m.name))
+    anchor = hat_anchor(arm, next(m for m in meshes if "Head" in m.name))
+    views = hat_views(arm, acts, root)
     Rc = cam.rotation_euler.to_matrix()
     right, up, fwd = Rc @ Vector((1, 0, 0)), Rc @ Vector((0, 1, 0)), Rc @ Vector((0, 0, -1))
     cx, cy = 0.1, 0.9
@@ -229,10 +313,10 @@ def render(out_dir, setup):
     m0 = bone_world(arm, "handslot.r")
     rod_local = m0.to_3x3().inverted() @ ROD_IDLE
     park = (m0.to_translation().copy(), m0.to_translation() + ROD_IDLE * ROD_L)
-    info = {}
+    info = {"head": {}}
     only = os.environ.get("VF_FISHER_ONLY", "")
     for name, a in ANIMS.items():
-        grips, tips, heads, paths = [], [], [], []
+        grips, tips, heads, hats, paths = [], [], [], [], []
         tmp = tempfile.mkdtemp()
         i = 0
         total = sum(p[4] for p in a["parts"])
@@ -255,6 +339,7 @@ def render(out_dir, setup):
                 grips.append(pt(g))
                 tips.append(pt(t))
                 heads.append(pt(bone_world(arm, "head").to_translation() + Vector((0.05, 0, 0.62))))
+                hats.append(hat_place(arm, anchor, views, pt, right, up))
                 if not only or name in only.split(","):
                     p = os.path.join(tmp, "f%02d.png" % i)
                     K.render(p)
@@ -272,6 +357,7 @@ def render(out_dir, setup):
             jumps = [tips[q + 1][0] - tips[q][0] for q in range(total - 1)]
             e["release"] = round(jumps.index(max(jumps)) / float(a["fps"]), 3)
         info[name] = e
+        info["head"][name] = hats
     info["feet"] = pt((0, 0, 0))          # the anchor: where he sits (goes on the boat's seat)
     info["unit_px"] = round(CELL / SCALE, 3)
     info["cell"] = CELL
