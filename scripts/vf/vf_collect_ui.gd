@@ -15,6 +15,9 @@ const PAPER_EDGE := Color("#a8854d")
 const BROWN := Color("#5a3d1a")
 const STAMP := Color("#c0392b")
 const INK := Color("#22313a")
+## what they're wearing on each stage's poster (docs/MISSING_LIST.md part 3, "A new look for every stage")
+const DRESSED := {"River": "looking smug", "Volcanic": "in oven gloves", "Ocean": "in an eyepatch", "Sky": "scarf flapping",
+	"Space": "in a bubble helmet", "Alien": "in three-eyed shades", "Abyss": "by the light of her own lamp"}
 
 var m                                 # vf_main
 var wanted_pill: PanelContainer
@@ -54,7 +57,7 @@ func build_hud() -> void:
 	_wanted_face = Control.new()
 	_wanted_face.custom_minimum_size = Vector2(26, 22)
 	_wanted_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_wanted_face.draw.connect(func(): _draw_portrait(_wanted_face, VF.gerald_info().who, Vector2(13, 11), 30.0))
+	_wanted_face.draw.connect(func(): _draw_portrait(_wanted_face, _look(int(VF.gerald.stage)), Vector2(13, 11), 30.0))
 	h.add_child(_wanted_face)
 	_wanted_lbl = m.lbl("", 13, Color.WHITE)
 	h.add_child(_wanted_lbl)
@@ -70,6 +73,15 @@ func refresh_pill() -> void:
 	if wanted_pill.visible:
 		_wanted_lbl.text = "WANTED: %s · %s" % [g.who, g.biome]
 		_wanted_face.queue_redraw()
+
+
+## which picture a stage's poster shows: its look (dressed for the biome) once that's drawn, else plain Gerald or Geraldine
+func _look(i: int) -> String:
+	var row: Dictionary = VFData.GERALD[clampi(i, 0, VFData.GERALD.size() - 1)]
+	var look := String(VF.gerald_info(i).get("look", row.get("look", "")))
+	if look != "" and m.stage.manifest.get("mini", {}).get("fish", {}).has(look) and m.tex("mini/%s.png" % VFData.slug(look)) != null:
+		return look
+	return String(row.who)
 
 
 ## who's portrait from their mini-game sheet, with the eyes the mini-game gives them (the art has none). dim: a silhouette
@@ -117,7 +129,7 @@ func panel_wanted() -> void:
 	grid.add_theme_constant_override("v_separation", 14)
 	for i in VFData.GERALD.size():
 		var p := Control.new()
-		p.custom_minimum_size = Vector2(196, 268)
+		p.custom_minimum_size = Vector2(196, 284)
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		p.mouse_filter = Control.MOUSE_FILTER_PASS
 		p.draw.connect(_draw_poster.bind(p, i))
@@ -155,13 +167,14 @@ func _draw_poster(c: Control, i: int) -> void:
 	if secret:
 		c.draw_string(font, Vector2(x, face_at.y + 18.0), "?", HORIZONTAL_ALIGNMENT_CENTER, cw, 64, Color(BROWN, 0.45))
 	else:
-		_draw_portrait(c, row.who, face_at, 132.0, later)
+		_draw_portrait(c, _look(i), face_at, 132.0, later)
 	var ink := BROWN if not later else Color(BROWN, 0.6)
 	c.draw_string(font, Vector2(x, r.position.y + 196.0), "???" if secret else String(row.who), HORIZONTAL_ALIGNMENT_CENTER, cw, 22, ink)
-	var where := "Somewhere out there" if secret else "Last seen: %s" % VFData.GERALD_PLACES.get(row.biome, row.biome)
-	c.draw_string(font, Vector2(x, r.position.y + 218.0), where, HORIZONTAL_ALIGNMENT_CENTER, cw, 13, Color(ink, 0.85))
+	# where, and what in: the outfit is half the joke (two lines at most)
+	var where := "Somewhere out there" if secret else "Last seen: %s, %s" % [VFData.GERALD_PLACES.get(row.biome, row.biome), DRESSED.get(row.biome, "looking smug")]
+	c.draw_multiline_string(font, Vector2(x + 8.0, r.position.y + 216.0), where, HORIZONTAL_ALIGNMENT_CENTER, cw - 16.0, 13, 2, Color(ink, 0.85))
 	var foot := "From level %s" % VF.commas(int(row.level)) if later or secret else "Reward %s" % m.money_str(int(g.bounty))
-	c.draw_string(font, Vector2(x, r.position.y + 242.0), foot, HORIZONTAL_ALIGNMENT_CENTER, cw, 15, C_GOLD.darkened(0.25) if not later else Color(ink, 0.7))
+	c.draw_string(font, Vector2(x, r.position.y + 260.0), foot, HORIZONTAL_ALIGNMENT_CENTER, cw, 15, C_GOLD.darkened(0.25) if not later else Color(ink, 0.7))
 	if g.done:                                         # a rubber stamp across the lower half (the face stays clear)
 		var word := "CAUGHT!" if row.get("final", false) else "BEATEN"
 		c.draw_set_transform(c.size * 0.5 + Vector2(0, 66), tilt - 0.2, Vector2.ONE)
@@ -581,7 +594,13 @@ func capture_test(dir: String) -> void:
 	await m._shot(dir + "/collect0_hud.png")
 	m._open_panel("wanted")
 	await wait.call(0.5)
+	var looks := []
+	for i in VFData.GERALD.size(): looks.append("%s=%s" % [VFData.GERALD[i].biome, _look(i)])
+	print("COLLECT poster looks: %s" % ", ".join(looks))
 	await m._shot(dir + "/collect1_wanted.png")
+	m.panel_scroll.scroll_vertical = 100000
+	await wait.call(0.2)
+	await m._shot(dir + "/collect1_wanted_lower.png")
 	m._open_panel("inventory", "Finds")
 	await wait.call(0.4)
 	await m._shot(dir + "/collect2_finds.png")
