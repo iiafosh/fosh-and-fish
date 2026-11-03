@@ -107,16 +107,22 @@ def hat_anchor(arm, head):
     return bone_world(arm, "head").inverted() @ hat_seat(head)[0]
 
 
-def hat(arm, head, col="#ffc93a", band_col="#e39b1c", brim_r=1.42):
-    """a yellow rain hat, low-poly, on the head bone (the hair under it is trimmed)"""
+def hat_parts(head, col="#ffc93a", band_col="#e39b1c", brim_r=1.42):
+    """the yellow rain hat's pieces, where it sits on his head (at rest): nothing trimmed, nothing parented yet"""
     yellow, band = toon(col), toon(band_col)
     (cx, cy, z), r = hat_seat(head)
-    trim_hair(head, z - r * 0.1)
     brim = K.cone(loc=(cx, cy, z), r1=r * brim_r, r2=r * 0.84, depth=r * 0.18, verts=24, mat=yellow)
     crown = K.cyl(loc=(cx, cy, z + r * 0.3), r=r * 0.86, depth=r * 0.52, verts=24, mat=yellow)
     top = K.sphere(loc=(cx, cy, z + r * 0.56), scale=(r * 0.86, r * 0.86, r * 0.42), seg=24, rings=10, mat=yellow)
     rib = K.cyl(loc=(cx, cy, z + r * 0.13), r=r * 0.885, depth=r * 0.13, verts=24, mat=band)
-    parts = [brim, crown, top, rib]
+    return [brim, crown, top, rib]
+
+
+def hat(arm, head, col="#ffc93a", band_col="#e39b1c", brim_r=1.42):
+    """a yellow rain hat, low-poly, on the head bone (the hair under it is trimmed)"""
+    (cx, cy, z), r = hat_seat(head)
+    parts = hat_parts(head, col, band_col, brim_r)
+    trim_hair(head, z - r * 0.1)
     K.outline_all(parts, 0.012)
     on_head(arm, parts)
     return parts

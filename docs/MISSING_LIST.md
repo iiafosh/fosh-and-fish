@@ -117,6 +117,21 @@ func gerald_info() -> Dictionary   # {"who": String, "biome": String, "level": i
 
 **Sounds (Audio):** `laugh`, `sting`, `fanfare`.
 
+**A new look for every stage** (added 2026-11-03; the owner: "why all the bounty are the same fish ?"). Gerald and Geraldine dress for each biome, so no two posters or rounds look the same. Each row of `VFData.GERALD` gets a `look`; its art is `assets/vf/mini/<look>.png` with `mini.fish.<look>` in the manifest, built like the other species (`render_mini`, eyes removed, same `MINI_CELL` and `MINI_FRAMES`).
+
+| Stage | Look | Dressed as |
+|---|---|---|
+| River | `Gerald` | himself (the art there now) |
+| Volcanic | `gerald_lava` | a fireproof helmet with a visor, and oven gloves |
+| Ocean | `gerald_pirate` | an eyepatch, a bandana and a gold earring |
+| Sky (final) | `gerald_pilot` | flying goggles and a long scarf |
+| Space | `geraldine_astro` | a bubble helmet over the perm, the bow still on top |
+| Alien | `geraldine_alien` | a headband with antennae, and three-eyed sunglasses |
+| Abyss (final) | `geraldine_lamp` | a miner's lamp on her head, and the pearls |
+
+- The rival's round and the WANTED poster use the row's `look`, falling back to `who` while a picture is missing. The aquarium and the bottle note keep the plain `Gerald` and `Geraldine`.
+- The stage's big dark shape stays the same.
+
 ## 4. Finds when sailing (Game mechanics, Design, Code, UI)
 
 Every biome gets three residents to find, and they sit away from the shop, so sailing has a reason. Tapping one from far off says "Too far. Sail closer!". The third of each biome is rarer.
