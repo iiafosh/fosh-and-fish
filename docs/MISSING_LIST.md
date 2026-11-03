@@ -119,20 +119,31 @@ func gerald_info() -> Dictionary   # {"who": String, "biome": String, "level": i
 
 **Sounds (Audio):** `laugh`, `sting`, `fanfare`.
 
-**A new look for every stage** (added 2026-11-03; the owner: "why all the bounty are the same fish ?"). Gerald and Geraldine dress for each biome, so no two posters or rounds look the same. Each row of `VFData.GERALD` gets a `look`; its art is `assets/vf/mini/<look>.png` with `mini.fish.<look>` in the manifest, built like the other species (`render_mini`, eyes removed, same `MINI_CELL` and `MINI_FRAMES`).
+**The Most Wanted: seven different fish** (2026-11-03). This replaces the outfits. The owner asked "why all the bounty are the same fish ?", got Gerald in seven costumes, and said: "SO YOU JUST MADE THE FISH WEAR A HAT AND YOU CALL IT A CHANGE AND ITS EVEN THE SAME NAME". So every stage is a different outlaw fish, with its own name, body, personality, lines and gags. Gerald is only the first and smallest crook.
 
-| Stage | Look | Dressed as |
-|---|---|---|
-| River | `Gerald` | himself (the art there now) |
-| Volcanic | `gerald_lava` | a fireproof helmet with a visor, and oven gloves |
-| Ocean | `gerald_pirate` | an eyepatch, a bandana and a gold earring |
-| Sky (final) | `gerald_pilot` | flying goggles and a long scarf |
-| Space | `geraldine_astro` | a bubble helmet over the perm, the bow still on top |
-| Alien | `geraldine_alien` | a headband with antennae, and three-eyed sunglasses |
-| Abyss (final) | `geraldine_lamp` | a miner's lamp on her head, and the pearls |
+| Stage | Name | Who they are | `look` |
+|---|---|---|---|
+| River | Gerald | the grumpy pufferfish with a moustache and a MUM tattoo (the art there now) | `Gerald` |
+| Volcanic | Sizzle | a hot-headed catfish, charcoal skin with glowing cracks, whiskers on fire | `sizzle` |
+| Ocean | Captain Swordbeard | a swordfish pirate: long sword nose, curly beard, eyepatch, a gold tooth | `swordbeard` |
+| Sky (end of run 1) | Baron von Flap | a flying fish with big wing fins, an old aviator cap, goggles and a monocle | `baron` |
+| Space | Commander Chomp | a small, very confident shark in a space helmet, with a jetpack | `chomp` |
+| Alien | Zlorp | a purple three-eyed alien blobfish with little tentacles | `zlorp` |
+| Abyss (end of run 2) | The Duchess | a huge anglerfish lady whose lure is a chandelier, with pearls and lipstick | `duchess` |
 
-- The rival's round and the WANTED poster use the row's `look`, falling back to `who` while a picture is missing. The aquarium and the bottle note keep the plain `Gerald` and `Geraldine`.
-- The stage's big dark shape stays the same.
+- **Rules (Game mechanics):**
+  - Each row has `who` (the name players see), `look`, and its own lines (lose, caught, tease) and gags. The internal names `GERALD` and `gerald_*` stay, so the other sessions' hooks keep working.
+  - Win a stage and that outlaw is caught: the poster is stamped CAUGHT!, the bounty is paid, and the next one is wanted in the next biome. There's no more snip-and-escape, because each stage is a different fish.
+  - Lose: as now. They laugh, leave a tip, and come back a bit easier.
+  - Catch the Baron for the crown, renamed "The Baron's Crown", and a bottle note from the Duchess starts run 2. Catch the Duchess for the tiara, "The Duchess's Tiara".
+  - Achievements that name Geraldine get fitting new names. Gerald's own stay.
+  - Saves keep their place: `gerald.stage` maps straight onto the new rows.
+- **Art (Design):**
+  - Six new rivals, each a different body, in real 3D from the game's camera: `assets/vf/mini/<look>.png` with `mini.fish.<look>`, built like the other species, and a stage shape `assets/vf/life/<look>.png` in the whale format.
+  - Restyle the crown for the Baron (no moustache) and the tiara for the Duchess.
+  - Delete the six outfit sheets and plain Geraldine (art and manifest) unless something still uses them.
+- **Stage (Code):** the shape that passes is that rival's `life/<look>.png`, falling back to `life/gerald.png`, and the tease lines come from the row.
+- **Screens (UI):** each poster shows its own name and caption, the pill reads "WANTED: Sizzle · Volcanic", and the aquarium shows every outlaw you've caught. Fall back to plain Gerald while a picture is missing.
 
 ## 4. Finds when sailing (Game mechanics, Design, Code, UI)
 
