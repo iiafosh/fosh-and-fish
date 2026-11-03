@@ -60,7 +60,7 @@ func tick(delta: float) -> void:
 	_quip_wait -= delta
 	if _quip_wait <= 0.0:
 		_quip_wait = randf_range(45.0, 110.0)
-		m.stage.say(QUIPS.pick_random())
+		if not (m.stage.has_method("talking") and m.stage.talking()): m.stage.say(QUIPS.pick_random())     # (never over a line that's showing)
 
 ## one find at a time, the stage puts it somewhere worth sailing to and takes it away after VFData.FIND_SECS
 func _send_resident() -> void:
@@ -78,7 +78,7 @@ func _tick_tease(delta: float) -> void:
 		_tease_wait = 3.0
 		return
 	_tease_wait -= delta
-	if _tease_wait > 0.0 or _teases >= TEASE_MAX: return
+	if _tease_wait > 0.0 or _teases >= TEASE_MAX or not m.stage.has_method("spawn_gerald"): return
 	_tease_wait = randf_range(50.0, 90.0)
 	_teases += 1
 	m.stage.spawn_gerald(TEASES[VF.gerald_info().who].pick_random())

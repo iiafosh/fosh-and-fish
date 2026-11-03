@@ -1634,6 +1634,10 @@ func say(text: String, secs := 3.4) -> void:
 	_say_text = text
 	_say_t = secs
 
+## is a line showing over his head? (vf_fun.gd: his mutterings wait their turn)
+func talking() -> bool:
+	return _say_t > 0.0
+
 ## a tap on the scene: if it hit something that's there for poking, it reacts -> true (no cast then)
 func poke(screen: Vector2) -> bool:
 	var p := to_scene(screen)
@@ -1798,12 +1802,17 @@ func tap_areas_test() -> void:
 	var finds: Dictionary = life.finds
 	var wings := Rect2(float(life.gull.glide) * float(life.gull.cell), 2.0 * float(life.gull.cell), life.gull.cell, life.gull.cell)
 	var cell := Rect2(0, 0, finds.cell, finds.cell)
-	var targets := []                   # [name, where it is now, its tap box]
+	var targets := []                   # [name, where it is now, its tap box], one at a time with nothing else on top of it
+	if not _thief.is_empty():
+		_thief.pos = boat_pos + Vector2(0, 260)
+		_thief.vel = Vector2.ZERO
+		targets.append(["thief", _thief.pos, _tap_box(_tex("life/gull.png"), u * 0.68 / float(life.gull.unit_px), wings, 1.0, 24.0)])
 	for f in _floaters: targets.append([f.kind, f.pos, _tap_box(f.tex, u * 1.35 / float(finds[f.kind]), cell, f.dir)])
 	if not _resident.is_empty(): targets.append([_resident.id, _resident.pos, _tap_box(_resident.tex, u * 1.35 / float(finds[_resident.id]), cell, _resident.dir, 12.0)])
-	if not _crabs.is_empty(): targets.append(["crab", _crabs[0].pos, _tap_box(_crabs[0].tex, u * 0.42 / float(life.crab.unit_px), Rect2(0, 0, life.crab.cell, life.crab.cell))])
-	if not _gulls.is_empty(): targets.append(["gull", _gulls[0].pos, _tap_box(_gulls[0].tex, u * 0.62 / float(life.gull.unit_px), wings)])
-	if not _thief.is_empty(): targets.append(["thief", _thief.pos, _tap_box(_tex("life/gull.png"), u * 0.68 / float(life.gull.unit_px), wings, 1.0, 24.0)])
+	var crab_alone := _crabs.filter(func(c): return _gulls.all(func(g): return (g.pos as Vector2).distance_to(c.pos) > 220.0))
+	if not crab_alone.is_empty(): targets.append(["crab", crab_alone[0].pos, _tap_box(crab_alone[0].tex, u * 0.42 / float(life.crab.unit_px), Rect2(0, 0, life.crab.cell, life.crab.cell))])
+	var gull_alone := _gulls.filter(func(g): return _crabs.all(func(c): return (c.pos as Vector2).distance_to(g.pos) > 220.0))
+	if not gull_alone.is_empty(): targets.append(["gull", gull_alone[0].pos, _tap_box(gull_alone[0].tex, u * 0.62 / float(life.gull.unit_px), wings)])
 	var fails := 0
 	for t in targets:
 		var name: String = t[0]
