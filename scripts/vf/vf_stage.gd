@@ -22,6 +22,10 @@ var boat: TextureRect
 var boat_foam: TextureRect        # foam and shadow on the water around the hull (behind the boat, moves with it)
 var boat_reflect: TextureRect     # the boat in the water (the same)
 var fisher: TextureRect
+var hat_layer: Control           # his hat (VF.hat), over him and the boat; it mirrors and bobs with the boat
+var _hats_info: Dictionary = {}
+var _hat_name := ""
+var _hat_tex: Texture2D
 var sky_layer: Control           # gulls
 var over: Control                # line, bobber, ripples
 var fx: Node2D
@@ -189,6 +193,10 @@ func _ready() -> void:
 	boat.add_child(boat_reflect)
 	boat_foam = _foam_rect()
 	boat.add_child(boat_foam)
+	hat_layer = Control.new()
+	hat_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hat_layer.draw.connect(_draw_hat)
+	boat.add_child(hat_layer)
 	over = _layer(_draw_over)
 	root.add_child(fx)
 	sky_layer = _layer(_draw_sky)
@@ -209,6 +217,7 @@ func _ready() -> void:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_merchant()
 	_fisher_info = manifest.get("fisher", {})
+	_hats_info = manifest.get("hats", {})
 	for k in _fisher_info:
 		if _fisher_info[k] is Dictionary and _fisher_info[k].has("frames"):
 			_fisher_tex[k] = _tex("fisher/%s.png" % k)
@@ -809,6 +818,7 @@ func react(kind: String) -> void:
 	else: play_anim(kind)
 
 func _set_frame() -> void:
+	if hat_layer: hat_layer.queue_redraw()
 	var t: Texture2D = _fisher_tex.get(_anim)
 	if t == null: return
 	var cell: float = _fisher_info.get("cell", 256)
@@ -816,6 +826,37 @@ func _set_frame() -> void:
 	at.atlas = t
 	at.region = Rect2(_frame_index() * cell, 0, cell, cell)
 	fisher.texture = at
+
+## His hat, a picture of assets/vf/hats/<VF.hat>.png (one per view, tools/blender/vf_hats.py) with its pivot on his head. In the
+## side view the head point, its tilt and which way he's looking come from fisher.head[anim][frame] (0..1 of his cell); in a turning
+## picture from turn.head (0..1 of the boat's cell), looking that way. In the boat's own units, so it mirrors and bobs with it.
+func _draw_hat() -> void:
+	if _hats_info.is_empty() or _scene.is_empty(): return
+	if VF.hat != _hat_name:
+		_hat_name = VF.hat
+		_hat_tex = _tex("hats/%s.png" % _hat_name)
+	var spot := _hat_spot()
+	if _hat_tex == null or spot.is_empty(): return
+	var cell: float = _hats_info.cell
+	var k: float = float(_scene.unit_px) / float(_hats_info.unit_px)
+	hat_layer.draw_set_transform(spot.at, spot.tilt, Vector2(k, k))
+	hat_layer.draw_texture_rect_region(_hat_tex, Rect2(-Vector2(_hats_info.pivot[0], _hats_info.pivot[1]) * cell, Vector2(cell, cell)),
+		Rect2(spot.view * cell, 0, cell, cell))
+
+## where his head is now, in the boat's units: {"at", "tilt", "view"}, or {} when it can't be seen (a turning picture whose head
+## point is null: something on the boat is in front of him)
+func _hat_spot() -> Dictionary:
+	var fr := _turn_frame if not _turn.is_empty() else 0
+	if fr == 0:
+		var heads: Dictionary = _fisher_info.get("head", {})
+		var frames: Array = heads.get(_anim, heads.get("idle", []))
+		if frames.is_empty(): return {}
+		var h: Array = frames[mini(_frame_index(), frames.size() - 1)]
+		return {"at": fisher.position + Vector2(h[0], h[1]) * fisher.size, "tilt": float(h[2]), "view": int(h[3])}
+	var turn_heads: Array = _turn.get("head", [])
+	var i := fr + 6 if fr < 0 else fr + 5
+	if i >= turn_heads.size() or not turn_heads[i] is Array: return {}
+	return {"at": Vector2(turn_heads[i][0], turn_heads[i][1]) * boat.size, "tilt": 0.0, "view": fr + 6}
 
 func set_rod(name: String) -> void:
 	if name == _rod_name: return
@@ -1827,6 +1868,47 @@ func tap_areas_test() -> void:
 		if not hit_on or hit_beside: fails += 1
 	poked.disconnect(listen)
 	print("TAP %s (%d failures)" % ["PASS" if fails == 0 else "FAILED", fails])
+
+## --hats-test (vf_main.gd): his hat in the side view while fishing, cheering and dozing, while turning on three boats, and all eleven
+## hats. Prints HATS lines with where the boat is in the window, for cropping the pictures. Never saves.
+func hats_test(m, dir: String) -> void:
+	var tree := get_tree()
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	VF.catch_mode = "relax"
+	m.sail.set_process(false)                  # (it would swing the boat back to the side view)
+	m.card.visible = false
+	for boat_name in ["Rowboat", "Cruise Ship", "Sky Cruiser", "Dark Explorer"]:
+		VF.boats_owned = VFData.BOAT_ORDER.find(boat_name) + 1
+		VF.changed.emit()
+		await tree.create_timer(0.8).timeout
+		for a in ["reel", "happy", "doze"]:
+			await _hats_pose(m, dir, boat_name, a, 0.0)
+		for yaw in [-90.0, -45.0, 30.0, 60.0, 90.0]:
+			await _hats_pose(m, dir, boat_name, "idle", yaw)
+	VF.boats_owned = 1
+	VF.changed.emit()
+	await tree.create_timer(0.8).timeout
+	for h in VFData.HATS:
+		VF.hat = h
+		await _hats_pose(m, dir, "Rowboat", "idle", 0.0, h)
+		await _hats_pose(m, dir, "Rowboat", "idle", 45.0, h)
+
+func _hats_pose(m, dir: String, boat_name: String, anim: String, yaw: float, hat := "") -> void:
+	boat_yaw = yaw
+	_show_heading()                            # (now, not on the next frame: the file name says which picture it is)
+	play_anim(anim)
+	var e: Dictionary = _fisher_info.get(anim, {})
+	_anim_t = (float(e.loop_range[0]) + 0.5) / _fps(anim) if e.has("loop_range") else _frames(anim) * 0.5 / _fps(anim)
+	await get_tree().process_frame
+	var view := ("turn%+d" % _turn_frame) if _turn_frame != 0 else "side"
+	var file := "hats_%s_%s_%s%s.png" % [VFData.slug(boat_name), anim, view, ("_" + hat) if hat != "" else ""]
+	await m._shot(dir + "/" + file)
+	var t := get_viewport().get_final_transform()
+	var spot := _hat_spot()
+	var head: Vector2 = boat.position + boat.pivot_offset + ((spot.get("at", boat.pivot_offset) - boat.pivot_offset) * boat.scale).rotated(boat.rotation)
+	print("HATS %s boat at %s, head at %s, %.3f window px per scene px%s" % [file, (t * to_screen(boat_pos)).round(), (t * to_screen(head)).round(),
+		root.scale.x * t.get_scale().x, "" if not spot.is_empty() else ", no hat (hidden)"])
 
 func _kind_of(name: String) -> String:
 	return "find:" + name if VFData.find_def(name).size() > 0 else name
