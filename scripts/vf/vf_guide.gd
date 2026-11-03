@@ -36,7 +36,7 @@ const TABS := {
 		["Chests & exotic fish", ["chest", "epic"],
 		"From Lv10 casts can find chests (Common » Artifact). They give money, XP, charms and exotic fish: Gold & Emerald (Lv10), Lava (Lv50), Diamond (Lv100). Exotic fish pay for boosts and special upgrades — check your Wallet."],
 		["Charms", ["charm", "quality"],
-		"Rare+ chests drop charms (Lv20+). Each type levels in tiers; tier n costs n charms. From your second prestige on, you need every charm maxed."],
+		"Rare+ chests drop charms (Lv20+). Each type levels in tiers; tier n costs n charms. They make you stronger; no rebirth needs them."],
 		["Pets", ["pet", "Puffer"],
 		"Pets can't be bought: every cast has a 1 in 10,000 chance to find one. Equipped pets level up as you fish and give big buffs."],
 		["Boosts, workers & quests", ["ui", "boosts"],
@@ -44,7 +44,7 @@ const TABS := {
 	],
 	"Prestige": [
 		["Prestiging", ["ui", "prestige"],
-		"Your first rebirth comes at Level 60 with $5M. You restart from Level 1 but keep pets, Hooks, league upgrades and prestige perks, and earn an Azure Fish. Later prestiges ask for more levels, more money and every charm maxed."],
+		"Your first rebirth comes at Level 60 with $5M. You restart from Level 1 but keep pets, Hooks, league upgrades and prestige perks, and earn an Azure Fish. Each rebirth after that asks for a little more and takes a little longer: about 6 hours for the second."],
 		["Prestige shop", ["exotic", "azure"],
 		"Spend Azure Fish on permanent perks: International Ties, Business Education, Fish Whisperer, Ancient One and Virtual Fisher (P5+). Each perk's cap is 1 + prestige/5. The Guide tab in the Prestige panel shows the community buy order."],
 	],

@@ -215,10 +215,16 @@ func setup_rival(m) -> void:
 	var info: Dictionary = VF.gerald_info()
 	rival = info.who
 	_met = info.met
-	setup(m, rival, 4)
+	setup(m, rival_picture(m.stage.manifest, info.look, rival), 4)
 	nick = rival
 	_fact = "Caught. Finally."
 	_use_params(VFData.rival_params(rival, reel_power, not main.is_touch(), int(VF.gerald.tries), VF.reel_rounds))
+
+## the picture for the rival's look on this stage, or plain Gerald / Geraldine while that one isn't there yet
+## (the WANTED board can use it too)
+static func rival_picture(manifest: Dictionary, look: String, who: String) -> String:
+	if manifest.get("mini", {}).get("fish", {}).has(look) and ResourceLoader.exists("res://assets/vf/mini/%s.png" % VFData.slug(look)): return look
+	return who
 
 func _use_params(p: Dictionary) -> void:
 	zone_h = p.zone_h

@@ -1942,7 +1942,7 @@ func _panel_prestige() -> void:
 			panel_body.add_child(_req_row("Level", c.level[0], c.level[1]))
 			panel_body.add_child(_req_row("Money", c.money[0], c.money[1], true))
 			if c.charms[1] > 0: panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
-			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. From your second prestige on, you also need every charm maxed.", 13, C_MUTED)
+			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. Every rebirth asks for a little more than the last.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)
 			var b := _act("PRESTIGE", C_GOLD, func(): return VF.do_prestige(), c.ok)

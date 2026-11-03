@@ -436,21 +436,32 @@ const SPECIAL_QUESTS := [
 	{"id": "pet",        "name": "Pet Locator",      "stat": "pets",     "goal": 1},
 ]
 
-## Prestige requirements. The first rebirth (P0 -> P1) is DERIVED and easier than the Prestige 0 Guide's 440/440
-## charms, Level 250, $5B, on purpose: that was days of play for a first goal, this is about 4 to 6 hours
-## (tools/pace_sim.gd). Later prestiges are DERIVED so the level requirement reaches the 25k cap around P160
-## (as the community buy-order chart notes), and they need every charm.
+## Prestige requirements, all DERIVED (the bot's P0 was level 250, 440 charms and $5B, days of play for a first goal).
+## The first rebirth takes about 4 to 6 hours of normal play; the owner then asked for the second to take about 6 hours
+## (it took 95), and each after it takes about 10% longer than the one before (tools/pace_sim.gd --table and --chain,
+## 2026-11-03). The Azure Fish make you faster every time, and not evenly: a prestige with a big new perk (P3, P5, P10)
+## asks for a bigger step, P4 (no new perk) for a small one. After the table: a little more every time, up to the
+## 25,000 level cap at P160 (as the community buy-order chart notes). No rebirth needs charms.
 const FIRST_REBIRTH_LEVEL := 60
 const FIRST_REBIRTH_MONEY := 5_000_000
+const REBIRTH_LEVELS := [FIRST_REBIRTH_LEVEL, 78, 94, 113, 115, 137, 152, 159, 174, 183, 226]
+const REBIRTH_MONEY := [FIRST_REBIRTH_MONEY, 11_000_000, 24_000_000, 40_000_000, 50_000_000, 140_000_000, 250_000_000,
+	440_000_000, 870_000_000, 1_100_000_000, 3_300_000_000]
+const REBIRTH_CAP_AT := 160       # the prestige whose rebirth asks for the 25,000 cap
+const REBIRTH_MONEY_GROWTH := 1.12
 
 static func prestige_level_req(p: int) -> int:
-	return FIRST_REBIRTH_LEVEL if p <= 0 else mini(25000, 250 + 150 * p)
+	if p < REBIRTH_LEVELS.size(): return REBIRTH_LEVELS[maxi(p, 0)]
+	var last: float = REBIRTH_LEVELS[-1]
+	var k := float(p - REBIRTH_LEVELS.size() + 1) / float(REBIRTH_CAP_AT - REBIRTH_LEVELS.size() + 1)
+	return mini(25000, int(round(last * pow(25000.0 / last, k))))
 
 static func prestige_money_req(p: int) -> int:
-	return FIRST_REBIRTH_MONEY if p <= 0 else int(5_000_000_000.0 * pow(1.6, p))
+	if p < REBIRTH_MONEY.size(): return REBIRTH_MONEY[maxi(p, 0)]
+	return int(minf(1e18, float(REBIRTH_MONEY[-1]) * pow(REBIRTH_MONEY_GROWTH, p - REBIRTH_MONEY.size() + 1)))
 
-static func prestige_charm_req(p: int) -> int:
-	return 0 if p <= 0 else charm_total_cap(p)
+static func prestige_charm_req(_p: int) -> int:
+	return 0
 
 static func charm_tier_cap(p: int) -> int:
 	return 10 + p if p <= 99 else 2 * p - 88
@@ -736,15 +747,16 @@ const SPIN := [
 ## at that level, he bites instead of a fish, in either catch mode, never on auto-fish. "bounty": what beating him pays, in
 ## casts' worth (VF.pay_find). Beat him on a row that isn't "final" and he gets away to the next one; on a "final" row he's
 ## caught and gives his hat (GERALD_HATS), and after Gerald his mum starts. Lose and he laughs, leaves a tip (GERALD_TIP),
-## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing.
+## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing. "look": they dress for each biome
+## (the round and the WANTED poster use mini/<look>.png, plain Gerald or Geraldine while it isn't there).
 const GERALD := [
-	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0},
-	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0},
-	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0},
-	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true},
-	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0},
-	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0},
-	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true},
+	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0, "look": "Gerald"},
+	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0, "look": "gerald_lava"},
+	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0, "look": "gerald_pirate"},
+	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true, "look": "gerald_pilot"},
+	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0, "look": "geraldine_astro"},
+	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0, "look": "geraldine_alien"},
+	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true, "look": "geraldine_lamp"},
 ]
 const GERALD_HATS := {"Gerald": "crown", "Geraldine": "tiara"}
 const GERALD_TIP := 2.0
