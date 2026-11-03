@@ -351,9 +351,12 @@ func panel_aquarium() -> void:
 	_tank_ms = Time.get_ticks_msec()
 	_say = {}
 	_swim = []
-	for f in VFData.FISH_ORDER:
-		if not VF.discovered.has(f): continue
-		_swim.append({"f": f, "x": randf(), "y": randf_range(0.18, 0.8), "v": randf_range(0.02, 0.045) * (1.0 if randf() < 0.5 else -1.0),
+	var who: Array = VFData.FISH_ORDER.filter(func(f): return VF.discovered.has(f))
+	if VF.stat_value("gerald_caught") > 0: who.append("Gerald")           # caught at last: in a tank, sulking
+	if VF.stat_value("mum_caught") > 0: who.append("Geraldine")
+	for f in who:
+		var v := randf_range(0.02, 0.045) * (1.0 if randf() < 0.5 else -1.0)
+		_swim.append({"f": f, "x": randf_range(0.08, 0.92), "y": randf_range(0.2, 0.78), "v": v, "face": signf(v),
 			"ph": randf() * TAU, "k": randf_range(0.85, 1.15), "flee": 0.0})
 	if _swim.is_empty():
 		var e: Label = m.lbl("Nobody's here yet. Catch a fish and it'll swim here.", 15, Color.WHITE)
@@ -370,12 +373,42 @@ func _tick_tank() -> void:
 	for s in _swim:
 		s.flee = maxf(0.0, s.flee - dt)
 		s.x += s.v * dt * (1.0 + 5.0 * s.flee)
-		if (s.x > 1.08 and s.v > 0.0) or (s.x < -0.08 and s.v < 0.0): s.v = -s.v     # (out of sight: turn round)
+		if (s.x > 0.93 and s.v > 0.0) or (s.x < 0.07 and s.v < 0.0) or randf() < dt * 0.03: s.v = -s.v     # (the glass, or a change of mind)
+		s.face = move_toward(s.face, signf(s.v), dt * 3.0)     # (it turns round: thin for a moment, then the other way)
 		s.ph += dt
 	if not _say.is_empty():
 		_say.t += dt
 		if _say.t > 4.0: _say = {}
 	_tank.queue_redraw()
+
+
+## A fish side on, the way the mini-game draws it: its sheet (mini/, made without eyes) and a face (vf_minigame.gd _draw_fish).
+## face: which way it looks, -1..1 (through 0 while it turns round).
+func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float) -> bool:
+	var mini: Dictionary = m.stage.manifest.get("mini", {})
+	var info: Dictionary = mini.get("fish", {}).get(f, {})
+	var t: Texture2D = m.tex("mini/%s.png" % VFData.slug(f))
+	if t == null or info.is_empty(): return false
+	var cell := float(mini.cell)
+	var fr := int(ph * 7.0) % int(mini.frames)
+	_tank.draw_set_transform(at, sin(ph * 1.1) * 0.05, Vector2(face, 1.0))
+	_tank.draw_texture_rect_region(t, Rect2(-px * 0.5, -px * 0.5, px, px), Rect2(fr * cell, 0, cell, cell))
+	var k := px / 176.0                                # (the mini-game draws them 176 px across)
+	var e := (Vector2(info.eye[0], info.eye[1]) - Vector2(0.5, 0.5)) * px
+	var mo := (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * px
+	var er := maxf(float(info.er) * px * 1.9, 11.0 * k)
+	var w := maxf(1.2, 2.5 * k)
+	if fmod(ph + float(f.length()), 4.3) < 0.14:      # a blink now and then
+		_tank.draw_arc(e + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
+	else:
+		var pr := er * 0.48
+		var look := e + Vector2(er - pr - w * 0.6, er * 0.1)      # ahead, where it's going
+		_tank.draw_circle(e, er, Color.WHITE)
+		_tank.draw_circle(look, pr, INK)
+		_tank.draw_circle(look - Vector2(pr, pr) * 0.35, maxf(1.0, pr * 0.3), Color.WHITE)
+		_tank.draw_arc(e, er, 0, TAU, 24, INK, w, true)
+	_tank.draw_arc(mo + Vector2(-3, -5) * k, 6.0 * k, PI * 0.2, PI * 0.8, 8, INK, w, true)      # quite content, really
+	return true
 
 
 func _sheet(f: String) -> Dictionary:
@@ -418,13 +451,13 @@ func _draw_tank() -> void:
 		var by := sz.y - fmod(t * (22.0 + i * 3.0) + i * 57.0, sz.y + 20.0)
 		_tank.draw_arc(Vector2(bx + sin(t + i) * 5.0, by), 2.0 + (i % 3), 0, TAU, 12, Color(1, 1, 1, 0.35), 1.2, true)
 	for s in _swim:
-		var sh := _sheet(s.f)
+		var px: float = clampf(_tank.size.y * 0.25, 72.0, 112.0) * s.k      # (a phone's shorter tank: smaller fish, less of a crowd)
+		if _draw_side(s.f, _fish_at(s), px, s.face, s.ph * (1.8 if s.flee > 0.0 else 1.0)): continue
+		var sh := _sheet(s.f)                          # (no side view for it: its picture from the stage)
 		if sh.is_empty(): continue
-		var px: float = 92.0 * s.k
 		var cell: float = sh.cell
-		var fr := int(s.ph * (14.0 if s.flee > 0.0 else 8.0)) % int(sh.frames)
-		var dir := 1.0 if s.v > 0.0 else -1.0
-		_tank.draw_set_transform(_fish_at(s), 0.0, Vector2(dir * px / cell, px / cell))
+		var fr := int(s.ph * 8.0) % int(sh.frames)
+		_tank.draw_set_transform(_fish_at(s), 0.0, Vector2(s.face * px / cell, px / cell))
 		_tank.draw_texture_rect_region(sh.tex, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fr * cell, sh.row * cell, cell, cell))
 	_tank.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_tank.draw_rect(Rect2(Vector2.ZERO, sz), Color(1, 1, 1, 0.35), false, 3.0)      # the glass
@@ -463,7 +496,10 @@ func _tank_input(e: InputEvent) -> void:
 	if not best.is_empty():
 		best.flee = 0.0
 		var fact: String = load("res://scripts/vf/vf_minigame.gd").FACTS.pick_random()
-		_say = {"f": best.f, "text": "%s\nCaught %s  ·  %s" % [best.f, VF.commas(int(VF.discovered.get(best.f, 0))), fact], "t": 0.0}
+		var text := "%s\nCaught %s  ·  %s" % [best.f, VF.commas(int(VF.discovered.get(best.f, 0))), fact]
+		if best.f == "Gerald": text = "Gerald\nCaught at last  ·  He wants his crown back."
+		elif best.f == "Geraldine": text = "Geraldine\nCaught at last  ·  She'd like a word with the manager."
+		_say = {"f": best.f, "text": text, "t": 0.0}
 		AudioManager.play_fun("boing", -14.0, randf_range(0.9, 1.15))
 	else:
 		AudioManager.play_fun("clunk", -16.0)
@@ -560,7 +596,9 @@ func capture_test(dir: String) -> void:
 	await wait.call(0.1)
 	await m._shot(dir + "/collect4_menu.png")
 	m._open_panel("achievements")
+	m.panel_scroll.scroll_vertical = 0                    # (the ready ones are at the top)
 	await wait.call(0.4)
+	print("COLLECT achievements open at scroll %d" % m.panel_scroll.scroll_vertical)
 	await m._shot(dir + "/collect5_achievements.png")
 	var before: int = VF.pearls
 	var ready: Array = VF.ach_ready()
@@ -568,6 +606,7 @@ func capture_test(dir: String) -> void:
 	await wait.call(0.5)
 	print("COLLECT claimed %s: pearls %d -> %d, ready %d -> %d" % [ready[0] if not ready.is_empty() else "-", before, VF.pearls, ready.size(), VF.ach_ready().size()])
 	await m._shot(dir + "/collect6_claimed.png")
+	VF.gerald = {"stage": 4, "casts": 0, "tries": 0, "wins": 4, "losses": 3}       # (Gerald's caught: he's in the tank too)
 	m._open_panel("aquarium")
 	await wait.call(1.0)
 	var taps0 := int(VF.stats.get("glass_taps", 0))
