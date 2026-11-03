@@ -341,7 +341,7 @@ def render_mini(name, out_path):
         p = os.path.join(tmp, "f%d.png" % f)
         K.render(p)
         paths.append(p)
-    _sheet([paths], out_path, MINI_CELL)
+    _sheet([paths], out_path, MINI_CELL, clean=bool(spec.get("rival")))
     K.SOFT[0] = False
     # (a squid's face looks the other way, toward its tentacles)
     e, m = K.project(cam, eye), K.project(cam, eye + (Vector((-er * 0.4, 0.0, -er * 2.4)) if spec.get("squid") else Vector((er * 2.0, 0.0, -er * 2.0))))
