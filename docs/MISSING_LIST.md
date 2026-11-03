@@ -1,5 +1,7 @@
 # The missing list: who builds what
 
+**Status (3 November 2026):** everything below is built, on `next`. Nothing is released, and none of it has been tested on a real phone, so nobody has felt the vibration yet. One decision is still the owner's: whether to ease the mini-game for clumsy players.
+
 The owner, 2026-11-01: "work on the list you listed we are missing in game and i loved the prev enter screen can we do smth similar to it".
 
 This is the contract between the sessions (Design, Game mechanics, UI, Audio, Code). The names here are binding, so art, rules and screens fit together when they're merged. If a name has to change, tell the header session before using another one.

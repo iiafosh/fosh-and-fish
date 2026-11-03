@@ -33,13 +33,19 @@ Bugs, balance, ideas and art notes are all welcome.
 - Shop, special and league **upgrades**, **boosts & workers**, daily reward, daily and weekly quests
 - **Idle play**: auto-fish, a **fleet** of crews that fish for you (even while the game is closed, with a
   "Welcome back!" catch), a 7-day reward calendar and a daily spin
-- **Prestige** with the Prestige Shop and the community P1–P160 buy-order guide
-- A guided start: a pointer for the first steps, starter goals with rewards, and a fish collection
-- Settings for music, sound and fullscreen; progress saves automatically
+- **Gerald**, a rival fish to chase through the biomes (then his mum), with a WANTED board
+- **21 residents** to find when sailing, **34 achievements**, Fish Book rewards and an **aquarium**
+- **11 hats** for the captain, just for laughs
+- **Prestige** with the Prestige Shop and the community P1–P160 buy-order guide; the first rebirth comes at
+  level 60 and $5M, and no rebirth needs charms
+- A guided start: the Reel it in! mini-game with easy first rounds, a pointer for the first steps, starter goals
+  with rewards, and a fish collection
+- Settings for music, sound, fullscreen and vibration (phones); progress saves automatically
 
 Mechanics follow the Virtual Fisher Encyclopaedia, the [miraheze wiki](https://virtualfisher.miraheze.org)
-(snapshot in `wiki_dump/`) and the Prestige 0 Guide. Values the sources don't state are marked
-`DERIVED` in `scripts/vf/vf_data.gd`.
+(snapshot in `wiki_dump/`) and the Prestige 0 Guide. Values the sources don't state, rules changed on purpose
+(like rebirths, which come much sooner) and everything the bot doesn't have (Gerald, finds, achievements, hats)
+are marked `DERIVED` in `scripts/vf/vf_data.gd`.
 
 ## 🛠️ For developers
 
@@ -48,6 +54,7 @@ Open the folder in **Godot 4.7** (or run `launch_game.bat`).
 ```
 scripts/vf/      vf_game.gd (simulation, autoload VF) · vf_main.gd (UI) · vf_stage.gd (scene) · vf_data.gd (data) · vf_guide.gd
                  vf_v1_ui.gd (1.0: Store, Events, shinies) · vf_idle_ui.gd (auto-fish, fleet, daily) · vf_notify.gd
+                 vf_collect_ui.gd (WANTED board, finds, achievements, aquarium, hats) · vf_haptics.gd (phone vibration)
 scripts/         audio_manager.gd (music, sounds, settings)
 scenes/          vf_main.tscn (main scene)
 shaders/         water caustics
