@@ -15,9 +15,12 @@ const PAPER_EDGE := Color("#a8854d")
 const BROWN := Color("#5a3d1a")
 const STAMP := Color("#c0392b")
 const INK := Color("#22313a")
-## what they're wearing on each stage's poster (docs/MISSING_LIST.md part 3, "A new look for every stage")
-const DRESSED := {"River": "looking smug", "Volcanic": "in oven gloves", "Ocean": "in an eyepatch", "Sky": "scarf flapping",
-	"Space": "in a bubble helmet", "Alien": "in three-eyed shades", "Abyss": "by the light of her own lamp"}
+## The Most Wanted: a different outlaw for every stage (docs/MISSING_LIST.md part 3). What their poster says they were up to,
+## and what they're like in the aquarium once they're caught.
+const UP_TO := {"River": "sulking", "Volcanic": "setting things on fire", "Ocean": "stealing other people's treasure",
+	"Sky": "doing loop-the-loops", "Space": "eating a satellite", "Alien": "waving all its tentacles", "Abyss": "by the light of her chandelier"}
+const IN_THE_TANK := {"River": "Still sulking.", "Volcanic": "The water's warmer now.", "Ocean": "Says this tank is his ship now.",
+	"Sky": "Keeps trying to fly.", "Space": "Has eaten two of the plants.", "Alien": "Waves. With everything.", "Abyss": "Has asked to see the manager."}
 
 var m                                 # vf_main
 var wanted_pill: PanelContainer
@@ -75,13 +78,21 @@ func refresh_pill() -> void:
 		_wanted_face.queue_redraw()
 
 
-## which picture a stage's poster shows: its look (dressed for the biome) once that's drawn, else plain Gerald or Geraldine
+## which picture a stage's outlaw has: its look once that's drawn, else plain Gerald
 func _look(i: int) -> String:
 	var row: Dictionary = VFData.GERALD[clampi(i, 0, VFData.GERALD.size() - 1)]
 	var look := String(VF.gerald_info(i).get("look", row.get("look", "")))
 	if look != "" and m.stage.manifest.get("mini", {}).get("fish", {}).has(look) and m.tex("mini/%s.png" % VFData.slug(look)) != null:
 		return look
-	return String(row.who)
+	return "Gerald"
+
+
+## run 2's outlaws are a surprise until the end of run 1 is caught (the Baron): a "?" on the board
+func _secret(i: int) -> bool:
+	var at := int(VF.gerald.stage)
+	for f in i:
+		if VFData.GERALD[f].get("final", false) and at <= f: return true
+	return false
 
 
 ## who's portrait from their mini-game sheet, with the eyes the mini-game gives them (the art has none). dim: a silhouette
@@ -115,12 +126,12 @@ func panel_wanted() -> void:
 	var g: Dictionary = VF.gerald_info()
 	var line := ""
 	if g.done:
-		line = "You caught them both. The board's yours now. Frame it."
+		line = "You caught every one of them. The board's yours now. Frame it."
 	elif not g.met:
-		line = "Someone's been asking about you. A fish. A big one, with a moustache."
+		line = "Someone's been asking about you. A fish. A grumpy one, with a moustache."
 	else:
-		line = "%s turns up in %s from level %s. Beat %s for the bounty, then catch %s at the end of the run." % [g.who,
-			VFData.GERALD_PLACES.get(g.biome, g.biome), VF.commas(g.level), "him" if g.who == "Gerald" else "her", "him" if g.who == "Gerald" else "her"]
+		line = "%s is wanted in %s, from level %s. Win the round and that's them caught for good, and the bounty's yours. Then the next one turns up." % [g.who,
+			VFData.GERALD_PLACES.get(g.biome, g.biome), VF.commas(g.level)]
 	var l: Label = m.lbl(line, 15, C_MUTED)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	m.panel_body.add_child(l)
@@ -136,18 +147,12 @@ func panel_wanted() -> void:
 		grid.add_child(p)
 
 
-func _first_of(who: String) -> int:
-	for i in VFData.GERALD.size():
-		if VFData.GERALD[i].who == who: return i
-	return 0
-
-
 func _draw_poster(c: Control, i: int) -> void:
 	var row: Dictionary = VFData.GERALD[i]
 	var g: Dictionary = VF.gerald_info(i)
 	var at := int(VF.gerald.stage)
 	var now: bool = i == at
-	var secret: bool = row.who == "Geraldine" and at < _first_of("Geraldine")     # (she's a surprise until he's caught)
+	var secret := _secret(i)
 	var later: bool = i > at and not secret
 	var font: Font = c.get_theme_default_font()
 	var w := minf(c.size.x, 208.0)
@@ -170,13 +175,13 @@ func _draw_poster(c: Control, i: int) -> void:
 		_draw_portrait(c, _look(i), face_at, 132.0, later)
 	var ink := BROWN if not later else Color(BROWN, 0.6)
 	c.draw_string(font, Vector2(x, r.position.y + 196.0), "???" if secret else String(row.who), HORIZONTAL_ALIGNMENT_CENTER, cw, 22, ink)
-	# where, and what in: the outfit is half the joke (two lines at most)
-	var where := "Somewhere out there" if secret else "Last seen: %s, %s" % [VFData.GERALD_PLACES.get(row.biome, row.biome), DRESSED.get(row.biome, "looking smug")]
+	# where, and what they were up to (two lines at most)
+	var where := "Somewhere out there" if secret else "Last seen: %s, %s" % [VFData.GERALD_PLACES.get(row.biome, row.biome), UP_TO.get(row.biome, "up to no good")]
 	c.draw_multiline_string(font, Vector2(x + 8.0, r.position.y + 216.0), where, HORIZONTAL_ALIGNMENT_CENTER, cw - 16.0, 13, 2, Color(ink, 0.85))
 	var foot := "From level %s" % VF.commas(int(row.level)) if later or secret else "Reward %s" % m.money_str(int(g.bounty))
 	c.draw_string(font, Vector2(x, r.position.y + 260.0), foot, HORIZONTAL_ALIGNMENT_CENTER, cw, 15, C_GOLD.darkened(0.25) if not later else Color(ink, 0.7))
-	if g.done:                                         # a rubber stamp over the picture's lower edge: the name and what he wore stay readable
-		var word := "CAUGHT!" if row.get("final", false) else "BEATEN"
+	if g.done:                                         # a rubber stamp over the picture's lower edge: the name and the caption stay readable
+		var word := "CAUGHT!"
 		c.draw_set_transform(c.size * 0.5 + Vector2(0, r.position.y + 150.0).rotated(tilt), tilt - 0.2, Vector2.ONE)
 		var sr := Rect2(-66, -20, 132, 40)
 		c.draw_style_box(m.sbox(Color(PAPER, 0.8), 7, 3, Color(STAMP, 0.9), 0), sr)
@@ -364,12 +369,14 @@ func panel_aquarium() -> void:
 	_tank_ms = Time.get_ticks_msec()
 	_say = {}
 	_swim = []
-	var who: Array = VFData.FISH_ORDER.filter(func(f): return VF.discovered.has(f))
-	if VF.stat_value("gerald_caught") > 0: who.append("Gerald")           # caught at last: in a tank, sulking
-	if VF.stat_value("mum_caught") > 0: who.append("Geraldine")
-	for f in who:
+	var who := []                                      # [picture, name, the outlaw's row or -1]
+	for f in VFData.FISH_ORDER:
+		if VF.discovered.has(f): who.append([f, f, -1])
+	for i in VFData.GERALD.size():                    # every outlaw you've caught, in a tank at last
+		if VF.gerald_info(i).done: who.append([_look(i), String(VFData.GERALD[i].who), i])
+	for w in who:
 		var v := randf_range(0.02, 0.045) * (1.0 if randf() < 0.5 else -1.0)
-		_swim.append({"f": f, "x": randf_range(0.08, 0.92), "y": randf_range(0.2, 0.78), "v": v, "face": signf(v),
+		_swim.append({"f": w[0], "name": w[1], "row": w[2], "x": randf_range(0.08, 0.92), "y": randf_range(0.2, 0.78), "v": v, "face": signf(v),
 			"ph": randf() * TAU, "k": randf_range(0.85, 1.15), "flee": 0.0})
 	if _swim.is_empty():
 		var e: Label = m.lbl("Nobody's here yet. Catch a fish and it'll swim here.", 15, Color.WHITE)
@@ -476,7 +483,7 @@ func _draw_tank() -> void:
 	_tank.draw_rect(Rect2(Vector2.ZERO, sz), Color(1, 1, 1, 0.35), false, 3.0)      # the glass
 	if not _say.is_empty():
 		for s in _swim:
-			if s.f == _say.f: _draw_say(_fish_at(s))
+			if s.name == _say.name: _draw_say(_fish_at(s))
 
 
 func _draw_say(at: Vector2) -> void:
@@ -509,10 +516,10 @@ func _tank_input(e: InputEvent) -> void:
 	if not best.is_empty():
 		best.flee = 0.0
 		var fact: String = load("res://scripts/vf/vf_minigame.gd").FACTS.pick_random()
-		var text := "%s\nCaught %s  ·  %s" % [best.f, VF.commas(int(VF.discovered.get(best.f, 0))), fact]
-		if best.f == "Gerald": text = "Gerald\nCaught at last  ·  He wants his crown back."
-		elif best.f == "Geraldine": text = "Geraldine\nCaught at last  ·  She'd like a word with the manager."
-		_say = {"f": best.f, "text": text, "t": 0.0}
+		var text := "%s\nCaught %s  ·  %s" % [best.name, VF.commas(int(VF.discovered.get(best.f, 0))), fact]
+		if int(best.row) >= 0:
+			text = "%s\nWanted no more  ·  %s" % [best.name, IN_THE_TANK.get(String(VFData.GERALD[int(best.row)].biome), "Behaving. For now.")]
+		_say = {"f": best.f, "name": best.name, "text": text, "t": 0.0}
 		AudioManager.play_fun("boing", -14.0, randf_range(0.9, 1.15))
 	else:
 		AudioManager.play_fun("clunk", -16.0)
@@ -625,7 +632,7 @@ func capture_test(dir: String) -> void:
 	await wait.call(0.5)
 	print("COLLECT claimed %s: pearls %d -> %d, ready %d -> %d" % [ready[0] if not ready.is_empty() else "-", before, VF.pearls, ready.size(), VF.ach_ready().size()])
 	await m._shot(dir + "/collect6_claimed.png")
-	VF.gerald = {"stage": 4, "casts": 0, "tries": 0, "wins": 4, "losses": 3}       # (Gerald's caught: he's in the tank too)
+	VF.gerald = {"stage": 4, "casts": 0, "tries": 0, "wins": 4, "losses": 3}       # (run 1's four outlaws are caught: in the tank too)
 	m._open_panel("aquarium")
 	await wait.call(1.0)
 	var taps0 := int(VF.stats.get("glass_taps", 0))
