@@ -96,8 +96,15 @@ def _reflect_sheet(cam, hull, span, path):
     L._sheet(_rows(paths), path, REFLECT_CELL)
 
 
-def render(name, out_dir, slug):
-    """-> the boat's manifest "turn" entry; the stage's numbers are 0..1 of a cell"""
+# Where the boat hides his head, the stage draws no hat (one drawn in front of the sails would float). To tell, his old
+# straw hat sits on his head unrendered, and rays from the camera through its outline count how much of it the boat
+# covers: what the old baked pictures showed.
+SEEN = 0.4              # less than this much of the hat in sight: no hat (at 0.43 he still reads as wearing it, at 0.32 it's a sliver)
+RAYS = 24               # (across the hat's outline, each way)
+
+
+def _build(name):
+    """the boat with him sitting on it, on a pivot, and the camera framed for every angle -> what render() needs"""
     K.clear_scene()
     V.clear_library()
     K.SOFT[0] = True
@@ -116,7 +123,12 @@ def render(name, out_dir, slug):
     K.outline_all(hull, 0.035)
     # the captain sits where the stage puts his sprite in the side view. No hat: vf_hats.py draws his hat on top
     arm, meshes, root = C.build()
-    anchor = C.hat_anchor(arm, next(m for m in meshes if "Head" in m.name))
+    head = next(m for m in meshes if "Head" in m.name)
+    anchor = C.hat_anchor(arm, head)
+    probe = C.hat_parts(head)
+    for p in probe:
+        p.hide_render = True
+    C.on_head(arm, probe)
     sit = _acts[C.SEAT]
     C.set_pose(arm, sit, C._span(sit, 0.5))
     root.location = seat
@@ -146,17 +158,72 @@ def render(name, out_dir, slug):
     cam["frame"] = (cx, cy, span, 1.0)
     cell = int(min(512.0, max(240.0, span * PX_PER_UNIT)) / 8.0) * 8
     _size(cell)
+    return {"name": name, "cam": cam, "arm": arm, "meshes": meshes, "hull": hull, "foot": foot, "pivot": pivot, "anchor": anchor,
+            "probe": probe, "views": views, "span": span, "cx": cx, "cy": cy, "cell": cell, "right": right, "up": up, "fwd": fwd}
+
+
+def _seen(b):
+    """how much of his old hat the boat leaves in sight, in the picture as it is posed now: 0..1"""
+    dg = bpy.context.evaluated_depsgraph_get()
+    sc = bpy.context.scene
+    right, up, fwd = b["right"], b["up"], b["fwd"]
+    hat, his = {p.name for p in b["probe"]}, {m.name for m in b["meshes"]}
+    corners = K._mesh_points(b["probe"])
+    xs, ys = [p.dot(right) for p in corners], [p.dot(up) for p in corners]
+    shown = hidden = 0
+    for i in range(RAYS):
+        for j in range(RAYS):
+            sx = min(xs) + (i + 0.5) / RAYS * (max(xs) - min(xs))
+            sy = min(ys) + (j + 0.5) / RAYS * (max(ys) - min(ys))
+            at, behind = right * sx + up * sy - fwd * 80.0, False
+            for _ in range(12):
+                hit, loc, _n, _i, ob, _m = sc.ray_cast(dg, at, fwd, distance=400.0)
+                if not hit:
+                    break
+                if ob.name in hat:
+                    hidden, shown = hidden + behind, shown + (not behind)
+                    break
+                behind = behind or ob.name not in his         # (his own hair is no reason to hide the hat)
+                at = loc + fwd * 0.002
+    return shown / max(1, shown + hidden)
+
+
+def _head(b, ang):
+    """where his head is in this picture, 0..1 of the cell, or None where the boat hides it"""
+    seen = _seen(b)
+    x, y = K.project(b["cam"], C.bone_world(b["arm"], "head") @ b["anchor"])
+    print("HEAD %-16s %+d seen %.2f" % (b["name"], ang // STEP, seen))
+    if seen < SEEN:
+        return None
+    return [round(x / b["cell"], 4), round(y / b["cell"], 4)]
+
+
+def heads(name):
+    """only where his head is in each of the boat's pictures (nothing is rendered): see render()"""
+    b = _build(name)
+    out = []
+    for ang in ANGLES:
+        b["pivot"].rotation_euler = (0, 0, math.radians(ang))
+        bpy.context.view_layer.update()
+        out.append(_head(b, ang))
+    K.SOFT[0] = False
+    return out
+
+
+def render(name, out_dir, slug):
+    """-> the boat's manifest "turn" entry; the stage's numbers are 0..1 of a cell"""
+    b = _build(name)
+    cam, pivot, foot, hull, cell, span, cx, cy = b["cam"], b["pivot"], b["foot"], b["hull"], b["cell"], b["span"], b["cx"], b["cy"]
     # the boat
     tmp = tempfile.mkdtemp()
-    paths, heads = [], []
+    paths, heads_ = [], []
     for i, ang in enumerate(ANGLES):
         pivot.rotation_euler = (0, 0, math.radians(ang))
         bpy.context.view_layer.update()
         p = os.path.join(tmp, "h%02d.png" % i)
         K.render(p)
         paths.append(p)
-        x, y = K.project(cam, C.bone_world(arm, "head") @ anchor)
-        heads.append([round(x / cell, 4), round(y / cell, 4)])
+        heads_.append(_head(b, ang))
     L._sheet(_rows(paths), os.path.join(out_dir, slug + ".png"), cell)
     # foam and reflection: only their own meshes show
     for o in bpy.data.objects:
@@ -170,8 +237,8 @@ def render(name, out_dir, slug):
     _reflect_sheet(cam, hull, span, os.path.join(out_dir, slug + "_reflect.png"))
     K.SOFT[0] = False
     rects = []
-    for sx, sy in views:
+    for sx, sy in b["views"]:
         rects.append([round((sx.min() - cx) / span + 0.5, 4), round(0.5 - (sy.max() - cy) / span, 4),
                       round((sx.max() - cx) / span + 0.5, 4), round(0.5 - (sy.min() - cy) / span, 4)])
     return {"step": STEP, "cols": COLS, "cell": cell, "unit_px": round(cell / span, 3), "origin": [round(-cx / span + 0.5, 4), round(0.5 + cy / span, 4)],
-            "rects": rects, "head": heads, "foam_cell": FOAM_CELL, "reflect_cell": REFLECT_CELL, "foam_pad": TD.FOAM_PAD, "reflect_pad": TD.REFLECT_PAD}
+            "rects": rects, "head": heads_, "foam_cell": FOAM_CELL, "reflect_cell": REFLECT_CELL, "foam_pad": TD.FOAM_PAD, "reflect_pad": TD.REFLECT_PAD}

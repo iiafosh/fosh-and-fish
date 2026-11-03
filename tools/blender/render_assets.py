@@ -167,6 +167,14 @@ def do_boats_turn(only, man):
             bt.setdefault(name, {})["turn"] = TR.render(name, d, slug(name))
 
 
+def do_turn_heads(only, man):
+    """only where his head is on each turning boat, and where the boat hides it (renders nothing, keeps the sheets)"""
+    import vf_turn as TR
+    for name in B.BOAT_ORDER:
+        if want(name, only):
+            man["boats_top"][name]["turn"]["head"] = TR.heads(name)
+
+
 def do_boat_seats(only, man):
     """Only the fisher's seat point per boat (same framing as boats_top, no render)."""
     bt = man.setdefault("boats_top", {})
@@ -290,6 +298,8 @@ def main():
             do_boats_top(only, man)
         elif c == "boats_turn":
             do_boats_turn(only, man)
+        elif c == "turn_heads":
+            do_turn_heads(only, man)
         elif c == "boat_seats":
             do_boat_seats(only, man)
         elif c == "fish_top":
