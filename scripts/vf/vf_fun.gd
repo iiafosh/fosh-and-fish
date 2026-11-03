@@ -20,6 +20,9 @@ const DUCK_MILESTONES := {10: "Ten ducks. The fish are concerned.", 25: "Twenty-
 const CAUGHT_LINES := ["One of them looked at you funny.", "They seemed disappointed.", "A crab saw the whole thing.", "They'll tell their friends.",
 	"Nobody clapped. But they could have.", "Smells like success. And fish.", "One of them owes you money."]
 const EMPTY_LINES := ["The fish are on a break.", "Not even a boot.", "The bobber is judging you."]
+const TEASES := {"Gerald": ["Something big just laughed at you.", "Was that a moustache?", "Something down there knows your name."],
+	"Geraldine": ["Something big just tutted at you.", "Was that a pearl necklace?", "Something down there disapproves of your hat."]}
+const TEASE_MAX := 2             # his shape passes this often before each meeting: a tease, not a nag
 
 var m                            # vf_main
 var _find_wait := 25.0
@@ -29,6 +32,8 @@ var _pay_cd := 0.0               # poking pays a little, not all the time
 var _honk_cd := 0.0
 var _resident_wait := 40.0       # until the next find turns up
 var _resident_left := 0.0        # the one out there now: how long it stays
+var _tease_wait := 0.0
+var _teases := 0
 var _note_box: PanelContainer
 
 func _init(main) -> void:
@@ -47,6 +52,7 @@ func tick(delta: float) -> void:
 	if _resident_left <= 0.0:
 		_resident_wait -= delta
 		if _resident_wait <= 0.0: _send_resident()
+	_tick_tease(delta)
 	_thief_wait -= delta
 	if _thief_wait <= 0.0:
 		_thief_wait = randf_range(150.0, 300.0)
@@ -54,7 +60,7 @@ func tick(delta: float) -> void:
 	_quip_wait -= delta
 	if _quip_wait <= 0.0:
 		_quip_wait = randf_range(45.0, 110.0)
-		m.stage.say(QUIPS.pick_random())
+		if not (m.stage.has_method("talking") and m.stage.talking()): m.stage.say(QUIPS.pick_random())     # (never over a line that's showing)
 
 ## one find at a time, the stage puts it somewhere worth sailing to and takes it away after VFData.FIND_SECS
 func _send_resident() -> void:
@@ -64,6 +70,18 @@ func _send_resident() -> void:
 	if id == "": return
 	m.stage.spawn_resident(id)
 	_resident_left = VFData.FIND_SECS
+
+## the rival's close: now and then his shape swims past the boat (no more than TEASE_MAX times until you've met)
+func _tick_tease(delta: float) -> void:
+	if not VF.gerald_soon():
+		_teases = 0
+		_tease_wait = 3.0
+		return
+	_tease_wait -= delta
+	if _tease_wait > 0.0 or _teases >= TEASE_MAX or not m.stage.has_method("spawn_gerald"): return
+	_tease_wait = randf_range(50.0, 90.0)
+	_teases += 1
+	m.stage.spawn_gerald(TEASES[VF.gerald_info().who].pick_random())
 
 ## tap the boat, or H
 func honk() -> void:
@@ -227,6 +245,7 @@ func capture_test(dir: String) -> void:
 	await m.get_tree().create_timer(0.6).timeout
 	await m._shot(dir + "/fun_honk.png")
 	print("FUN honk done, say='%s'" % s._say_text)
+	await s.tap_areas_test()
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --gerald-test : the whole chase, from the first meeting to the end of
 ## his mum's run: he beats you, you beat him and he gets away, every gag of theirs, caught, the note, the tiara. Never saves.
@@ -246,6 +265,15 @@ func gerald_test(dir: String) -> void:
 	await wait.call(1.2)
 	VF.gerald.casts = VFData.gerald_need(0, 0) - 10
 	print("GERALD soon=%s due=%s info=%s" % [VF.gerald_soon(), VF.gerald_due(), VF.gerald_info()])
+	for i in TEASE_MAX + 2:                # (however long it takes you to meet him)
+		_tease_wait = 0.0
+		await tree.process_frame
+		await tree.process_frame
+	print("GERALD teases while he's close: %d, at most %d" % [_teases, TEASE_MAX])
+	VF.gerald.casts = 0
+	await tree.process_frame
+	await tree.process_frame
+	print("GERALD teases once he's far off again: %d" % _teases)
 	VF.gerald.casts = VFData.gerald_need(0, 0)
 	print("GERALD soon=%s due=%s" % [VF.gerald_soon(), VF.gerald_due()])
 	var trips: int = VF.stats.trips
@@ -300,6 +328,16 @@ func gerald_test(dir: String) -> void:
 	await wait.call(2.0)
 	await _rival_round(dir, "5_caught_geraldine", "win")
 	print("GERALD all done: %s hats=%s info=%s due=%s" % [VF.gerald, VF.hats_owned, VF.gerald_info(), VF.gerald_due()])
+	for row in VFData.GERALD:              # their shape going past the boat, wherever they turn up
+		VF.biome = row.biome
+		VF.changed.emit()
+		await wait.call(1.0)
+		m.stage.spawn_gerald(TEASES[row.who][0])
+		var shape: Dictionary = m.stage._big.back()
+		shape.pos.x = m.stage.boat_pos.x - signf(shape.vel.x) * 240.0
+		await wait.call(1.9)
+		await m._shot(dir + "/gerald_shape_%s_%s.png" % [row.who.to_lower(), VFData.slug(row.biome)])
+		print("GERALD shape %s %s: says '%s'" % [row.who, row.biome, m.stage._say_text])
 
 ## one round against the rival, played by the capture's bot, with a picture of each part
 func _rival_round(dir: String, name: String, outcome: String) -> void:
@@ -381,6 +419,7 @@ func finds_test(dir: String) -> void:
 	var total := 0
 	for id in VF.finds: total += int(VF.finds[id])
 	print("FINDS done: %d of %d found, %d taps" % [VF.finds.size(), VFData.finds_total(), total])
+	await m.stage.residents_test(dir)
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --rebirth-test : the first rebirth from the goal on the HUD to Prestige 1
 func rebirth_test(dir: String) -> void:
