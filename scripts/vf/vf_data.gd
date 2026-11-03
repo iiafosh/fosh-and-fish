@@ -436,21 +436,32 @@ const SPECIAL_QUESTS := [
 	{"id": "pet",        "name": "Pet Locator",      "stat": "pets",     "goal": 1},
 ]
 
-## Prestige requirements. The first rebirth (P0 -> P1) is DERIVED and easier than the Prestige 0 Guide's 440/440
-## charms, Level 250, $5B, on purpose: that was days of play for a first goal, this is about 4 to 6 hours
-## (tools/pace_sim.gd). Later prestiges are DERIVED so the level requirement reaches the 25k cap around P160
-## (as the community buy-order chart notes), and they need every charm.
+## Prestige requirements, all DERIVED (the bot's P0 was level 250, 440 charms and $5B, days of play for a first goal).
+## The first rebirth takes about 4 to 6 hours of normal play; the owner then asked for the second to take about 6 hours
+## (it took 95), and each after it takes about 10% longer than the one before (tools/pace_sim.gd --table and --chain,
+## 2026-11-03). The Azure Fish make you faster every time, and not evenly: a prestige with a big new perk (P3, P5, P10)
+## asks for a bigger step, P4 (no new perk) for a small one. After the table: a little more every time, up to the
+## 25,000 level cap at P160 (as the community buy-order chart notes). No rebirth needs charms.
 const FIRST_REBIRTH_LEVEL := 60
 const FIRST_REBIRTH_MONEY := 5_000_000
+const REBIRTH_LEVELS := [FIRST_REBIRTH_LEVEL, 78, 94, 113, 115, 137, 152, 159, 174, 183, 226]
+const REBIRTH_MONEY := [FIRST_REBIRTH_MONEY, 11_000_000, 24_000_000, 40_000_000, 50_000_000, 140_000_000, 250_000_000,
+	440_000_000, 870_000_000, 1_100_000_000, 3_300_000_000]
+const REBIRTH_CAP_AT := 160       # the prestige whose rebirth asks for the 25,000 cap
+const REBIRTH_MONEY_GROWTH := 1.12
 
 static func prestige_level_req(p: int) -> int:
-	return FIRST_REBIRTH_LEVEL if p <= 0 else mini(25000, 250 + 150 * p)
+	if p < REBIRTH_LEVELS.size(): return REBIRTH_LEVELS[maxi(p, 0)]
+	var last: float = REBIRTH_LEVELS[-1]
+	var k := float(p - REBIRTH_LEVELS.size() + 1) / float(REBIRTH_CAP_AT - REBIRTH_LEVELS.size() + 1)
+	return mini(25000, int(round(last * pow(25000.0 / last, k))))
 
 static func prestige_money_req(p: int) -> int:
-	return FIRST_REBIRTH_MONEY if p <= 0 else int(5_000_000_000.0 * pow(1.6, p))
+	if p < REBIRTH_MONEY.size(): return REBIRTH_MONEY[maxi(p, 0)]
+	return int(minf(1e18, float(REBIRTH_MONEY[-1]) * pow(REBIRTH_MONEY_GROWTH, p - REBIRTH_MONEY.size() + 1)))
 
-static func prestige_charm_req(p: int) -> int:
-	return 0 if p <= 0 else charm_total_cap(p)
+static func prestige_charm_req(_p: int) -> int:
+	return 0
 
 static func charm_tier_cap(p: int) -> int:
 	return 10 + p if p <= 99 else 2 * p - 88

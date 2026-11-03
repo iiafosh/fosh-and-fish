@@ -1,8 +1,12 @@
 extends SceneTree
 ## Pacing check: a sensible new player casts as soon as they can, sells often, buys the next rod / boat / worms when
-## affordable, moves on to the next biome. Prints minutes to reach levels, on Relax and on Reel it in!, with and without
-## crews, and when the first rebirth comes (they stop shopping once they have the level, and save the money).
-## Run: Godot_console.exe --headless --path . -s res://tools/pace_sim.gd
+## affordable, moves on to the next biome, and saves the money once they have the level for the next rebirth.
+## Run: Godot_console.exe --headless --path . -s res://tools/pace_sim.gd [-- --chain | --table]
+##   (nothing): minutes to reach levels, on Relax and on Reel it in!, with and without crews, and when the first rebirth comes
+##   --chain:   a new game through CHAIN_TO rebirths with today's requirements: the hours from each rebirth to the next.
+##              At every rebirth the Azure Fish go where the Prestige Guide says.
+##   --table:   for tuning the curve: after each rebirth (P1 to TABLE_TO), when normal play reaches each level, and what it
+##              has earned by then (no saving up: it keeps shopping)
 
 const Reel = preload("res://tools/reel_model.gd")
 const TAP_OVERHEAD := Reel.TAP_OVERHEAD
@@ -17,46 +21,150 @@ const MODES := [
 	{"name": "Reel it in!, good", "reel": true, "crews": false, "sharp": true},
 	{"name": "Reel it in!, good + crews", "reel": true, "crews": true, "sharp": true},
 ]
+const NORMAL := ["Relax", "Relax + crews", "Reel it in!, good", "Reel it in!, good + crews"]
+const CHAIN_TO := 7
+const CHAIN_RUNS := 4
+const CHAIN_CAP_HOURS := 60.0     # a stage that takes longer than this is reported as not reached
+const TABLE_TO := 10
+const TABLE_RUNS := 2
+const TABLE_HOURS := 16.0
+const TABLE_LEVELS := [40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 180, 200]
+const PERK_IDS := {"IT": "international_ties", "BE": "business_education", "FW": "fish_whisperer", "AO": "ancient_one", "VF": "virtual_fisher"}
 
 func _init() -> void:
-	for mode in MODES:
-		_run_mode(mode)
-	_second_rebirth()
+	var args := OS.get_cmdline_user_args()
+	if "--chain" in args:
+		for mode in MODES: _chain(mode)
+	elif "--table" in args:
+		for mode in MODES:
+			if mode.name in NORMAL: _table(mode)
+	else:
+		for mode in MODES: _run_mode(mode)
 	quit()
 
-## for scale: the run after the first rebirth, on Relax with crews, up to the level and money of the second one
-## (those didn't change). The perk is the Guide's pick. Prints how many charms of the ones it needs have dropped by then.
-func _second_rebirth() -> void:
-	var G = load("res://scripts/vf/vf_game.gd")
-	var g = G.new()
+## one cast (or round) and what goes with it: the crews' trips, selling, and shopping until the next rebirth's level
+## (keep_shopping: never stop to save). Returns the seconds it took.
+func _step(g, mode: Dictionary, n: int, keep_shopping := false) -> float:
+	g._last_cast_ms = -100000
+	var dt: float = g.cooldown() + TAP_OVERHEAD
+	if mode.reel:
+		var r: Dictionary = Reel.round_for(g, mode.get("sharp", false))
+		dt = r.secs
+		g.cast(VFData.MINIGAME_FISH_BONUS if r.won else 0.0)
+	else:
+		g.cast()
+	if mode.crews and g.crews > 0:
+		g._crew_accum += dt * g.crews / g.crew_trip_secs()
+		var k := int(g._crew_accum)
+		if k > 0:
+			g._crew_accum -= k
+			g._crew_trips(k)
+	if n % 5 == 0:
+		g.sell_all()
+		if keep_shopping or g.level < VFData.prestige_level_req(g.prestige): _shop(g, mode.crews)
+	return dt
+
+## the Azure Fish of the prestige just reached go where the Prestige Guide says ("FW | AO": the first one)
+static func _guide_perks(g) -> void:
+	for part in String(VFData.prestige_guide(g.prestige).main).split(" + "):
+		var short := part.split(" | ")[0].strip_edges()
+		if PERK_IDS.has(short): g.buy_perk(PERK_IDS[short])
+
+func _new_game(seed_no: int):
+	var g = load("res://scripts/vf/vf_game.gd").new()
 	g.autosave = false
 	root.add_child(g)
 	g._apply(g._defaults.duplicate(true))
-	g.rng.seed = 2000
-	g.prestige = 1
-	g.perks = {"international_ties": 1}
-	var lv: int = VFData.prestige_level_req(1)
-	var cash: int = VFData.prestige_money_req(1)
-	var t := 0.0
-	var casts := 0
-	while casts < 400000 and (g.level < lv or g.money < cash):
-		g._last_cast_ms = -100000
-		g.cast()
-		casts += 1
-		var dt: float = g.cooldown() + TAP_OVERHEAD
-		t += dt
-		if g.crews > 0:
-			g._crew_accum += dt * g.crews / g.crew_trip_secs()
-			var k := int(g._crew_accum)
-			if k > 0:
-				g._crew_accum -= k
-				g._crew_trips(k)
-		if casts % 5 == 0:
-			g.sell_all()
-			if g.level < lv: _shop(g, true)
-	print("== the second rebirth, on Relax + crews: Lv%d and $%s after %.0f hours (%d casts), with %d of the %d charms it needs" % [lv, G.fmt(cash), t / 3600.0, casts, g.charms_total(), VFData.prestige_charm_req(1)])
-	print("   reached: Lv%d, $%s" % [g.level, G.fmt(g.money)])
-	g.queue_free()
+	g.rng.seed = seed_no
+	return g
+
+## from a new game through CHAIN_TO rebirths: how long each stage takes
+func _chain(mode: Dictionary) -> void:
+	var G = load("res://scripts/vf/vf_game.gd")
+	var sums := []
+	var counts := []
+	var lows := []
+	var highs := []
+	for i in CHAIN_TO:
+		sums.append(0.0)
+		counts.append(0)
+		lows.append(INF)
+		highs.append(0.0)
+	var stuck := 0
+	for run in CHAIN_RUNS:
+		var g = _new_game(3000 + run)
+		var t := 0.0
+		var since := 0.0
+		var n := 0
+		while g.prestige < CHAIN_TO:
+			t += _step(g, mode, n)
+			n += 1
+			if g.prestige_check().ok:
+				var h := (t - since) / 3600.0
+				var p: int = g.prestige
+				sums[p] += h
+				counts[p] += 1
+				lows[p] = minf(lows[p], h)
+				highs[p] = maxf(highs[p], h)
+				since = t
+				g.do_prestige()
+				_guide_perks(g)
+			elif t - since > CHAIN_CAP_HOURS * 3600.0:
+				stuck += 1
+				break
+		g.queue_free()
+	var line := "== %-28s" % mode.name
+	for p in CHAIN_TO:
+		if counts[p] > 0: line += "  P%d>P%d %.1fh (%.1f-%.1f)" % [p, p + 1, sums[p] / counts[p], lows[p], highs[p]]
+		else: line += "  P%d>P%d -" % [p, p + 1]
+	if stuck > 0: line += "  (%d runs stuck over %d hours)" % [stuck, int(CHAIN_CAP_HOURS)]
+	print(line)
+	print("   requirements: " + ", ".join(range(CHAIN_TO).map(func(p): return "P%d Lv%d $%s" % [p, VFData.prestige_level_req(p), G.fmt(VFData.prestige_money_req(p))])))
+
+## after each rebirth (a new game played to its first rebirth, then the Guide's perks for each prestige up to p): when
+## this mode reaches each level, and what it has earned by then
+func _table(mode: Dictionary) -> void:
+	var G = load("res://scripts/vf/vf_game.gd")
+	print("== %s: hours after the rebirth to reach a level, and $ earned by then" % mode.name)
+	var snaps := []
+	for run in TABLE_RUNS:
+		var g = _new_game(5000 + run)
+		var n := 0
+		while g.prestige == 0:
+			_step(g, mode, n)
+			n += 1
+			if g.prestige_check().ok:
+				g.do_prestige()
+				_guide_perks(g)
+		snaps.append(JSON.parse_string(JSON.stringify(g.to_dict())))
+		g.queue_free()
+	for p in range(1, TABLE_TO + 1):
+		var at := {}
+		var earned := {}
+		for run in TABLE_RUNS:
+			var g = _new_game(6000 + run * 100 + p)
+			g._apply(snaps[run].duplicate(true))
+			for q in range(2, p + 1):
+				g.prestige = q
+				g.exotics.azure = int(g.exotics.azure) + 1
+				_guide_perks(g)
+			var t := 0.0
+			var n := 0
+			var e0 := float(g.stats.money_earned)
+			var marks := TABLE_LEVELS.duplicate()
+			while t < TABLE_HOURS * 3600.0 and not marks.is_empty():
+				t += _step(g, mode, n, true)
+				n += 1
+				while not marks.is_empty() and g.level >= marks[0]:
+					var lv: int = marks.pop_front()
+					at[lv] = at.get(lv, 0.0) + t / 3600.0 / TABLE_RUNS
+					earned[lv] = earned.get(lv, 0.0) + (float(g.stats.money_earned) - e0) / TABLE_RUNS
+			for lv in marks: at[lv] = -1000.0
+			g.queue_free()
+		var line := "   P%-2d" % p
+		for lv in TABLE_LEVELS:
+			if at.get(lv, -1.0) > 0.0: line += "  L%d %.1fh $%s" % [lv, at[lv], G.fmt(earned[lv])]
+		print(line)
 
 func _run_mode(mode: Dictionary) -> void:
 	var totals := {}
@@ -69,11 +177,7 @@ func _run_mode(mode: Dictionary) -> void:
 	var secs := 0.0
 	var G = load("res://scripts/vf/vf_game.gd")
 	for run in RUNS:
-		var g = G.new()
-		g.autosave = false
-		root.add_child(g)
-		g._apply(g._defaults.duplicate(true))
-		g.rng.seed = 1000 + run
+		var g = _new_game(1000 + run)
 		var t := 0.0
 		var casts := 0
 		var hit := {}

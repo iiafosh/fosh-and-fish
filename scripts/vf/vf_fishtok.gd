@@ -137,7 +137,7 @@ static func tips(vf) -> Array:
 			"tags": "#money #protip", "icon": ["ui", "money"], "min": 1, "max": 80},
 		{"text": "Chests start at level 10", "body": "From Lv10 casts can find chests with money, XP and exotic fish. Gold & Emerald Fish pay for boosts.",
 			"tags": "#chests #treasure", "icon": ["chest", "rare"], "min": 1, "max": 30},
-		{"text": "Charms from level 20", "body": "Rare+ chests drop charms from Lv20. Tier n costs n charms, and from your second prestige on you need every charm maxed (%d at P1)." % VFData.charm_total_cap(1),
+		{"text": "Charms from level 20", "body": "Rare+ chests drop charms from Lv20. Tier n costs n charms. They make you stronger; no rebirth needs them.",
 			"tags": "#charms", "icon": ["charm", "quality"], "min": 12, "max": 400},
 		{"text": "Pets: 1 in 10,000 casts", "body": "Pets can't be bought. Support Bait (Lv%d) gives +%d%% pet chance and stronger pets." % [b["Support Bait"].level, int(b["Support Bait"].pet_chance * 100)],
 			"tags": "#pets #1in10000", "icon": ["pet", "Puffer"], "min": 1, "max": 99999},

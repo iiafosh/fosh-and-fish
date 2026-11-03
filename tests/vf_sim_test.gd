@@ -417,15 +417,37 @@ func _test_first_rebirth() -> void:
 	g.level = lv
 	check(g.prestige_check().ok and g.prestige_check().charms == [0, 0], "the level and the money are enough, no charms needed")
 	check(g.do_prestige() == "" and g.prestige == 1 and g.level == 1 and g.money == 0 and g.exotics.azure == 1, "reborn: back to level 1, with an Azure Fish")
-	check(VFData.prestige_level_req(1) == 400 and VFData.prestige_money_req(1) == 8000000000 and VFData.prestige_charm_req(1) == VFData.charm_total_cap(1)
-		and VFData.prestige_level_req(10) == 1750 and VFData.prestige_charm_req(10) == VFData.charm_total_cap(10), "later prestiges ask for what they always did")
-	g.level = 400
-	g.money = 8000000000
-	check(not g.prestige_check().ok, "the second rebirth still needs every charm")
-	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(1) / 8
-	check(g.prestige_check().ok, "... and then it's ready")
+	# the ones after it: each asks a little more than the last, none needs charms, and the level cap is still at the far end
+	var more := true
+	var gentle := true
+	var no_charms := true
+	var cap_at := -1
+	for p in range(1, 300):
+		var lv_p: int = VFData.prestige_level_req(p)
+		var lv0: int = VFData.prestige_level_req(p - 1)
+		var cash_p: int = VFData.prestige_money_req(p)
+		var cash0: int = VFData.prestige_money_req(p - 1)
+		if lv0 < 25000: more = more and lv_p > lv0
+		else: more = more and lv_p == 25000
+		if p <= 160: more = more and cash_p > cash0
+		else: more = more and cash_p >= cash0
+		gentle = gentle and float(lv_p) / lv0 <= 1.4 and cash_p <= 1000000000000000000
+		no_charms = no_charms and VFData.prestige_charm_req(p) == 0
+		if lv_p == 25000 and cap_at < 0: cap_at = p
+	check(more, "every prestige asks for more level and more money than the one before")
+	check(gentle, "never a big jump in level (at most 40% more; the perks make you faster too), and the money never overflows")
+	check(no_charms, "no rebirth needs charms any more")
+	check(cap_at >= 150 and cap_at <= 170, "the 25,000 level cap is still there at the far end (P%d)" % cap_at)
+	check(VFData.prestige_level_req(1) > lv and VFData.prestige_level_req(1) < 100 and VFData.prestige_money_req(1) < 100000000, "the second rebirth: Lv%d and $%s (it was level 400, $8B and 528 charms)" % [VFData.prestige_level_req(1), g.fmt(VFData.prestige_money_req(1))])
+	g.prestige = 1
+	g.level = VFData.prestige_level_req(1)
+	g.money = VFData.prestige_money_req(1)
+	g.charms = {}
+	check(g.prestige_check().ok and g.prestige_check().charms == [0, 0], "at P1 the level and the money are enough")
+	g.money -= 1
+	check(not g.prestige_check().ok, "... all of the money")
 	g._apply(g._defaults.duplicate(true))
-	check(VFData.charm_total_cap(0) == 440 and g.charms_total() == 0, "the charm caps themselves don't change")
+	check(VFData.charm_total_cap(0) == 440 and VFData.charm_total_cap(1) == 528 and g.charms_total() == 0, "the charm caps themselves don't change")
 	# it's on the screen: the last starter goal is the rebirth, and you're told when it's ready
 	var said := []
 	g.toast.connect(func(text, _kind): said.append(text))
@@ -438,7 +460,8 @@ func _test_first_rebirth() -> void:
 		"the last starter goals are the first rebirth, with the real numbers: %s / %s" % [before.text, last.text])
 	var guide := ""
 	for entry in VFGuide.TABS["Prestige"]: guide += entry[2]
-	check(("Level %d" % lv) in guide and ("$" + g.fmt(cash)) in guide, "the guide says the real numbers")
+	for entry in VFGuide.TABS["Basics"]: guide += entry[2]
+	check(("Level %d" % lv) in guide and ("$" + g.fmt(cash)) in guide and not "every charm" in guide, "the guide says the real numbers, and doesn't ask for every charm")
 	g.check_goals()
 	check(said.size() == 1 and "rebirth" in said[0].to_lower(), "you're told once when the rebirth is ready: %s" % ("" if said.is_empty() else said[0]))
 	g.check_goals()
@@ -685,7 +708,7 @@ func _test_collecting() -> void:
 		"it knows your level, species, finds, crews, ducks, hats and how it's going with Gerald")
 	check("gerald_5" in g.ach_ready() and "gerald_caught" in g.ach_ready() and "ducks_10" in g.ach_ready() and not "ducks_50" in g.ach_ready() and "rebirth" in g.ach_ready(), "the jokes count too")
 	# nothing is lost to a rebirth
-	g.level = VFData.prestige_level_req(1)
+	g.level = maxi(100, VFData.prestige_level_req(1))
 	g.money = VFData.prestige_money_req(1)
 	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(1) / 8
 	g.stat_add("voyages", 3)
