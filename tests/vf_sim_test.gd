@@ -481,6 +481,11 @@ func _test_gerald() -> void:
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/vf/manifest.json"))
 	for who in VFData.GERALD_HATS:
 		check(manifest.mini.fish.has(who) and FileAccess.file_exists("res://assets/vf/mini/%s.png" % VFData.slug(who)), "%s has a picture for the mini-game" % who)
+	var looks := ["Gerald", "gerald_lava", "gerald_pirate", "gerald_pilot", "geraldine_astro", "geraldine_alien", "geraldine_lamp"]
+	var looks_ok := true
+	for i in VFData.GERALD.size():
+		looks_ok = looks_ok and VFData.GERALD[i].get("look", "") == looks[i] and g.gerald_info(i).look == looks[i]
+	check(looks_ok, "every stage has its own look, and gerald_info says which")
 	check(VFData.GERALD.size() == 7 and VFData.GERALD[3].get("final", false) and VFData.GERALD[6].get("final", false)
 		and not VFData.GERALD[0].get("final", false) and VFData.GERALD[4].who == "Geraldine", "seven stages: Gerald's four, then his mum's three")
 	var info: Dictionary = g.gerald_info()
@@ -1019,7 +1024,25 @@ func _test_rival_bots(v) -> void:
 	print("== Gerald, played by bots")
 	var Bot = load("res://tests/reel_bot.gd")
 	seed(20261102)
-	check(not "Gerald" in load("res://scripts/vf/vf_minigame.gd").NAMES, "only the rival is called Gerald")
+	var MG = load("res://scripts/vf/vf_minigame.gd")
+	check(not "Gerald" in MG.NAMES, "only the rival is called Gerald")
+	var real: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/vf/manifest.json"))
+	check(MG.rival_picture(real, "Gerald", "Gerald") == "Gerald", "the River stage plays plain Gerald")
+	check(MG.rival_picture({}, "gerald_lava", "Gerald") == "Gerald" and MG.rival_picture({"mini": {"fish": {"gerald_lava": {}}}}, "gerald_nope", "Gerald") == "Gerald",
+		"a look whose picture or manifest entry is missing falls back to plain Gerald")
+	var ready := 0
+	for i in VFData.GERALD.size():
+		var row: Dictionary = VFData.GERALD[i]
+		var want: String = row.look if (real.mini.fish.has(row.look) and ResourceLoader.exists("res://assets/vf/mini/%s.png" % VFData.slug(row.look))) else row.who
+		var stub = Bot.StubMain.new()
+		stub.stage.manifest = real
+		v.gerald.stage = i
+		var mg: Control = MG.new()
+		mg.setup_rival(stub)
+		if mg.fish_name == want and mg.rival == row.who: ready += 1
+		mg.free()
+	v.gerald.stage = 0
+	check(ready == VFData.GERALD.size(), "each stage's round plays its look where its picture exists, else plain %s (%d of %d)" % ["Gerald or Geraldine", ready, VFData.GERALD.size()])
 	check("IOU: 3 shrimp. Signed, Gerald." in load("res://scripts/vf/vf_fun.gd").NOTES, "the bottle note with his name stays")
 	v._apply(v._defaults.duplicate(true))
 	v.reel_rounds = VFData.ROOKIE_ROUNDS

@@ -747,15 +747,16 @@ const SPIN := [
 ## at that level, he bites instead of a fish, in either catch mode, never on auto-fish. "bounty": what beating him pays, in
 ## casts' worth (VF.pay_find). Beat him on a row that isn't "final" and he gets away to the next one; on a "final" row he's
 ## caught and gives his hat (GERALD_HATS), and after Gerald his mum starts. Lose and he laughs, leaves a tip (GERALD_TIP),
-## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing.
+## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing. "look": they dress for each biome
+## (the round and the WANTED poster use mini/<look>.png, plain Gerald or Geraldine while it isn't there).
 const GERALD := [
-	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0},
-	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0},
-	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0},
-	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true},
-	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0},
-	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0},
-	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true},
+	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0, "look": "Gerald"},
+	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0, "look": "gerald_lava"},
+	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0, "look": "gerald_pirate"},
+	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true, "look": "gerald_pilot"},
+	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0, "look": "geraldine_astro"},
+	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0, "look": "geraldine_alien"},
+	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true, "look": "geraldine_lamp"},
 ]
 const GERALD_HATS := {"Gerald": "crown", "Geraldine": "tiara"}
 const GERALD_TIP := 2.0

@@ -2142,13 +2142,14 @@ func gerald_result(won: bool) -> Dictionary:
 	return out
 
 ## For the WANTED pill and board: the stage he's on, or any row i. bounty: about what it pays you today. done: that row is
-## behind you (with no i: all of it is). met: you've played him at least once.
+## behind you (with no i: all of it is). met: you've played him at least once. look: what they're wearing there
+## (vf_minigame.rival_picture says whether its picture exists yet).
 func gerald_info(i := -1) -> Dictionary:
 	var at := int(gerald.stage)
 	var row := clampi(at if i < 0 else i, 0, VFData.GERALD.size() - 1)
 	var s: Dictionary = VFData.GERALD[row]
 	return {"who": s.who, "biome": s.biome, "level": int(s.level), "bounty": find_value(float(s.bounty)),
-		"met": int(gerald.wins) + int(gerald.losses) > 0, "done": at > row}
+		"met": int(gerald.wins) + int(gerald.losses) > 0, "done": at > row, "look": s.look}
 
 func _gerald_apply(d) -> void:
 	gerald = {"stage": 0, "casts": 0, "tries": 0, "wins": 0, "losses": 0}
