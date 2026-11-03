@@ -87,7 +87,7 @@ Higher biomes give fewer fish per cast but each is worth far more.
 - Chests give money, XP and **exotic fish**: Gold & Emerald (Lv10), Lava (Lv50), Diamond (Lv100).
   Tap the **wallet** next to your money to see them.
 - From **level 20** Rare+ chests drop **charms** (8 types). Tier *n* of a charm costs *n* charms.
-  You need **all charms maxed (440 at P0)** to prestige.
+  They make you stronger; no rebirth needs them.
 
 ### Pets
 Pets **can't be bought** — each cast has a **1 in 10,000** chance (more with Support Bait and at
@@ -105,8 +105,9 @@ Dolphin = XP + treasure, Axolotl = treasure quality, Tuna = a bit of everything.
 
 ## 4. Prestige
 
-At **Level 250 + 440/440 charms + $5B** open **Prestige → Prestige**. You restart from level 1 but keep
-**pets, Hooks, league upgrades and prestige perks**, and get **1 Azure Fish**.
+Your first rebirth comes at **Level 60 + $5M**: open **Prestige → Prestige**. You restart from level 1 but keep
+**pets, Hooks, league upgrades and prestige perks**, and get **1 Azure Fish**. Each rebirth after that asks for a little
+more and takes a little longer: the second (Level 78 + $11M) about 6 hours, and about 10% more each time after it.
 
 Spend Azure Fish in **Prestige → Shop** (cap = 1 + prestige/5):
 International Ties (+10% everything), Business Education (+40% sell), Fish Whisperer (+25% catch),

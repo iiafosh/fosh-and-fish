@@ -5,6 +5,8 @@
 Built from an honest "why would a gamer quit?" review of 0.5, plus tester feedback
 (send yours in-game: **G → Feedback**, or [open an issue](https://github.com/iiafosh/fosh-and-fish/issues/new/choose)).
 
+What's being built now from this review: [MISSING_LIST.md](MISSING_LIST.md).
+
 ### Why players might quit today, and the fix
 | Problem | Plan |
 |---|---|

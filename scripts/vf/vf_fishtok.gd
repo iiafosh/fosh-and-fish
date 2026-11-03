@@ -137,7 +137,7 @@ static func tips(vf) -> Array:
 			"tags": "#money #protip", "icon": ["ui", "money"], "min": 1, "max": 80},
 		{"text": "Chests start at level 10", "body": "From Lv10 casts can find chests with money, XP and exotic fish. Gold & Emerald Fish pay for boosts.",
 			"tags": "#chests #treasure", "icon": ["chest", "rare"], "min": 1, "max": 30},
-		{"text": "Charms from level 20", "body": "Rare+ chests drop charms from Lv20. Tier n costs n charms, and prestige needs every charm maxed (%d at P0)." % VFData.charm_total_cap(0),
+		{"text": "Charms from level 20", "body": "Rare+ chests drop charms from Lv20. Tier n costs n charms. They make you stronger; no rebirth needs them.",
 			"tags": "#charms", "icon": ["charm", "quality"], "min": 12, "max": 400},
 		{"text": "Pets: 1 in 10,000 casts", "body": "Pets can't be bought. Support Bait (Lv%d) gives +%d%% pet chance and stronger pets." % [b["Support Bait"].level, int(b["Support Bait"].pet_chance * 100)],
 			"tags": "#pets #1in10000", "icon": ["pet", "Puffer"], "min": 1, "max": 99999},
@@ -149,8 +149,8 @@ static func tips(vf) -> Array:
 			"tags": "#stats #protip", "icon": ["ui", "stats"], "min": 3, "max": 99999},
 		{"text": "Hooks never reset", "body": "+10 Hooks from the daily league quest and +10 per 500 trips each week (max 100). League upgrades survive prestige.",
 			"tags": "#league #hooks", "icon": ["ui", "hooks"], "min": 10, "max": 99999},
-		{"text": "Prestige at level %d" % VFData.prestige_level_req(0), "body": "You also need %d charms and $%s. You keep pets, Hooks and perks, and earn an Azure Fish." % [VFData.charm_total_cap(0), VF.fmt(VFData.prestige_money_req(0))],
-			"tags": "#prestige", "icon": ["exotic", "azure"], "min": 120, "max": 99999},
+		{"text": "Prestige at level %d" % VFData.prestige_level_req(0), "body": "You also need $%s. You keep pets, Hooks and perks, and earn an Azure Fish." % VF.fmt(VFData.prestige_money_req(0)),
+			"tags": "#prestige", "icon": ["exotic", "azure"], "min": 40, "max": 99999},
 		{"text": "Wise Bait: +%d%% XP" % int(b["Wise Bait"].xp * 100), "body": "Unlocks at Lv%d. Perfect when you're chasing the next biome." % b["Wise Bait"].level,
 			"tags": "#bait #xp", "icon": ["bait", "Wise Bait"], "min": 20, "max": 400},
 		{"text": "Magnet: treasure > fish", "body": "Magnet (Lv%d): fewer bites but +%d%% treasure chance. Pair it with a treasure boost." % [b["Magnet"].level, int(b["Magnet"].tc * 100)],
@@ -172,7 +172,7 @@ static func tips(vf) -> Array:
 	# the next rod to save for
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
-		if r in vf.owned_rods or r == "Supporter Rod" or d.level > vf.level: continue
+		if r in vf.owned_rods or VFData.is_exclusive_rod(r) or d.level > vf.level: continue
 		out.append({"text": "Saving up? %s" % r, "body": "%d-%d fish per cast, %s%% treasure. %s Costs $%s." % [d.min, d.max, str(snappedf(d.tc * 100.0, 0.1)), d.desc, VF.fmt(d.cost)],
 			"tags": "#rods #upgrade", "icon": ["rod", r], "min": 1, "max": 99999})
 		break
@@ -294,7 +294,7 @@ static func ads(vf) -> Array:
 		"cta": "Shop bait", "tags": "#bait #%s" % tag(best)})
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
-		if r in vf.owned_rods or r == "Supporter Rod" or d.level > vf.level: continue
+		if r in vf.owned_rods or VFData.is_exclusive_rod(r) or d.level > vf.level: continue
 		out.append({"head": r, "slogan": "%d-%d fish per cast. Your old rod will understand." % [d.min, d.max], "fx": d.desc,
 			"price": "$" + VF.fmt(d.cost), "icon": ["rod", r], "panel": ["shop", "Rods"], "cta": "See the rod", "tags": "#rods #upgrade"})
 		break

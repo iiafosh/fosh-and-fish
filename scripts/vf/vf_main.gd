@@ -5,21 +5,22 @@ extends Control
 ## tools/blender/render_assets.py).
 
 const ART := "res://assets/vf/"
-var VERSION: String = Updater.version + " beta"
+var VERSION: String = Updater.version + (" beta" if Updater.version.begins_with("0.") else "")    # 1.0+: no "beta"
 const FEEDBACK_URL := "https://github.com/iiafosh/fosh-and-fish/issues/new"
 const C_BG := Color("#cfe8ec")
-const C_PANEL := Color("#fbfdfe")          # frosted white
-const C_PANEL2 := Color("#eef4f6")         # cards inside panels
-const C_TEXT := Color("#1f2d35")
-const C_MUTED := Color("#6b7d86")
-const C_GOOD := Color("#22a06b")
-const C_GOLD := Color("#d4920f")
-const C_BAD := Color("#e04f45")
-const C_NEUTRAL := Color("#eef3f5")
-const C_TEAL := Color("#1d9bb0")
-const C_DARK := Color(0.055, 0.16, 0.2, 0.74)  # dark glass pills (numbers)
-const C_LIGHT := Color(1, 1, 1, 0.9)          # light glass pills (actions)
-const C_SHADOW := Color(0.02, 0.1, 0.14, 0.22)
+const C_PANEL := Color("#f8f3e9")          # warm paper: easy on the eye next to all that blue
+const C_PANEL2 := Color("#efe9dc")         # cards inside panels
+const C_TEXT := Color("#2b3a40")
+const C_MUTED := Color("#6d7c7d")
+const C_GOOD := Color("#2c9a73")
+const C_GOLD := Color("#c98b1c")
+const C_BAD := Color("#d5604f")
+const C_NEUTRAL := Color("#ece6d9")
+const C_TEAL := Color("#238b9c")
+const C_DARK := Color(0.05, 0.16, 0.19, 0.62)   # dark sea glass (numbers)
+const C_LIGHT := Color(0.975, 0.955, 0.91, 0.84)   # light paper glass (actions)
+const C_LIGHT_HOVER := Color(1.0, 0.985, 0.95, 0.95)
+const C_SHADOW := Color(0.02, 0.1, 0.14, 0.15)
 
 var manifest := {}
 var _tex_cache := {}
@@ -86,6 +87,12 @@ var panel_back: Button
 var tabs_track: PanelContainer
 var _update_announced := false
 var account_ui                 # scripts/net/account_ui.gd (Menu -> Account)
+var v1                         # scripts/vf/vf_v1_ui.gd (1.0: Store, Events, shinies, the event pill)
+var idle                       # scripts/vf/vf_idle_ui.gd (auto-fish, the Fleet, welcome back, daily rewards)
+var radio                      # scripts/vf/vf_radio.gd (what's playing, the Radio, just listening)
+var notify                     # scripts/vf/vf_notify.gd (reminders while the game is in the background)
+var hud_row: HBoxContainer     # level / money / wallet pills (top left)
+var hud_col: VBoxContainer     # the top-left column under them
 var panel_box: PanelContainer
 var panel_scroll: ScrollContainer
 var _drag := {}                # finger drag-to-scroll on a menu (phones), see _input
@@ -96,6 +103,10 @@ var _sim_touch := false        # --touch: behave like a phone (captures on a des
 var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N dp (captures)
 var _portrait_note: CanvasLayer
 var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
+var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
+var collect                    # vf_collect_ui.gd: the WANTED board, finds, achievements, the aquarium, hats
+var _calm_idle := 0.0
+var _calm_a := 1.0
 
 func _ready() -> void:
 	_load_manifest()
@@ -106,8 +117,20 @@ func _ready() -> void:
 	get_window().size_changed.connect(_update_ui_scale)
 	_build()
 	account_ui = load("res://scripts/net/account_ui.gd").new(self)
+	v1 = load("res://scripts/vf/vf_v1_ui.gd").new(self)
+	v1.build_hud()
+	v1.setup_juice()
+	idle = load("res://scripts/vf/vf_idle_ui.gd").new(self)
+	radio = load("res://scripts/vf/vf_radio.gd").new(self)
+	idle.build_hud()
+	radio.build_hud()
+	fun = load("res://scripts/vf/vf_fun.gd").new(self)
+	collect = load("res://scripts/vf/vf_collect_ui.gd").new(self)
+	collect.build_hud()
+	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
+	stage.night_changed.connect(func(_on): AudioManager.music_place(VF.biome, stage.night_music()))
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
 	VF.goal_done.connect(_on_goal_done)
@@ -115,12 +138,14 @@ func _ready() -> void:
 	_refresh()
 	_apply_biome()
 	var title := _wants_launcher()
-	if not title: _card_intro()
-	_build_version_label()
+	if not title:
+		_card_intro()
+		idle.on_shown.call_deferred()          # (else when the title screen closes)
 	_build_coach()
 	if title: _open_launcher()
 	_check_capture()
 	Updater.boot_ok()
+	_build_update_pill()
 	Updater.status_changed.connect(_on_update_status)
 	if Updater.skipped_patch != "":
 		_toast("Update %s didn't start, so you're on the previous version. A fix is coming!" % Updater.skipped_patch, "warn")
@@ -136,7 +161,7 @@ func _ready() -> void:
 ## unless --launcher asks for it. --no-launcher skips it.
 func _wants_launcher() -> bool:
 	var args := OS.get_cmdline_user_args()
-	if "--launcher" in args: return true
+	if "--launcher" in args or "--tour" in args: return true
 	if "--no-launcher" in args: return false
 	return not _capturing() and not Backend.RECORDING_FLAGS.any(func(f): return f in args)
 
@@ -156,9 +181,26 @@ func _launcher_closing() -> void:
 	stage.visible = true
 	launcher.z_index = 1                       # stays on top while it fades
 	_card_intro()
+	idle.on_shown()                            # what the crews caught while you were away
 	_coach_show()
+	_on_update_status()                        # (the update pill waits for the game)
+
+## A few seconds after you last reached for it, the interface around the edges fades back so you can look at the water.
+## Tapping the water to fish doesn't count as reaching for it.
+func _calm_tick(delta: float) -> void:
+	if "--play-shots" in OS.get_cmdline_user_args() or Backend.RECORDING_FLAGS.any(func(f): return f in OS.get_cmdline_user_args()): return
+	_calm_idle += delta
+	var want := 0.5 if _calm_idle > 7.0 and not overlay.visible and minigame == null else 1.0
+	_calm_a = move_toward(_calm_a, want, delta * (0.4 if want < 1.0 else 6.0))
+	for n in [hud_col, top_right, gear_box, mode_pill, idle.auto_pill if idle else null]:
+		if n and is_instance_valid(n): n.modulate.a = _calm_a
+
+func _calm_near_hud(at: Vector2) -> bool:
+	var vs := get_viewport_rect().size
+	return at.y < 120.0 or at.y > vs.y - 150.0 or at.x < vs.x * 0.2 or at.x > vs.x * 0.86
 
 func _process(delta: float) -> void:
+	_calm_tick(delta)
 	_save_timer += delta
 	if _save_timer > 20.0:
 		_save_timer = 0.0
@@ -167,9 +209,13 @@ func _process(delta: float) -> void:
 	var left: float = VF.cooldown_left()
 	cast_ring.queue_redraw()
 	_process_hold()
+	if v1: v1.tick(delta)
+	if fun: fun.tick(delta)
+	if idle: idle.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
+		if collect: collect.refresh_badges()       # achievements to claim
 	_process_coach(delta)
 	if _fling != 0.0:
 		if panel_scroll and overlay.visible:
@@ -181,6 +227,8 @@ func _process(delta: float) -> void:
 ## swallow the drag, so only the thin scrollbar moved it.) A drag that becomes a scroll cancels the button
 ## it started on, so scrolling never presses anything.
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey or ((event is InputEventMouseMotion or event is InputEventMouseButton) and _calm_near_hud(event.position)):
+		_calm_idle = 0.0
 	if _drag_cancel or not is_touch() or panel_scroll == null or not overlay.visible: return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -238,15 +286,26 @@ func _process_hold() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		VF.save_game()
+		if notify: notify.schedule()
 		Backend.on_quit()          # signed in: upload the last progress before the window closes
+	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		VF.save_game()             # (a phone may close a game in the background without asking)
+		if notify: notify.schedule()
+	elif what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		if notify: notify.cancel()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if launcher_open():
 		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE and overlay.visible:
 			_close_panel()
 		return                                 # the title screen is up: no casting, no menu keys
+	if _reel_card != null:
+		if event is InputEventKey and event.pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE]:
+			_reel_choice(VF.catch_mode)
+		return                                 # one question at a time
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
+		if VF.tutorial >= 99 and stage.poke(event.position): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
 		_do_cast()
@@ -260,6 +319,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_do_cast()
 			KEY_E:                                 # (S is "sail down" now: WASD steers the boat)
 				if not overlay.visible: _do_sell()
+			KEY_H:
+				if not overlay.visible: fun.honk()
 			KEY_ESCAPE:
 				if overlay.visible: _close_panel()
 				else: _open_panel("menu")
@@ -369,9 +430,9 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 		b.add_theme_color_override(k, fc)
 	b.add_theme_color_override("font_disabled_color", Color(C_TEXT, 0.35))
 	if color == C_NEUTRAL:
-		b.add_theme_stylebox_override("normal", sbox(Color.WHITE, 14, 1, Color("#d5e1e5"), 8))
-		b.add_theme_stylebox_override("hover", sbox(Color("#f6fbfc"), 14, 2, C_TEAL.lightened(0.3), 8))
-		b.add_theme_stylebox_override("pressed", sbox(Color("#e3eef1"), 14, 1, C_TEAL, 8))
+		b.add_theme_stylebox_override("normal", sbox(Color("#fbf7ee"), 14, 1, Color("#d9d2c2"), 8))
+		b.add_theme_stylebox_override("hover", sbox(Color("#fffaf0"), 14, 2, C_TEAL.lightened(0.3), 8))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#ece6d9"), 14, 1, C_TEAL, 8))
 	else:
 		var n := sbox(color, 14, 0, Color.TRANSPARENT, 9)
 		n.border_width_bottom = 3
@@ -427,7 +488,7 @@ func _short_side_dp() -> float:
 ## Nodes under something tagged "fixed_fonts" (the FishTok phone, drawn as a tiny phone) keep their sizes.
 const PHONE_MIN_FONT := 13
 
-func _min_font(n: Control) -> void:
+func _min_font(n) -> void:                     # (not typed: a label freed before this deferred call couldn't even get in)
 	if not is_instance_valid(n) or not n.is_inside_tree(): return
 	var p: Node = n
 	while p != null and p != self:
@@ -507,7 +568,7 @@ func _check_portrait() -> void:
 		_portrait_note.visible = upright
 
 func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
-	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.7) if light else Color(1, 1, 1, 0.08), 0, 6)
+	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.3) if light else Color(1, 1, 1, 0.06), 0, 5)
 	sb.content_margin_left = pad_h
 	sb.content_margin_right = pad_h
 	sb.content_margin_top = pad_v
@@ -517,7 +578,7 @@ func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
 ## small keyboard hint chip ("Tab", "Esc"); hidden on phones
 func keycap(text: String) -> Control:
 	var p := PanelContainer.new()
-	var sb := sbox(Color("#e6eef1"), 6, 1, Color("#c9d6db"), 0)
+	var sb := sbox(Color("#e9e3d6"), 6, 1, Color("#d3ccbc"), 0)
 	sb.content_margin_left = 5
 	sb.content_margin_right = 5
 	sb.content_margin_top = 0
@@ -529,7 +590,7 @@ func keycap(text: String) -> Control:
 	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return p
 
-## a clickable pill: [icon] text [keycap] (+ optional red badge)
+## a clickable pill: [icon] text (+ optional badge); its keyboard key is in the tooltip
 func pill_button(icon_name: String, text: String, key := "", light := true) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
@@ -546,31 +607,20 @@ func pill_button(icon_name: String, text: String, key := "", light := true) -> B
 		b.icon = ph(icon_name)
 		b.add_theme_constant_override("icon_max_width", 18)
 		b.add_theme_constant_override("h_separation", 7)
-	var show_key := key != "" and not is_touch()
+	if key != "" and not is_touch(): b.tooltip_text = "%s  [%s]" % [text, key]
 	var sb := pill_box(light, 13, 6)
-	if show_key: sb.content_margin_right = 13 + 8 + 9 * key.length() + 10
 	b.add_theme_stylebox_override("normal", sb)
 	var hv := sb.duplicate()
-	hv.bg_color = Color.WHITE if light else C_DARK.lightened(0.1)
-	hv.border_color = C_TEAL.lightened(0.35) if light else Color(1, 1, 1, 0.25)
+	hv.bg_color = C_LIGHT_HOVER if light else C_DARK.lightened(0.1)
+	hv.border_color = C_TEAL.lightened(0.45) if light else Color(1, 1, 1, 0.2)
 	b.add_theme_stylebox_override("hover", hv)
 	var pr := sb.duplicate()
-	pr.bg_color = Color("#e3eef1") if light else C_DARK.darkened(0.2)
+	pr.bg_color = C_NEUTRAL if light else C_DARK.darkened(0.2)
 	b.add_theme_stylebox_override("pressed", pr)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	if show_key:
-		var kc := keycap(key)
-		kc.anchor_left = 1.0
-		kc.anchor_right = 1.0
-		kc.anchor_top = 0.5
-		kc.anchor_bottom = 0.5
-		kc.offset_right = -11
-		kc.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		kc.grow_vertical = Control.GROW_DIRECTION_BOTH
-		b.add_child(kc)
 	var badge := PanelContainer.new()
 	badge.name = "Badge"
-	var bsb := sbox(Color("#ff4d4f"), 999, 2, Color.WHITE, 0)
+	var bsb := sbox(Color("#e3735f"), 999, 0, Color.TRANSPARENT, 0)
 	bsb.content_margin_left = 5
 	bsb.content_margin_right = 5
 	badge.add_theme_stylebox_override("panel", bsb)
@@ -668,6 +718,8 @@ func _build_hud() -> void:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(row)
+	hud_row = row
+	hud_col = col
 	# level: XP ring around the number
 	var lv := PanelContainer.new()
 	lv.add_theme_stylebox_override("panel", pill_box(false, 6, 4))
@@ -742,14 +794,14 @@ func _build_hud() -> void:
 	col.add_child(wallet)
 	# goal: one quiet line + thin progress, click to jump to it
 	goal_box = PanelContainer.new()
-	goal_box.add_theme_stylebox_override("panel", sbox(C_LIGHT, 14, 1, Color(1, 1, 1, 0.7), 10, 6))
+	goal_box.add_theme_stylebox_override("panel", sbox(C_LIGHT, 14, 1, Color(1, 1, 1, 0.3), 10, 6))
 	var gv := VBoxContainer.new()
 	gv.add_theme_constant_override("separation", 4)
 	goal_label = lbl("", 13)
 	goal_bar = ProgressBar.new()
 	goal_bar.show_percentage = false
 	goal_bar.custom_minimum_size = Vector2(230, 5)
-	goal_bar.add_theme_stylebox_override("background", sbox(Color("#dfe9ec"), 3, 0, Color.TRANSPARENT, 0))
+	goal_bar.add_theme_stylebox_override("background", sbox(Color("#e2dccd"), 3, 0, Color.TRANSPARENT, 0))
 	goal_bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 3, 0, Color.TRANSPARENT, 0))
 	gv.add_child(goal_label)
 	gv.add_child(goal_bar)
@@ -810,7 +862,7 @@ func _toggle_wallet() -> void:
 
 func _build_card() -> void:
 	card = PanelContainer.new()
-	card.add_theme_stylebox_override("panel", sbox(C_LIGHT, 18, 1, Color(1, 1, 1, 0.8), 0, 10))
+	card.add_theme_stylebox_override("panel", sbox(C_LIGHT, 18, 1, Color(1, 1, 1, 0.3), 0, 8))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
 	card.offset_left = -314
@@ -842,27 +894,41 @@ func _build_card() -> void:
 	toast_box = VBoxContainer.new()
 	toast_box.anchor_left = 0.5
 	toast_box.anchor_right = 0.5
+	toast_box.anchor_top = 1.0
+	toast_box.anchor_bottom = 1.0
 	toast_box.offset_left = -230
 	toast_box.offset_right = 230
-	toast_box.offset_top = 64
+	toast_box.offset_bottom = -78
+	toast_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	toast_box.add_theme_constant_override("separation", 4)
 	toast_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toast_box)
 
 func _show_card() -> void:
+	if radio.listening: return
+	if compact() and _banner_busy:             # phones: no room for both, the news goes first (_next_banner brings this back)
+		_card_waits = true
+		card.visible = false
+		return
+	var popping := not card.visible or card.modulate.a < 0.35
+	var sb := card.get_theme_stylebox("panel") as StyleBoxFlat
+	if sb: sb.bg_color.a = 1.0 if compact() else C_LIGHT.a       # (phones: it lies over the lane signs, they mustn't show through)
 	card.modulate.a = 1.0
 	card.visible = true
+	if popping: v1.pop_card()
 	if _card_tw: _card_tw.kill()
 	_card_tw = card.create_tween()
 	_card_tw.tween_interval(6.0)
 	_card_tw.tween_property(card, "modulate:a", 0.0, 0.8)
 
 var _bottom: HBoxContainer
+var gear_box: PanelContainer
 
 func _build_dock() -> void:
 	# ---- bottom-left: your gear (rod, bait, biome, pet) in one light pill
 	var gear := PanelContainer.new()
-	gear.add_theme_stylebox_override("panel", sbox(C_LIGHT, 20, 1, Color(1, 1, 1, 0.7), 6, 6))
+	gear.add_theme_stylebox_override("panel", sbox(C_LIGHT, 20, 1, Color(1, 1, 1, 0.3), 6, 5))
+	gear_box = gear
 	gear.anchor_top = 1.0
 	gear.anchor_bottom = 1.0
 	gear.offset_left = 14
@@ -904,7 +970,7 @@ func _build_dock() -> void:
 	fish_btn = Button.new()
 	fish_btn.focus_mode = Control.FOCUS_NONE
 	fish_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var fb := sbox(C_TEAL, 999, 3, Color.WHITE, 0, 10)
+	var fb := sbox(C_TEAL, 999, 3, Color(1, 1, 1, 0.75), 0, 8)
 	fish_btn.add_theme_stylebox_override("normal", fb)
 	var fbh := fb.duplicate()
 	fbh.bg_color = C_TEAL.lightened(0.12)
@@ -939,14 +1005,6 @@ func _build_dock() -> void:
 	cast_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cast_ring.draw.connect(_draw_cast_ring)
 	fish_btn.add_child(cast_ring)
-	var kc := keycap("Space")
-	kc.anchor_left = 0.5
-	kc.anchor_right = 0.5
-	kc.anchor_top = 1.0
-	kc.anchor_bottom = 1.0
-	kc.offset_top = -4
-	kc.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	fish_btn.add_child(kc)
 	# ---- catch mode pill, left of the cast button
 	mode_pill = pill_button("hourglass-medium", "Relax")
 	mode_pill.anchor_left = 1.0
@@ -980,7 +1038,7 @@ func _refresh_mode_pill() -> void:
 	for st in ["normal", "hover", "pressed"]:
 		var sb: StyleBoxFlat = pill_box(true, 13, 6)
 		if reel: sb.bg_color = C_TEAL.lightened(0.1 if st == "hover" else 0.0).darkened(0.12 if st == "pressed" else 0.0)
-		elif st == "hover": sb.bg_color = Color.WHITE
+		elif st == "hover": sb.bg_color = C_LIGHT_HOVER
 		mode_pill.add_theme_stylebox_override(st, sb)
 	mode_pill.tooltip_text = ("Catch mode: Reel it in! - play a quick mini-game after each bite: win for +%d%% fish and a %ss cooldown. Click for Relax." if reel
 		else "Catch mode: Relax - cast and wait for the cooldown. Click for Reel it in! (mini-game: +%d%% fish, %ss cooldown)") % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)]
@@ -994,16 +1052,16 @@ func _draw_cast_ring() -> void:
 		cast_ring.draw_arc(c, r, 0, TAU, 48, Color(1, 1, 1, 0.35), 5.0, true)
 		cast_ring.draw_arc(c, r, -PI / 2, -PI / 2 + TAU * (1.0 - left / cd), 48, Color.WHITE, 5.0, true)
 	else:
-		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
-		cast_ring.draw_arc(c, r + pulse * 3.0, 0, TAU, 48, Color(1, 1, 1, 0.35 + 0.35 * pulse), 3.0, true)
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 640.0)
+		cast_ring.draw_arc(c, r + pulse * 2.0, 0, TAU, 48, Color(1, 1, 1, 0.22 + 0.2 * pulse), 2.5, true)
 
 func _chip(key: String) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_stylebox_override("normal", sbox(Color(1, 1, 1, 0), 14, 0, Color.TRANSPARENT, 4))
-	b.add_theme_stylebox_override("hover", sbox(Color("#e8f2f4"), 14, 0, Color.TRANSPARENT, 4))
-	b.add_theme_stylebox_override("pressed", sbox(Color("#d9e9ed"), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("hover", sbox(Color("#efe9dc"), 14, 0, Color.TRANSPARENT, 4))
+	b.add_theme_stylebox_override("pressed", sbox(Color("#e6dfd0"), 14, 0, Color.TRANSPARENT, 4))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.add_theme_font_size_override("font_size", 11)
 	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
@@ -1084,7 +1142,7 @@ func _build_overlay() -> void:
 	head.add_child(close)
 	v.add_child(head)
 	tabs_track = PanelContainer.new()
-	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e6eef1"), 999, 0, Color.TRANSPARENT, 4))
+	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), 999, 0, Color.TRANSPARENT, 4))
 	tabs_track.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	panel_tabs = HBoxContainer.new()
 	panel_tabs.add_theme_constant_override("separation", 2)
@@ -1104,11 +1162,13 @@ func _build_overlay() -> void:
 func _apply_biome() -> void:
 	stage.set_biome(VF.biome)
 	stage.set_boat(VF.current_boat() if VF.current_boat() != "" else "Rowboat")
+	AudioManager.music_place(VF.biome, stage.night_music())
 	card_accent.color = accent()
 
 # ================================================================ actions
-func _do_cast() -> void:
-	if sail.busy() or minigame != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
+## auto: an auto-fish cast (vf_idle_ui): always a Relax cast, no mini-game
+func _do_cast(auto := false) -> void:
+	if sail.busy() or minigame != null or _reel_card != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
 	var why: String = VF.can_cast()
 	if why == "cooldown":
 		return
@@ -1118,29 +1178,38 @@ func _do_cast() -> void:
 	AudioManager.play_cast()
 	var cast_start := Time.get_ticks_msec()
 	VF._last_cast_ms = cast_start              # cooldown starts the moment you cast
-	var reel: bool = VF.catch_mode == "reel"
+	var rival: bool = not auto and VF.gerald_due() and not overlay.visible and not _phone_open()    # Gerald bites in either mode
+	var reel: bool = (VF.catch_mode == "reel" or rival) and not auto
 	if reel: _reel_wait_until = cast_start + 3000
 	stage.cast(func():
 		AudioManager.play_splash()
 		if reel:
 			_reel_wait_until = 0
-			_start_minigame(cast_start)
+			_start_minigame(cast_start, rival)
 			return
 		VF._last_cast_ms = -100000
+		VF.auto_cast = auto
 		VF.cast()
+		VF.auto_cast = false
 		VF._last_cast_ms = cast_start)         # keep counting from the cast, not the catch
 
 ## "Reel it in!" mode: the fish bites -> mini-game (vf_minigame.gd) -> VF.cast_reel(won).
 ## With a panel or the phone open there's no mini-game, just the normal catch.
-func _start_minigame(cast_start: int) -> void:
+func _start_minigame(cast_start: int, rival := false) -> void:
 	if overlay.visible or _phone_open():
 		VF.cast_reel(false, cast_start)
 		return
 	var script: GDScript = load("res://scripts/vf/vf_minigame.gd")
-	var biter: Array = script.pick_biter()
 	var mg: Control = script.new()
-	mg.setup(self, biter[0], biter[1])
-	mg.resolved.connect(func(won: bool): VF.cast_reel(won, cast_start))
+	if rival:
+		mg.setup_rival(self)
+		mg.resolved.connect(func(won: bool): fun.rival_result(mg, won))
+	else:
+		var biter: Array = script.pick_biter()
+		mg.setup(self, biter[0], biter[1])
+		mg.resolved.connect(func(won: bool):
+			_reel_ask = VF.reel_rounds == VFData.ROOKIE_ROUNDS      # (it's been counted: the last easy round ends with a question, after the catch)
+			VF.cast_reel(won, cast_start))
 	mg.tree_exited.connect(func():
 		if minigame == mg: minigame = null
 		if is_instance_valid(stage): stage.reel_in())   # the catch comes in once the card closes
@@ -1154,13 +1223,24 @@ func _do_sell() -> void:
 	if earned > 0:
 		AudioManager.play_success()
 		_float_text("+%s" % money_str(earned), sell_btn.get_global_rect().get_center() + Vector2(0, -40), C_GOLD)
+		v1.coins_to_wallet(sell_btn.get_global_rect().get_center(), earned)
 
 func _on_trip(res: Dictionary) -> void:
+	if is_instance_valid(minigame):              # (the mini-game has its own ending: the fish comes in after it)
+		await minigame.tree_exited
+	var landing: float = stage.show_catch(res)
+	stage.react_trip(res)                        # fisher cheers / dances / facepalms after reeling in
+	if VF.tutorial == 0:
+		_coach_next(1)
+	if landing > 0.0:
+		await get_tree().create_timer(landing).timeout
+	_reveal_trip(res)
+
+## the fish is on deck: the catch card and the news
+func _reveal_trip(res: Dictionary) -> void:
 	_show_catch(res)
-	# the catch comes in: the bobber zips back to the rod a moment after the splash
-	# (in both catch modes - in Reel mode the long line used to stay stretched out)
-	get_tree().create_timer(0.55).timeout.connect(func():
-		if is_instance_valid(stage): stage.reel_in())
+	if int(res.get("count", 0)) > 1:
+		_float_text("+%s" % VF.commas(res.count), stage.deck_screen() + Vector2(0, -44), Color.WHITE)
 	for f in res.get("new_species", []):
 		_banner("New fish discovered!", "%s  ·  %d / %d in your collection" % [f, VF.discovered.size(), VFData.FISH_ORDER.size()],
 			icon_for("fish", f), Color("#2f8f9e"))
@@ -1169,35 +1249,13 @@ func _on_trip(res: Dictionary) -> void:
 		_float_text("Lucky splash!  +%s" % money_str(res.lucky), stage.bobber_screen() + Vector2(0, -70), C_GOLD)
 		stage.burst("sparkle", stage._bobber)
 		AudioManager.play_strike()
-	if VF.tutorial == 0:
-		_coach_next(1)
-	var best := ""
-	for f in res.fish:
-		if best == "" or VFData.FISH[f].price > VFData.FISH[best].price: best = f
-	if best != "": stage.show_bite(best)
-	stage.react_trip(res)                      # fisher cheers / dances / facepalms after reeling in
-	var i := 0
-	var from: Vector2 = stage.bobber_screen()
-	for f in res.fish:
-		var ic := icon(icon_for("fish", f), 54)
-		ic.position = from - Vector2(27, 27)
-		fx_layer.add_child(ic)
-		var target := Vector2(get_viewport_rect().size.x - 300, 140 + i * 30)
-		var tw := ic.create_tween()
-		ic.modulate.a = 0.0
-		tw.tween_interval(0.35 + i * 0.06)
-		tw.tween_property(ic, "modulate:a", 1.0, 0.05)
-		tw.tween_property(ic, "position", ic.position + Vector2(randf_range(-20, 20), -70), 0.25).set_ease(Tween.EASE_OUT)
-		tw.tween_property(ic, "position", target, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tw.parallel().tween_property(ic, "modulate:a", 0.0, 0.45)
-		tw.tween_callback(ic.queue_free)
-		i += 1
 	if not res.chest.is_empty():
 		AudioManager.play_strike()
 		stage.burst("sparkle", stage._bobber)
 	if res.pet != "":
 		AudioManager.play_success()
 		stage.burst("magic", stage._bobber)
+	if _reel_ask: get_tree().create_timer(1.3).timeout.connect(_ask_reel)    # (a moment to see what you caught)
 
 func _on_level_up(new_level: int, reward: int) -> void:
 	AudioManager.play_levelup()
@@ -1258,12 +1316,13 @@ func _toast(text: String, kind: String) -> void:
 		"prestige": Color("#1d4ed8"), "buy": Color("#15803d")}
 	var p := PanelContainer.new()
 	var sb := pill_box(false, 16, 7)
-	sb.bg_color = Color(colors.get(kind, Color("#334155")), 0.9)
+	sb.bg_color = Color(Color(colors.get(kind, Color("#334155"))).lerp(Color("#123a44"), 0.45), 0.84)
 	p.add_theme_stylebox_override("panel", sb)
 	var tl := lbl(text, 14, Color.WHITE)
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p.add_child(tl)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	toast_box.add_child(p)
 	while toast_box.get_child_count() > 3:
 		toast_box.get_child(0).free()
@@ -1278,14 +1337,14 @@ func _clear(node: Node) -> void:
 		c.queue_free()
 
 func _card_intro() -> void:
-	if compact() and VF.tutorial == 0:
-		card.visible = false    # phones: the "tap the water" tip needs that space first; the first catch card follows
+	if VF.tutorial < 99:
+		card.visible = false    # the coach's bubble is all there is to read in the first minute; the first catch card follows
 		return
 	_show_card()
 	card_title.text = "Welcome, %s!" % VF.player_name
 	_clear(card_body)
-	var guide := "Follow the arrow — or open the Guide from the Menu." if is_touch() else "Follow the arrow — or press G for the guide."
-	for t in [guide, "Finish the goals under your level for rewards.", "Made by afosh."]:
+	var guide := "The full guide is in the Menu." if is_touch() else "Press G for the full guide."
+	for t in [guide, "Finish the goals under your level for rewards."]:
 		var l := lbl("• " + t, 14, C_MUTED)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 320
@@ -1296,6 +1355,8 @@ func _show_catch(res: Dictionary) -> void:
 	card_accent.color = accent()
 	card_title.text = "You caught %d fish!" % res.count if res.count > 0 else "Nothing bit this time..."
 	_clear(card_body)
+	var quip: String = fun.catch_line(res)
+	if quip != "": card_body.add_child(lbl(quip, 13, C_MUTED))
 	var names: Array = res.fish.keys()
 	names.sort_custom(func(a, b): return VFData.FISH[a].price > VFData.FISH[b].price)
 	for f in names:
@@ -1307,7 +1368,7 @@ func _show_catch(res: Dictionary) -> void:
 		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(val)
 		card_body.add_child(row)
-	card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
+	if res.xp > 0: card_body.add_child(lbl("+%s XP" % VF.commas(res.xp), 14, C_GOOD))
 	if res.get("reel", "") == "win":
 		card_body.add_child(lbl("Reeled it in!  +%d%% fish" % int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), 14, C_TEAL))
 	elif res.get("reel", "") == "lose":
@@ -1342,13 +1403,8 @@ func _show_catch(res: Dictionary) -> void:
 func _refresh() -> void:
 	if mode_pill and mode_pill.text != ("Reel it in!" if VF.catch_mode == "reel" else "Relax"):
 		_refresh_mode_pill()             # catch mode changed by a loaded / cloud save
-	lvl_label.text = "Lv %s" % VF.commas(VF.level)
-	var need: int = VF.xp_to_next()
-	xp_bar.max_value = maxf(1.0, need)
-	xp_bar.value = VF.xp
-	xp_label.text = "%s / %s XP" % [VF.fmt(VF.xp), VF.fmt(need)]
-	xp_ring.queue_redraw()
-	money_label.text = money_str(VF.money)
+	_refresh_hold()
+	if v1 == null or not v1.money_rolling(): money_label.text = money_str(VF.money)    # (a sale's coins roll it up)
 	for k in exotic_labels:
 		exotic_labels[k].text = VF.fmt(VF.exotics.get(k, 0))
 	hooks_label.text = str(VF.hooks)
@@ -1356,12 +1412,6 @@ func _refresh() -> void:
 	wallet_btn.visible = VF.level >= 10 or VF.exotics.gold + VF.exotics.emerald + VF.exotics.lava + VF.exotics.diamond > 0
 	prestige_label.text = "P%d" % VF.prestige
 	prestige_label.visible = VF.prestige > 0
-	var inv: int = VF.inventory_value()
-	var nfish := 0
-	for f in VF.inventory: nfish += int(VF.inventory[f])
-	sell_btn.text = "Sell %s fish  ·  %s" % [VF.commas(nfish), money_str(inv)]
-	sell_btn.visible = inv > 0
-	sell_btn.reset_size()
 	var rod_chip: Button = chips.rod
 	rod_chip.icon = icon_for("rod", VF.rod)
 	rod_chip.text = "Shop" if VF.rod_usable() else "Shop (!)"
@@ -1387,6 +1437,21 @@ func _refresh() -> void:
 	if overlay.visible and _panel_kind != "account":   # the account forms keep their typing focus
 		_render_panel()
 
+## your level and the hold (the Sell button): all that crew trips change, so they refresh just this
+func _refresh_hold() -> void:
+	lvl_label.text = "Lv %s" % VF.commas(VF.level)
+	var need: int = VF.xp_to_next()
+	xp_bar.max_value = maxf(1.0, need)
+	xp_bar.value = VF.xp
+	xp_label.text = "%s / %s XP" % [VF.fmt(VF.xp), VF.fmt(need)]
+	xp_ring.queue_redraw()
+	var inv: int = VF.inventory_value()
+	var nfish := 0
+	for f in VF.inventory: nfish += int(VF.inventory[f])
+	sell_btn.text = "Sell %s fish  ·  %s" % [VF.commas(nfish), money_str(inv)]
+	sell_btn.visible = inv > 0
+	sell_btn.reset_size()
+
 ## The cheapest useful purchase you can't afford yet (next rod or boat),
 ## mirroring the Prestige 0 Guide's buying order.
 func _refresh_goal() -> void:
@@ -1395,14 +1460,15 @@ func _refresh_goal() -> void:
 		goal_box.visible = true
 		_goal = {"starter": true, "goal": sg}
 		var prog: int = mini(VF.goal_progress(sg), int(sg.goal))
-		goal_label.text = "%s   %s/%s\nReward: %s" % [sg.text, VF.commas(prog), VF.commas(sg.goal), VF.goal_reward_text(sg.reward)]
+		goal_label.text = "%s   %s/%s" % [sg.text, VF.commas(prog), VF.commas(sg.goal)]
+		goal_box.tooltip_text = "Reward: %s. Click to go there." % VF.goal_reward_text(sg.reward)
 		goal_bar.max_value = sg.goal
 		goal_bar.value = prog
 		return
 	var best := {}
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
-		if r in VF.owned_rods or r == "Supporter Rod" or VF.level < d.level: continue
+		if r in VF.owned_rods or VFData.is_exclusive_rod(r) or VF.level < d.level: continue
 		if d.cost > VF.money:
 			best = {"name": r, "cost": d.cost, "panel": ["shop", "Rods"]}
 			break
@@ -1429,6 +1495,7 @@ func _open_goal() -> void:
 			"bait_casts": _open_panel("shop", "Bait")
 			"species": _open_panel("inventory")
 			"sells": _do_sell()
+			"crews": _open_panel("fleet")
 			_: _open_panel("guide", "Basics")
 		return
 	_open_panel(_goal.panel[0], _goal.panel[1])
@@ -1446,6 +1513,12 @@ func _refresh_boosts() -> void:
 	if Time.get_unix_time_from_system() < VF.personal_until:
 		names.append("Personal")
 		tips.append("Personal booster: %s left" % _clock(VF.personal_until - Time.get_unix_time_from_system()))
+	if VF.money2x_left() > 0.0:
+		names.append("x2 Money")
+		tips.append("Double Money: %s left" % _clock(VF.money2x_left()))
+	if VF.shiny_lure > 0:
+		names.append("Shiny Lure %d" % VF.shiny_lure)
+		tips.append("Shiny Lure: shiny fish 3x as often for %d more catches" % VF.shiny_lure)
 	boost_label.text = "  ·  ".join(names)
 	boost_pill.visible = not names.is_empty()
 	boost_icon.texture = ph("clover") if names.size() == 1 and VF.beginner_mult() > 1.0 else ph("lightning")
@@ -1465,9 +1538,13 @@ func _avg_fish() -> float:
 
 # ================================================================= panels
 const PANEL_TABS := {
-	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League"],
+	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League", "Hats"],
+	"store": ["Packs", "Pearls", "Pearl Shop", "Free"],
+	"events": ["Events", "Event Shop"],
+	"inventory": ["Fish", "Finds", "Shiny", "Event fish"],
 	"prestige": ["Prestige", "Shop", "Guide"],
-	"quests": ["Quests", "Daily"],
+	"fleet": ["Crews", "Upgrades"],
+	"daily": ["Calendar", "Spin"],
 	"guide": VFGuide.TAB_ORDER,
 	"account": ["Account", "Leaderboard"],
 }
@@ -1475,11 +1552,15 @@ const PANEL_TABS := {
 func _open_panel(kind: String, tab: String = "") -> void:
 	if VF.tutorial == 2 and kind == "shop":
 		_coach_next(3)
+	var opening := not overlay.visible
+	var fresh := opening or kind != _panel_kind or (tab != "" and tab != _panel_tab)
 	_panel_kind = kind
 	_panel_tab = tab if tab != "" else (PANEL_TABS[kind][0] if PANEL_TABS.has(kind) else "")
 	overlay.visible = true
 	if launcher_open(): move_child(overlay, get_child_count() - 1)    # over the title screen
 	_render_panel()
+	if fresh: panel_scroll.scroll_vertical = 0      # (another panel starts at its top, not where the Menu was scrolled to)
+	if opening: v1.pop_panel()
 
 func _close_panel() -> void:
 	if VF.tutorial == 3 and _panel_kind == "shop":
@@ -1491,7 +1572,9 @@ func _render_panel() -> void:
 	_clear(panel_tabs)
 	_clear(panel_body)
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
-		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account"}
+		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
+		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
+		"achievements": "Achievements", "aquarium": "Aquarium"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1507,7 +1590,7 @@ func _render_panel() -> void:
 			b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 				b.add_theme_color_override(k, C_TEXT if on else C_MUTED)
-			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel())
+			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel(); panel_scroll.scroll_vertical = 0)
 			panel_tabs.add_child(b)
 	tabs_track.visible = PANEL_TABS.has(_panel_kind)
 	panel_back.visible = _panel_kind != "menu" and not launcher_open()   # from the title screen: just Close
@@ -1526,6 +1609,14 @@ func _render_panel() -> void:
 		"update": _panel_update()
 		"menu": _panel_menu()
 		"account": _panel_account()
+		"store": v1.panel_store(_panel_tab)
+		"events": v1.panel_events(_panel_tab)
+		"fleet": idle.panel_fleet(_panel_tab)
+		"daily": idle.panel_daily(_panel_tab)
+		"radio": radio.panel_radio()
+		"wanted": collect.panel_wanted()
+		"achievements": collect.panel_achievements()
+		"aquarium": collect.panel_aquarium()
 
 ## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -1575,6 +1666,15 @@ func _add_to(g: Node, c: Control) -> void:
 	g.add_child(c)
 
 func _panel_inventory() -> void:
+	if _panel_tab == "Shiny":
+		v1.tab_shiny()
+		return
+	if _panel_tab == "Event fish":
+		v1.tab_event_fish()
+		return
+	if _panel_tab == "Finds":
+		collect.tab_finds()
+		return
 	var total: int = VF.inventory_value()
 	var head := HBoxContainer.new()
 	var l := lbl("Hold value: %s   (sell multiplier ×%.2f)" % [money_str(total), VF.sell_mult()], 16)
@@ -1592,6 +1692,7 @@ func _panel_inventory() -> void:
 	if g.get_child_count() == 0:
 		panel_body.add_child(lbl("Your hold is empty. Go fish!", 16, C_MUTED))
 	panel_body.add_child(lbl("Fish collection  %d / %d" % [VF.discovered.size(), VFData.FISH_ORDER.size()], 18))
+	collect.book_stamps()
 	var dex := _grid(10)
 	for f in VFData.FISH_ORDER:
 		var known: bool = VF.discovered.has(f)
@@ -1609,6 +1710,8 @@ func _panel_inventory() -> void:
 
 func _panel_shop() -> void:
 	match _panel_tab:
+		"Hats":
+			collect.tab_hats()
 		"Rods":
 			var g := _grid(2)
 			for r in VFData.ROD_ORDER:
@@ -1620,8 +1723,11 @@ func _panel_shop() -> void:
 				if r in VF.owned_rods:
 					right = _act("Equipped" if VF.rod == r else "Equip", C_GOOD if VF.rod == r else Color("#2f8f9e"),
 						func(): VF.select_rod(r); return "", VF.rod != r)
-				elif r == "Supporter Rod":
-					right = lbl("Prestige 5", 14, C_MUTED)
+				elif VFData.is_exclusive_rod(r):
+					var src: String = {"pack": "Store", "pearl": "Store", "event": "Events"}[d.exclusive]
+					var where: String = {"pack": "Packs", "pearl": "Pearl Shop", "event": "Event Shop"}[d.exclusive]
+					right = _act({"pack": "Supporter Packs", "pearl": "Pearl Shop", "event": "Event Shop"}[d.exclusive], C_GOLD,
+						func(): _open_panel(src.to_lower(), where); return "")
 				elif VF.level < d.level:
 					right = lbl("Level %d" % d.level, 14, C_MUTED)
 				else:
@@ -1788,16 +1894,6 @@ func _panel_boosts() -> void:
 	panel_body.add_child(_card(icon_for("ui", "boosts"), "Personal Booster", "+75% fish for 10 minutes. 10% chance from /daily.", pb, false, 48))
 
 func _panel_quests() -> void:
-	if _panel_tab == "Daily":
-		var ready: float = VF.daily_ready_in()
-		var right := _act("Claim" if ready <= 0 else _clock(ready / 60.0) + "h", Color("#3fae6a"), func():
-			var r: Dictionary = VF.claim_daily()
-			if r.has("error"): return r.error
-			_toast("Daily claimed! Streak %d" % r.streak, "quest")
-			return "", VF.level >= 10 and ready <= 0)
-		panel_body.add_child(_card(icon_for("ui", "daily"), "Daily Reward  •  streak %d" % VF.daily_streak,
-			"Unlocks at level 10. Money, XP, exotic fish and a chance of a Personal Booster. Claim within 48h to keep your streak.", right))
-		return
 	for q in VFData.QUESTS:
 		var claimed := int(VF.quest_claimed.get(q.id, 0))
 		var prog := int(VF.quest_progress.get(q.stat, 0))
@@ -1810,6 +1906,8 @@ func _panel_quests() -> void:
 	panel_body.add_child(_card(icon_for("ui", "hooks"), "League quest: %s" % sq.name, "%s / %s  ·  +10 Hooks" % [VF.commas(mini(sp, sq.goal)), VF.commas(sq.goal)],
 		_tick() if VF.quest_claimed.get("special", false) else null, false, 48))
 	panel_body.add_child(_card(icon_for("ui", "hooks"), "Weekly trips: %s" % VF.commas(VF.week_trips), "+10 Hooks every 500 trips (max 100/week). Earned this week: %d" % VF.week_hooks, null, false, 48))
+	var daily := _act("Open", Color("#f59e0b"), func(): _open_panel("daily"); return "")
+	panel_body.add_child(_card(icon_for("ui", "daily"), "Daily rewards", "The 7-day calendar and the daily spin (from level %d)" % VFData.DAILY_LEVEL, daily, false, 48))
 
 func _req_row(name: String, have: float, need: float, money := false) -> Control:
 	var ok := have >= need
@@ -1843,12 +1941,13 @@ func _panel_prestige() -> void:
 			panel_body.add_child(lbl("Prestige %d » %d" % [VF.prestige, VF.prestige + 1], 20, C_GOLD))
 			panel_body.add_child(_req_row("Level", c.level[0], c.level[1]))
 			panel_body.add_child(_req_row("Money", c.money[0], c.money[1], true))
-			panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
-			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. P0 requirements are from the Prestige 0 Guide; later requirements are estimated.", 13, C_MUTED)
+			if c.charms[1] > 0: panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
+			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. Every rebirth asks for a little more than the last.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)
-			var b := _act("PRESTIGE", Color("#1d4ed8"), func(): return VF.do_prestige(), c.ok)
+			var b := _act("PRESTIGE", C_GOLD, func(): return VF.do_prestige(), c.ok)
 			b.custom_minimum_size = Vector2(220, 52)
+			b.add_theme_font_size_override("font_size", 20)
 			panel_body.add_child(b)
 		"Shop":
 			var tip: Dictionary = VFData.prestige_guide(VF.prestige)
@@ -1859,7 +1958,7 @@ func _panel_prestige() -> void:
 				var d: Dictionary = VFData.PRESTIGE_PERKS[id]
 				var locked: bool = VF.prestige < d.unlock
 				var right: Control = lbl("Prestige %d" % d.unlock, 14, C_MUTED) if locked else \
-					_act("1 Azure", Color("#1d4ed8"), func(): return VF.buy_perk(id), VF.exotics.azure >= 1 and VF.pk(id) < VF.perk_cap())
+					_act("1 Azure", C_TEAL, func(): return VF.buy_perk(id), VF.exotics.azure >= 1 and VF.pk(id) < VF.perk_cap())
 				_add_to(g, _card(icon_for("exotic", "azure"), "%s [%s]  %d/%d" % [d.name, d.short, VF.pk(id), VF.perk_cap()], d.desc, right, locked, 48))
 		"Guide":
 			var intro := lbl("Community Prestige Shop buy order (IT International Ties, FW Fish Whisperer, AO Ancient One, BE Business Education, VF Virtual Fisher). \"Max\" only if you want to reach P160 level 25k.", 13, C_MUTED)
@@ -1875,7 +1974,7 @@ func _panel_prestige() -> void:
 				var gd: Dictionary = VFData.prestige_guide(r[1])
 				var hl: bool = r[1] == VF.prestige
 				var p := PanelContainer.new()
-				p.add_theme_stylebox_override("panel", sbox(Color("#1d4ed8") if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
+				p.add_theme_stylebox_override("panel", sbox(C_GOLD.lerp(C_PANEL2, 0.6) if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
 				p.add_child(lbl("P%s: %s%s" % [r[0], gd.main, (" / Max: " + gd.max) if gd.max != "" else ""], 13))
 				_add_to(g, p)
 			panel_body.add_child(lbl("Other prestiges in each range ending in 2,3,4,7,8,9 (or 3,4,8,9): SKIP and save Azure Fish.", 13, C_MUTED))
@@ -1888,7 +1987,7 @@ func _panel_stats() -> void:
 		["Cooldown", "%.2fs" % VF.cooldown()], ["Avg fish / cast", "%.1f" % _avg_fish()],
 		["Bait effectiveness", "×%.2f" % VF.bait_eff()], ["Duplicate chance", "%.0f%%" % (VF.duplicate_chance() * 100.0)],
 		["Trips", VF.commas(VF.stats.trips)], ["Fish caught", VF.commas(VF.stats.fish)], ["Chests", VF.commas(VF.stats.chests)],
-		["Money earned", money_str(VF.stats.money_earned)]]
+		["Money earned", money_str(VF.stats.money_earned)], ["Rubber ducks", VF.commas(VF.ducks)]]
 	var g := _grid(4)
 	for r in rows:
 		var p := PanelContainer.new()
@@ -1932,6 +2031,9 @@ func _check_capture() -> void:
 	if "--reelyt" in OS.get_cmdline_user_args():
 		_reel_yt()
 		return
+	if "--reel10" in OS.get_cmdline_user_args():
+		v1.reel10()
+		return
 	if "--reel05" in OS.get_cmdline_user_args():
 		_reel05()
 		return
@@ -1962,11 +2064,51 @@ func _check_capture() -> void:
 		# steer with keys and a drag, cast from the new spot, sail through lanes, Map travel,
 		# every biome's exits (the scenario lives in vf_sail.gd)
 		VF._apply(VF._defaults.duplicate(true))
+		VF.catch_mode = "relax"
 		VF.tutorial = 99
 		VF.level = 120
 		VF.changed.emit()
 		_coach_show()
 		await sail.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--tour" in OS.get_cmdline_user_args():
+		await fun.tour()
+		get_tree().quit()
+		return
+	if "--fun-test" in OS.get_cmdline_user_args():
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 99
+		VF.level = 40
+		VF.changed.emit()
+		_coach_show()
+		await fun.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--gerald-test" in OS.get_cmdline_user_args():
+		await fun.gerald_test(dir)
+		get_tree().quit()
+		return
+	if "--finds-test" in OS.get_cmdline_user_args():
+		await fun.finds_test(dir)
+		get_tree().quit()
+		return
+	if "--hats-test" in OS.get_cmdline_user_args():
+		await stage.hats_test(self, dir)
+		get_tree().quit()
+		return
+	if "--rebirth-test" in OS.get_cmdline_user_args():
+		await fun.rebirth_test(dir)
+		get_tree().quit()
+		return
+	if "--turn-test" in OS.get_cmdline_user_args():
+		VF._apply(VF._defaults.duplicate(true))
+		VF.tutorial = 99
+		VF.level = 120
+		VF.boats_owned = VFData.BOAT_ORDER.find("Cruise Ship") + 1
+		VF.changed.emit()
+		_coach_show()
+		await sail.turn_test()
 		get_tree().quit()
 		return
 	if "--rtl-test" in OS.get_cmdline_user_args():
@@ -1987,6 +2129,7 @@ func _check_capture() -> void:
 	if "--aim-test" in OS.get_cmdline_user_args():
 		# tap three different spots; the bobber must land on each (within a few px)
 		VF._apply(VF._defaults.duplicate(true))
+		VF.catch_mode = "relax"
 		VF.tutorial = 99
 		VF.changed.emit()
 		_coach_show()
@@ -2010,10 +2153,25 @@ func _check_capture() -> void:
 		get_tree().quit()
 		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:
-		# the title screen: as it opens, signing in over it, after Play
+		# the title screen: as it opens, its update states, signing in over it, after Play
+		# (--launcher-hold=SECONDS: a longer look first, for recording the movement)
+		var hold := 3.0
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--launcher-hold="): hold = float(a.substr(16))
+		await _shot(dir + "/launcher_opening.png")
 		Updater.check()
-		await _wait(3.0)
+		await _wait(hold)
 		await _shot(dir + "/launcher.png")
+		print("LAUNCHER logo=%s panel=%s size=%s" % [launcher.logo.get_rect(), launcher._panel_w(), launcher.size])
+		Updater.latest = {"version": "1.0"}
+		for st in ["available", "downloading", "ready", "error"]:
+			Updater.state = st
+			Updater.progress = 0.4
+			Updater.status_changed.emit()
+			await _wait(0.3)
+			await _shot(dir + "/launcher_update_%s.png" % st)
+		Updater.state = "idle"
+		Updater.status_changed.emit()
 		launcher._open_form("sign_in")
 		await _wait(0.6)
 		await _shot(dir + "/launcher_signin.png")
@@ -2040,44 +2198,108 @@ func _check_capture() -> void:
 		print("LAUNCHER closed=%s stage=%s" % [not launcher_open(), stage.visible])
 		get_tree().quit()
 		return
+	if "--collect-test" in OS.get_cmdline_user_args():
+		await collect.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--v1-test" in OS.get_cmdline_user_args():
+		await v1.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--idle-test" in OS.get_cmdline_user_args():
+		await idle.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--boats-test" in OS.get_cmdline_user_args():
+		await _boats_test(dir)
+		get_tree().quit()
+		return
+	if "--preview" in OS.get_cmdline_user_args():
+		await _preview_clip()
+		get_tree().quit()
+		return
+	if "--catch-test" in OS.get_cmdline_user_args():
+		await _catch_test(dir)
+		get_tree().quit()
+		return
+	if "--scenes-test" in OS.get_cmdline_user_args():
+		await _scenes_test(dir)
+		get_tree().quit()
+		return
+	if "--play-shots" in OS.get_cmdline_user_args():
+		await v1.play_shots(dir)
+		get_tree().quit()
+		return
 	if "--scroll-test" in OS.get_cmdline_user_args():
 		await _scroll_test(dir)
 		get_tree().quit()
 		return
 	if "--onboarding" in OS.get_cmdline_user_args():
+		# a new player's first minute, with real taps on the water: each cast waits for its round of the mini-game to end
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 0
 		VF.changed.emit()
+		_card_intro()
 		_coach_show()
 		await get_tree().create_timer(1.0).timeout
 		await _shot(dir + "/on0_cast.png")
+		print("START: welcome card %s, coach %s" % [card.visible, _coach.visible])
 		var trips_before: int = VF.stats.trips
-		for i in 6:
-			VF._last_cast_ms = -100000
-			var at: Vector2 = stage.bobber_screen() + Vector2(40, 30)
-			for pressed in [true, false]:
-				var ev := InputEventMouseButton.new()
-				ev.button_index = MOUSE_BUTTON_LEFT
-				ev.pressed = pressed
-				ev.position = at
-				ev.global_position = at
-				Input.parse_input_event(ev)
-			await get_tree().create_timer(0.7).timeout
-		print("TAP_CASTS ", VF.stats.trips - trips_before)
-		await get_tree().create_timer(0.6).timeout
-		await _shot(dir + "/on1_sell.png")
+		await _onboarding_round(dir, "on1_first_round.png")
+		print("TAP_CASTS %d, tutorial %d, rounds %d" % [VF.stats.trips - trips_before, VF.tutorial, VF.reel_rounds])
+		await get_tree().create_timer(2.0).timeout
+		await _shot(dir + "/on2_sell.png")
 		_do_sell()
 		await get_tree().create_timer(2.6).timeout
-		await _shot(dir + "/on2_merchant.png")
+		await _shot(dir + "/on3_merchant.png")
 		stage.merchant_clicked.emit()
 		await get_tree().create_timer(0.6).timeout
-		await _shot(dir + "/on3_shop.png")
+		await _shot(dir + "/on4_shop.png")
 		_close_panel()
 		await get_tree().create_timer(0.8).timeout
-		await _shot(dir + "/on4_goals.png")
+		while _banner_busy: await get_tree().process_frame
+		await get_tree().create_timer(0.3).timeout
+		await _shot(dir + "/on5_goals.png")
+		print("LAST STEP: tutorial %d, coach %s" % [VF.tutorial, _coach.visible])
 		_open_panel("inventory")
 		await get_tree().create_timer(0.5).timeout
-		await _shot(dir + "/on5_collection.png")
+		await _shot(dir + "/on6_collection.png")
+		_close_panel()
+		_open_panel("menu")
+		await get_tree().create_timer(0.5).timeout
+		panel_scroll.scroll_vertical = 100000      # (the credit's at the very end)
+		await get_tree().create_timer(0.1).timeout
+		await _shot(dir + "/on7_menu.png")
+		_close_panel()
+		await _onboarding_round(dir, "on8_second_round.png")
+		print("ROUND 2: coach %s, question %s" % [_coach.visible, _reel_ask])
+		await get_tree().create_timer(1.0).timeout
+		await _onboarding_round(dir)
+		print("ROUND 3: rounds %d, question due %s" % [VF.reel_rounds, _reel_ask])
+		var t0 := Time.get_ticks_msec()
+		while _reel_card == null and Time.get_ticks_msec() - t0 < 6000:
+			await get_tree().process_frame
+		if _reel_card == null:
+			print("QUESTION: never came")
+			get_tree().quit()
+			return
+		await get_tree().create_timer(0.6).timeout
+		await _shot(dir + "/on9_question.png")
+		for b in _reel_card.find_children("*", "Button", true, false):
+			if b.text == "Just relax": b.pressed.emit()
+		await get_tree().create_timer(0.6).timeout
+		await _shot(dir + "/on10_relax.png")
+		print("JUST RELAX: mode %s, card gone %s" % [VF.catch_mode, _reel_card == null])
+		VF.set_catch_mode("reel")
+		_reel_ask = true
+		_ask_reel()
+		await get_tree().create_timer(0.3).timeout
+		for b in _reel_card.find_children("*", "Button", true, false):
+			if b.text.begins_with("Keep reeling"): b.pressed.emit()
+		await get_tree().create_timer(0.4).timeout
+		print("KEEP REELING: mode %s, card gone %s" % [VF.catch_mode, _reel_card == null])
+		await _onboarding_round(dir)
+		print("ROUND 4: rounds %d, question due %s" % [VF.reel_rounds, _reel_ask])
 		get_tree().quit()
 		return
 	if demo != "":
@@ -2109,12 +2331,50 @@ func _check_capture() -> void:
 		await _shot(dir + "/panel_%s%s.png" % [p[0], ("_" + p[1].to_lower().replace(" / ", "_")) if p[1] != "" else ""])
 	get_tree().quit()
 
+## --onboarding: a tap on open water, then hands off until that round of the mini-game is over
+func _onboarding_round(dir: String, shot := "") -> void:
+	var at := get_viewport_rect().size * Vector2(0.55, 0.62)
+	var tries := 0
+	while minigame == null and tries < 5:
+		tries += 1
+		VF._last_cast_ms = -100000
+		_tap(get_viewport().get_final_transform() * at)
+		at += Vector2(70.0, -30.0)                 # (past the tutorial a gull or a toy can be in the way, and it gets poked instead)
+		var t0 := Time.get_ticks_msec()
+		while minigame == null and Time.get_ticks_msec() - t0 < 2500:
+			await get_tree().process_frame
+	if tries > 1: print("ONBOARDING: took %d taps to start a round" % tries)
+	if minigame == null:
+		print("ONBOARDING: the tap started no round. can_cast='%s' mode=%s sail=%s overlay=%s(%s) question=%s phone=%s wait=%d back=%s tutorial=%d at=%s" % [VF.can_cast(), VF.catch_mode,
+			sail.state, overlay.visible, _panel_kind, _reel_card != null, _phone_open(), _reel_wait_until - Time.get_ticks_msec(), idle.back_card != null, VF.tutorial, at])
+		await _shot(dir + "/on_no_round.png")
+		return
+	await get_tree().create_timer(1.0).timeout
+	if shot != "": await _shot(dir + "/" + shot)
+	while minigame != null:
+		await get_tree().process_frame
+
 ## Reel-it-in mode end to end: toggle, cast, play the mini-game to a WIN and to a LOSS (simulated input)
 func _minigame_test(dir: String) -> void:
 	VF._apply(VF._defaults.duplicate(true))
 	VF.tutorial = 99
 	VF.changed.emit()
 	_coach_show()
+	await get_tree().create_timer(1.0).timeout
+	# a new game is already in this mode, and its first round is close to impossible to lose: nobody touches anything here
+	print("MG new game: mode=%s rounds=%d" % [VF.catch_mode, VF.reel_rounds])
+	_do_cast()
+	while minigame == null:
+		await get_tree().process_frame
+	var first = minigame
+	await get_tree().create_timer(1.3).timeout
+	await _shot(dir + "/mg_first_round.png")
+	while is_instance_valid(first) and first.phase != "end":
+		await get_tree().process_frame
+	print("MG first round, hands off: won=%s after %.1fs, rounds=%d" % [first.won, first.play_t, VF.reel_rounds])
+	while minigame != null:
+		await get_tree().process_frame
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS        # from here on: the normal game
 	_set_catch_mode("reel")
 	await get_tree().create_timer(1.0).timeout
 	await _shot(dir + "/mg0_toggle.png")
@@ -2140,6 +2400,8 @@ func _minigame_test(dir: String) -> void:
 		await _shot(dir + "/mg_%s_4gag.png" % outcome)
 		print("MG %s: trips +%d fish +%d cooldown_left %.2f (cur_cooldown %.2f) took %.1fs" % [outcome, VF.stats.trips - trips,
 			VF.stats.fish - fish, VF.cooldown_left(), VF.cur_cooldown(), mg.play_t])
+		await get_tree().create_timer(0.75 if outcome == "win" else 1.2).timeout
+		await _shot(dir + "/mg_%s_4poster.png" % outcome)
 		while minigame != null:
 			await get_tree().process_frame
 		print("MG %s: closed %.2fs after the result" % [outcome, (Time.get_ticks_msec() - t_end) / 1000.0])
@@ -2152,11 +2414,14 @@ func _minigame_test(dir: String) -> void:
 		await get_tree().process_frame
 	var m2 = minigame
 	m2.auto = "win"
-	for tr in [3, 4, 2, 1]:          # every fish look (eye / mouth overlay on the Kenney sprites)
-		m2.tier = tr
-		m2.progress = 0.3
-		await get_tree().create_timer(0.7).timeout
-		await _shot(dir + "/mg_tier%d.png" % tr)
+	# every gag, on a fish it suits
+	for p in [["Cod", "disguise"], ["Raw Salmon", "selfie"], ["Tropical Fish", "dead"], ["Raw Fish", "nap"], ["Rainbow Fish", "shark"], ["Hot Cod", "banana"],
+			["Space Fish", "rocket"], ["Alien Fish", "boot"], ["Artifact Fish", "dance"], ["Dark Tuna", "bribe"], ["Pufferfish", "puff"], ["Squid", "ink"],
+			["Turtle", "closed"], ["Dolphin", "flip"], ["Shark", "chomp"], ["Galactic Crab", "snip"]]:
+		m2.test_gag(p[0], p[1])
+		await get_tree().create_timer(0.72).timeout
+		await _shot(dir + "/mg_gag_%s.png" % p[1])
+	m2.time_limit = 999.0
 	m2.progress = 0.99
 	m2.zone_y = clampf(m2.fish_y - m2.zone_h * 0.5, 0.0, 1.0 - m2.zone_h)
 	m2.auto = "win"
@@ -2174,6 +2439,147 @@ func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 
+## godot --path . --resolution 1920x1080 -- --capture=DIR --boats-test : the fisher on every boat, close up
+## (sitting, then casting), for checking seats, scale and how he sits. Never saves.
+func _boats_test(dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	_veteran("River")
+	VF.tutorial = 99
+	_close_panel()
+	for n in [card, sell_btn, fish_btn, mode_pill, top_right, hud_col, boost_pill, chips.rod.get_parent().get_parent()]:
+		n.visible = false
+	idle.auto_pill.visible = false
+	for b in VFData.BOAT_ORDER:
+		VF.boats_owned = VFData.BOAT_ORDER.find(b) + 1
+		_apply_biome()
+		stage.play_anim("idle")
+		sail.set_process(false)                       # (it would swing the boat back side-on)
+		for yaw in [0.0, 15.0, -60.0, 120.0]:         # side on, then turned: the pictures must line up
+			stage.boat_yaw = yaw
+			await _wait(0.5 if yaw == 0.0 else 0.15)
+			await RenderingServer.frame_post_draw
+			var img := get_viewport().get_texture().get_image()
+			var c: Vector2 = stage.boat_screen() * Vector2(img.get_size()) / get_viewport_rect().size   # (layout -> image px)
+			var half := Vector2i(330, 240)
+			var r := Rect2i(Vector2i(c) - half, half * 2).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+			img.get_region(r).save_png(dir + "/boat_%02d_%s_%d.png" % [VFData.BOAT_ORDER.find(b) + 1, VFData.slug(b), int(yaw)])
+		sail.set_process(true)
+
+## godot --path . --resolution 1600x900 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --preview : about a minute
+## of the game with its sound, for showing what it's like: fishing by day, the menus fade, sunset, night and a big one. Never saves.
+func _preview_clip() -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	_veteran("River")
+	VF.tutorial = 99
+	_close_panel()
+	_apply_biome()
+	stage.set_time_of_day(0.3)
+	AudioManager.music_volume = 0.8
+	AudioManager.apply_settings()
+	card.visible = false
+	for t in toast_box.get_children(): t.free()
+	var fishes: Array = VFData.BIOMES["River"].fish
+	var play := func(seconds: float, from_day: float, to_day: float, force := {}):
+		var left := seconds
+		var next_cast := 0.4
+		var total := seconds
+		while left > 0.0:
+			var step := 1.0 / 30.0
+			await get_tree().process_frame
+			left -= step
+			next_cast -= step
+			stage.set_time_of_day(lerpf(from_day, to_day, 1.0 - left / total))
+			if next_cast <= 0.0:
+				next_cast = randf_range(2.9, 3.8)
+				if not force.is_empty() and left < total * 0.6:
+					var big: Dictionary = force
+					force = {}
+					stage.cast(func():
+						stage._last_big_show = -100.0
+						stage.show_catch(big))
+				else:
+					VF._last_cast_ms = -100000
+					_do_cast()
+	await play.call(12.0, 0.3, 0.32)
+	radio.start_listening()
+	VF.set_auto(false)
+	await play.call(10.0, 0.32, 0.5, {"fish": {fishes.back(): 2, fishes[0]: 12}, "count": 14, "chest": {}})
+	await play.call(14.0, 0.5, 0.62)
+	await play.call(20.0, 0.62, 0.8, {"fish": {fishes.back(): 1}, "count": 1, "chest": {}, "new_species": [fishes.back()]})
+
+## godot --path . --resolution 1280x720 --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --catch-test : the three sizes
+## of catch show in a row, for watching them in a recording (with the game's sound). Never saves.
+func _catch_test(_dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	_veteran("River")
+	VF.tutorial = 99
+	_close_panel()
+	_apply_biome()
+	for n in [card, sell_btn, fish_btn, mode_pill, top_right, hud_col, boost_pill, chips.rod.get_parent().get_parent()]:
+		n.visible = false
+	await _wait(1.0)
+	var fishes: Array = VFData.BIOMES["River"].fish
+	var tests := [{"fish": {fishes[0]: 9, fishes[1]: 5}, "count": 14, "chest": {}}, {"fish": {fishes.back(): 3, fishes[0]: 20}, "count": 23, "chest": {}},
+		{"fish": {fishes.back(): 1}, "count": 1, "chest": {}, "new_species": [fishes.back()]}]
+	for lv in 3:
+		stage.cast(func():
+			stage._last_big_show = -100.0
+			stage.show_catch(tests[lv]))
+		await _wait([3.0, 3.5, 5.0][lv])
+
+## godot --path . --resolution 1920x1080 -- --capture=DIR --scenes-test : every biome with the HUD on and no
+## catch card or toasts, for checking the backdrops and what the HUD covers. Never saves.
+func _scenes_test(dir: String) -> void:
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	_close_panel()
+	for b in VFData.BIOMES:
+		_veteran(b)
+		_apply_biome()
+		stage.play_anim("idle")
+		card.visible = false
+		for t in toast_box.get_children(): t.free()
+		stage.set_time_of_day(0.3)
+		await _wait(1.5)
+		await _shot(dir + "/scene_%s.png" % VFData.slug(b))
+		stage.set_time_of_day(0.565)
+		await _wait(0.4)
+		await _shot(dir + "/scene_%s_dusk.png" % VFData.slug(b))
+		stage.set_time_of_day(0.76)
+		await _wait(0.4)
+		await _shot(dir + "/scene_%s_night.png" % VFData.slug(b))
+	# the shop's tap area: the building opens the shop, the water in the corner of its box doesn't
+	_veteran("River")
+	_apply_biome()
+	await _wait(0.5)
+	var shop: Rect2 = stage._shop_rect()
+	var aim0: Vector2 = stage.aim
+	var to_window := get_viewport().get_final_transform()
+	_tap(to_window * stage.to_screen(shop.position + shop.size * Vector2(0.97, 0.97)))
+	await _wait(0.5)
+	print("SHOP TEST water beside it: panel='", _panel_kind, "' aim moved=", stage.aim != aim0)
+	_close_panel()
+	_tap(to_window * stage.to_screen(shop.position + shop.size * Vector2(0.5, 0.55)))
+	await _wait(0.6)
+	print("SHOP TEST the building: panel='", _panel_kind, "'")
+	await _shot(dir + "/scene_shop_open.png")
+	_close_panel()
+	print("MUSIC TEST track=", AudioManager.track, " playing=", AudioManager.music_is_playing())
+	_open_panel("radio")
+	await _wait(0.5)
+	await _shot(dir + "/scene_radio.png")
+	AudioManager.music_choose("moonlight")
+	await _wait(0.5)
+	print("MUSIC TEST picked=", AudioManager.track, " pick=", AudioManager.music_pick)
+	radio.start_listening()
+	await _wait(1.5)
+	await _wait(3.0)
+	await _shot(dir + "/scene_listening.png")
+	radio.stop_listening()
+	AudioManager.music_follow_place()
+	await _wait(1.0)
+	print("MUSIC TEST back=", AudioManager.track, " pick=", AudioManager.music_pick)
+	await _shot(dir + "/scene_back.png")
 
 # ================================================================== guide
 func _capturing() -> bool:
@@ -2181,18 +2587,7 @@ func _capturing() -> bool:
 		if a.begins_with("--capture="): return true
 	return false
 
-func _build_version_label() -> void:
-	var v := lbl("fosh&fish %s · by afosh" % VERSION, 11, Color(1, 1, 1, 0.75), 4)
-	v.anchor_left = 1.0
-	v.anchor_right = 1.0
-	v.anchor_top = 1.0
-	v.anchor_bottom = 1.0
-	v.offset_left = -480
-	v.offset_right = -118
-	v.offset_top = -24
-	v.offset_bottom = -8
-	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+func _build_update_pill() -> void:
 	update_pill = btn("Update available", Color("#2f8f9e"), 14, 0)
 	update_pill.icon = ph("arrow-circle-up")
 	update_pill.add_theme_constant_override("icon_max_width", 18)
@@ -2211,8 +2606,6 @@ func _build_version_label() -> void:
 	update_pill.visible = false
 	update_pill.pressed.connect(func(): _open_panel("update"))
 	add_child(update_pill)
-	add_child(v)
-	move_child(v, overlay.get_index())
 
 func _panel_guide() -> void:
 	if _panel_tab == "Feedback":
@@ -2359,6 +2752,8 @@ func _setting_row(title: String, sub: String, on: bool, on_key: String, vol: flo
 	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	t.pressed.connect(func():
 		AudioManager.set_option(on_key, not on)
+		if on_key == "notify_on" and not on: notify.ask()
+		if on_key == "vibration_on" and not on: VFHaptics.buzz("bite")
 		_render_panel())
 	h.add_child(t)
 	panel_body.add_child(p)
@@ -2388,10 +2783,16 @@ func _panel_settings() -> void:
 			_render_panel())
 		ch.add_child(b)
 	panel_body.add_child(cm)
-	_setting_row("Music & ambience", "Calm water sounds in the background", A.music_on, "music_on", A.music_volume, "music_volume")
+	_setting_row("Music", "The soundtrack by %s (pick tracks on the Radio, in the Menu)" % A.COMPOSER, A.music_on, "music_on", A.music_volume, "music_volume")
 	_setting_row("Sound effects", "Casting, splashes, clicks, level-ups", A.sfx_on, "sfx_on", A.sfx_volume, "sfx_volume")
+	if is_touch() and not OS.has_feature("web_ios"): _setting_row("Vibration", "A soft buzz for bites, catches and pokes", A.vibration_on, "vibration_on")   # (Safari can't vibrate)
+	_setting_row("Scenery effects", "Wind, reflections, clouds, day and night. Turn off if the game runs slowly", A.scenery_fx, "scenery_fx")
 	if OS.get_name() in ["Windows", "Linux", "macOS", "Web"]:
 		_setting_row("Fullscreen", "Play in fullscreen (Esc closes menus)", A.fullscreen, "fullscreen")
+	if notify.supported():
+		var sub := "A note when your crews fill the cooler, or a daily reward or spin is ready (while this tab is in the background)"
+		if notify.permission() == "denied": sub = "Notifications are blocked for this site: allow them in your browser's site settings"
+		_setting_row("Reminders", sub, A.notify_on, "notify_on")
 	# interface size: text, buttons and menus (the game world is framed the same)
 	var us := PanelContainer.new()
 	us.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 12))
@@ -2449,6 +2850,7 @@ func _panel_settings() -> void:
 # ============================================================== onboarding
 var _banner_queue: Array = []
 var _banner_busy := false
+var _card_waits := false                     # a card is waiting for the banners to finish (phones)
 
 func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
 	_banner_queue.append([title, sub, tex, color])
@@ -2457,15 +2859,24 @@ func _banner(title: String, sub: String, tex: Texture2D, color: Color) -> void:
 func _next_banner() -> void:
 	if _banner_queue.is_empty():
 		_banner_busy = false
+		if _card_waits:
+			_card_waits = false
+			_show_card()
 		return
 	_banner_busy = true
+	if compact() and card.visible and card.modulate.a > 0.35:
+		_card_waits = true                     # (phones: no room for both. The card comes back after the news)
+		card.visible = false
 	var b: Array = _banner_queue.pop_front()
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.97), 18, 3, b[3], 14, 10))
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
-	if b[2]: h.add_child(icon(b[2], 72))
+	if b[2]:
+		var bi := icon(b[2], 72)
+		if String(b[2].resource_path).find("/phosphor/") >= 0: bi.modulate = b[3]    # white UI icons on the white banner
+		h.add_child(bi)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(lbl(b[0], 24, b[3].darkened(0.15)))
@@ -2478,7 +2889,12 @@ func _next_banner() -> void:
 	p.position = Vector2((vw - p.size.x) * 0.5, -p.size.y - 10)
 	AudioManager.play_success()
 	var tw := p.create_tween()
-	tw.tween_property(p, "position:y", 112.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var below_goal: float = goal_box.get_global_rect().end.y + 8.0 if compact() else 0.0    # (phones: it's wide enough to be in the way)
+	var y := maxf(112.0, below_goal)
+	var said: Rect2 = stage.say_rect()                     # the captain's line (a find's, say): the banner goes round it
+	if said.has_area() and Rect2(Vector2((vw - p.size.x) * 0.5, y), p.size).grow(6.0).intersects(said):
+		y = said.end.y + 10.0 if said.end.y + 10.0 + p.size.y < get_viewport_rect().size.y - 110.0 else maxf(8.0, said.position.y - p.size.y - 10.0)
+	tw.tween_property(p, "position:y", y, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(2.2)
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)
@@ -2498,13 +2914,14 @@ var _coach_label: Label
 var _coach_t := 0.0
 
 const COACH_TEXT := {
-	0: "Tap the water to cast your line!
-(hold it down to keep fishing)",
+	0: "Tap the water to cast your line!",
 	1: "Nice catch! Your fish are in the hold.\nTap SELL to turn them into money.",
 	2: "Now visit the fish shop to spend it —\ntap the merchant on the island.",
 	3: "Better rods catch more and rarer fish.\nSave $500 for the Improved Rod, then come back!",
-	4: "Your goals live here — finish them for rewards.\nPress G any time for the full guide. Happy fishing!",
+	4: "Your goals live here — finish them for rewards.\nThe full guide is in the Menu. Happy fishing!",
 }
+const COACH_FIRST_ROUND := "Hold %s:\nthe net goes up.\nLet go: it sinks.\nKeep the fish inside!"
+var _coach_first := false                    # the bubble's on the first round of the mini-game
 
 func _build_coach() -> void:
 	_coach = Control.new()
@@ -2527,17 +2944,27 @@ func _coach_next(step: int) -> void:
 	VF.save_game()
 	_coach_show()
 	if step == 4:
-		get_tree().create_timer(7.0).timeout.connect(func():
-			if VF.tutorial == 4: _coach_next(99))
+		while _banner_busy: await get_tree().process_frame      # (the bubble waits for them: its 7 s start after)
+		await get_tree().create_timer(7.0).timeout
+		if VF.tutorial == 4: _coach_next(99)
+
+## the very first round of the mini-game: the coach says how it's played, whatever step the tutorial is on
+func _coach_round() -> bool:
+	return minigame != null and VF.reel_rounds == 0
 
 func _coach_show() -> void:
 	if _coach == null: return
-	_coach.visible = COACH_TEXT.has(VF.tutorial) and not launcher_open()
+	var first := _coach_round()
+	_coach.visible = (first or COACH_TEXT.has(VF.tutorial)) and not launcher_open()
 	if _coach.visible:
-		_coach_label.text = COACH_TEXT[VF.tutorial]
+		_coach_label.text = COACH_FIRST_ROUND % ("anywhere" if is_touch() else "the mouse or Space") if first else COACH_TEXT[VF.tutorial]
+		_coach_bubble.reset_size()
 		move_child(_coach, get_child_count() - 1)
 
 func _coach_target() -> Vector2:
+	if _coach_round():                         # the window of water with the net in it
+		var mg = minigame
+		return mg.card.get_global_transform() * (mg.COL.position + Vector2(0.0, mg.COL.size.y * 0.5))
 	match VF.tutorial:
 		0: return stage.bobber_screen()
 		1: return sell_btn.get_global_rect().get_center() + Vector2(0, -sell_btn.size.y * 0.5)
@@ -2548,8 +2975,15 @@ func _coach_target() -> Vector2:
 	return get_viewport_rect().size * 0.5
 
 func _process_coach(delta: float) -> void:
-	if _coach == null or not COACH_TEXT.has(VF.tutorial): return
-	_coach.visible = (not overlay.visible or VF.tutorial == 3) and not launcher_open()
+	if _coach == null: return
+	var first := _coach_round()
+	if first != _coach_first:                  # (the round began or ended: the bubble says something else now)
+		_coach_first = first
+		_coach_show()
+	if not first and not COACH_TEXT.has(VF.tutorial): return
+	# (with the line in the air, a round on, a question open or a banner where the bubble goes, the tutorial's steps wait)
+	var busy: bool = minigame != null or _reel_card != null or Time.get_ticks_msec() < _reel_wait_until or (_banner_busy and VF.tutorial in [2, 4])
+	_coach.visible = first or ((not overlay.visible or VF.tutorial == 3) and not launcher_open() and not busy)
 	if not _coach.visible: return
 	_coach_t += delta
 	var tgt := _coach_target()
@@ -2558,30 +2992,105 @@ func _process_coach(delta: float) -> void:
 	var below := VF.tutorial in [2, 4]
 	var bp := tgt + (Vector2(-bs.x * 0.5, 46) if below else Vector2(-bs.x * 0.5, -bs.y - 58))
 	if VF.tutorial == 3: bp = Vector2((vs.x - bs.x) * 0.5, 8)        # above the shop panel, not over its tabs
+	if first: bp = tgt - Vector2(bs.x + 54.0, bs.y * 0.5)            # beside the card, its arrow on the net
 	bp.x = clampf(bp.x, 12, vs.x - bs.x - 12)
 	bp.y = clampf(bp.y, 12, vs.y - bs.y - 12)
 	_coach_bubble.position = bp
 	_coach.queue_redraw()
 
 func _draw_coach() -> void:
-	if VF.tutorial == 3: return
+	var first := _coach_round()
+	if VF.tutorial == 3 and not first: return
 	var tgt := _coach_target()
 	var bob := sin(_coach_t * 5.0) * 7.0
-	var below := VF.tutorial in [2, 4]
-	var dir := -1.0 if below else 1.0          # arrow points down at the target unless the bubble is below
-	var tip := tgt + Vector2(0, -12 * dir + bob * dir)
-	var base := tip + Vector2(0, -34 * dir)
-	var pts := PackedVector2Array([tip, base + Vector2(-20, 0), base + Vector2(20, 0)])
-	_coach.draw_colored_polygon(PackedVector2Array([tip + Vector2(2, 3), base + Vector2(-18, 3), base + Vector2(22, 3)]), Color(0, 0, 0, 0.25))
-	_coach.draw_colored_polygon(pts, Color("#ffcf3f"))
-	_coach.draw_polyline(PackedVector2Array([tip, base + Vector2(-20, 0), base + Vector2(20, 0), tip]), Color("#3b2c20"), 3.0, true)
-	if VF.tutorial == 0:
+	# the arrow points down at the target, up if the bubble is below it, sideways at the net in the first round
+	var d := Vector2.RIGHT if first else (Vector2.UP if VF.tutorial in [2, 4] else Vector2.DOWN)
+	var tip := tgt - d * (12.0 + bob)
+	var base := tip - d * 34.0
+	var side := d.orthogonal() * 20.0
+	var drop := Vector2(2, 3)
+	_coach.draw_colored_polygon(PackedVector2Array([tip + drop, base - side + drop, base + side + drop]), Color(0, 0, 0, 0.25))
+	_coach.draw_colored_polygon(PackedVector2Array([tip, base - side, base + side]), Color("#ffcf3f"))
+	_coach.draw_polyline(PackedVector2Array([tip, base - side, base + side, tip]), Color("#3b2c20"), 3.0, true)
+	if VF.tutorial == 0 and not first:
 		var r := 26.0 + fmod(_coach_t * 30.0, 30.0)
 		_coach.draw_arc(tgt, r, 0, TAU, 40, Color(1, 1, 1, 1.0 - (r - 26.0) / 30.0), 3.0, true)
+
+# ---- the last easy round of the mini-game ends with one friendly question, asked once
+var _reel_ask := false                       # it's due, after this catch
+var _reel_card: Control
+
+func _ask_reel() -> void:
+	if not _reel_ask or _reel_card != null: return
+	if _banner_busy:
+		get_tree().create_timer(0.5).timeout.connect(_ask_reel)      # (after the news)
+		return
+	if overlay.visible or _phone_open() or minigame != null or sail.busy() or Time.get_ticks_msec() < _reel_wait_until: return    # (busy: after the next catch)
+	_reel_ask = false
+	_reel_card = Control.new()
+	_reel_card.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reel_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.1, 0.14, 0.5)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reel_card.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reel_card.add_child(center)
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", sbox(Color("#0b3a44", 0.97), 26, 3, Color("#ffd75e"), 26, 24))
+	p.custom_minimum_size.x = 560
+	center.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	p.add_child(v)
+	var pct := int(round(VFData.MINIGAME_FISH_BONUS * 100.0))
+	var title := lbl("You've got the hang of this!", 28, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	var body := lbl("Reeling them in catches +%d%% fish.\nJust relaxing catches plenty, and your thumbs get the day off." % pct, 16, Color(1, 1, 1, 0.85))
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(body)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	var keep := btn("Keep reeling (+%d%% fish)" % pct, C_GOOD, 18, 280)
+	keep.custom_minimum_size.y = 48
+	keep.pressed.connect(func(): _reel_choice("reel"))
+	row.add_child(keep)
+	var calm := btn("Just relax", C_NEUTRAL, 18, 170)
+	calm.custom_minimum_size.y = 48
+	calm.pressed.connect(func(): _reel_choice("relax"))
+	row.add_child(calm)
+	v.add_child(row)
+	var note := lbl("Change your mind any time: it's the pill next to the cast button.", 13, Color(1, 1, 1, 0.65))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(note)
+	add_child(_reel_card)
+	AudioManager.play_success()
+	await get_tree().process_frame
+	if not is_instance_valid(p): return
+	p.pivot_offset = p.size * 0.5
+	p.scale = Vector2(0.6, 0.6)
+	p.create_tween().tween_property(p, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _reel_choice(mode: String) -> void:
+	if _reel_card == null: return
+	AudioManager.play_click()
+	var c := _reel_card
+	_reel_card = null
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tw := c.create_tween()
+	tw.tween_property(c, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(c.queue_free)
+	if mode != VF.catch_mode: _set_catch_mode(mode)
 
 # a well-progressed save for screenshots and the demo video (never saved)
 func _veteran(demo: String) -> void:
 	VF.catch_mode = "relax"                     # demo screenshots: no mini-game popping up
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS + 1   # (and when there is one: no coach, no question)
 	VF.owned_rods = []
 	var lv: int = VFData.BIOMES[demo].level
 	VF.level = maxi(lv, 120)
@@ -2591,7 +3100,7 @@ func _veteran(demo: String) -> void:
 	for b in VFData.BOAT_ORDER:
 		if VFData.BOATS[b].level <= VF.level: VF.boats_owned += 1
 	for r in VFData.ROD_ORDER:
-		if VFData.RODS[r].level <= VF.level and r != "Supporter Rod": VF.owned_rods.append(r)
+		if VFData.RODS[r].level <= VF.level and not VFData.is_exclusive_rod(r): VF.owned_rods.append(r)
 	for r in VFData.ROD_ORDER:
 		if r in VF.owned_rods and VF.rod_usable(r, demo): VF.rod = r
 	VF.bait_stock = {"Magic Bait": 850, "Wise Bait": 120, "Leeches": 40}
@@ -2735,6 +3244,7 @@ func _trailer() -> void:
 	AudioManager.sfx_on = true
 	AudioManager.apply_settings()
 	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
 	VF.tutorial = 99          # captions explain instead of the tutorial pointer
 	VF.changed.emit()
 	_coach_show()
@@ -2795,6 +3305,7 @@ func _reel() -> void:
 	AudioManager.sfx_on = true
 	AudioManager.apply_settings()
 	VF._apply(VF._defaults.duplicate(true))
+	VF.catch_mode = "relax"
 	VF.tutorial = 99
 	VF.changed.emit()
 	_coach_show()
@@ -2847,7 +3358,7 @@ func _reel() -> void:
 # ================================================================ updates
 func _on_update_status() -> void:
 	var st: String = Updater.state
-	update_pill.visible = st in ["available", "full_needed", "downloading", "ready"]
+	update_pill.visible = st in ["available", "full_needed", "downloading", "ready"] and not launcher_open()   # (the title screen says it itself)
 	match st:
 		"downloading": update_pill.text = "Updating %d%%" % int(Updater.progress * 100.0)
 		"ready": update_pill.text = "Restart to update"
@@ -2881,6 +3392,10 @@ func _panel_update() -> void:
 				status = "fosh&fish %s is ready to download (%.1f MB). Your progress is kept." % [newest, mb]
 				action = btn("Update now", Color("#3fae6a"), 17, 220)
 			action.pressed.connect(U.download)
+		"store":
+			status = "Google Play keeps fosh&fish up to date: new versions install by themselves."
+			action = btn("Open Google Play", C_NEUTRAL, 15, 220)
+			action.pressed.connect(U.open_store)
 		"full_needed":
 			status = "fosh&fish %s is a big update and needs a new download (one time). Your progress is kept." % newest
 			action = btn("Open downloads", Color("#2f8f9e"), 17, 220)
@@ -2953,13 +3468,23 @@ const MENU_TILES := [
 	["settings", "Settings", "gear-six", "O", "Sound, screen, save"],
 	["update", "Updates", "arrow-circle-up", "", "Get the newest version"],
 	["account", "Account", "user-circle", "", "Cloud save & leaderboard"],
+	["store", "Store", "shopping-bag-open", "", "Packs, Pearls & free rewards"],
+	["events", "Events", "confetti", "", "What's on & the Event Shop"],
+	["fleet", "Fleet", "sailboat", "", "Crews that fish for you"],
+	["daily", "Daily", "gift", "", "Calendar & the daily spin"],
+	["radio", "Radio", "music-notes", "", "The soundtrack, or just listen"],
+	["achievements", "Achievements", "trophy", "", "Goals, jokes & a few Pearls"],
+	["aquarium", "Aquarium", "fish", "", "Your fish, swimming. Visitors pay"],
+	["wanted", "Wanted", "target", "", "Gerald, and the bounty"],
 ]
 
 const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
 	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
 	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
-	"account": Color("#6366f1"),
+	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"), "fleet": Color("#0e7490"),
+	"daily": Color("#f97316"), "radio": Color("#db2777"), "achievements": Color("#c98b1c"), "aquarium": Color("#238b9c"),
+	"wanted": Color("#a8854d"),
 }
 
 func _panel_menu() -> void:
@@ -2967,6 +3492,7 @@ func _panel_menu() -> void:
 	g.add_theme_constant_override("h_separation", 12)
 	g.add_theme_constant_override("v_separation", 12)
 	for t in MENU_TILES:
+		if t[0] == "wanted" and not VF.gerald_info().met: continue        # (he hasn't turned up yet)
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -2974,7 +3500,7 @@ func _panel_menu() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_stylebox_override("normal", sbox(C_PANEL2, 18, 0, Color.TRANSPARENT, 12))
 		b.add_theme_stylebox_override("hover", sbox(Color.WHITE, 18, 2, C_TEAL.lightened(0.3), 12, 8))
-		b.add_theme_stylebox_override("pressed", sbox(Color("#dcebef"), 18, 2, C_TEAL, 12))
+		b.add_theme_stylebox_override("pressed", sbox(Color("#e6dfd0"), 18, 2, C_TEAL, 12))
 		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		var v := VBoxContainer.new()
 		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -3004,9 +3530,16 @@ func _panel_menu() -> void:
 			sub.text = "Update available!"
 			sub.add_theme_color_override("font_color", C_GOOD)
 		if t[0] == "account": sub.text = account_ui.tile_subtitle()
+		if t[0] == "achievements" and not VF.ach_ready().is_empty():
+			bubble.add_theme_stylebox_override("panel", sbox(C_GOOD, 12, 0, Color.TRANSPARENT, 7))
+			sub.text = "%d ready to claim!" % VF.ach_ready().size()
+			sub.add_theme_color_override("font_color", C_GOOD)
 		var kind: String = t[0]
 		b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
 		g.add_child(b)
+	var by := lbl("Made by afosh", 13, C_MUTED)
+	by.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel_body.add_child(by)
 
 # ================================================================== phone
 ## The phone + FishTok live in vf_phone.gd (state in VF's FishTok section).

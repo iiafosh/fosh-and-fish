@@ -339,6 +339,31 @@ func run(main, out_dir: String) -> void:
 	m._open_panel("account", "Account")
 	await shot("account_8_signed_in_final")
 
+	# ---- shinies (1.0): the server rolls, numbers every copy and keeps anyone from hoarding a stock
+	await mock(HTTPClient.METHOD_POST, "/__mock/shiny?force=1&wait=0")
+	var sr: Dictionary = await B.try_shiny("Cod")
+	check(bool(sr.get("ok", false)) and int(sr.serial) >= 1 and VF.shinies.has("Cod") and int(sr.serial) in VF.shinies["Cod"],
+		"a lucky roll mints a numbered shiny (Shiny Cod No. %s, %s left)" % [sr.get("serial"), sr.get("left")])
+	await mock(HTTPClient.METHOD_POST, "/__mock/shiny?wait=30")
+	sr = await B.try_shiny("Cod")
+	check(not bool(sr.get("ok", true)) and sr.get("reason") == "cooldown", "a second roll right away -> cooldown")
+	await mock(HTTPClient.METHOD_POST, "/__mock/shiny?wait=0")
+	sr = await B.try_shiny("Cod")
+	var third: Dictionary = await B.try_shiny("Cod")
+	sr = await B.try_shiny("Cod")
+	check(third.get("ok", false) and sr.get("reason") == "max_each" and VF.shinies["Cod"].size() == 3,
+		"3 copies of a species per player, never more (%s)" % sr.get("reason"))
+	sr = await B.try_shiny("Squid")
+	check(sr.get("reason") == "max_day", "3 new shinies a day")
+	await mock(HTTPClient.METHOD_POST, "/__mock/shiny?force=0")
+	sr = await B.try_shiny("Fake Fish")
+	check(sr.get("reason") == "unknown", "only real species")
+	VF.shinies = {}
+	await B.load_shinies()
+	check(VF.shinies.get("Cod", []).size() == 3 and B.shiny_board.has("Cod") and int(B.shiny_board.Cod.left) == 2997
+		and B.shiny_feed.size() >= 3, "your shinies, the stock board (2,997 Cod left) and the latest finds load from the server")
+	await mock(HTTPClient.METHOD_POST, "/__mock/shiny?force=&wait=30")
+
 	# ---- delete account
 	await B.delete_account()
 	check(B.state == "signed_out" and not session_in_file(), "delete account -> signed out")

@@ -1,0 +1,5 @@
+{
+  "_": "Google Play product ids (create the same ids in Play Console -> Monetize -> In-app products) and the AdMob rewarded ad unit. The ids below are Google's TEST ad unit; replace it with yours (AdMob -> Apps -> Ad units) before publishing. The AdMob App ID goes in Project Settings -> AdMob (it contains '~').",
+  "admob_rewarded_android": "ca-app-pub-3940256099942544/5224354917",
+  "test_store_in_debug": true
+}

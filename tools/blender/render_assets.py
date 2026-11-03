@@ -157,6 +157,24 @@ def do_boats_top(only, man):
         bt[name] = TD.render_boat_top(name, os.path.join(d, slug(name) + ".png"))
 
 
+def do_boats_turn(only, man):
+    import vf_turn as TR
+    bt = man.setdefault("boats_top", {})
+    d = os.path.join(OUT, "boats_turn")
+    os.makedirs(d, exist_ok=True)
+    for name in B.BOAT_ORDER:
+        if want(name, only):
+            bt.setdefault(name, {})["turn"] = TR.render(name, d, slug(name))
+
+
+def do_turn_heads(only, man):
+    """only where his head is on each turning boat, and where the boat hides it (renders nothing, keeps the sheets)"""
+    import vf_turn as TR
+    for name in B.BOAT_ORDER:
+        if want(name, only):
+            man["boats_top"][name]["turn"]["head"] = TR.heads(name)
+
+
 def do_boat_seats(only, man):
     """Only the fisher's seat point per boat (same framing as boats_top, no render)."""
     bt = man.setdefault("boats_top", {})
@@ -184,21 +202,62 @@ def do_critters(only, man):
         if want(key, only):
             CR.render_swimmer(key, os.path.join(d, slug(key) + ".png"))
     man["swim"] = {"frames": CR.FRAMES, "cell": CR.CELL, "species": [k for k in CR.SWIMMERS]}
-    d = os.path.join(OUT, "critters")
+
+
+def do_life(only, man):
+    import vf_life as LF
+    e = LF.render_all(os.path.join(OUT, "life"), only)
+    old = man.get("life", {})
+    # (rendering only some of them keeps the others' entries)
+    fish = old.get("fish", {})
+    fish.update(e["fish"])
+    e["fish"] = fish
+    for k in ("gull", "crab"):
+        if k not in e and k in old:
+            e[k] = old[k]
+    finds = old.get("finds", {})
+    finds.update(e.get("finds", {}))
+    if finds:
+        e["finds"] = finds
+    man["life"] = e
+
+
+def do_brand(only):
+    import vf_brand as BR
+    d = os.path.join(ROOT, "assets", "brand", "src")
+    if want("logo", only):
+        BR.render_logo(os.path.join(d, "logo_3d.png"))
+    if want("icon", only):
+        BR.render_icon(os.path.join(d, "icon_3d.png"))
+
+
+def do_mini(only, man):
+    import vf_life as LF
+    d = os.path.join(OUT, "mini")
     os.makedirs(d, exist_ok=True)
-    if want("gull", only):
-        CR.render_gull(os.path.join(d, "gull.png"))
-        man["gull"] = {"frames": 8, "cell": 160}
-    if want("crab", only):
-        CR.render_static("crab", os.path.join(d, "crab.png"), 96, rot_z=0)
+    e = man.setdefault("mini", {"cell": LF.MINI_CELL, "frames": LF.MINI_FRAMES, "fish": {}})
+    for name in LF.BIOME_FISH + list(LF.RV.RIVALS):
+        if want(name, only):
+            e["fish"][name] = LF.render_mini(name, os.path.join(d, slug(name) + ".png"))
 
 
 def do_fisher(man):
     man["fisher"] = CR.render_fisher(os.path.join(OUT, "fisher"))
 
 
+def do_hats(only, man):
+    import vf_hats as H
+    man["hats"] = H.render(os.path.join(OUT, "hats"), only)
+
+
 def do_merchant(man):
     man["merchant"] = CR.render_merchant(os.path.join(OUT, "merchant"))
+
+
+def do_bobber():
+    d = os.path.join(OUT, "fx")
+    os.makedirs(d, exist_ok=True)
+    CR.render_bobber(os.path.join(d, "bobber.png"))
 
 
 def do_rods_hand(only, man):
@@ -237,18 +296,32 @@ def main():
             do_scenes(only, man)
         elif c == "boats_top":
             do_boats_top(only, man)
+        elif c == "boats_turn":
+            do_boats_turn(only, man)
+        elif c == "turn_heads":
+            do_turn_heads(only, man)
         elif c == "boat_seats":
             do_boat_seats(only, man)
         elif c == "fish_top":
             do_fish_top(only)
         elif c == "critters":
             do_critters(only, man)
+        elif c == "life":
+            do_life(only, man)
+        elif c == "mini":
+            do_mini(only, man)
+        elif c == "brand":
+            do_brand(only)
         elif c == "fisher":
             do_fisher(man)
+        elif c == "hats":
+            do_hats(only, man)
         elif c == "rods_hand":
             do_rods_hand(only, man)
         elif c == "merchant":
             do_merchant(man)
+        elif c == "bobber":
+            do_bobber()
         elif c in P.PROPS:
             do_props(c, only)
         save_manifest(man)

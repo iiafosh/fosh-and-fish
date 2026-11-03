@@ -20,6 +20,7 @@ WATERCRAFT = os.path.join(DL, "x_kenney_watercraft", "Models", "GLB format")
 PIRATE = os.path.join(DL, "x_kenney_pirate", "Models", "GLB format")
 SPACE = os.path.join(DL, "x_kenney_space", "Models", "GLTF format")
 BOATS = os.path.join(GLB, "boats")          # Quaternius / Poly by Google craft (tools/fetch_assets.py)
+FOREST = os.path.join(DL, "x_kaykit_forest", "KayKit_Forest_Nature_Pack_1.0_FREE", "Assets", "gltf")
 
 
 def _ramp(nt, soft=True):
@@ -40,9 +41,10 @@ def _ramp(nt, soft=True):
     return ramp.outputs[0]
 
 
-def toonify(mat, tint=None, soft=True, emit=0.0):
+def toonify(mat, tint=None, soft=True, emit=0.0, hsv=None):
     """Rewire a glTF Principled material into the project's cel shading,
-    keeping its base colour or texture (or replacing it with `tint`)."""
+    keeping its base colour or texture (or replacing it with `tint`, or shifting it by hsv = (hue, sat, value),
+    where hue 0.5 changes nothing and 0 / 1 turn the colour wheel half way)."""
     if mat is None or not mat.use_nodes:
         return mat
     nt = mat.node_tree
@@ -64,6 +66,11 @@ def toonify(mat, tint=None, soft=True, emit=0.0):
         rgb = nt.nodes.new("ShaderNodeRGB")
         rgb.outputs[0].default_value = col
         base_sock = rgb.outputs[0]
+    if hsv is not None:
+        hs = nt.nodes.new("ShaderNodeHueSaturation")
+        hs.inputs["Hue"].default_value, hs.inputs["Saturation"].default_value, hs.inputs["Value"].default_value = hsv
+        nt.links.new(base_sock, hs.inputs["Color"])
+        base_sock = hs.outputs[0]
     shade = _ramp(nt, soft)
     mul = nt.nodes.new("ShaderNodeMix")
     mul.data_type = "RGBA"
@@ -225,12 +232,15 @@ MAT_TINTS = {"leafsGreen": "#5fae4f", "leafsDark": "#3f8a4a", "leafsFall": "#d98
              "stone": "#a3a8ad", "stoneDark": "#7a8088", "mushroomRed": "#e0533e", "mushroomTan": "#e8d2a8"}
 
 
-def prop(name, folder=NATURE, tint=None):
-    """Return a fresh linked copy of a Kenney model (one joined mesh with
+def prop(name, folder=NATURE, tint=None, hsv=None):
+    """Return a fresh linked copy of a Kenney or KayKit model (one joined mesh with
     cel-shaded materials). The first call imports and caches it."""
-    key = (folder, name, tint)
+    key = (folder, name, tint, hsv)
     if key not in _lib or _lib[key].name not in bpy.data.objects:
-        meshes, arm, roots = import_glb(os.path.join(folder, name + ".glb"))
+        path = os.path.join(folder, name + ".glb")
+        if not os.path.exists(path):
+            path = os.path.join(folder, name + "_Color1.gltf")     # (KayKit's naming)
+        meshes, arm, roots = import_glb(path)
         bpy.context.view_layer.update()
         for m in meshes:
             mw = m.matrix_world.copy()
@@ -252,7 +262,7 @@ def prop(name, folder=NATURE, tint=None):
                 pass
         src.matrix_world = Matrix.Identity(4)
         for mt in src.data.materials:
-            toonify(mt, tint=tint or MAT_TINTS.get(mt.name.split(".")[0]))
+            toonify(mt, tint=tint or MAT_TINTS.get(mt.name.split(".")[0]), hsv=hsv)
         src.hide_render = True
         src.hide_set(True)
         _lib[key] = src
@@ -265,10 +275,11 @@ def prop(name, folder=NATURE, tint=None):
     return c
 
 
-def place(name, loc, scale=1.0, rot_z=None, folder=NATURE, tint=None, rnd=None):
-    o = prop(name, folder, tint)
+def place(name, loc, scale=1.0, rot_z=None, folder=NATURE, tint=None, rnd=None, hsv=None):
+    o = prop(name, folder, tint, hsv)
     o.location = loc
     o.scale = (scale, scale, scale)
+    o.rotation_mode = "XYZ"           # glTF imports come in as quaternions, which would ignore rotation_euler
     o.rotation_euler = (0, 0, rot_z if rot_z is not None else (rnd.uniform(0, math.tau) if rnd else 0.0))
     return o
 

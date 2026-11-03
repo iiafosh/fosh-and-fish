@@ -49,7 +49,7 @@ const MIN_COOLDOWN := 2.0         # Haste charm floor (wiki Charm page)
 ## Catch modes (not in the bot): "relax" = tap, wait out the cooldown (classic);
 ## "reel" = a short "Reel it in!" mini-game after each bite.
 const CATCH_MODES := ["relax", "reel"]
-const MINIGAME_FISH_BONUS := 0.75 # win the mini-game: +75% fish on that cast (owner: skill should pay off)
+const MINIGAME_FISH_BONUS := 2.0  # win the mini-game: +200% fish on that cast (owner: "make the mini game gives 200%")
 const MINIGAME_COOLDOWN := 0.5    # ... and the next cast is ready after 0.5s (instead of the normal cooldown)
 ## Interface scale for a touch screen whose short side is short_dp (CSS px on the web, dp on Android):
 ## about 1.28 layout px per dp, at least 500 px of height, never smaller than the 1280x720 desktop layout.
@@ -62,9 +62,13 @@ static func ui_scale_for(short_dp: float) -> float:
 ## Rod "reel power" for the Reel it in! mini-game (not in the bot): 0 for the starter rod,
 ## 1.0 for the best rods. More power = a bigger catch zone, a faster reel and slower slipping.
 static func rod_reel_power(r: String) -> float:
+	if RODS.has(r) and RODS[r].has("reel"): return float(RODS[r].reel)       # exclusive rods
 	var i := ROD_ORDER.find(r)
 	if i < 0: return 0.0
-	return clampf(float(i) / float(ROD_ORDER.size() - 2), 0.0, 1.0)   # the Supporter Rod counts as top
+	var regular := 0
+	for x in ROD_ORDER:
+		if not RODS[x].has("reel"): regular += 1
+	return clampf(float(i) / float(regular - 1), 0.0, 1.0)
 
 ## Mini-game difficulty for a fish tier (0 common .. 4 rarest), the rod's reel power (0..1)
 ## and the device. Rarer fish: smaller zone, faster fish, slower reel. Better rod: bigger zone,
@@ -72,8 +76,10 @@ static func rod_reel_power(r: String) -> float:
 ## Tuning history (reaction-time bot, starter rod vs common fish on PC): 0.5.1 ~1% (owner: "really
 ## hard"), 0.5.2 ~100% (owner: "really easy"), 0.5.3 ~52% - a sharp player wins most common fish,
 ## rare fish need a better rod, and even the best rod can lose to the rarest fish (~60%).
-static func minigame_params(tier: int, power: float, desktop := false) -> Dictionary:
+## rounds: how many rounds the player has played (VF.reel_rounds): see ROOKIE_ROUNDS.
+static func minigame_params(tier: int, power: float, desktop := false, rounds := ROOKIE_ROUNDS) -> Dictionary:
 	var t := clampi(tier, 0, 4)
+	if rounds < ROOKIE_ROUNDS: t = mini(t, maxi(rounds, 0))      # a rare fish doesn't get to be hard this early
 	var pw := clampf(power, 0.0, 1.0)
 	var p := {
 		"zone_h": 0.34 - 0.03 * t + 0.09 * pw,
@@ -101,9 +107,21 @@ static func minigame_params(tier: int, power: float, desktop := false) -> Dictio
 		p.lift = 3.15
 		p.sink = 2.55
 		p.max_v = 1.52
+	if rounds < ROOKIE_ROUNDS:
+		var e: float = ROOKIE_EASE[maxi(rounds, 0)]
+		p.zone_h = lerpf(p.zone_h, ROOKIE_ZONE, e)
+		p.fish_speed *= 1.0 - 0.35 * e
+		p.fill_rate *= 1.0 - 0.3 * e       # (a slower ring: the round lasts long enough for the fish to pull a gag)
+		p.drain_rate = lerpf(p.drain_rate, 0.02, e)
+		p.time_limit += 10.0 * e
 	return p
 
 const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer fish: up to +1s)
+## New players (not in the bot, DERIVED): the first ROOKIE_ROUNDS rounds someone plays are easier, by ROOKIE_EASE
+## (1 = fully). The first is close to impossible to lose, even without touching anything (measured: tools/reel_sim.gd).
+const ROOKIE_ROUNDS := 3
+const ROOKIE_EASE := [1.0, 0.6, 0.3]
+const ROOKIE_ZONE := 0.62
 
 const FISH := {
 	"Raw Fish":         {"price": 1,        "xp": 1},
@@ -186,19 +204,50 @@ const RODS := {
 							"tables": {"Abyss": [42, 42, 14, 2, 0.01]}, "desc": "A magnetic rod capable of attracting the highest quality treasure."},
 	"Dark Rod":            {"cost": 1000000000000000,  "level": 2500, "min": 42, "max": 50, "tc": 0.07,  "tq": 0.10, "biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
 							"tables": {"Alien": [15, 25, 46, 11, 3], "Abyss": [40, 40, 17, 2.7, 0.3]}, "desc": "The ultimate fishing rod."},
-	"Supporter Rod":       {"cost": 0,                 "level": 0,    "min": 7,  "max": 10, "tc": 0.065, "tq": 0.10, "prestige": 5,
+	# exclusive rods (1.0): never sold for money, kept through prestige. "exclusive" says where they come from,
+	# "reel" is their Reel it in! power (regular rods get it from their place in ROD_ORDER)
+	"Supporter Rod":       {"cost": 0,                 "level": 0,    "min": 7,  "max": 10, "tc": 0.065, "tq": 0.10,
+							"exclusive": "pack", "reel": 1.0,
 							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
 							"biome_mult": {"River": 1.0, "Volcanic": 1.2, "Ocean": 1.4, "Sky": 2.0, "Space": 3.2, "Alien": 4.0, "Abyss": 4.6},
 							"tables": {"River": [14, 32, 47, 6.3, 0.7], "Volcanic": [10, 24, 42, 20, 4], "Ocean": [30, 40, 23, 6.8, 0.2],
 									   "Sky": [39.8, 39.8, 12.7, 6.7, 1], "Space": [40, 32.7, 20, 7.05, 0.25], "Alien": [30, 30, 36, 5, 1],
 									   "Abyss": [60, 26.4, 12.303, 1.29, 0.007]},
-							"desc": "Given as thanks for supporting Virtual Fisher. Scales with every biome."},
+							"desc": "Comes with every Supporter Pack. Scales with every biome."},
+	"Starfall Rod":        {"cost": 0,                 "level": 0,    "min": 8,  "max": 11, "tc": 0.075, "tq": 0.20,
+							"exclusive": "event", "reel": 0.9,
+							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
+							"biome_mult": {"River": 1.1, "Volcanic": 1.3, "Ocean": 1.55, "Sky": 2.2, "Space": 3.5, "Alien": 4.4, "Abyss": 5.0},
+							"tables": {"River": [12, 30, 48, 8.6, 1.4], "Volcanic": [9, 22, 42, 22, 5], "Ocean": [27, 40, 24, 8.5, 0.5],
+									   "Sky": [36, 39, 14, 9, 2], "Space": [37, 32, 21, 9.4, 0.6], "Alien": [27, 30, 37, 4.5, 1.5],
+									   "Abyss": [56, 28, 14, 1.98, 0.02]},
+							"desc": "Event Shop exclusive: forged from fallen stars. Scales with every biome."},
+	"Pearl Rod":           {"cost": 0,                 "level": 0,    "min": 9,  "max": 12, "tc": 0.08,  "tq": 0.25,
+							"exclusive": "pearl", "reel": 0.95,
+							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
+							"biome_mult": {"River": 1.15, "Volcanic": 1.4, "Ocean": 1.65, "Sky": 2.35, "Space": 3.7, "Alien": 4.6, "Abyss": 5.3},
+							"tables": {"River": [11, 29, 49, 9.2, 1.8], "Volcanic": [8, 21, 42, 23, 6], "Ocean": [25, 40, 25, 9.3, 0.7],
+									   "Sky": [34, 39, 15, 9.5, 2.5], "Space": [35, 32, 22, 10.2, 0.8], "Alien": [25, 30, 38, 5, 2],
+									   "Abyss": [53, 29, 15.5, 2.47, 0.03]},
+							"desc": "Pearl exclusive: lustrous and strong. Scales with every biome."},
+	"Legend Rod":          {"cost": 0,                 "level": 0,    "min": 11, "max": 15, "tc": 0.09,  "tq": 0.35,
+							"exclusive": "pack", "reel": 1.0,
+							"biomes": ["River", "Volcanic", "Ocean", "Sky", "Space", "Alien", "Abyss"],
+							"biome_mult": {"River": 1.3, "Volcanic": 1.6, "Ocean": 1.9, "Sky": 2.7, "Space": 4.2, "Alien": 5.2, "Abyss": 6.0},
+							"tables": {"River": [9, 27, 50, 11, 3], "Volcanic": [6, 19, 42, 25, 8], "Ocean": [22, 40, 26, 11, 1],
+									   "Sky": [30, 39, 17, 10.5, 3.5], "Space": [32, 32, 23, 11.8, 1.2], "Alien": [22, 30, 39, 6, 3],
+									   "Abyss": [48, 31, 17.5, 3.45, 0.05]},
+							"desc": "Legend Pack exclusive: the best rod in the game. Scales with every biome."},
 }
 
 const ROD_ORDER := ["Plastic Rod", "Improved Rod", "Steel Rod", "Fiberglass Rod", "Heavy Rod",
 	"Alloy Rod", "Lava Rod", "Magma Rod", "Oceanium Rod", "Golden Rod", "Superium Rod",
 	"Infinity Rod", "Floating Rod", "Sky Rod", "Meteor Rod", "Space Rod", "Alien Rod",
-	"Ultimate Depths Rod", "Abyssal Supermagnet", "Dark Rod", "Supporter Rod"]
+	"Ultimate Depths Rod", "Abyssal Supermagnet", "Dark Rod", "Supporter Rod", "Starfall Rod", "Pearl Rod", "Legend Rod"]
+
+## Rods that are never sold for money (packs, pearls, events) and survive prestige.
+static func is_exclusive_rod(r: String) -> bool:
+	return RODS.has(r) and RODS[r].has("exclusive")
 
 ## Every boat: -0.25s cooldown and +1 fish per cast (wiki Boat page).
 const BOATS := {
@@ -387,15 +436,32 @@ const SPECIAL_QUESTS := [
 	{"id": "pet",        "name": "Pet Locator",      "stat": "pets",     "goal": 1},
 ]
 
-## Prestige requirements. P0 -> P1 is from the Prestige 0 Guide
-## (440/440 charms, Level 250, $5B). Later prestiges are DERIVED so the
-## level requirement reaches the 25k cap around P160 (as the community
-## buy-order chart notes).
+## Prestige requirements, all DERIVED (the bot's P0 was level 250, 440 charms and $5B, days of play for a first goal).
+## The first rebirth takes about 4 to 6 hours of normal play; the owner then asked for the second to take about 6 hours
+## (it took 95), and each after it takes about 10% longer than the one before (tools/pace_sim.gd --table and --chain,
+## 2026-11-03). The Azure Fish make you faster every time, and not evenly: a prestige with a big new perk (P3, P5, P10)
+## asks for a bigger step, P4 (no new perk) for a small one. After the table: a little more every time, up to the
+## 25,000 level cap at P160 (as the community buy-order chart notes). No rebirth needs charms.
+const FIRST_REBIRTH_LEVEL := 60
+const FIRST_REBIRTH_MONEY := 5_000_000
+const REBIRTH_LEVELS := [FIRST_REBIRTH_LEVEL, 78, 94, 113, 115, 137, 152, 159, 174, 183, 226]
+const REBIRTH_MONEY := [FIRST_REBIRTH_MONEY, 11_000_000, 24_000_000, 40_000_000, 50_000_000, 140_000_000, 250_000_000,
+	440_000_000, 870_000_000, 1_100_000_000, 3_300_000_000]
+const REBIRTH_CAP_AT := 160       # the prestige whose rebirth asks for the 25,000 cap
+const REBIRTH_MONEY_GROWTH := 1.12
+
 static func prestige_level_req(p: int) -> int:
-	return mini(25000, 250 + 150 * p)
+	if p < REBIRTH_LEVELS.size(): return REBIRTH_LEVELS[maxi(p, 0)]
+	var last: float = REBIRTH_LEVELS[-1]
+	var k := float(p - REBIRTH_LEVELS.size() + 1) / float(REBIRTH_CAP_AT - REBIRTH_LEVELS.size() + 1)
+	return mini(25000, int(round(last * pow(25000.0 / last, k))))
 
 static func prestige_money_req(p: int) -> int:
-	return int(5_000_000_000.0 * pow(1.6, p))
+	if p < REBIRTH_MONEY.size(): return REBIRTH_MONEY[maxi(p, 0)]
+	return int(minf(1e18, float(REBIRTH_MONEY[-1]) * pow(REBIRTH_MONEY_GROWTH, p - REBIRTH_MONEY.size() + 1)))
+
+static func prestige_charm_req(_p: int) -> int:
+	return 0
 
 static func charm_tier_cap(p: int) -> int:
 	return 10 + p if p <= 99 else 2 * p - 88
@@ -462,7 +528,8 @@ static func slug(name: String) -> String:
 
 ## Beginner goals shown one at a time under the HUD. Not part of the bot —
 ## they give new players a short-term target and speed up the first levels.
-## stat: fish | sells | rods | bait_casts | species | level | boats
+## stat: fish | sells | rods | bait_casts | species | level | boats | crews | prestige
+## (new goals go at the end: saves only count how many are done)
 const STARTER_GOALS := [
 	{"id": "first_fish", "text": "Catch your first fish", "stat": "fish", "goal": 1, "reward": {"money": 20}},
 	{"id": "sell", "text": "Sell your catch", "stat": "sells", "goal": 1, "reward": {"bait": ["Worms", 25]}},
@@ -474,4 +541,388 @@ const STARTER_GOALS := [
 	{"id": "steel", "text": "Buy the Steel Rod", "stat": "rods", "goal": 3, "reward": {"money": 1200}},
 	{"id": "boat", "text": "Buy your first boat (Rowboat)", "stat": "boats", "goal": 1, "reward": {"money": 1500}},
 	{"id": "lv10", "text": "Reach level 10 — chests & boosts unlock", "stat": "level", "goal": 10, "reward": {"chest": "epic", "gold": 12, "emerald": 6}},
+	{"id": "crew", "text": "Hire a crew: they fish for you (Menu - Fleet)", "stat": "crews", "goal": 1, "reward": {"chest": "rare"}},
+	# (these two say FIRST_REBIRTH_LEVEL and FIRST_REBIRTH_MONEY: tests/vf_sim_test.gd checks they match)
+	{"id": "lv60", "text": "Reach level 60: your first rebirth is close", "stat": "level", "goal": FIRST_REBIRTH_LEVEL, "reward": {"chest": "rare"}},
+	{"id": "rebirth", "text": "Your first rebirth: have $5M, then Menu - Prestige", "stat": "prestige", "goal": 1, "reward": {"chest": "legendary"}},
 ]
+
+
+# ====================================================================== 1.0
+## Everything a little easier: money and XP earned x EASE (progress about 10% faster).
+const EASE := 1.10
+
+# ------------------------------------------------------------------ events
+## One event starts after every EVENT_EVERY seconds of active play (casting in the last
+## EVENT_IDLE seconds) and lasts its "secs". Effects multiply the normal rules.
+const EVENT_EVERY := 600.0
+const EVENT_IDLE := 90.0
+const EVENTS := {
+	"golden_hour":   {"name": "Golden Hour",   "secs": 120, "color": Color("#ffb627"), "icon": "sun-horizon",
+		"desc": "Every fish sells for double", "money": 2.0, "fish_id": "Golden Koi"},
+	"frenzy":        {"name": "Fish Frenzy",   "secs": 90,  "color": Color("#14b8a6"), "icon": "lightning",
+		"desc": "Casts recharge twice as fast and bring +50% fish", "cooldown": 0.5, "fish": 1.5, "fish_id": "Frenzy Piranha"},
+	"treasure_tide": {"name": "Treasure Tide", "secs": 120, "color": Color("#a855f7"), "icon": "treasure-chest",
+		"desc": "Triple treasure chance and better chests", "treasure": 3.0, "tq": 1.5, "fish_id": "Treasure Crab"},
+	"meteor_shower": {"name": "Meteor Shower", "secs": 120, "color": Color("#6366f1"), "icon": "shooting-star",
+		"desc": "Shiny fish turn up five times as often", "shiny": 5.0, "fish_id": "Meteor Fish"},
+	"boss":          {"name": "Boss Fish!",    "secs": 150, "color": Color("#ef4444"), "icon": "skull",
+		"desc": "The Leviathan is near: every catch wears it down", "boss_hp": 25, "fish_id": "Leviathan"},
+}
+const EVENT_ORDER := ["golden_hour", "frenzy", "treasure_tide", "meteor_shower", "boss"]
+## Event fish only bite during their event; each one pays money (scaled to your level) and Event Stars.
+## You also get 1 Star for every catch during an event.
+const EVENT_FISH := {
+	"Golden Koi":     {"event": "golden_hour",   "chance": 0.10, "money": 6.0,  "stars": 3},
+	"Frenzy Piranha": {"event": "frenzy",        "chance": 0.12, "money": 4.0,  "stars": 2},
+	"Treasure Crab":  {"event": "treasure_tide", "chance": 0.10, "money": 5.0,  "stars": 3},
+	"Meteor Fish":    {"event": "meteor_shower", "chance": 0.08, "money": 8.0,  "stars": 4},
+	"Leviathan":      {"event": "boss",          "chance": 0.0,  "money": 40.0, "stars": 25},
+}
+const EVENT_FISH_ORDER := ["Golden Koi", "Frenzy Piranha", "Treasure Crab", "Meteor Fish", "Leviathan"]
+## The Event Shop: exclusive things for Event Stars.
+const EVENT_SHOP := {
+	"starfall_rod": {"name": "Starfall Rod",  "cost": 400, "rod": "Starfall Rod", "desc": "Exclusive rod: +treasure, scales with every biome"},
+	"event_chest":  {"name": "Event Chest",   "cost": 40,  "chest": "legendary",  "desc": "A legendary chest"},
+	"shiny_lure":   {"name": "Shiny Lure",    "cost": 80,  "lure": 25,            "desc": "Your next 25 catches: shiny fish 3x as often"},
+	"star_boost":   {"name": "Frenzy Boost",  "cost": 30,  "boost": [["fish", 1800]], "desc": "30 minutes of Fish Boost"},
+}
+const EVENT_SHOP_ORDER := ["starfall_rod", "shiny_lure", "event_chest", "star_boost"]
+
+# ------------------------------------------------------------------ shinies
+## Shiny fish: a rare sparkling version of every species, only SHINY_SUPPLY numbered copies of each
+## worldwide. The game asks the server for a roll on SHINY_TICKET of your catches (signed in only);
+## the server decides (supabase/schema.sql try_shiny: stock left, a cooldown, per-player caps, odds that
+## fall for every copy you own), so nobody can collect a whole stock.
+const SHINY_SUPPLY := 3000
+const SHINY_TICKET := 1.0 / 50.0
+const SHINY_LURE_MULT := 3.0
+const SHINY_MAX_EACH := 3            # copies of one species a player can own (enforced by the server)
+const SHINY_SELL_BONUS := 0.02       # +2% sell price for every shiny species you own
+const SHINY_SERVER_ODDS := 1.0 / 70.0  # = base_odds in supabase/schema.sql try_shiny (shown to players as odds)
+
+# --------------------------------------------------------- pearls & packs
+## Pearls: the premium currency (Supporter Packs, Pearl Packs, ads), spent in the Pearl Shop.
+## Prices here are only fallbacks: the store shows Google Play's real, local price.
+const PACKS := {
+	"pack_starter": {"name": "Starter Pack", "price": "$1.49", "pearls": 150, "color": Color("#22c55e"),
+		"perks": {"money": 0.05}, "boost": [["fish", 2400]]},
+	"pack_fisher":  {"name": "Fisher Pack",  "price": "$4.99", "pearls": 600, "color": Color("#0ea5e9"),
+		"perks": {"money": 0.10, "xp": 0.05}, "rods": ["Pearl Rod"]},
+	"pack_captain": {"name": "Captain Pack", "price": "$9.99", "pearls": 1500, "color": Color("#a855f7"),
+		"perks": {"money": 0.20, "xp": 0.10, "worker": 0.25}, "boost": [["fish", 7200], ["treasure", 7200], ["worker", 7200]]},
+	"pack_legend":  {"name": "Legend Pack",  "price": "$19.99", "pearls": 3500, "color": Color("#f59e0b"),
+		"perks": {"money": 0.35, "xp": 0.15, "shiny": 0.25}, "rods": ["Legend Rod"],
+		"boost": [["fish", 18000], ["treasure", 18000], ["worker", 18000]]},
+}
+const PACK_ORDER := ["pack_starter", "pack_fisher", "pack_captain", "pack_legend"]
+const PEARL_PACKS := {
+	"pearls_100":  {"pearls": 100,  "price": "$0.99"},
+	"pearls_550":  {"pearls": 550,  "price": "$4.99"},
+	"pearls_1200": {"pearls": 1200, "price": "$9.99"},
+	"pearls_2600": {"pearls": 2600, "price": "$19.99"},
+}
+const PEARL_PACK_ORDER := ["pearls_100", "pearls_550", "pearls_1200", "pearls_2600"]
+const PEARL_SHOP := {
+	"fish1h":      {"name": "Fish Boost 1h",     "cost": 30,   "boost": [["fish", 3600]], "icon": "fish"},
+	"treasure1h":  {"name": "Treasure Boost 1h", "cost": 30,   "boost": [["treasure", 3600]], "icon": "treasure-chest"},
+	"worker1h":    {"name": "Worker 1h",         "cost": 40,   "boost": [["worker", 3600]], "icon": "robot"},
+	"mega1h":      {"name": "Mega Boost 1h",     "cost": 80,   "boost": [["fish", 3600], ["treasure", 3600], ["worker", 3600]], "icon": "rocket-launch"},
+	"money_bag":   {"name": "Bag of Money",      "cost": 40,   "money_levels": 20, "icon": "money"},
+	"xp_potion":   {"name": "XP Potion",         "cost": 50,   "xp_frac": 0.5, "icon": "flask"},
+	"chest":       {"name": "Legendary Chest",   "cost": 60,   "chest": "legendary", "icon": "treasure-chest"},
+	"event_now":   {"name": "Start an Event",    "cost": 100,  "event": true, "icon": "confetti"},
+	"shiny_lure":  {"name": "Shiny Lure",        "cost": 150,  "lure": 50, "icon": "sparkle"},
+	"pearl_rod":   {"name": "Pearl Rod",         "cost": 1200, "rod": "Pearl Rod", "icon": "crown"},
+}
+const PEARL_SHOP_ORDER := ["mega1h", "fish1h", "treasure1h", "worker1h", "money_bag", "xp_potion", "chest", "event_now", "shiny_lure", "pearl_rod"]
+## Rewarded ads (Android): watch one, get the reward. AD_DAILY_MAX ads a day in all.
+const AD_REWARDS := {
+	"ad_money2x": {"name": "Double Money",  "desc": "x2 money from selling for 10 minutes (stacks up to an hour)", "money2x": 600, "icon": "coins"},
+	"ad_fish":    {"name": "Free Fish Boost", "desc": "15 minutes of Fish Boost", "boost": [["fish", 900]], "icon": "fish"},
+	"ad_pearls":  {"name": "+10 Pearls",    "desc": "Up to 3 times a day", "pearls": 10, "max": 3, "icon": "circle"},
+	# (not in the Store's Free tab: offered on the welcome-back card and by the daily spin)
+	"ad_offline2x": {"name": "Double the catch", "desc": "x2 what your crews caught while you were away", "offline2x": true, "max": 3, "icon": "anchor"},
+	"ad_spin":      {"name": "Extra spin", "desc": "One more spin of the wheel", "spin": 1, "max": 3, "icon": "star"},
+}
+const AD_ORDER := ["ad_money2x", "ad_fish", "ad_pearls"]
+const AD_DAILY_MAX := 8
+
+## Odds shown next to random things you can get with bought currency (Google Play's loot box rule).
+## A chest's prizes: "Charms 40%, Diamond Fish 20%, ..." (what your level can't use yet comes as XP + money)
+static func chest_odds(tier: String) -> String:
+	var names := {"charm": "Charms", "gold": "Gold Fish", "emerald": "Emerald Fish", "lava": "Lava Fish",
+		"diamond": "Diamond Fish", "xpmoney": "XP + money"}
+	for c in CHESTS:
+		if c.id != tier: continue
+		var total := 0.0
+		for k in c.drops: total += float(c.drops[k])
+		var keys: Array = c.drops.keys()
+		keys.sort_custom(func(a, b): return c.drops[a] > c.drops[b])
+		var bits := []
+		for k in keys:
+			var pct := 100.0 * float(c.drops[k]) / total
+			bits.append("%s %s%%" % [names.get(k, k), ("%d" % int(round(pct))) if absf(pct - round(pct)) < 0.05 else ("%.1f" % pct)])
+		return ", ".join(bits) + " (what you can't use yet comes as XP + money)"
+	return ""
+
+
+## the chance of a shiny on one catch, before and with the lure (a species you don't have yet)
+static func shiny_odds() -> String:
+	var base := SHINY_TICKET * SHINY_SERVER_ODDS
+	return "Odds of a shiny: about 1 in %s catches, 1 in %s with the lure (lower for species you already have, and as the %s run out)" % [
+		_commas(int(round(1.0 / base))), _commas(int(round(1.0 / (base * SHINY_LURE_MULT)))), _commas(SHINY_SUPPLY)]
+
+
+static func _commas(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
+
+
+# ==================================================================== idle
+## Idle play (not in the bot, numbers DERIVED): your boat can fish by itself, crews you hire fish for you
+## all the time, and they keep fishing while the game is closed.
+## Auto-fish: Relax casts on their own, AUTO_SLOW times the cooldown apart (holding the button is faster,
+## the Reel it in! mini-game faster still). Auto casts roll no shiny tickets and aren't active play (events).
+const AUTO_LEVEL := 5
+const AUTO_SLOW := 1.5
+## The Fleet: the k-th crew sails the k-th boat of BOAT_ORDER and makes a trip every CREW_TRIP seconds
+## with your rod, biome and catch buffs (like the bot's workers: Worker Motivation and Worker charms count,
+## bait doesn't). Their fish give CREW_XP of the XP (levels come from your own fishing). The first crew
+## costs CREW_COST, every next one CREW_GROWTH times the last. Prestige resets the fleet, like your boats.
+## (Tuned with tests/idle_balance_probe.gd: 4 hours away pay about 35 minutes of your own fishing at level
+## 10, an hour and a half at level 100, two and a half at level 250; the crews' XP adds a few levels early
+## on, less than one late; hiring crews as you go gets a run to level 100 about 15% sooner.)
+const FLEET_LEVEL := 5
+const CREW_TRIP := 15.0
+const CREW_XP := 0.25
+const CREW_COST := 250.0
+const CREW_GROWTH := 6.0
+## Fleet upgrades, bought with money: the price of the next level = cost * growth^level; each level adds "step"
+## (nets: fish per trip, speed: trips, cooler: seconds away, sealegs: the offline rate)
+const FLEET_UPGRADES := {
+	"nets":    {"name": "Bigger Nets",   "max": 8, "step": 0.05, "cost": 5000.0,  "growth": 5.0,  "icon": "fish", "desc": "+5% fish on every crew trip"},
+	"speed":   {"name": "Faster Crews",  "max": 6, "step": 0.05, "cost": 8000.0,  "growth": 6.0,  "icon": "lightning", "desc": "Crews make their trips 5% faster"},
+	"cooler":  {"name": "Bigger Cooler", "max": 4, "step": 3600.0, "cost": 50000.0, "growth": 12.0, "icon": "hourglass-medium", "desc": "Crews keep fishing an hour longer while you're away"},
+	"sealegs": {"name": "Sea Legs",      "max": 5, "step": 0.05, "cost": 30000.0, "growth": 10.0, "icon": "anchor", "desc": "+5% of the catch while you're away"},
+}
+const FLEET_UPGRADE_ORDER := ["nets", "speed", "cooler", "sealegs"]
+## While you're away the crews fish at OFFLINE_RATE (Sea Legs: more) for up to OFFLINE_HOURS (Bigger
+## Cooler: longer). Away for less than OFFLINE_MIN seconds: nothing to report.
+const OFFLINE_RATE := 0.35
+const OFFLINE_HOURS := 4.0
+const OFFLINE_MIN := 120.0
+
+## The daily reward (the bot's /daily, here from level DAILY_LEVEL) also pays a 7-day calendar: claim every
+## day (within 48 hours, or the streak starts over) to move along it; day 7 is the big one, then it repeats.
+const DAILY_LEVEL := 3
+const CALENDAR := [
+	{"name": "Bag of Money", "money_levels": 2, "icon": "money"},
+	{"name": "50 Best Bait", "bait_best": 50, "icon": "fish"},
+	{"name": "Fish Boost 30m", "boost": [["fish", 1800]], "icon": "lightning"},
+	{"name": "2 Spins", "spin": 2, "icon": "star"},
+	{"name": "Epic Chest", "chest": "epic", "icon": "treasure-chest"},
+	{"name": "25 Pearls", "pearls": 25, "icon": "drop"},
+	{"name": "Jackpot", "pearls": 100, "chest": "legendary", "boost": [["fish", 3600], ["treasure", 3600]], "icon": "crown"},
+]
+## The daily spin: one free spin a day, more from the calendar and ads. "w" = the chance in percent (shown).
+const SPIN := [
+	{"name": "Money",      "money_levels": 1,                "w": 26, "color": Color("#22c55e")},
+	{"name": "XP",         "xp_frac": 0.25,                  "w": 20, "color": Color("#3b82f6")},
+	{"name": "Bait",       "bait_best": 25,                  "w": 16, "color": Color("#f59e0b")},
+	{"name": "Fish Boost", "boost": [["fish", 900]],         "w": 12, "color": Color("#14b8a6")},
+	{"name": "Big Money",  "money_levels": 5,                "w": 10, "color": Color("#0e9f6e")},
+	{"name": "Rare Chest", "chest": "rare",                  "w": 8,  "color": Color("#a855f7")},
+	{"name": "10 Pearls",  "pearls": 10,                     "w": 6,  "color": Color("#6366f1")},
+	{"name": "JACKPOT",    "pearls": 50, "chest": "legendary", "w": 2, "color": Color("#ef4444")},
+]
+
+
+# ================================================================== Gerald
+## Gerald (not in the bot, all DERIVED) is a fish who has decided you're his rival. Each row is one meeting: in that biome,
+## at that level, he bites instead of a fish, in either catch mode, never on auto-fish. "bounty": what beating him pays, in
+## casts' worth (VF.pay_find). Beat him on a row that isn't "final" and he gets away to the next one; on a "final" row he's
+## caught and gives his hat (GERALD_HATS), and after Gerald his mum starts. Lose and he laughs, leaves a tip (GERALD_TIP),
+## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing. "look": they dress for each biome
+## (the round and the WANTED poster use mini/<look>.png, plain Gerald or Geraldine while it isn't there).
+const GERALD := [
+	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0, "look": "Gerald"},
+	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0, "look": "gerald_lava"},
+	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0, "look": "gerald_pirate"},
+	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true, "look": "gerald_pilot"},
+	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0, "look": "geraldine_astro"},
+	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0, "look": "geraldine_alien"},
+	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true, "look": "geraldine_lamp"},
+]
+const GERALD_HATS := {"Gerald": "crown", "Geraldine": "tiara"}
+const GERALD_TIP := 2.0
+const GERALD_FIRST := 80          # casts in the River before the first meeting (level 10 too: within about 15 minutes)
+const GERALD_TEASE := 10          # this many casts before he's due, the stage teases him (VF.gerald_soon)
+const GERALD_BACK := 45           # after he beats you he's back after this many casts, GERALD_BACK_STEP fewer each time ...
+const GERALD_BACK_STEP := 10
+const GERALD_BACK_MIN := 20       # ... but never at once
+const RIVAL_EASE := 0.25          # every time he has beaten you he's this much closer to easy (1 = as easy as he gets)
+const GERALD_PLACES := {"River": "the River", "Volcanic": "the Volcano", "Ocean": "the Ocean", "Sky": "the Sky", "Space": "Space", "Alien": "the Alien sea", "Abyss": "the Abyss"}
+## what he says when the round is decided ("%s" = where he's off to next)
+const GERALD_LINES := {
+	"Gerald": {
+		"lose": ["Here's a shrimp for your trouble.", "Tell your friends you met Gerald.", "You reel like my mum drives.", "Buy yourself a better hook. My treat."],
+		"escaped": ["Snip! See you in %s.", "Oops, was that your line? I'll be in %s.", "Nice try. Next stop: %s."],
+		"caught": "Fine. You got me. Tell my mum I was brave.",
+	},
+	"Geraldine": {
+		"lose": ["Sit down, dear. Here's bus fare.", "You caught my son with THAT?", "I've had tougher sandwiches."],
+		"escaped": ["Snip. I have bridge club in %s, dear.", "Do keep up. I'll be in %s.", "Mind your manners in %s."],
+		"caught": "Well. Somebody raised you properly. Take the tiara.",
+	},
+}
+
+## casts between meetings: every 60 to 120 for each new stage (a different number each, no dice), sooner after he beat you
+static func gerald_need(stage: int, tries: int) -> int:
+	if tries > 0: return maxi(GERALD_BACK_MIN, GERALD_BACK - GERALD_BACK_STEP * (tries - 1))
+	return GERALD_FIRST if stage <= 0 else 60 + (stage * 23) % 61
+
+## The rival's round: the rarest fish's difficulty (a beginner's first rounds stay easy, see ROOKIE_ROUNDS), a bit easier for
+## every time he has beaten you. His mum is a bit harder. Measured with tools/reel_sim.gd.
+static func rival_params(who: String, power: float, desktop: bool, tries: int, rounds := ROOKIE_ROUNDS) -> Dictionary:
+	var p := minigame_params(4, power, desktop, rounds)
+	if who == "Geraldine":
+		p.zone_h -= 0.03
+		p.fish_speed *= 1.1
+	var e := clampf(float(tries) * RIVAL_EASE, 0.0, 1.0)
+	p.zone_h = lerpf(p.zone_h, 0.5, e)
+	p.fish_speed *= 1.0 - 0.45 * e
+	p.drain_rate = lerpf(p.drain_rate, 0.05, e)
+	p.time_limit += 6.0 * e
+	return p
+
+
+# =================================================================== finds
+## Things to find when sailing (not in the bot, all DERIVED): three residents in every biome, away from the shop, so sailing has
+## a reason. One at a time turns up (VF.find_pick, vf_fun.gd) and stays about FIND_SECS. Tap it from close by: the first time pays
+## about FIND_FIRST casts' worth, later ones about FIND_AGAIN, at most once every FIND_PAY_CD seconds. "rare": turns up less often.
+const FINDS := {
+	"River": {
+		"otter": {"name": "Otter", "line": "Floating on its back. Living better than you.", "rare": false},
+		"frog": {"name": "Frog", "line": "It has its own rod. It's not giving you tips.", "rare": false},
+		"old_boot": {"name": "Old Boot", "line": "A tiny fish lives in it. Nice window. The rent is very reasonable.", "rare": true},
+	},
+	"Volcanic": {
+		"capybara": {"name": "Capybara", "line": "In a hot spring, an orange on its head. It has no notes.", "rare": false},
+		"lava_crab": {"name": "Lava Crab", "line": "Lives in lava. Wears oven gloves. It's not taking any chances.", "rare": false},
+		"marshmallow": {"name": "Marshmallow", "line": "Toasted on one side. Very worried about the other.", "rare": true},
+	},
+	"Ocean": {
+		"turtle": {"name": "Turtle", "line": "A hat of barnacles. It took eighty years. Worth it.", "rare": false},
+		"fake_fin": {"name": "Fake Fin", "line": "A little fish with a shark fin on a stick. Please act scared.", "rare": false},
+		"treasure": {"name": "Treasure Chest", "line": "On a sandbar. The map was wrong about everything else.", "rare": true},
+	},
+	"Sky": {
+		"cloud_sheep": {"name": "Cloud Sheep", "line": "It has never touched the ground. It's heard good things.", "rare": false},
+		"kite": {"name": "Lost Kite", "line": "Its string goes nowhere. It's fine. It's on a journey.", "rare": false},
+		"paper_plane": {"name": "Paper Plane", "line": "Homework, with a big red F. It flies better than it scored.", "rare": true},
+	},
+	"Space": {
+		"astro_cat": {"name": "Astro Cat", "line": "It knocked the moon off a table. It would do it again.", "rare": false},
+		"satellite": {"name": "Satellite", "line": "Mended with tape. Picks up one station. It's all fish news.", "rare": false},
+		"space_duck": {"name": "Space Duck", "line": "Helmet. Jetpack. Still squeaks. Nobody knows how.", "rare": true},
+	},
+	"Alien": {
+		"ufo": {"name": "UFO", "line": "Beaming up a fish, tail first. The pilot is new.", "rare": false},
+		"blob": {"name": "Blob", "line": "Three eyes, one tooth. All of them disappointed.", "rare": false},
+		"glow_shroom": {"name": "Glow Shroom", "line": "Glows when you compliment it. The big one's asleep, so whisper.", "rare": true},
+	},
+	"Abyss": {
+		"anglerfish": {"name": "Anglerfish", "line": "That's a kitchen light bulb. Don't ask where it plugs in.", "rare": false},
+		"tiny_sub": {"name": "Tiny Sub", "line": "A bath toy with a crew of one. Very serious. Wave back.", "rare": false},
+		"sunken_tv": {"name": "Sunken TV", "line": "Still on. Only colour bars. The starfish says it gets good.", "rare": true},
+	},
+}
+const FIND_FIRST := 10.0
+const FIND_AGAIN := 0.5
+const FIND_PAY_CD := 60.0
+const FIND_SECS := 90.0
+const FIND_WAIT := [45.0, 120.0]  # seconds between one leaving and the next turning up
+const FIND_RARE := 0.25           # once you've found the other two: how often the rare one is the one that turns up
+
+static func find_def(id: String) -> Dictionary:
+	for b in FINDS:
+		if FINDS[b].has(id): return FINDS[b][id]
+	return {}
+
+static func finds_total() -> int:
+	var n := 0
+	for b in FINDS: n += FINDS[b].size()
+	return n
+
+
+# ============================================================== collecting
+## Achievements (not in the bot, all DERIVED): a goal to reach, a few Pearls to claim, about half of them jokes. "stat" is what
+## VF.stat_value reads: something about the game itself, or a counter in VF.stats that goes up when the thing happens (VF.stat_add).
+const ACHIEVEMENTS := [
+	{"id": "first_fish", "name": "It's a Start", "desc": "Catch your first fish.", "stat": "fish", "goal": 1, "pearls": 2},
+	{"id": "fish_1k", "name": "A Thousand Fish", "desc": "Catch 1,000 fish.", "stat": "fish", "goal": 1000, "pearls": 5},
+	{"id": "fish_100k", "name": "Overfishing", "desc": "Catch 100,000 fish. Leave some for the others.", "stat": "fish", "goal": 100000, "pearls": 15},
+	{"id": "trips_1k", "name": "Regular", "desc": "Cast 1,000 times.", "stat": "trips", "goal": 1000, "pearls": 5},
+	{"id": "species_10", "name": "Getting the Hang of It", "desc": "Discover 10 species.", "stat": "species", "goal": 10, "pearls": 5},
+	{"id": "species_all", "name": "Every Fish", "desc": "Discover all 20 species.", "stat": "species", "goal": 20, "pearls": 25},
+	{"id": "level_25", "name": "Not a Beginner", "desc": "Reach level 25.", "stat": "level", "goal": 25, "pearls": 5},
+	{"id": "level_100", "name": "Salty", "desc": "Reach level 100.", "stat": "level", "goal": 100, "pearls": 10},
+	{"id": "million", "name": "First Million", "desc": "Earn $1M in all.", "stat": "money_earned", "goal": 1000000, "pearls": 5},
+	{"id": "billion", "name": "Fish Tycoon", "desc": "Earn $1B in all.", "stat": "money_earned", "goal": 1000000000, "pearls": 15},
+	{"id": "chests_100", "name": "Treasure Hunter", "desc": "Open 100 chests.", "stat": "chests", "goal": 100, "pearls": 5},
+	{"id": "rebirth", "name": "Born Again", "desc": "Your first rebirth.", "stat": "prestige", "goal": 1, "pearls": 15},
+	{"id": "finds_7", "name": "Sightseer", "desc": "Find 7 residents while sailing.", "stat": "finds", "goal": 7, "pearls": 5},
+	{"id": "finds_all", "name": "Seen It All", "desc": "Find all 21 residents.", "stat": "finds", "goal": 21, "pearls": 25},
+	{"id": "book_1", "name": "First Stamp", "desc": "Finish a biome in the Fish Book.", "stat": "books", "goal": 1, "pearls": 5},
+	{"id": "crews_5", "name": "Admiral", "desc": "Hire 5 crews.", "stat": "crews", "goal": 5, "pearls": 5},
+	{"id": "won_100", "name": "Reel Good", "desc": "Win 100 rounds of Reel it in!", "stat": "reel_wins", "goal": 100, "pearls": 5},
+	{"id": "perfect_10", "name": "Not a Scratch", "desc": "Win 10 rounds without the fish slipping out once.", "stat": "perfect_rounds", "goal": 10, "pearls": 5},
+	{"id": "honks_100", "name": "Honk If You're Lonely", "desc": "Honk the boat 100 times.", "stat": "honks", "goal": 100, "pearls": 5, "joke": true},
+	{"id": "robbed", "name": "Mugged by a Gull", "desc": "Let a gull fly off with your fish.", "stat": "robbed", "goal": 1, "pearls": 3, "joke": true},
+	{"id": "thieves_10", "name": "Neighbourhood Watch", "desc": "Stop 10 thieving gulls.", "stat": "thieves", "goal": 10, "pearls": 5, "joke": true},
+	{"id": "gerald_5", "name": "Gerald's Favourite", "desc": "Lose to Gerald 5 times.", "stat": "gerald_losses", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "gerald_caught", "name": "Moustache Envy", "desc": "Catch Gerald. Finally.", "stat": "gerald_caught", "goal": 1, "pearls": 10, "joke": true},
+	{"id": "mum_caught", "name": "Sorry, Mrs. Gerald", "desc": "Catch Geraldine.", "stat": "mum_caught", "goal": 1, "pearls": 25, "joke": true},
+	{"id": "ducks_10", "name": "It's Just a Phase", "desc": "Collect 10 rubber ducks.", "stat": "ducks", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "ducks_50", "name": "The Ducks Are Concerned", "desc": "Collect 50 rubber ducks.", "stat": "ducks", "goal": 50, "pearls": 10, "joke": true},
+	{"id": "crabs_100", "name": "Crab Botherer", "desc": "Poke crabs 100 times. They know things.", "stat": "crab_pokes", "goal": 100, "pearls": 5, "joke": true},
+	{"id": "gulls_50", "name": "Gull Friend", "desc": "Poke gulls 50 times. They hate it.", "stat": "gull_pokes", "goal": 50, "pearls": 3, "joke": true},
+	{"id": "bottles_10", "name": "Pen Pal", "desc": "Read 10 messages in bottles.", "stat": "bottles", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "lost_25", "name": "They Seemed Nice", "desc": "Let 25 fish get away.", "stat": "reel_losses", "goal": 25, "pearls": 3, "joke": true},
+	{"id": "blanks_10", "name": "Not Even a Boot", "desc": "Catch nothing at all, 10 times.", "stat": "blanks", "goal": 10, "pearls": 3, "joke": true},
+	{"id": "hats_5", "name": "Hat Person", "desc": "Own 5 hats.", "stat": "hats", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "glass_50", "name": "Please Don't Tap the Glass", "desc": "Tap the aquarium 50 times.", "stat": "glass_taps", "goal": 50, "pearls": 3, "joke": true},
+	{"id": "voyages_25", "name": "Are We There Yet?", "desc": "Sail to another biome 25 times.", "stat": "voyages", "goal": 25, "pearls": 5, "joke": true},
+]
+const BOOK_BONUS := 0.05          # every fish of a biome in the Fish Book: this much more money there, for good
+const AQUARIUM_MAX := 0.30        # every species in the aquarium: visitors add this much to the catch while you're away
+
+static func ach_def(id: String) -> Dictionary:
+	for a in ACHIEVEMENTS:
+		if a.id == id: return a
+	return {}
+
+
+# ==================================================================== hats
+## Silly hats for the captain (not in the bot, all DERIVED). They buy nothing but laughs: no stat looks at them. "price" is in casts'
+## worth (VF.hat_price), so it follows your progress; none is sold for Pearls. "ducks": yours once you've found that many rubber
+## ducks. "from": Gerald or Geraldine gives it when they're caught (VFData.GERALD_HATS).
+const HATS := {
+	"straw": {"name": "Straw Hat", "price": 0.0, "desc": "This hat has seen things."},
+	"pirate": {"name": "Pirate Hat", "price": 15.0, "desc": "Arr. That's all he knows."},
+	"chef": {"name": "Chef's Hat", "price": 25.0, "desc": "The fish don't find this funny."},
+	"propeller": {"name": "Propeller Cap", "price": 40.0, "desc": "Doesn't make the boat go faster. He checked."},
+	"viking": {"name": "Viking Helmet", "price": 60.0, "desc": "For raiding the buffet."},
+	"traffic_cone": {"name": "Traffic Cone", "price": 80.0, "desc": "Nobody asked where he got it."},
+	"top_hat": {"name": "Top Hat", "price": 120.0, "desc": "Very distinguished. Still smells of fish."},
+	"sombrero": {"name": "Sombrero", "price": 160.0, "desc": "Shade for the whole boat."},
+	"duck": {"name": "Duck Hat", "price": 0.0, "ducks": 25, "desc": "It squeaks when he thinks."},
+	"crown": {"name": "Gerald's Crown", "price": 0.0, "from": "Gerald", "desc": "He wants it back. He can't have it."},
+	"tiara": {"name": "Geraldine's Tiara", "price": 0.0, "from": "Geraldine", "desc": "Sit up straight."},
+}
+const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]

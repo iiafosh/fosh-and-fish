@@ -491,6 +491,13 @@ ROD_SPECS = {
     "Abyssal Supermagnet": dict(blank="#3a3f55", grip="#1a1c26", reel="#d0d6e0", magnet=True),
     "Dark Rod":            dict(blank="#1a1024", grip="#0b0710", reel="#9b4dff", glow="#c77dff", wraps="#9b4dff"),
     "Supporter Rod":       dict(blank="#ff7ac0", grip="#6a2a8a", reel="#ffd6ef", heart=True, wraps="#ffffff"),
+    # 1.0 exclusives: Event Shop, Fisher Pack / Pearl Shop, Legend Pack
+    "Starfall Rod":        dict(blank="#2b2f7a", grip="#14163a", reel="#ffd23f", glow="#ffe27a", wraps="#ffd23f", sparkle=True,
+                                star="#ffd23f"),
+    "Pearl Rod":           dict(blank="#eef4ff", grip="#2aa7b8", reel="#ffe3f1", wraps="#7fd6e0", metal=True, pearl=True,
+                                beads=["#fdf6ff", "#ffd9ec", "#d9f3ff"]),
+    "Legend Rod":          dict(blank="#b3122e", grip="#2a0d14", reel="#ffd23f", glow="#ffd23f", wraps="#ffd23f", metal=True,
+                                crown=True, sparkle=True),
 }
 
 
@@ -572,6 +579,25 @@ def build_rod(spec, strip=False):
         parts.append(h)
     if spec.get("flames"):
         parts += _flames(tuple(base + d * 1.6), 0.35)
+    if spec.get("star"):
+        s = extrude_poly(star_pts(0.26, 0.12), 0.1, mat=toon(spec["star"], emit=0.4, spec=0.3))
+        s.location = base + d * 0.02
+        s.rotation_euler = (math.radians(90), 0, 0)
+        parts.append(s)
+    if spec.get("beads"):
+        for i, c in enumerate(spec["beads"] * 2):
+            parts.append(sphere(loc=base + d * (1.0 + i * 0.24) + Vector((0, -0.07, 0)), scale=0.06,
+                                mat=toon(c, spec=0.6, rim=0.3)))
+    if spec.get("crown"):
+        gold = toon("#ffcf3a", spec=0.5, rim=0.2)
+        c0 = base - d * 0.04
+        parts.append(cyl(loc=c0, r=0.17, depth=0.12, rot=(0, 45, 0), mat=gold))
+        side = Vector((-1, 0, 1)).normalized()
+        for k in range(5):
+            a = math.tau * k / 5
+            off = Vector((0, math.cos(a), 0)) * 0.15 + side * math.sin(a) * 0.15
+            parts.append(cone(loc=c0 - d * 0.12 + off, r1=0.06, r2=0.0, depth=0.16, rot=(0, 225, 0), mat=gold, verts=8))
+            parts.append(ico(loc=c0 + off * 1.08, scale=0.035, sub=1, mat=toon("#ef4444" if k % 2 else "#3b82f6", emit=0.3)))
     if strip:
         return parts, base, tip
     return parts

@@ -5,35 +5,40 @@ and the water shader (node graph), so depth colour, transparency and
 shoreline foam line up exactly with the coast.
 """
 import math
+import os
 import random
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 import vf_kit as K
 import vf_models as M
 import vf_boats as B
+import vf_shop as SH
 import vf_vendor as V
 from vf_biomes import palm, pine, mushroom, crystal
 from vf_kit import cone, cube, cyl, hexc, ico, sphere, toon, torus, tube
 
 W = 1920
-CAM_ROT = (30, 0, 0)
-CAM_LOC = (0, -17.5, 31)
+CAM_ROT = (55, 0, 0)        # a three-quarter view: buildings show their walls, boats their hulls, trees their trunks
+CAM_LOC = (0, -28.93, 20.53)
 LENS = 34
 BOAT_SPOT = (-4.0, -3.0)
 BOBBER_SPOT = (4.0, 0.5)
 X0, X1, Y0, Y1 = -46, 46, -16, 52
 EXTRA_AVOID = []      # (x, y, r) kept clear of scattered props (merchant stall)
+EXTRA_LIGHTS = []     # (world position, kind) of lamps besides the shop's
+# light colour of the lights after dark, per biome
+LIGHT_COLOR = {"River": "#ffcf7a", "Ocean": "#ffd98a", "Volcanic": "#ffb24a", "Sky": "#ffe2b0", "Space": "#a8e8ff", "Alien": "#b8ff6a", "Abyss": "#5ff2ff"}
 
 BIOMES = {
-    "River":    dict(shore=8, slope=0.42, deep=3.0, max_a=0.6, water=("#9ce6d6", "#2f8a9a"),
-                     seabed=("#d8c896", "#6f8f72"), sand="#e9d7a6", land="#82c46c", land2="#5fa65a",
+    "River":    dict(shore=8, slope=0.42, deep=3.0, max_a=0.66, water=("#a4f0dc", "#1f94ac"),
+                     seabed=("#e4d6a2", "#3f908c"), sand="#efdcab", land="#8ccb6c", land2="#68ae58",
                      ambient="#8e98a6", sun=(42, 0, 28)),
-    "Volcanic": dict(shore=9, slope=0.36, deep=4.0, max_a=0.8, water=("#ffb27a", "#8a2414"),
-                     seabed=("#4a3a3a", "#2a1414"), sand="#3a3236", land="#4a3c3c", land2="#2e2626",
-                     ambient="#9a7a74", sun=(45, 0, 35), glow="#ff7a1f"),
+    "Volcanic": dict(shore=9, slope=0.36, deep=4.0, max_a=0.94, water=("#ffd86a", "#d4380d"),
+                     seabed=("#5a3020", "#3a1208"), sand="#3a3236", land="#4a3c3c", land2="#2e2626",
+                     ambient="#9a7a74", sun=(45, 0, 35), glow="#ff7a1f", foam="#ffe9a0"),
     "Ocean":    dict(shore=9, slope=0.26, deep=5.5, max_a=0.62, water=("#9ff3e6", "#2a9ec4"),
                      seabed=("#f0e2bc", "#5a9ab0"), sand="#f2e4c0", land="#8ccc6c", land2="#6ab25a",
                      ambient="#9aa6b0", sun=(42, 0, 28)),
@@ -42,13 +47,13 @@ BIOMES = {
                      ambient="#b0a8c0", sun=(40, 0, 20)),
     "Space":    dict(shore=9, slope=0.32, deep=6.0, max_a=0.8, water=("#b49cff", "#1a0f4a"),
                      seabed=("#4a3a7a", "#140c2a"), sand="#5a4a6e", land="#6a5a7a", land2="#4a3e5a",
-                     ambient="#7a70a0", sun=(45, 0, 40), glow="#c9b3ff"),
+                     ambient="#7a70a0", sun=(45, 0, 40), glow="#c9b3ff", foam="#e2d8ff"),
     "Alien":    dict(shore=9, slope=0.34, deep=5.0, max_a=0.78, water=("#9affd8", "#0f5a4a"),
                      seabed=("#2f5a52", "#122a2a"), sand="#6a5a8a", land="#5a3a8a", land2="#46307a",
-                     ambient="#7a9a90", sun=(45, 0, 200), glow="#7dffcf"),
+                     ambient="#7a9a90", sun=(45, 0, 200), glow="#7dffcf", foam="#d4ffef"),
     "Abyss":    dict(shore=10, slope=0.3, deep=8.0, max_a=0.9, water=("#3a7aaa", "#020818"),
                      seabed=("#1a2a44", "#05080f"), sand="#2a3048", land="#1f2638", land2="#161b2a",
-                     ambient="#5a6680", sun=(55, 0, 90), glow="#5ff2ff"),
+                     ambient="#5a6680", sun=(55, 0, 90), glow="#5ff2ff", foam="#a8ecff"),
 }
 
 
@@ -127,7 +132,7 @@ def terrain(P, rnd):
 
     def paint(co, n):
         z = co.z
-        speck = 0.04 * math.sin(co.x * 3.1 + math.sin(co.y * 2.3) * 2) * math.sin(co.y * 2.7)
+        speck = 1.0 + 0.05 * math.sin(co.x * 3.1 + math.sin(co.y * 2.3) * 2) * math.sin(co.y * 2.7)
         if z < -0.5:
             t = min(1.0, (-z - 0.5) / (P["deep"] - 0.5))
             c = K.mix(sb0, sb1, t ** 0.8)
@@ -137,7 +142,7 @@ def terrain(P, rnd):
             c = K.mix(sand, land, (z - 0.35) / 0.55)
         else:
             c = K.mix(land, land2, 0.5 + 0.5 * math.sin(co.x * 0.4) * math.sin(co.y * 0.5))
-        return tuple(max(0.0, min(1.0, v + speck)) if i < 3 else v for i, v in enumerate(c))
+        return tuple(max(0.0, min(1.0, v * speck)) if i < 3 else v for i, v in enumerate(c))
     K.vcolor(ob, paint)
     ob.data.materials.append(toon(None, vcol="col", rim=0.0, key=("terrain", P["sand"])))
     for p in ob.data.polygons:
@@ -215,7 +220,7 @@ def water(P, mask=False):
     mixc.data_type = "RGBA"
     nt.links.new(foam.sock, mixc.inputs[0])
     nt.links.new(ramp.outputs[0], mixc.inputs[6])
-    mixc.inputs[7].default_value = (1, 1, 1, 1)
+    mixc.inputs[7].default_value = K.hexc(P.get("foam", "#ffffff"))
     em = nt.nodes.new("ShaderNodeEmission")
     nt.links.new(mixc.outputs[2], em.inputs[0])
     alpha = nt.nodes.new("ShaderNodeMapRange")
@@ -240,7 +245,9 @@ def water(P, mask=False):
 
 # ------------------------------------------------------------------ props
 def coral(loc, s, cols, rnd):
-    out = [ico(loc=(loc[0], loc[1], loc[2] + 0.1 * s), scale=(1.4 * s, 0.9 * s, 0.35 * s), sub=2, mat=toon("#b8c4c8"))]
+    base = ico(loc=(loc[0], loc[1], loc[2] - 0.02 * s), scale=(1.15 * s, 0.75 * s, 0.25 * s), sub=2, mat=toon("#b8b09a"), smooth=True)
+    base["no_outline"] = True
+    out = [base]
     for i in range(9):
         a = rnd.uniform(0, math.tau)
         r = rnd.uniform(0.1, 1.0) * s
@@ -282,15 +289,11 @@ def dock(x, y_shore, length, z=0.55):
     out.append(cube(loc=(x - 0.6, end + 0.9, z + 0.32), scale=(0.6, 0.6, 0.5), mat=toon("#c48a52"), bevel=0.04))
     out.append(cyl(loc=(x + 0.6, end + 1.4, z + 0.35), r=0.28, depth=0.6, mat=toon("#9a6a3c"), verts=14))
     out.append(torus(loc=(x + 0.5, end + 0.3, z + 0.1), R=0.28, r=0.05, mat=toon("#d8c49a")))
-    return out
-
-
-def hut(x, y, z):
-    out = [cube(loc=(x, y, z + 1.1), scale=(3.2, 2.6, 2.2), mat=toon("#c98a5a"), bevel=0.05)]
-    roof = cone(loc=(x, y, z + 2.9), r1=2.6, r2=0.0, depth=1.6, verts=4, rot=(0, 0, 45), scale=(1.25, 1.05, 1), mat=toon("#9a4a3a"),
-                smooth=False)
-    out.append(roof)
-    out.append(cube(loc=(x, y - 1.31, z + 0.8), scale=(0.7, 0.04, 1.3), mat=toon("#3f6fa0")))
+    out.append(V.place("lantern", (x + 0.86, end + 0.75, z + 0.06), 1.3, rot_z=0.0, folder=SH.TOWN))
+    EXTRA_LIGHTS.append(((x + 0.86, end + 0.75, z + 1.45), "lamp"))
+    # gulls resting: on the crate, and on a post
+    out.append(V.place("gull_standing", (x - 0.6, end + 0.9, z + 0.57), 0.015, rot_z=math.radians(200.0), folder=V.GLB))
+    out.append(V.place("gull_standing", (x - 1.05, y_shore - 2.2, z + 0.3), 0.0135, rot_z=math.radians(-20.0), folder=V.GLB))
     return out
 
 
@@ -317,13 +320,45 @@ def scatter(P, rnd, n, zmin, zmax, fn, avoid=()):
     return out
 
 
-def kn(name, s, folder=None, tint=None):
-    """Kenney model placer for scatter(): fn(p, rnd) -> [obj]."""
+def kn(name, s, folder=None, tint=None, hsv=None):
+    """Kenney / KayKit model placer for scatter(): fn(p, rnd) -> [obj]."""
     def f(p, r):
         names = name if isinstance(name, (list, tuple)) else [name]
-        o = V.place(r.choice(names), p, s * r.uniform(0.85, 1.2), folder=folder or V.NATURE, tint=tint, rnd=r)
+        pick = r.choice(names)
+        o = V.place(pick, p, s * r.uniform(0.85, 1.2), folder=folder or V.NATURE, tint=tint, rnd=r, hsv=hsv)
+        if pick.startswith(SWAYING):
+            o["sway"] = True
         return [o]
     return f
+
+
+SWAYING = ("Tree_", "Bush_", "Grass_", "tree_", "plant_", "grass_", "flower_")
+
+
+def cloud(p, r):
+    """a soft bank of cloud below the haze"""
+    out = []
+    w = r.uniform(1.2, 2.4)
+    for k in range(r.randint(3, 6)):
+        a = r.uniform(0, math.tau)
+        d = r.uniform(0.2, 1.3) * w
+        c = ico(loc=(p[0] + math.cos(a) * d * 1.3, p[1] + math.sin(a) * d * 0.7, p[2] + 0.5), scale=(r.uniform(0.7, 1.3) * w, r.uniform(0.6, 1.0) * w, r.uniform(0.35, 0.6) * w),
+                sub=2, mat=toon("#ffffff"), smooth=True)
+        c["no_outline"] = True
+        out.append(c)
+    return out
+
+
+# KayKit's Forest Nature pack, by size
+F = V.FOREST
+TREES = ["Tree_1_A", "Tree_1_B", "Tree_1_C", "Tree_3_A", "Tree_3_B"]
+PINES = ["Tree_4_A", "Tree_4_B", "Tree_4_C"]
+UMBRELLAS = ["Tree_3_A", "Tree_3_B", "Tree_3_C"]
+BARE = ["Tree_Bare_1_A", "Tree_Bare_1_B", "Tree_Bare_1_C", "Tree_Bare_2_A", "Tree_Bare_2_B"]
+BUSHES = ["Bush_1_C", "Bush_1_D", "Bush_3_B", "Bush_3_C", "Bush_4_C", "Bush_4_D"]
+GRASS = ["Grass_1_B", "Grass_1_C", "Grass_2_B", "Grass_2_C"]
+ROCKS = ["Rock_1_E", "Rock_1_F", "Rock_1_G", "Rock_2_C", "Rock_2_D", "Rock_3_E", "Rock_3_F", "Rock_3_G", "Rock_3_H"]
+BOULDERS = ["Rock_3_D", "Rock_3_E", "Rock_3_F", "Rock_3_G", "Rock_3_H"]       # round: the boxy ones look like crates under water
 
 
 def build_scene(name, P):
@@ -331,34 +366,39 @@ def build_scene(name, P):
     avoid = [(BOAT_SPOT[0], BOAT_SPOT[1], 7.0), (BOBBER_SPOT[0], BOBBER_SPOT[1], 3.0)]
     parts = [terrain(P, rnd)]
     WC = V.WATERCRAFT
-    land_rocks = ["rock_largeA", "rock_largeB", "rock_largeD", "rock_largeE"]
-    seaweed = kn(["plant_flatTall", "grass_large", "grass_leafsLarge"], 3.2, tint="#3f9a6a")
+    reeds = kn(GRASS, 1.5, F, hsv=(0.5, 0.8, 0.9))
 
     if name in ("River", "Ocean"):
         cols = ["#ffb3c7", "#c9a3ff", "#ffd27a", "#7fd6ff", "#ff8a7a"]
         if name == "Ocean":
             parts += scatter(P, rnd, 14, -3.6, -0.6, lambda p, r: coral(p, r.uniform(1.1, 1.8), cols, r), avoid)
             parts += scatter(P, rnd, 14, 0.25, 3.0, kn(["tree_palmTall", "tree_palmBend", "tree_palmDetailedTall", "tree_palmShort"], 2.8))
-            parts += scatter(P, rnd, 10, 0.2, 3.0, kn(["plant_bushSmall", "flower_yellowB", "flower_redB", "plant_bush"], 3.4))
+            parts += scatter(P, rnd, 12, 0.5, 3.0, kn(BUSHES, 0.8, F))
+            parts += scatter(P, rnd, 10, 0.2, 3.0, kn(["flower_yellowB", "flower_redB"], 3.4))
+            parts += scatter(P, rnd, 30, 0.2, 3.0, kn(GRASS, 1.0, F))
             parts += scatter(P, rnd, 2, -3.5, -2.0, lambda p, r: [V.place("chest", (p[0], p[1], p[2] + 0.1), 1.3, folder=V.GLB, rnd=r)], avoid)
         else:
-            parts += scatter(P, rnd, 22, 0.35, 3.0, kn(["tree_pineRoundA", "tree_pineRoundC", "tree_pineTallA_detailed", "tree_default", "tree_oak"], 2.6))
-            parts += scatter(P, rnd, 18, 0.25, 3.0, kn(["plant_bush", "plant_bushDetailed", "plant_bushLarge"], 2.0))
-            parts += scatter(P, rnd, 14, 0.2, 3.0, kn(["flower_redA", "flower_yellowA", "flower_purpleB", "plant_bushSmall"], 3.6))
-            parts += scatter(P, rnd, 8, -0.4, 0.1, kn(["grass_large", "plant_flatTall"], 3.0, tint="#5a9a4a"), avoid)
+            parts += scatter(P, rnd, 20, 0.7, 3.0, kn(TREES, 0.72, F))
+            parts += scatter(P, rnd, 10, 0.7, 3.0, kn(PINES, 0.62, F))
+            parts += scatter(P, rnd, 18, 0.5, 3.0, kn(BUSHES, 0.8, F))
+            parts += scatter(P, rnd, 14, 0.25, 3.0, kn(["flower_redA", "flower_yellowA", "flower_purpleB"], 3.6))
+            parts += scatter(P, rnd, 50, 0.3, 3.0, kn(GRASS, 1.0, F))
+            parts += scatter(P, rnd, 10, -0.5, 0.05, reeds, avoid)
             parts += scatter(P, rnd, 10, -1.4, -0.2, lambda p, r: [V.place(r.choice(["lily_large", "lily_small"]), (p[0], p[1], 0.02), 2.4, rnd=r)], avoid)
-            parts += scatter(P, rnd, 6, 0.2, 3.0, kn(["log_large", "stump_round", "mushroom_redGroup"], 3.0))
-        parts += scatter(P, rnd, 12, -2.5, -0.3, seaweed, avoid)
-        parts += scatter(P, rnd, 10, -P["deep"], 0.6, kn(land_rocks, 2.2), avoid)
+            parts += scatter(P, rnd, 5, 0.3, 3.0, kn(["stump_round", "mushroom_redGroup"], 3.0))
+        parts += scatter(P, rnd, 12, -2.5, -0.3, reeds, avoid)
+        parts += scatter(P, rnd, 10, -P["deep"], -0.2, kn(BOULDERS, 0.85, F), avoid)
+        parts += scatter(P, rnd, 5, 0.4, 3.0, kn(ROCKS, 0.7, F))
         sx = 9.0
         sy = P["shore"] + 3.5 * math.sin(0.11 * sx + 1.0) + 2.2 * math.sin(0.27 * sx + 2.3)
         parts += dock(sx, sy + 1.5, 9.0)
-        moored = V.place("boat-row-small", (sx + 2.6, sy - 4.5, -0.15), 2.2, rot_z=math.radians(80), folder=WC)
+        moored = V.place("boat-row-small", (sx + 2.9, sy - 5.5, -0.12), 1.5, rot_z=math.radians(8), folder=WC)
         parts.append(moored)
-        if name == "Ocean":
-            parts += hut(sx - 0.2, sy + 4.5, H(sx, sy + 4.5, P))
     elif name == "Volcanic":
-        parts += scatter(P, rnd, 18, -P["deep"], 2.5, kn(["rock_tallA", "rock_tallC", "rock_largeC", "rock_largeE"], 2.4, tint="#3a2c2c"), avoid)
+        dark = (0.5, 0.55, 0.45)
+        parts += scatter(P, rnd, 14, 0.3, 3.0, kn(ROCKS, 1.3, F, hsv=dark))
+        parts += scatter(P, rnd, 10, -P["deep"], -0.4, kn(BOULDERS, 1.0, F, hsv=dark), avoid)
+        parts += scatter(P, rnd, 14, 0.35, 3.0, kn(BARE, 1.0, F, tint="#2a2024"))
         for _ in range(10):
             def vent(p, r):
                 v = cyl(loc=(p[0], p[1], p[2] + 0.1), r=0.35, depth=0.3, mat=toon(P["glow"], flat_glow=True), verts=10)
@@ -368,54 +408,173 @@ def build_scene(name, P):
         parts += scatter(P, rnd, 8, 1.0, 3.0, lambda p, r: [cone(loc=(p[0], p[1], p[2] + 1.0), r1=1.4, r2=0.3, depth=2.2,
                                                                   verts=8, mat=toon("#3a2626"), smooth=False)])
     elif name == "Sky":
-        parts += scatter(P, rnd, 40, -P["deep"], -1.0, lambda p, r: [ico(loc=(p[0], p[1], p[2] + 0.5), scale=r.uniform(0.8, 2.0),
-                                                                          sub=2, mat=toon("#ffffff"), smooth=True)], avoid)
-        parts += scatter(P, rnd, 14, 0.3, 3.0, kn(["tree_fat", "tree_plateau", "tree_detailed"], 2.6))
-        parts += scatter(P, rnd, 16, 0.2, 3.0, kn(["flower_purpleA", "flower_yellowC", "plant_bushSmall"], 3.4))
-        parts += scatter(P, rnd, 6, 0.6, 3.0, lambda p, r: rock(p, r.uniform(0.4, 0.9), "#d8d0e8"))
+        blossom = (0.13, 0.8, 1.7)          # pink crowns, lilac trunks
+        parts += scatter(P, rnd, 30, -P["deep"], -1.0, cloud, avoid)
+        parts += scatter(P, rnd, 16, 0.3, 3.0, kn(TREES, 0.62, F, hsv=blossom))
+        parts += scatter(P, rnd, 14, 0.25, 3.0, kn(BUSHES, 0.7, F, hsv=blossom))
+        parts += scatter(P, rnd, 16, 0.2, 3.0, kn(["flower_purpleA", "flower_yellowC"], 3.4))
+        parts += scatter(P, rnd, 30, 0.25, 3.0, kn(GRASS, 1.0, F))
+        parts += scatter(P, rnd, 6, 0.6, 3.0, kn(ROCKS, 1.0, F, hsv=(0.5, 0.4, 1.3)))
     elif name == "Space":
+        moon = (0.75, 0.6, 0.8)
         parts += scatter(P, rnd, 26, -P["deep"], -0.6, lambda p, r: [crystal(p, r.uniform(1.0, 2.6), r.choice(["#c9b3ff", "#7dd6ff", "#ff9cf0"]))], avoid)
-        parts += scatter(P, rnd, 18, 0.2, 3.0, kn(land_rocks, 2.2, tint="#7a6a8a"))
+        parts += scatter(P, rnd, 16, 0.2, 3.0, kn(ROCKS, 1.2, F, hsv=moon))
+        parts += scatter(P, rnd, 14, 0.4, 3.0, lambda p, r: [crystal(p, r.uniform(0.8, 2.0), r.choice(["#c9b3ff", "#7dd6ff", "#ff9cf0"]))])
         parts += scatter(P, rnd, 60, -P["deep"], -0.5, lambda p, r: [ico(loc=p, scale=0.08, sub=1, mat=toon("#ffffff", flat_glow=True))])
     elif name == "Alien":
         cols = ["#7dffcf", "#c77dff", "#5ff2ff", "#b8ff6a"]
+        weird = (0.98, 1.1, 1.2)            # violet-teal crowns, cyan trunks
         parts += scatter(P, rnd, 10, -3.5, -0.6, lambda p, r: coral(p, r.uniform(0.8, 1.3), cols, r), avoid)
         parts += scatter(P, rnd, 12, 0.3, 3.0, lambda p, r: mushroom(p, r.uniform(0.6, 1.0), cap=r.choice(["#c77dff", "#7dff9a"])))
-        parts += scatter(P, rnd, 10, 0.2, 3.0, kn(["mushroom_tanTall", "mushroom_redTall"], 2.6, tint="#b07dff"))
+        parts += scatter(P, rnd, 10, 0.35, 3.0, kn(UMBRELLAS, 0.8, F, hsv=weird))
+        parts += scatter(P, rnd, 12, 0.25, 3.0, kn(BUSHES, 0.8, F, hsv=weird))
         parts += scatter(P, rnd, 14, 0.4, 3.0, lambda p, r: [crystal(p, r.uniform(1.0, 2.2), r.choice(cols))])
     elif name == "Abyss":
         cols = ["#5ff2ff", "#c77dff", "#9fffd0"]
+        deep = (0.62, 0.55, 0.5)
         parts += scatter(P, rnd, 16, -P["deep"], -1.0, lambda p, r: weed(p, r.uniform(1.2, 2.2), r.choice(cols)), avoid)
-        parts += scatter(P, rnd, 10, -P["deep"], -1.0, kn(land_rocks, 2.4, tint="#2a3450"), avoid)
+        parts += scatter(P, rnd, 10, -P["deep"], -1.0, kn(BOULDERS, 1.1, F, hsv=deep), avoid)
         parts += scatter(P, rnd, 2, -P["deep"], -2.0, lambda p, r: [V.place("chest", (p[0], p[1], p[2] + 0.1), 1.4, folder=V.GLB, rnd=r)], avoid)
-        parts += scatter(P, rnd, 8, 0.2, 3.0, lambda p, r: [cyl(loc=(p[0], p[1], p[2] + 1.2), r=0.45, depth=2.6, verts=8,
-                                                                 mat=toon("#3a4466"), smooth=False)])
+        parts += scatter(P, rnd, 12, 0.3, 3.0, kn(ROCKS, 1.4, F, hsv=deep))
+        parts += scatter(P, rnd, 10, 0.3, 3.0, kn(BARE, 1.0, F, tint="#3a5a7a"))
         parts += scatter(P, rnd, 50, -P["deep"], -0.5, lambda p, r: [ico(loc=(p[0], p[1], p[2] + 0.3), scale=0.1, sub=1,
                                                                           mat=toon(r.choice(cols), flat_glow=True))])
     return parts
 
 
-def merchant_spot(P, cam):
-    """A flat bit of land in the upper-left of the frame (below the HUD)."""
+SHOP_AT = (930.0, 322.0)        # where the door should be, scene px: in the gap between the HUD's top left and top right, even on a phone
+SHOP_X = (725.0, 1140.0)        # the whole shop stays in that gap
+SHOP_TOP = 118.0                # (a wide phone only shows the scene from about y = 100)
+
+
+def shop_spot(P, cam):
+    """Where the shop's origin goes: near SHOP_AT, in the HUD's gap. Where the land is too short it stands in the
+    shallows just off the beach, on its posts."""
     from bpy_extras.object_utils import world_to_camera_view
     sc = bpy.context.scene
-    best, best_d = None, 1e9
-    for min_h in (0.45, 0.25, 0.05):
-        for xi in range(-24, 10):
-            for yi in range(0, 22):
-                x, y = xi * 1.0, yi * 1.0
-                if min(H(x + dx, y + dy, P) for dx, dy in ((0, 0), (2, 0), (-2, 0), (0, 1.5), (0, -1.5))) < min_h:
+
+    def px(p):
+        v = world_to_camera_view(sc, cam, Vector(p))
+        return v.x * W, (1 - v.y) * 1080
+    for top in (SHOP_TOP, 100.0, 80.0, 60.0):
+        best, best_d = None, 1e12
+        for yi in range(-10, 60):
+            for xi in range(-70, 40):
+                x, y = xi * 0.5, yi * 0.5
+                loc = (x, y, max(H(x, y, P), 0.25) + 0.2)
+                pts = [px(SH.to_world(k, loc)) for k in SH.key_points()]
+                if min(p[1] for p in pts) < top or min(p[0] for p in pts) < SHOP_X[0] or max(p[0] for p in pts) > SHOP_X[1]:
                     continue
-                v = world_to_camera_view(sc, cam, Vector((x, y, H(x, y, P))))
-                u, w = v.x, 1 - v.y
-                if not (0.05 < u < 0.45 and 0.24 < w < 0.5):
+                back = SH.to_world((0.0, SH.Y1, 0.0), loc)
+                if H(back[0], back[1], P) < -0.7:
                     continue
-                d = (u - 0.2) ** 2 + (w - 0.36) ** 2
+                o = px(loc)
+                d = (o[0] - SHOP_AT[0]) ** 2 + (o[1] - SHOP_AT[1]) ** 2
                 if d < best_d:
-                    best, best_d = (x, y, H(x, y, P)), d
+                    best, best_d = loc, d
         if best:
             return best
-    return (-12.0, 8.0, H(-12.0, 8.0, P))
+    return (0.0, 10.0, max(H(0.0, 10.0, P), 0.25) + 0.2)
+
+
+def render_sway(path):
+    """How much each pixel moves in the wind (vf_backdrop.gdshader), small: 0 at the foot of a tree, 1 high up in it,
+    0 where anything else is in front. Grey, no alpha."""
+    import numpy as np
+    sc = bpy.context.scene
+    m = bpy.data.materials.new("sway")
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    em = nt.nodes.new("ShaderNodeEmission")
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    info = nt.nodes.new("ShaderNodeObjectInfo")
+    s1 = nt.nodes.new("ShaderNodeSeparateXYZ")
+    s2 = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Position"], s1.inputs[0])
+    nt.links.new(info.outputs["Location"], s2.inputs[0])
+    E.nt = nt
+    up = E(s1.outputs["Z"]) - E(s2.outputs["Z"])
+    h = nt.nodes.new("ShaderNodeMapRange")
+    h.inputs["From Min"].default_value = 0.1
+    h.inputs["From Max"].default_value = 3.4
+    nt.links.new(up.sock, h.inputs["Value"])
+    nt.links.new(h.outputs[0], em.inputs["Color"])
+    nt.links.new(em.outputs[0], out.inputs[0])
+    saved = {}
+    for o in list(bpy.data.objects):
+        if o.type == "MESH" and o.name.startswith("Plane"):
+            bpy.data.objects.remove(o)
+        elif o.type == "MESH":
+            o.is_holdout = not o.get("sway", False)
+            if o.get("sway", False) and o.data not in saved:      # (the view layer's material override doesn't work in EEVEE)
+                saved[o.data] = list(o.data.materials)
+                for i in range(len(o.data.materials)):
+                    o.data.materials[i] = m
+    sc.render.resolution_x, sc.render.resolution_y = W // 4, 1080 // 4
+    sc.eevee.taa_render_samples = 4
+    K.render(path)
+    for me, mats in saved.items():
+        for i, mt in enumerate(mats):
+            me.materials[i] = mt
+    im = bpy.data.images.load(path)
+    w, hh = im.size
+    px = np.array(im.pixels[:], dtype=np.float32).reshape(hh, w, 4)
+    bpy.data.images.remove(im)
+    v = px[..., 0] * px[..., 3]
+    px2 = np.ones((hh, w, 4), dtype=np.float32)
+    px2[..., 0] = px2[..., 1] = px2[..., 2] = v
+    img = bpy.data.images.new("sway_out", w, hh, alpha=False)
+    img.pixels = px2.ravel().tolist()
+    img.filepath_raw = path
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+
+
+def render_reflection(path, sun_ob):
+    """The world above the water, turned upside down below it and lit from below, seen through the same camera: what the
+    water would mirror, pixel for pixel. The stage's water shader lays it on the surface, wobbling (small: it's soft anyway)."""
+    sc = bpy.context.scene
+    for o in list(bpy.data.objects):
+        if o.type != "MESH" or o.hide_render:
+            continue
+        o.is_holdout = False
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.transform(o.matrix_world)
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0), plane_no=(0, 0, 1), clear_inner=True)
+        if bm.faces:
+            for v in bm.verts:
+                v.co.z = -v.co.z
+            bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+            me = bpy.data.meshes.new(o.name + "_mirror")
+            bm.to_mesh(me)
+            for mt in o.data.materials:
+                me.materials.append(mt)
+            bpy.context.collection.objects.link(bpy.data.objects.new(me.name, me))
+        bm.free()
+        o.hide_render = True
+    d = sun_ob.rotation_euler.to_matrix() @ Vector((0, 0, -1))
+    sun_ob.rotation_euler = Vector((d.x, d.y, -d.z)).to_track_quat("-Z", "Y").to_euler()
+    sc.render.resolution_x, sc.render.resolution_y = 800, 450
+    sc.eevee.taa_render_samples = 8
+    K.render(path)
+
+
+def convex_hull(pts):
+    """the points around pts, in order (Andrew's monotone chain)"""
+    pts = sorted(map(tuple, pts))
+
+    def half(seq):
+        out = []
+        for q in seq:
+            while len(out) > 1 and (out[-1][0] - out[-2][0]) * (q[1] - out[-2][1]) - (out[-1][1] - out[-2][1]) * (q[0] - out[-2][0]) <= 0:
+                out.pop()
+            out.append(q)
+        return out[:-1]
+    return [list(q) for q in half(pts) + half(pts[::-1])]
 
 
 def render_scene(name, path, mask_path):
@@ -432,9 +591,12 @@ def render_scene(name, path, mask_path):
     cam = K.make_camera(CAM_ROT, ortho=False, lens=LENS)
     cam.location = CAM_LOC
     bpy.context.view_layer.update()
-    spot = merchant_spot(P, cam)
-    EXTRA_AVOID[:] = [(spot[0], spot[1], 6.0)]
+    spot = shop_spot(P, cam)
+    EXTRA_LIGHTS[:] = []
+    EXTRA_AVOID[:] = [SH.to_world(k, spot)[:2] + (r,) for k, r in (((0.0, 2.0, 0), 7.5), ((3.5, -1.0, 0), 5.5), ((-3.0, -1.5, 0), 4.5), ((0.0, -5.0, 0), 5.0))]
     parts = build_scene(name, P)
+    shop, keeper, smoke = SH.build(spot, name)
+    parts += shop
     parts.append(water(P))
     K.outline_all(parts, 0.04)
     K.render(path)
@@ -451,6 +613,8 @@ def render_scene(name, path, mask_path):
             o.is_holdout = True
     water(P, mask=True)
     K.render(mask_path)
+    render_sway(path[:-4] + "_sway.png")
+    render_reflection(path[:-4] + "_reflect.png", s)
     sc.render.resolution_x, sc.render.resolution_y = W, 1080
     from bpy_extras.object_utils import world_to_camera_view
     bpy.context.view_layer.update()
@@ -462,11 +626,19 @@ def render_scene(name, path, mask_path):
     b = px((BOAT_SPOT[0] + 1, BOAT_SPOT[1], 0))
     K.SOFT[0] = False
     EXTRA_AVOID[:] = []
-    m = px(spot)
-    m2 = px((spot[0] + 1, spot[1], spot[2]))
-    return {"merchant": m, "merchant_unit_px": round((m2[0] - m[0]) * W, 3),
-            "boat": a, "bobber": px((BOBBER_SPOT[0], BOBBER_SPOT[1], 0)), "unit_px": round((b[0] - a[0]) * W, 3),
-            "water": list(P["water"]), "glow": P.get("glow", "#ffffff")}
+    m = px(keeper)
+    m2 = px(keeper + Vector((1, 0, 0)))
+    lights = [(SH.to_world(q, spot), kind) for q, kind in SH.light_points()] + EXTRA_LIGHTS
+    corners = [px(k) for k in (SH.to_world(q, spot) for q in SH.key_points())]
+    e = {"merchant": m, "merchant_unit_px": round((m2[0] - m[0]) * W, 3),
+         "shop": [min(c[0] for c in corners), min(c[1] for c in corners), max(c[0] for c in corners), max(c[1] for c in corners)],
+         "shop_outline": convex_hull(corners),
+         "lights": [px(q) + [kind] + px((q[0], q[1], -q[2])) for q, kind in lights], "light_color": LIGHT_COLOR.get(name, "#ffcf7a"),
+         "boat": a, "bobber": px((BOBBER_SPOT[0], BOBBER_SPOT[1], 0)), "unit_px": round((b[0] - a[0]) * W, 3),
+         "water": list(P["water"]), "glow": P.get("glow", "#ffffff")}
+    if name not in SH.NO_SMOKE:
+        e["smoke"] = px(smoke)
+    return e
 
 
 # ------------------------------------------------------------ boat sprites
@@ -492,6 +664,124 @@ def clip_below(parts, z=-0.03):
     return keep
 
 
+REFLECT_PAD = 2.2       # the reflection's image covers this much more than the sprite (a mast reflects a long way)
+REFLECT_SIZE = 320
+FOAM_PAD = 1.5          # the foam image covers this much more than the boat's sprite, around the same centre
+FOAM_SIZE = 320
+FOOT_Z = 0.35           # the hull's footprint on the water: everything up to here
+
+
+def footprint(parts):
+    """The hull near the waterline, flattened onto the water: one mesh. -> (object, floats: nothing reaches the water)"""
+    bm = bmesh.new()
+    floats = True
+    for p in parts:
+        if p.type != "MESH":
+            continue
+        one = bmesh.new()
+        one.from_mesh(p.data)
+        one.transform(p.matrix_world)
+        geom = one.verts[:] + one.edges[:] + one.faces[:]
+        bmesh.ops.bisect_plane(one, geom=geom, plane_co=(0, 0, FOOT_Z), plane_no=(0, 0, 1), clear_outer=True)
+        if len(one.faces) > 0:
+            floats = False
+        me = bpy.data.meshes.new("foot")
+        one.to_mesh(me)
+        one.free()
+        bm.from_mesh(me)
+        bpy.data.meshes.remove(me)
+    if floats:                     # a flying craft: its whole shape, for the shadow it casts
+        for p in parts:
+            if p.type == "MESH":
+                me = p.data.copy()
+                me.transform(p.matrix_world)
+                bm.from_mesh(me)
+                bpy.data.meshes.remove(me)
+    for v in bm.verts:
+        v.co.z = 0.0
+    me = bpy.data.meshes.new("footprint")
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new("footprint", me)
+    bpy.context.collection.objects.link(ob)
+    return ob, floats
+
+
+def _soft(a, r):
+    """three box blurs of radius r: about a gaussian of that sigma"""
+    import numpy as np
+    for _ in range(3):
+        for axis in (0, 1):
+            c = np.cumsum(np.pad(a, [(r + 1, r) if k == axis else (0, 0) for k in (0, 1)]), axis=axis)
+            hi, lo = np.take(c, range(2 * r + 1, c.shape[axis]), axis=axis), np.take(c, range(0, c.shape[axis] - 2 * r - 1), axis=axis)
+            a = (hi - lo) / (2 * r + 1)
+    return a
+
+
+def render_foam(cam, foot, path, unit_px):
+    """The footprint, blurred, saved as an image: 1 under the hull, about 0.5 at its edge, 0 a little way out.
+    The stage's vf_foam.gdshader draws foam and a shadow on the water from it."""
+    import numpy as np
+    import tempfile
+    sc = bpy.context.scene
+    hidden = [o for o in bpy.data.objects if o.type == "MESH" and o is not foot and not o.hide_render]
+    for o in hidden:
+        o.hide_render = True
+    foot.data.materials.append(toon("#ffffff", flat_glow=True))
+    k = cam.data.ortho_scale
+    cam.data.ortho_scale = k * FOAM_PAD
+    n = FOAM_SIZE * 2
+    tmp = os.path.join(tempfile.mkdtemp(), "foot.png")
+    K.render(tmp)
+    cam.data.ortho_scale = k
+    for o in hidden:
+        o.hide_render = False
+    im = bpy.data.images.load(tmp)
+    a = np.array(im.pixels[:], dtype=np.float32).reshape(n, n, 4)[..., 3]
+    bpy.data.images.remove(im)
+    a = (a[0::2, 0::2] + a[1::2, 0::2] + a[0::2, 1::2] + a[1::2, 1::2]) / 4.0
+    a = _soft(a, max(2, int(round(0.32 * unit_px * FOAM_SIZE / n / FOAM_PAD))))
+    px = np.ones((FOAM_SIZE, FOAM_SIZE, 4), dtype=np.float32)
+    px[..., 0] = px[..., 1] = px[..., 2] = np.clip(a, 0.0, 1.0)
+    out = bpy.data.images.new("foam", FOAM_SIZE, FOAM_SIZE, alpha=False)
+    out.pixels = px.ravel().tolist()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    out.filepath_raw = path
+    out.file_format = "PNG"
+    out.save()
+    bpy.data.images.remove(out)
+
+
+def render_boat_reflection(cam, parts, path):
+    """the boat upside down below the water, seen through the same camera (vf_reflect.gdshader wobbles it on the water)"""
+    sc = bpy.context.scene
+    made = []
+    for o in parts:
+        if o.type != "MESH":
+            continue
+        me = o.data.copy()
+        me.transform(o.matrix_world)
+        me.transform(Matrix.Diagonal((1.0, 1.0, -1.0, 1.0)))
+        me.flip_normals()
+        r = bpy.data.objects.new(o.name + "_mirror", me)
+        bpy.context.collection.objects.link(r)
+        made.append(r)
+        o.hide_render = True
+    for o in bpy.data.objects:
+        if o.type == "LIGHT":
+            d = o.rotation_euler.to_matrix() @ Vector((0, 0, -1))
+            o.rotation_euler = Vector((d.x, d.y, -d.z)).to_track_quat("-Z", "Y").to_euler()
+    k = cam.data.ortho_scale
+    cam.data.ortho_scale = k * REFLECT_PAD
+    res = sc.render.resolution_x, sc.render.resolution_y
+    sc.render.resolution_x, sc.render.resolution_y = REFLECT_SIZE, REFLECT_SIZE
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    K.render(path)
+    sc.render.resolution_x, sc.render.resolution_y = res
+    cam.data.ortho_scale = k
+    return made
+
+
 def render_boat_top(name, path):
     K.clear_scene()
     K.SOFT[0] = True
@@ -501,20 +791,29 @@ def render_boat_top(name, path):
     s.data.angle = math.radians(7)
     cam = K.make_camera(CAM_ROT, ortho=True)
     parts, deck = B.build_boat(name)
-    seat = B.seat_for(deck, B.FISHER_SCALE.get(name, 1.0))
+    seat = B.find_seat(parts, deck)
+    foot, floats = footprint(parts)
+    foot.hide_render = True
     allp = clip_below(parts)
     K.outline_all(allp, 0.035)
     K.frame_ortho(cam, allp, 1.06)
-    if path:
-        K.render(path)
     W2 = 640
     cx, cy, scale, aspect = cam["frame"]
+    if path:
+        K.render(path)
+        foot.hide_render = False
+        render_foam(cam, foot, os.path.join(os.path.dirname(os.path.dirname(path)), "boats_foam", os.path.basename(path)), W2 / scale)
+        foot.hide_render = True
+        render_boat_reflection(cam, allp, os.path.join(os.path.dirname(os.path.dirname(path)), "boats_reflect", os.path.basename(path)))
     d = K.project(cam, deck)
     st = K.project(cam, seat)
     o = K.project(cam, (0, 0, 0))
     K.SOFT[0] = False
-    return {"deck": [d[0] / W2, d[1] / W2], "seat": [st[0] / W2, st[1] / W2], "origin": [o[0] / W2, o[1] / W2],
-            "unit_px": round(W2 / scale, 3), "fisher_scale": B.FISHER_SCALE.get(name, 1.0)}
+    e = {"deck": [d[0] / W2, d[1] / W2], "seat": [st[0] / W2, st[1] / W2], "origin": [o[0] / W2, o[1] / W2],
+         "unit_px": round(W2 / scale, 3), "foam_pad": FOAM_PAD, "reflect_pad": REFLECT_PAD}
+    if floats:
+        e["floats"] = True
+    return e
 
 
 def render_fish_top(name, spec, path):

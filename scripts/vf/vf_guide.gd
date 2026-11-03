@@ -13,6 +13,8 @@ const TABS := {
 		"Press SELL (or E) to sell your whole hold. Fish are worth more with a higher Sell Price (Salesman, Fish Ovens, Marketing charms…). Tip: sell right before a big purchase."],
 		["Sailing", ["boat", "Rowboat"],
 		"Press on your boat and drag it (or use WASD / the arrow keys) to sail somewhere else and fish from there. Sail out through the lanes at the screen edges to reach the previous or next biome — later biomes need a higher level. The Map takes you anywhere you've unlocked."],
+		["Poke things", ["ui", "inventory"],
+		"Everything's alive and it doesn't mind (much). Tap crabs and gulls. Tap your boat to honk (or H). Bottles and rubber ducks float by: tap them for a little money and a note. And if a gull flies off with your fish, tap it before it's gone."],
 		["The merchant", ["ui", "shop"],
 		"The fish shop on the island is the merchant. Tap it (or the Shop button) to buy rods, bait, boats and upgrades."],
 		["Next goal", ["ui", "xp"],
@@ -34,7 +36,7 @@ const TABS := {
 		["Chests & exotic fish", ["chest", "epic"],
 		"From Lv10 casts can find chests (Common » Artifact). They give money, XP, charms and exotic fish: Gold & Emerald (Lv10), Lava (Lv50), Diamond (Lv100). Exotic fish pay for boosts and special upgrades — check your Wallet."],
 		["Charms", ["charm", "quality"],
-		"Rare+ chests drop charms (Lv20+). Each type levels in tiers; tier n costs n charms. You need every charm maxed (440 at P0) to prestige."],
+		"Rare+ chests drop charms (Lv20+). Each type levels in tiers; tier n costs n charms. They make you stronger; no rebirth needs them."],
 		["Pets", ["pet", "Puffer"],
 		"Pets can't be bought: every cast has a 1 in 10,000 chance to find one. Equipped pets level up as you fish and give big buffs."],
 		["Boosts, workers & quests", ["ui", "boosts"],
@@ -42,7 +44,7 @@ const TABS := {
 	],
 	"Prestige": [
 		["Prestiging", ["ui", "prestige"],
-		"At Level 250 with 440/440 charms and $5B you can prestige. You restart from Level 1 but keep pets, Hooks, league upgrades and prestige perks, and earn an Azure Fish."],
+		"Your first rebirth comes at Level 60 with $5M. You restart from Level 1 but keep pets, Hooks, league upgrades and prestige perks, and earn an Azure Fish. Each rebirth after that asks for a little more and takes a little longer: about 6 hours for the second."],
 		["Prestige shop", ["exotic", "azure"],
 		"Spend Azure Fish on permanent perks: International Ties, Business Education, Fish Whisperer, Ancient One and Virtual Fisher (P5+). Each perk's cap is 1 + prestige/5. The Guide tab in the Prestige panel shows the community buy order."],
 	],
@@ -60,4 +62,4 @@ const TAB_ORDER := ["Basics", "Gear", "Progress", "Prestige", "Controls", "Credi
 const AUTHOR := "afosh"
 const SOCIALS := [["LinkedIn", "https://www.linkedin.com/in/mostafa-kmal-3731453a9/"],
 	["GitHub", "https://github.com/iiafosh"]]
-const ASSET_CREDITS := "Fish, characters & market art: Quaternius (CC0) · Nature, boats, particles, UI & sounds: Kenney (CC0) · Seagull, crab & some boat parts: Poly by Google (CC-BY 3.0) · Space Shuttle: Zoe XR (CC-BY 3.0) · Water sounds: OpenGameArt (CC0) · Fonts: Fredoka & Cairo (OFL) · Interface icons: Phosphor Icons (MIT) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."
+const ASSET_CREDITS := "Captain, shopkeeper, trees & rocks: KayKit by Kay Lousberg (CC0) · Fish: Quaternius (CC0) · Shop, boats, particles, UI & sounds: Kenney (CC0) · Resting gulls & some boat parts: Poly by Google (CC-BY 3.0) · Space Shuttle: Zoe XR (CC-BY 3.0) · Music: Scott Buckley, www.scottbuckley.com.au (CC-BY 4.0) · Sound effects: OpenGameArt (CC0) · Fonts: Fredoka & Cairo (OFL) · Interface icons: Phosphor Icons (MIT) · Game data: Virtual Fisher Encyclopaedia, virtualfisher.miraheze.org wiki and the Prestige 0 Guide. Full list in CREDITS.md."

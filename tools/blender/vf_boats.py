@@ -26,10 +26,6 @@ BOAT_ORDER = ["Rowboat", "Fishing Boat", "Speedboat", "Pontoon", "Sailboat", "Ya
               "Cruise Ship", "Gold Boat", "Sky Cruiser", "Satellite", "Space Shuttle", "Cruiser",
               "Alien Raft", "Alien Submarine", "Dark Explorer", "Abyssal Surveyor"]
 
-FISHER_SCALE = {"Yacht": 1.05, "Luxury Yacht": 1.1, "Cruise Ship": 1.25, "Gold Boat": 1.15, "Sky Cruiser": 1.15,
-                "Satellite": 1.1, "Space Shuttle": 1.15, "Cruiser": 1.2, "Alien Raft": 1.1, "Alien Submarine": 1.15,
-                "Dark Explorer": 1.2, "Abyssal Surveyor": 1.25}
-
 WC, PI, SP, BO = "wc", "pi", "sp", "bo"
 
 
@@ -217,29 +213,63 @@ def deck_at(parts, x, y=0.0, below=None):
     return (x, y, z)
 
 
-def seat_for(deck, k=1.0):
-    """Where the fisher's cooler goes: up to ~0.45 m aft of the old standing spot, on
-    a patch of deck big enough for him - nothing sticking up within his height (cabin,
-    rail, roof) and no drop to the water - so he sits on deck with his boots about
-    where he used to stand. Falls back to the standing spot."""
+# the game's camera and the way the captain sits (vf_topdown.CAM_ROT, vf_captain.FACE)
+TO_CAMERA = Vector((0.0, -math.sin(math.radians(55.0)), math.cos(math.radians(55.0))))
+LEGS = Vector((math.sin(math.radians(42.0)), -math.cos(math.radians(42.0))))
+SIDE = Vector((-LEGS.y, LEGS.x))
+
+
+def _top(x, y, z):
+    """the first surface under height z at (x, y), or None over open water"""
+    dg = bpy.context.evaluated_depsgraph_get()
+    hit, loc, *_ = bpy.context.scene.ray_cast(dg, Vector((x, y, z)), Vector((0, 0, -1)))
+    return loc.z if hit else None
+
+
+def _in_view(p):
+    """nothing of the boat between p and the camera (his sprite is drawn on top of the boat, so he has to be)"""
+    dg = bpy.context.evaluated_depsgraph_get()
+    return not bpy.context.scene.ray_cast(dg, Vector(p) + TO_CAMERA * 0.04, TO_CAMERA)[0]
+
+
+def _room(x, y, z0, legs, width):
+    """Can he sit at (x, y)? His seat and legs have to be on deck (the boots may hang over a lower step), and
+    he has to be in plain view. -> the deck's height there, or None"""
+    ceiling = z0 + 0.7
+    z = _top(x, y, ceiling)
+    if z is None or abs(z - z0) > 0.45:
+        return None
+    for t in (-0.25, 0.0, 0.33 * legs, 0.66 * legs, legs):
+        for d in (-width, 0.0, width):
+            h = _top(x + LEGS.x * t + SIDE.x * d, y + LEGS.y * t + SIDE.y * d, ceiling)
+            if h is None or h > z + 0.16 or h < z - 0.5:
+                return None
+    tip = (x + LEGS.x * legs * 0.8, y + LEGS.y * legs * 0.8, z + 0.3)
+    if not (_in_view((x, y, z + 0.35)) and _in_view((x, y, z + 0.95)) and _in_view(tip)):
+        return None
+    return z
+
+
+def find_seat(parts, deck):
+    """Where the captain sits: near the boat's deck spot, with room for him. A tight spot (his boots over the edge)
+    beats a roomy one far away, up to a point. Falls back to the deck spot itself."""
     x0, y0, z0 = deck
-    for d in (0.45, 0.35, 0.25, 0.15):
-        x = x0 - d * k
-        bad = None
-        for dx in (-0.3, -0.15, 0.0, 0.15, 0.3):
-            for dy in (-0.25, 0.0, 0.25):
-                hs = [h for h in surfaces(x + dx * k, y0 + dy * k) if h < z0 + 1.3]
-                if not hs or hs[0] > z0 + 0.18 or hs[0] < z0 - 0.4:
-                    bad = (round(dx, 2), round(dy, 2), hs[:2])
+    lo, hi = V.world_bbox([p for p in parts if p.type == "MESH"])
+    near = sorted(((x0 + i * 0.1, y0 + j * 0.1) for i in range(-70, 71) for j in range(-35, 36)),
+                  key=lambda c: (c[0] - x0) ** 2 + (c[1] - y0) ** 2)
+    best, best_cost = deck, 1e9
+    for x, y in near:
+        d = math.hypot(x - x0, y - y0)
+        if d >= best_cost:
+            break
+        if lo.x < x < hi.x and lo.y < y < hi.y:
+            for legs, width, worse in ((0.85, 0.3, 0.0), (0.65, 0.22, 0.7), (0.45, 0.15, 1.5)):
+                z = _room(x, y, z0, legs, width) if d + worse < best_cost else None
+                if z is not None:
+                    best, best_cost = (x, y, z), d + worse
+                    print("SEAT", (round(x, 2), round(y, 2), round(z, 2)), "legs", legs, "deck", deck)
                     break
-            if bad:
-                break
-        if not bad:
-            print("SEAT", (round(x, 2), round(y0, 2)), "deck", deck)
-            return (x, y0, z0)
-        print("  seat", round(x, 2), "blocked", bad)
-    print("SEAT = deck", deck)
-    return deck
+    return best
 
 
 def glow(color, k=0.85):
@@ -318,7 +348,7 @@ def pontoon():
 
 def sailboat():
     ob = load(WC, "boat-sail-a", 5.3, rot=90, draft=0.3)
-    return [ob], deck_at([ob], 1.75, below=2.0)
+    return [ob], deck_at([ob], -2.0, below=1.0)
 
 
 def yacht():
@@ -395,12 +425,15 @@ def cruiser():
 
 
 def alien_raft():
-    ob = load(BO, "p_saucer1", 7.6, rot=0, draft=0.3, hsv={"*": (0.62, 1.4, 1.25)}, emit={"MAIN": 0.15})
+    ob = load(BO, "p_saucer1", 6.2, rot=0, draft=0.3, hsv={"*": (0.62, 1.4, 1.25)}, emit={"MAIN": 0.15})
     p = [ob]
+    top = surfaces(-0.5)[0]
+    p.append(noline(sphere(loc=(-0.7, 0.7, top), scale=(0.95, 0.95, 0.72), mat=toon("#8ff5d8", emit=0.35, rim=0.3), seg=24, rings=12)))
+    p.append(torus(loc=(-0.7, 0.7, top + 0.03), R=0.98, r=0.07, mat=toon("#c77dff")))
     for i in range(12):
         a = i / 12 * math.tau
-        p.append(lamp((math.cos(a) * 3.65, math.sin(a) * 3.65, 0.26), "#7dffcf" if i % 2 else "#c77dff", 0.15))
-    return p, deck_at([ob], 2.3)
+        p.append(lamp((math.cos(a) * 2.98, math.sin(a) * 2.98, 0.26), "#7dffcf" if i % 2 else "#c77dff", 0.13))
+    return p, deck_at([ob], 1.6, -0.8)
 
 
 def alien_submarine():
@@ -410,7 +443,7 @@ def alien_submarine():
     apply_scale(ob, 1.0, 1.8, 1.4)
     lo, hi = V.world_bbox([ob])
     p = [ob]
-    p.append(noline(sphere(loc=(1.3, 0.0, hi.z - 0.12), scale=(0.75, 0.5, 0.38), mat=glow("#7dffcf", 0.4))))
+    p.append(noline(sphere(loc=(0.7, 0.0, surfaces(0.7)[0] + 0.05), scale=(0.75, 0.5, 0.38), mat=glow("#7dffcf", 0.4))))
     for i in range(5):
         x = -2.3 + i * 0.95
         for s in (1, -1):
