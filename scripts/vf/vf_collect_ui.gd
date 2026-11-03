@@ -175,12 +175,12 @@ func _draw_poster(c: Control, i: int) -> void:
 	c.draw_multiline_string(font, Vector2(x + 8.0, r.position.y + 216.0), where, HORIZONTAL_ALIGNMENT_CENTER, cw - 16.0, 13, 2, Color(ink, 0.85))
 	var foot := "From level %s" % VF.commas(int(row.level)) if later or secret else "Reward %s" % m.money_str(int(g.bounty))
 	c.draw_string(font, Vector2(x, r.position.y + 260.0), foot, HORIZONTAL_ALIGNMENT_CENTER, cw, 15, C_GOLD.darkened(0.25) if not later else Color(ink, 0.7))
-	if g.done:                                         # a rubber stamp across the lower half (the face stays clear)
+	if g.done:                                         # a rubber stamp over the picture's lower edge: the name and what he wore stay readable
 		var word := "CAUGHT!" if row.get("final", false) else "BEATEN"
-		c.draw_set_transform(c.size * 0.5 + Vector2(0, 66), tilt - 0.2, Vector2.ONE)
-		var sr := Rect2(-80, -25, 160, 50)
-		c.draw_style_box(m.sbox(Color(PAPER, 0.8), 8, 4, Color(STAMP, 0.9), 0), sr)
-		c.draw_string(font, Vector2(sr.position.x, 11), word, HORIZONTAL_ALIGNMENT_CENTER, sr.size.x, 30, STAMP)
+		c.draw_set_transform(c.size * 0.5 + Vector2(0, r.position.y + 150.0).rotated(tilt), tilt - 0.2, Vector2.ONE)
+		var sr := Rect2(-66, -20, 132, 40)
+		c.draw_style_box(m.sbox(Color(PAPER, 0.8), 7, 3, Color(STAMP, 0.9), 0), sr)
+		c.draw_string(font, Vector2(sr.position.x, 9), word, HORIZONTAL_ALIGNMENT_CENTER, sr.size.x, 25, STAMP)
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
