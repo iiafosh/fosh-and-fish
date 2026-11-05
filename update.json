@@ -1,31 +1,15 @@
 {
-  "version": "0.5",
-  "build": 17,
-  "base": 17,
+  "version": "1.0",
+  "build": 18,
+  "base": 18,
   "notes": [
-    "fosh&fish 0.5, the full release: everything from the 0.5 updates in one download",
-    "New downloads at foshfish.xyz have the new app icon and loading screen",
-    "A title screen: sign in, updates and Play in one place",
-    "Sail between biomes, the FishTok phone, online accounts with cloud save and a worldwide leaderboard",
-    "Phones: menus scroll with your finger and the interface fits better",
-    "Play in your browser at foshfish.xyz/play"
+    "Shiny fish: only 3,000 of each in the world, numbered",
+    "Live events every 10 minutes of play, and the Leviathan boss",
+    "Idle play: auto-fish, your fleet, daily rewards",
+    "Gerald and Geraldine, 21 residents to find, 34 achievements, 11 hats, the aquarium",
+    "A new look, a real soundtrack, and rebirths much sooner"
   ],
-  "date": "2026-10-14",
+  "date": "2026-11-05",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
-  "patches": {
-    "2": {
-      "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/dev-base-b17/fosh_fish-0.5-patch-desktop.pck",
-        "size": 5736452,
-        "sha256": "da7a1c5bd84dc55fc0f8ac80e60c10bcb45441c5304ca3ba51d80e60622fa421",
-        "sig": "j46rBrithHIebvTcPg9BwviYeI06H0Ypk87DKDuFzS6HBhSd70e0IQwIgCDZdAegaDjoB1caxfVREoWiqdnfhv0GvTphPXTBpDTMhwZpKiiA5mz2vR2tyn3WXujpBC+6MEQZTp3Id22xuOeWlt1z4GRuYqpjQrtV9hy4eCJRHuczZ3XmoVjjRkM6qj3IOtSbYTEIIXp2cBFJS7JL0AcNLb2qARI9fENIihJqe8J9xzoPgoN9m7UwPThcAjv9jFaX8kxh0xDOccQMdCoqsp8odGJLUrxQmZXGRU9xOkt1sn53ZIH9aZwWI5kVxnMWMS0f980ydmZGd6MXwvlgTQgRjQ=="
-      },
-      "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/dev-base-b17/fosh_fish-0.5-patch-android.pck",
-        "size": 5736452,
-        "sha256": "da7a1c5bd84dc55fc0f8ac80e60c10bcb45441c5304ca3ba51d80e60622fa421",
-        "sig": "j46rBrithHIebvTcPg9BwviYeI06H0Ypk87DKDuFzS6HBhSd70e0IQwIgCDZdAegaDjoB1caxfVREoWiqdnfhv0GvTphPXTBpDTMhwZpKiiA5mz2vR2tyn3WXujpBC+6MEQZTp3Id22xuOeWlt1z4GRuYqpjQrtV9hy4eCJRHuczZ3XmoVjjRkM6qj3IOtSbYTEIIXp2cBFJS7JL0AcNLb2qARI9fENIihJqe8J9xzoPgoN9m7UwPThcAjv9jFaX8kxh0xDOccQMdCoqsp8odGJLUrxQmZXGRU9xOkt1sn53ZIH9aZwWI5kVxnMWMS0f980ydmZGd6MXwvlgTQgRjQ=="
-      }
-    }
-  }
+  "patches": {}
 }
