@@ -194,9 +194,16 @@ def _crown():
     for a, col, s in ((-90, "#e5332f", 0.13), (-50, "#2fbf6a", 0.08), (-130, "#3e8fe0", 0.08), (90, "#e5332f", 0.1)):
         t = math.radians(a)
         parts.append(sphere(loc=(math.cos(t) * 0.83, math.sin(t) * 0.83, 0.42), scale=(s, s * 0.6, s), rot=(0, 0, a + 90), mat=toon(col, spec=0.5)))
-    tash = toon("#4a2c18")                                  # (his, from before, and he wants it back)
+    tash = toon("#4a2c18")                                  # (the Baron's waxed moustache: he never takes it off)
     for s in (1, -1):
         parts.append(tube([(s * 0.03, -0.86, 0.29), (s * 0.16, -0.86, 0.26), (s * 0.3, -0.83, 0.25), (s * 0.4, -0.8, 0.31), (s * 0.37, -0.79, 0.37)], 1.0, mat=tash, radii=[0.05, 0.06, 0.045, 0.025, 0.01], res=8))
+    feather, feather2 = toon("#f6f9fc", spec=0.35), toon("#bfdcf2", spec=0.3)
+    for s in (1, -1):                                       # (he's a flying fish: a wing out of each side, three long feathers fanned back like a bird's)
+        base = Vector((s * 0.86, 0.0, 0.56))
+        for k, (sweep, length) in enumerate(((12, 0.95), (38, 0.85), (64, 0.7))):
+            ang = math.radians(sweep if s > 0 else 180 - sweep)
+            mid = base + Vector((math.cos(ang), math.sin(ang), 0.05 * k)) * (length * 0.5)
+            parts.append(sphere(loc=tuple(mid), scale=(length * 0.5, 0.1, 0.035), rot=(0, 0, math.degrees(ang)), mat=feather if k != 1 else feather2))
     return parts
 
 
@@ -212,9 +219,12 @@ def _tiara():
         parts.append(sphere(loc=(x, y, front(a) + h + 0.03), scale=0.075, mat=pearl))
     gem = sphere(loc=(0, -0.88, 0.66), scale=(0.16, 0.09, 0.18), mat=pink)
     parts.append(gem)
-    for s in (1, -1):                                       # (hers: sit up straight)
-        parts.append(sphere(loc=(s * 0.16, -0.88, 1.24), scale=(0.15, 0.05, 0.1), rot=(0, s * -20, 0), mat=toon("#ec3f78")))
-    parts.append(sphere(loc=(0, -0.89, 1.23), scale=0.06, mat=toon("#ec3f78")))
+    # (hers: she's an anglerfish, so a lure rides on the front of the tiara, and a little chandelier hangs from it)
+    stalk, glow, crystal = toon("#c9d0da", spec=0.4), toon("#fff2a8", emit=0.9, rim=0.0, shade=1.0), toon("#e4f3ff", spec=0.6, emit=0.25)
+    parts.append(tube([(0, -0.88, 0.7), (0, -0.95, 1.02), (0, -1.02, 1.34), (0, -1.15, 1.56), (0, -1.32, 1.52)], 1.0, mat=stalk, radii=[0.055, 0.05, 0.045, 0.04, 0.035], res=8))
+    parts.append(sphere(loc=(0, -1.32, 1.36), scale=0.19, mat=glow))
+    for dx, dz in ((-0.15, 1.12), (0.0, 1.05), (0.15, 1.12)):
+        parts.append(sphere(loc=(dx, -1.32, dz), scale=(0.045, 0.045, 0.085), mat=crystal))
     return parts
 
 

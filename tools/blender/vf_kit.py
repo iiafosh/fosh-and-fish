@@ -41,9 +41,15 @@ def clear_scene():
                 coll.remove(item)
 
 
+def _eevee_id():
+    """Blender 4.2 to 4.5 call the renderer BLENDER_EEVEE_NEXT; Blender 5.x calls it BLENDER_EEVEE again."""
+    names = [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items]
+    return "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in names else "BLENDER_EEVEE"
+
+
 def setup_render(w, h, samples=16, transparent=True):
     sc = bpy.context.scene
-    sc.render.engine = "BLENDER_EEVEE_NEXT"
+    sc.render.engine = _eevee_id()
     sc.eevee.taa_render_samples = samples
     sc.render.resolution_x = w
     sc.render.resolution_y = h

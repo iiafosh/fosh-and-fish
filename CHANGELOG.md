@@ -2,6 +2,10 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## Coming next
+
+- **The Baron's crown and the Duchess's tiara look like theirs.** The crown has swept-back wings now (the Baron is a flying fish) and keeps his waxed moustache, and the tiara swapped its bow for a glowing anglerfish lure with a little chandelier of crystals hanging from it.
+
 ## 1.0.1 — the Most Wanted, and FishTok beside the game (11 November 2026)
 
 - **Seven different outlaws, not one fish.** The chase through the biomes is a hunt for seven fish, each with its own name, body, voice and tricks, and each caught for good. **Gerald**, the grumpy River pufferfish with the MUM tattoo, is only the first. Then **Sizzle**, a hot-headed lava catfish with whiskers on fire (Volcanic), **Captain Swordbeard**, a swordfish pirate in sailor's stripes (Ocean) and **Baron von Flap**, a flying fish in goggles (Sky), who hands over his crown. His fall brings a note from the Duchess, and the hunt goes on with **Commander Chomp**, a small and very confident space shark (Space), **Zlorp**, a three-eyed alien blobfish (Alien) and **The Duchess**, a huge anglerfish lady with pearls and a chandelier for a lure (Abyss), who gives you her tiara.
