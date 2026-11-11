@@ -39,7 +39,30 @@ env:
   GODOT_VERSION: 4.7.2
 
 jobs:
+  # A tag whose release already exists was released from the owner's PC (tools/release.py makes the tag itself with
+  # `gh release create`): this run has nothing to do, so it stops here instead of failing for want of the keys.
+  # A manual run (Actions -> Release -> Run workflow) always goes ahead.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      exists: ${{ steps.look.outputs.exists }}
+    steps:
+      - name: Does this tag already have a release?
+        id: look
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          exists=false
+          if [ "${{ github.event_name }}" = "push" ] && gh release view "${GITHUB_REF_NAME}" -R "${GITHUB_REPOSITORY}" > /dev/null 2>&1; then
+            exists=true
+            echo "${GITHUB_REF_NAME} already has a release (made from the owner's PC): nothing to do."
+          fi
+          echo "exists=${exists}" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: check
+    if: needs.check.outputs.exists != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
