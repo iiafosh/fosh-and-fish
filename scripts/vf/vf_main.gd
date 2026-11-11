@@ -3014,7 +3014,7 @@ func _process_coach(delta: float) -> void:
 	if not first and not COACH_TEXT.has(VF.tutorial): return
 	# (with the line in the air, a round on, a question open or a banner where the bubble goes, the tutorial's steps wait)
 	var busy: bool = minigame != null or _reel_card != null or Time.get_ticks_msec() < _reel_wait_until or (_banner_busy and VF.tutorial in [2, 4])
-	_coach.visible = first or ((not overlay.visible or VF.tutorial == 3) and not launcher_open() and not busy)
+	_coach.visible = first or ((not overlay.visible or VF.tutorial == 3) and not launcher_open() and not busy and not _phone_open())    # (not over the full-screen phone)
 	if not _coach.visible: return
 	_coach_t += delta
 	var tgt := _coach_target()
