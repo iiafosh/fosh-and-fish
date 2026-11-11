@@ -11,7 +11,7 @@ This is the contract between the sessions (Design, Game mechanics, UI, Audio, Co
 - The painted bay is the enter screen again.
 - New players meet the funny mini-game straight away, with a clean first minute.
 - Phones vibrate when something happens.
-- A rival to chase: Gerald, then his mum.
+- Seven outlaw fish to chase, one per world, from Gerald to the Duchess.
 - Things to find when sailing, in every biome.
 - Collecting pays off: achievements, a paid-off Fish Book, an aquarium.
 - Silly hats for the captain.

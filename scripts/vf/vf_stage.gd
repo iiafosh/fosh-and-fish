@@ -231,6 +231,7 @@ func _ready() -> void:
 	_glints.gravity = Vector2.ZERO
 	_glints.initial_velocity_max = 0.0
 	_glints.emitting = true
+	clip_contents = true                  # (the scene is scaled to cover this area: beside a docked phone the part that doesn't fit mustn't show)
 	resized.connect(_fit)
 	_fit()
 

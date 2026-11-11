@@ -280,7 +280,7 @@ func _process_hold() -> void:
 		_hold_water = false
 	var held := _hold_btn or _hold_water or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_F)
 	if VF.catch_mode != "relax" or minigame != null: return     # hold-to-keep-fishing is a Relax thing
-	if held and not overlay.visible and not _phone_open() and VF.cooldown_left() <= 0.0 and VF.can_cast() == "":
+	if held and not overlay.visible and not _phone_open() and not phone_owns_keys() and VF.cooldown_left() <= 0.0 and VF.can_cast() == "":
 		_do_cast()
 
 func _notification(what: int) -> void:
@@ -304,7 +304,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_reel_choice(VF.catch_mode)
 		return                                 # one question at a time
 	# tap / click anywhere on the scene to cast (mobile friendly)
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible \
+			and get_global_rect().has_point(event.position):          # (not on the strip the docked phone stands in)
 		if VF.tutorial >= 99 and stage.poke(event.position): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
@@ -498,9 +499,10 @@ func _min_font(n) -> void:                     # (not typed: a label freed befor
 	if n.has_theme_font_size_override(key) and n.get_theme_font_size(key) < PHONE_MIN_FONT:
 		n.add_theme_font_size_override(key, PHONE_MIN_FONT)
 
-## A short screen (a phone): panels become a full-screen sheet instead of a 960x590 window.
+## A short screen (a phone), or a game squeezed in beside the docked FishTok phone: panels become a full-screen
+## sheet instead of a 960x590 window.
 func compact() -> bool:
-	return get_viewport_rect().size.y < 640.0
+	return get_viewport_rect().size.y < 640.0 or size.x < 1000.0
 
 func _layout_panel() -> void:
 	if panel_box == null: return
@@ -1290,7 +1292,7 @@ func _on_level_up(new_level: int, reward: int) -> void:
 	fx_layer.add_child(p)
 	await get_tree().process_frame
 	if not is_instance_valid(p): return
-	var vs := get_viewport_rect().size
+	var vs := size                             # (the game's own area: with the phone docked that's not the whole window)
 	p.pivot_offset = p.size * 0.5
 	p.position = Vector2((vs.x - p.size.x) * 0.5, vs.y * 0.2)
 	p.scale = Vector2(0.6, 0.6)
@@ -1654,6 +1656,11 @@ func _act(text: String, color: Color, cb: Callable, enabled := true) -> Button:
 
 func _grid(cols := 2) -> GridContainer:
 	var g := GridContainer.new()
+	# a narrow game area (a small phone, or beside the docked FishTok phone) has room for fewer columns, or the panel
+	# would be wider than the room and slide under the phone
+	if cols >= 4 and size.x < 900.0: cols -= 1
+	if cols >= 4 and size.x < 700.0: cols -= 1
+	if cols == 2 and size.x < 860.0: cols = 1          # (two shop cards side by side need about 860)
 	g.columns = cols
 	g.add_theme_constant_override("h_separation", 8)
 	g.add_theme_constant_override("v_separation", 8)
@@ -1786,7 +1793,9 @@ func _panel_shop() -> void:
 					right = _act("%d %s" % [c, VFData.EXOTICS[d.cur].name.split(" ")[0]], Color("#3fae6a"), func(): return VF.buy_special(id), VF.exotics[d.cur] >= c)
 				_add_to(g, _card(icon_for("exotic", d.cur), "%s  %d/%d" % [d.name, VF.sp(id), d.max], d.desc, right, VF.level < d.level, 48))
 		"League":
-			panel_body.add_child(lbl("Hooks come from the daily league quest (+10) and weekly trip milestones (+10 per 500 trips, max 100/week). League upgrades never reset.", 13, C_MUTED))
+			var league_note := lbl("Hooks come from the daily league quest (+10) and weekly trip milestones (+10 per 500 trips, max 100/week). League upgrades never reset.", 13, C_MUTED)
+			league_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART       # (one long line would make the whole panel that wide)
+			panel_body.add_child(league_note)
 			var g := _grid(2)
 			for id in VFData.LEAGUE_ORDER:
 				var d: Dictionary = VFData.LEAGUE[id]
@@ -1975,7 +1984,10 @@ func _panel_prestige() -> void:
 				var hl: bool = r[1] == VF.prestige
 				var p := PanelContainer.new()
 				p.add_theme_stylebox_override("panel", sbox(C_GOLD.lerp(C_PANEL2, 0.6) if hl else C_PANEL2, 8, 0, Color.TRANSPARENT, 6))
-				p.add_child(lbl("P%s: %s%s" % [r[0], gd.main, (" / Max: " + gd.max) if gd.max != "" else ""], 13))
+				var cell := lbl("P%s: %s%s" % [r[0], gd.main, (" / Max: " + gd.max) if gd.max != "" else ""], 13)
+				cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART       # (a long one wraps instead of making the grid wider than the room)
+				cell.custom_minimum_size.x = 70
+				p.add_child(cell)
 				_add_to(g, p)
 			panel_body.add_child(lbl("Other prestiges in each range ending in 2,3,4,7,8,9 (or 3,4,8,9): SKIP and save Azure Fish.", 13, C_MUTED))
 
@@ -2152,6 +2164,10 @@ func _check_capture() -> void:
 		await _phone_test(dir)
 		get_tree().quit()
 		return
+	if "--dock-test" in OS.get_cmdline_user_args():
+		await _dock_test(dir)
+		get_tree().quit()
+		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:
 		# the title screen: as it opens, its update states, signing in over it, after Play
 		# (--launcher-hold=SECONDS: a longer look first, for recording the movement)
@@ -2325,9 +2341,24 @@ func _check_capture() -> void:
 		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:
 			for t in PANEL_TABS.get(k, [""]):
 				shots.append([k, t])
+	var docked_run := "--dock" in OS.get_cmdline_user_args()       # --dock: FishTok stands beside the game, so every panel has to fit in the room that's left
+	if docked_run:
+		VF.tok_dock = true
+		VF.tok_dock_tip = true
+		_open_phone()
+		await _wait(1.0)
 	for p in shots:
 		_open_panel(p[0], p[1])
 		await get_tree().create_timer(0.4).timeout
+		if docked_run:
+			var pbx: Rect2 = panel_box.get_global_rect()
+			var fits: bool = pbx.end.x <= size.x + 1.0 and pbx.position.x >= -1.0
+			print("DOCKPANEL %s %s/%s (%d..%d of %d)" % ["PASS" if fits else "FAIL", p[0], p[1], int(pbx.position.x), int(pbx.end.x), int(size.x)])
+			if not fits:                  # what's making it too wide: the widest things in it
+				var wide: Array = panel_body.find_children("*", "Control", true, false).filter(func(c): return c.is_visible_in_tree())
+				wide.sort_custom(func(a, b): return a.get_combined_minimum_size().x > b.get_combined_minimum_size().x)
+				for c in wide.slice(0, 4):
+					print("DOCKPANEL     %s '%s' needs %d px" % [c.get_class(), str(c.get("text")) if c.get("text") != null else c.name, int(c.get_combined_minimum_size().x)])
 		await _shot(dir + "/panel_%s%s.png" % [p[0], ("_" + p[1].to_lower().replace(" / ", "_")) if p[1] != "" else ""])
 	get_tree().quit()
 
@@ -2885,7 +2916,7 @@ func _next_banner() -> void:
 	p.add_child(h)
 	fx_layer.add_child(p)
 	await get_tree().process_frame
-	var vw := get_viewport_rect().size.x
+	var vw := size.x
 	p.position = Vector2((vw - p.size.x) * 0.5, -p.size.y - 10)
 	AudioManager.play_success()
 	var tw := p.create_tween()
@@ -2972,7 +3003,7 @@ func _coach_target() -> Vector2:
 			if stage.merchant: return stage.to_screen(stage.merchant.position + stage.merchant.size * Vector2(0.5, 0.15))
 		3: return overlay.get_global_rect().get_center() + Vector2(0, -240)
 		4: return goal_box.get_global_rect().get_center() + Vector2(0, goal_box.size.y * 0.5)
-	return get_viewport_rect().size * 0.5
+	return size * 0.5
 
 func _process_coach(delta: float) -> void:
 	if _coach == null: return
@@ -2987,7 +3018,7 @@ func _process_coach(delta: float) -> void:
 	if not _coach.visible: return
 	_coach_t += delta
 	var tgt := _coach_target()
-	var vs := get_viewport_rect().size
+	var vs := size
 	var bs := _coach_bubble.size
 	var below := VF.tutorial in [2, 4]
 	var bp := tgt + (Vector2(-bs.x * 0.5, 46) if below else Vector2(-bs.x * 0.5, -bs.y - 58))
@@ -3229,7 +3260,7 @@ func _caption(text: String) -> void:
 	_cap_label.text = text
 	_cap_box.reset_size()
 	await get_tree().process_frame
-	var vs := get_viewport_rect().size
+	var vs := size
 	_cap_box.position = Vector2((vs.x - _cap_box.size.x) * 0.5, vs.y - 168)
 	_cap_box.modulate.a = 0.0
 	_cap_box.create_tween().tween_property(_cap_box, "modulate:a", 1.0, 0.25)
@@ -3546,6 +3577,9 @@ func _panel_menu() -> void:
 var phone: Control
 
 func _open_phone() -> void:
+	if phone != null and phone.visible and not phone._closing:
+		phone.close()                          # (docked, the Phone pill and P are within reach: the same button puts it away)
+		return
 	if phone == null:
 		phone = load("res://scripts/vf/vf_phone.gd").new()
 		phone.main = self
@@ -3554,8 +3588,39 @@ func _open_phone() -> void:
 	move_child(phone, get_child_count() - 1)
 	phone.open()
 
+## The full-screen phone blocks the game (no casting, no mini-game); a docked one sits beside it and doesn't.
 func _phone_open() -> bool:
-	return phone != null and phone.visible
+	return phone != null and phone.visible and not phone.docked
+
+## The phone has the keyboard: full screen, or docked with the pointer on it. W/S/arrows scroll FishTok then and
+## Space pauses its video: they must not steer the boat or cast.
+func phone_owns_keys() -> bool:
+	return phone != null and phone.visible and (not phone.docked or phone._pointer_on_phone() or get_viewport().gui_get_focus_owner() is LineEdit)    # (typing a comment: Space is a space)
+
+# ---- the dock: FishTok beside the game
+var dock_w := 0.0                              # how much of the window's right side the phone takes (0 = none)
+var _dock_tw: Tween
+
+## Make room for the docked phone (or give the room back): this node's right edge slides in, and the stage and the
+## interface follow on their own, they are anchored to it.
+func set_dock(w: float, animate := true) -> void:
+	if _dock_tw: _dock_tw.kill()
+	if not animate or not is_inside_tree():
+		_set_dock_w(w)
+		_layout_panel.call_deferred()
+		return
+	_dock_tw = create_tween()
+	_dock_tw.tween_method(_set_dock_w, dock_w, w, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_dock_tw.tween_callback(_layout_panel)
+
+func _set_dock_w(v: float) -> void:
+	dock_w = v
+	offset_right = -v
+
+## Video recordings and the store screenshots show the phone full screen, the way they were made.
+func _recording() -> bool:
+	var args := OS.get_cmdline_user_args()
+	return "--play-shots" in args or "--tour" in args or Backend.RECORDING_FLAGS.any(func(f): return f in args)
 
 ## "Trending +50%" pill for today's FishTok trending fish (Fish Book)
 func _trend_tag() -> Control:
@@ -3580,6 +3645,7 @@ func _trend_tag() -> Control:
 func _phone_test(dir: String) -> void:
 	VF.autosave = false
 	VF._apply(VF._defaults.duplicate(true))
+	VF.tok_dock = false                    # (this test shoots the full-screen phone: --dock-test is the docked one)
 	VF.tutorial = 99
 	VF.player_name = "afosh"
 	VF.level = 34
@@ -3666,6 +3732,95 @@ func _phone_test(dir: String) -> void:
 	phone.close()
 	await _wait(0.7)
 	await _shot(dir + "/phone_19_closed.png")
+
+
+## godot --path . --resolution 1280x720 -- --capture=DIR --dock-test [--touch --ui-dp=390]
+## FishTok docked beside the game: the game keeps playing (a tap casts, the Reel it in! round runs next to the phone),
+## the Menu opens in the room that's left, the phone goes full screen and back, and the game gets its room back when
+## the phone goes away. Prints DOCK PASS/FAIL lines. Never saves.
+func _dock_test(dir: String) -> void:
+	VF.autosave = false
+	_veteran("River")
+	VF.tutorial = 99
+	VF.tok_dock = true
+	VF.tok_dock_tip = true                       # (no tip toast over the shots)
+	var full := size
+	var win := func(p: Vector2) -> Vector2: return get_viewport().get_final_transform() * p    # layout -> window pixels
+	await _wait(1.0)
+	_open_phone()
+	await _wait(1.0)
+	await _shot(dir + "/dock_0_docked.png")
+	if phone._dock_plan().is_empty():
+		_dock_check(not phone.docked and _phone_open(), "no room to dock in a window this shape: the phone stays full screen")
+		await _shot(dir + "/dock_x_too_narrow.png")
+		return
+	_dock_check(phone.docked and phone.visible, "the phone opens docked")
+	_dock_check(not _phone_open(), "a docked phone doesn't block the game")
+	_dock_check(dock_w > 200.0 and absf(size.x - (full.x - dock_w)) < 1.0, "the game made room: %d of %d px wide" % [int(size.x), int(full.x)])
+	_dock_check(absf(stage.size.x - size.x) < 1.0, "the stage follows (%d px wide)" % int(stage.size.x))
+	var box: Rect2 = phone.device.get_global_transform() * Rect2(Vector2.ZERO, Vector2(340, 676))
+	_dock_check(box.position.x >= size.x - 1.0 and box.end.x <= full.x + 1.0, "the phone stands in the strip (%d..%d)" % [int(box.position.x), int(box.end.x)])
+	var boat: Vector2 = stage.boat_screen()
+	_dock_check(Rect2(Vector2.ZERO, size).has_point(boat), "the boat is still in view at %d,%d" % [int(boat.x), int(boat.y)])
+	# a tap on the water casts with the phone up
+	var trips0: int = VF.stats.trips
+	_tap(win.call(boat + Vector2(-110, 90)))
+	await _wait(3.5)
+	await _shot(dir + "/dock_1_casting.png")
+	_dock_check(VF.stats.trips > trips0, "a tap on the water casts with the phone docked (trips %d -> %d)" % [trips0, VF.stats.trips])
+	# Reel it in! runs beside the phone
+	_set_catch_mode("reel")
+	VF.reel_rounds = VFData.ROOKIE_ROUNDS
+	VF._last_cast_ms = -100000
+	_do_cast()
+	var waited := 0.0
+	while minigame == null and waited < 8.0:
+		await _wait(0.25)
+		waited += 0.25
+	_dock_check(minigame != null, "the Reel it in! round starts beside the docked phone")
+	if minigame != null:
+		minigame.auto = "win"
+		await _wait(1.6)
+		await _shot(dir + "/dock_2_reel_it_in.png")
+		var card_rect: Rect2 = minigame.card.get_global_rect()
+		_dock_check(card_rect.end.x <= size.x + 1.0 and card_rect.position.x >= -1.0, "...and its card stays in the game's area (%d..%d of %d)" % [int(card_rect.position.x), int(card_rect.end.x), int(size.x)])
+		while minigame != null and is_instance_valid(minigame) and minigame.phase != "end":
+			await get_tree().process_frame
+		await _wait(2.0)
+	_set_catch_mode("relax")
+	# the Menu opens in the room that's left
+	_open_panel("menu")
+	await _wait(0.7)
+	await _shot(dir + "/dock_3_menu.png")
+	var pb: Rect2 = panel_box.get_global_rect()
+	_dock_check(pb.end.x <= size.x + 1.0 and pb.position.x >= -1.0, "the Menu opens in the room that's left (%d..%d of %d)" % [int(pb.position.x), int(pb.end.x), int(size.x)])
+	_close_panel()
+	await _wait(0.4)
+	# full screen and back
+	phone.toggle_dock()
+	await _wait(1.0)
+	await _shot(dir + "/dock_4_full_screen.png")
+	_dock_check(not phone.docked and phone.dim.visible and absf(size.x - full.x) < 1.0 and _phone_open(), "full screen: the whole window again, and the game waits behind the dim")
+	phone.toggle_dock()
+	await _wait(1.0)
+	await _shot(dir + "/dock_5_docked_again.png")
+	_dock_check(phone.docked and dock_w > 200.0 and not _phone_open(), "and docked again")
+	# the Phone button puts it away, and the game takes its room back
+	_open_phone()
+	await _wait(0.9)
+	await _shot(dir + "/dock_6_away.png")
+	_dock_check(not phone.visible and absf(size.x - full.x) < 1.0 and is_zero_approx(dock_w), "put away: the game has its whole window back")
+	# a player who chose full screen gets full screen
+	VF.tok_dock = false
+	_open_phone()
+	await _wait(1.0)
+	_dock_check(not phone.docked and _phone_open(), "a player who chose full screen gets it")
+	phone.close()
+	await _wait(0.8)
+	print("DOCK done")
+
+func _dock_check(ok: bool, what: String) -> void:
+	print("DOCK %s %s" % ["PASS" if ok else "FAIL", what])
 
 
 ## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --reel05

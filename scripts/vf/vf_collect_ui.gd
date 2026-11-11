@@ -121,7 +121,7 @@ func _draw_portrait(c: CanvasItem, who: String, at: Vector2, px: float, dim := f
 
 
 # =============================================================== the board
-## Menu (or the pill) -> Wanted: one poster per stage of Gerald's run, then his mum's. Stamped once it's behind you.
+## Menu (or the pill) -> Wanted: one poster per outlaw, seven in all. Stamped once they're behind you.
 func panel_wanted() -> void:
 	var g: Dictionary = VF.gerald_info()
 	var line := ""

@@ -180,7 +180,7 @@ func _on_event_started(id: String) -> void:
 	var e: Dictionary = VFData.EVENTS[id]
 	m._banner(e.name, "%s  ·  %s" % [e.desc, m._clock(float(e.secs))], m.ph(e.icon) if not m.tex("event/%s.png" % id) else m.tex("event/%s.png" % id), e.color)
 	AudioManager.play_levelup()
-	var c: Vector2 = m.get_viewport_rect().size * 0.5
+	var c: Vector2 = m.size * 0.5
 	m.stage.burst("confetti", c)
 	if id == "boss":
 		m._toast("Catch fish to wear the Leviathan down before it swims off!", "warn")
@@ -191,7 +191,7 @@ func _on_event_ended(id: String, boss_caught: bool) -> void:
 		var f := "Leviathan"
 		m._banner("You caught the Leviathan!", "+%s  ·  +%d Event Stars  ·  a legendary chest" % [m.money_str(VF.event_fish_money(f)), VFData.EVENT_FISH[f].stars],
 			event_fish_tex(f), Color("#ef4444"))
-		m.stage.burst("confetti", m.get_viewport_rect().size * 0.5)
+		m.stage.burst("confetti", m.size * 0.5)
 		AudioManager.play_levelup()
 	else:
 		m._toast("%s is over. Next event in %s of play" % [VFData.EVENTS[id].name, m._clock(VFData.EVENT_EVERY)], "quest")
@@ -244,7 +244,7 @@ func celebrate(species: String, serial: int, left: int) -> void:
 	ft.tween_callback(flash.queue_free)
 	for k in 3:
 		m.stage.burst("sparkle" if k != 1 else "magic", m.stage._bobber)
-	m.stage.burst("confetti", m.get_viewport_rect().size * 0.5)
+	m.stage.burst("confetti", m.size * 0.5)
 	var p := PanelContainer.new()
 	var sb: StyleBoxFlat = m.sbox(Color("#1b1036", 0.94), 22, 3, Color("#ffd75e"), 18, 22)
 	p.add_theme_stylebox_override("panel", sb)
@@ -264,7 +264,7 @@ func celebrate(species: String, serial: int, left: int) -> void:
 	m.fx_layer.add_child(p)
 	await m.get_tree().process_frame
 	if not is_instance_valid(p): return
-	var vs: Vector2 = m.get_viewport_rect().size
+	var vs: Vector2 = m.size
 	p.pivot_offset = p.size * 0.5
 	p.position = (vs - p.size) * 0.5 - Vector2(0, vs.y * 0.08)
 	p.scale = Vector2(0.4, 0.4)

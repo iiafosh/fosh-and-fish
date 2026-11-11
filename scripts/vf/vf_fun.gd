@@ -170,7 +170,7 @@ func rival_result(mg, won: bool) -> void:
 	var r: Dictionary = VF.gerald_result(won)
 	mg.rival_result = r
 	if int(r.pay) > 0:
-		m.v1.coins_to_wallet(m.get_viewport_rect().size * 0.5, int(r.pay))
+		m.v1.coins_to_wallet(m.size * 0.5, int(r.pay))
 		AudioManager.play_coin()
 	if r.caught: mg.tree_exited.connect(_rival_caught.bind(r), CONNECT_DEFERRED)
 
@@ -202,7 +202,7 @@ func note(text: String) -> void:
 	v.add_child(l)
 	m.add_child(p)
 	p.reset_size()
-	var vs: Vector2 = m.get_viewport_rect().size
+	var vs: Vector2 = m.size
 	p.position = Vector2((vs.x - p.size.x) * 0.5, vs.y * 0.2).round()
 	p.pivot_offset = p.size * 0.5
 	p.rotation = -0.02
@@ -252,7 +252,7 @@ func capture_test(dir: String) -> void:
 	await s.tap_areas_test()
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --gerald-test : the whole chase, from the first meeting to the end of
-## his mum's run: he beats you, you beat him and he gets away, every gag of theirs, caught, the note, the tiara. Never saves.
+## The whole Most Wanted act: all seven outlaws, every gag of theirs, caught, the notes, the crown and the tiara. Never saves.
 func gerald_test(dir: String) -> void:
 	var tree: SceneTree = m.get_tree()
 	var wait := func(secs: float): await tree.create_timer(secs).timeout
@@ -299,7 +299,7 @@ func gerald_test(dir: String) -> void:
 	VF.changed.emit()
 	await wait.call(2.0)
 	await _rival_gags(dir)
-	# the end of his run: caught, the crown, the note from his mum
+	# Baron von Flap: caught, the crown, the Duchess's note in a bottle
 	VF.gerald = {"stage": 3, "casts": 999, "tries": 0, "wins": 3, "losses": 1}
 	VF.level = 250
 	VF.biome = "Sky"
@@ -307,12 +307,12 @@ func gerald_test(dir: String) -> void:
 	VF.owned_rods.append("Infinity Rod")
 	VF.changed.emit()
 	await wait.call(2.0)
-	await _rival_round(dir, "3_caught_gerald", "win")
+	await _rival_round(dir, "3_caught_baron", "win")
 	await wait.call(0.8)
-	await m._shot(dir + "/gerald_3_note_from_mum.png")
+	await m._shot(dir + "/gerald_3_note_from_duchess.png")
 	print("GERALD caught: %s hats=%s note=%s" % [VF.gerald, VF.hats_owned, is_instance_valid(_note_box)])
 	await wait.call(5.0)
-	# his mum
+	# Commander Chomp, then the Duchess
 	VF.gerald = {"stage": 4, "casts": 999, "tries": 0, "wins": 4, "losses": 1}
 	VF.level = 500
 	VF.biome = "Space"
@@ -320,7 +320,7 @@ func gerald_test(dir: String) -> void:
 	VF.owned_rods.append("Space Rod")
 	VF.changed.emit()
 	await wait.call(2.0)
-	await _rival_round(dir, "4_geraldine_laughs", "lose")
+	await _rival_round(dir, "4_chomp_laughs", "lose")
 	VF.gerald.casts = 999
 	await _rival_gags(dir)
 	VF.gerald = {"stage": 6, "casts": 999, "tries": 0, "wins": 6, "losses": 2}
@@ -330,7 +330,7 @@ func gerald_test(dir: String) -> void:
 	VF.owned_rods.append("Dark Rod")
 	VF.changed.emit()
 	await wait.call(2.0)
-	await _rival_round(dir, "5_caught_geraldine", "win")
+	await _rival_round(dir, "5_caught_duchess", "win")
 	print("GERALD all done: %s hats=%s info=%s due=%s" % [VF.gerald, VF.hats_owned, VF.gerald_info(), VF.gerald_due()])
 	for i in VFData.GERALD.size():         # every outlaw's whole act
 		var act: Dictionary = VFData.GERALD[i]

@@ -50,9 +50,9 @@ const TABS := {
 	],
 	"Controls": [
 		["Desktop", ["ui", "settings"],
-		"Click the water — cast right there (hold to keep fishing)\nSpace / F — cast where you aimed last (hold to keep fishing)\nS — sell everything · Tab — Fish Book · P — phone\nEsc — menu (or close a panel) · 1–9 — Shop, Map, Fish Book, Charms, Pets, Boosts, Quests, Prestige, Buffs\nG — guide · O — settings (music, sound, fullscreen)"],
+		"Click the water — cast right there (hold to keep fishing)\nSpace / F — cast where you aimed last (hold to keep fishing)\nE — sell everything · Tab — Fish Book · P — phone (FishTok sits beside the game, so you keep fishing while you scroll; D, with the pointer on the phone, makes it full screen)\nEsc — menu (or close a panel) · 1–9 — Shop, Map, Fish Book, Charms, Pets, Boosts, Quests, Prestige, Buffs\nG — guide · O — settings (music, sound, fullscreen)"],
 		["Phone & tablet", ["ui", "settings"],
-		"Tap the water to cast exactly there; keep your finger down to keep fishing. The round button bottom-right casts too. Tap the fish shop to buy. On the web version use your browser's \"Add to Home Screen\" to play full-screen in landscape."],
+		"Tap the water to cast exactly there; keep your finger down to keep fishing. The round button bottom-right casts too. The Phone button opens FishTok beside the game: scroll it with one hand and keep fishing with the other (the little icon at the top of the phone makes it full screen). Tap the fish shop to buy. On the web version use your browser's \"Add to Home Screen\" to play full-screen in landscape."],
 		["Saving", ["ui", "daily"],
 		"The game saves automatically every 20 seconds and when you close it. Desktop and web keep separate saves. Settings (O) has the music/sound switches and Reset save."],
 	],

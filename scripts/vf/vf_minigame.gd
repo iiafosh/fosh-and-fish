@@ -263,7 +263,7 @@ func _ready() -> void:
 	card.pivot_offset = card.size * 0.5
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(card)
-	var vs := get_viewport_rect().size
+	var vs: Vector2 = (main as Control).size if main is Control else get_viewport_rect().size       # (the game's own area: beside a docked phone it's narrower than the window)
 	# the card plus its banner above and the result pill below is ~CH + 90 tall: shrink it on short (phone) screens
 	_fit = minf(1.0, minf((vs.y - 12.0) / (CH + 90.0), (vs.x - 16.0) / CW))
 	_card_base = ((vs - card.size) * 0.5 + Vector2(0, 12) * _fit).round()

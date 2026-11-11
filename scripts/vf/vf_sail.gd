@@ -305,7 +305,7 @@ func _place_signs(delta: float) -> void:
 # =============================================================== steering
 func _keys() -> Vector2:
 	var k := Vector2.ZERO
-	if main.launcher_open(): return k               # the title screen is up
+	if main.launcher_open() or main.phone_owns_keys(): return k      # the title screen is up / FishTok has the keyboard
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): k.x -= 1.0
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT): k.x += 1.0
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP): k.y -= 1.0

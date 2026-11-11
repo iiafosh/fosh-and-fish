@@ -150,6 +150,14 @@ func _init() -> void:
 
 	print("== FishTok: trending fish")
 	g._tok_apply({})
+	check(g.tok_dock and not g.tok_dock_tip, "An old save (no dock setting) docks the phone beside the game")
+	g.tok_dock = false
+	g.tok_dock_tip = true
+	var tok_saved: Dictionary = g._tok_dict()
+	g._tok_apply({})
+	g._tok_apply(tok_saved)
+	check(not g.tok_dock and g.tok_dock_tip, "The dock choice and the tip survive a save")
+	g._tok_apply({})
 	g.prestige = 0; g.level = 120; g.biome = "Ocean"
 	var t1: String = g.trending_for("2026-10-09", 120)
 	check(t1 == g.trending_for("2026-10-09", 120) and t1 in g.tok_trend_candidates(120), "Trending fish is deterministic for a date (%s)" % t1)
@@ -470,7 +478,7 @@ func _test_first_rebirth() -> void:
 	check(g.goals_done == VFData.STARTER_GOALS.size(), "being reborn finishes that goal")
 
 
-## Gerald, then his mum: when they turn up, what winning and losing do, and that it all survives
+## The Most Wanted, Gerald first: when each outlaw turns up, what winning and losing do, and that it all survives
 func _test_gerald() -> void:
 	print("== Gerald")
 	var g = load("res://scripts/vf/vf_game.gd").new()
@@ -542,7 +550,7 @@ func _test_gerald() -> void:
 	check(g.gerald.stage == 1 and g.gerald.tries == 0 and g.gerald.wins == 1 and g.gerald.casts == 0 and g.gerald_info().biome == "Volcanic" and g.gerald_info().who == "Sizzle", "the next outlaw, Sizzle, is wanted in the Volcano")
 	check(g.gerald_info().met and not g.gerald_due(), "you've met now, and nobody is due in the River any more")
 	check(absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001, "a won round: the next cast is ready like after any win")
-	# the final stage: caught, the crown, and his mum
+	# Baron von Flap's stage: caught, and the crown
 	g.gerald.stage = 3
 	g.level = 250
 	g.biome = "Sky"
@@ -952,6 +960,7 @@ class FunUI:
 
 class FunMain:
 	var stage
+	var size := Vector2(1280, 720)               # (the game's own area, as in vf_main.gd: beside a docked phone it's narrower than the window)
 	var v1 := FunUI.new()
 	var overlay := {"visible": false}
 	var minigame = null

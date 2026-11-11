@@ -8,6 +8,7 @@
 - Each one has their own intro, their own lines, a shadow that swims past your boat when they're near, and a round of gags: Sizzle sets the net smoking, the Captain duels with his nose, the Baron polishes his monocle, Zlorp beams your net up and the Duchess rings for her butler. Win a round and that outlaw is caught for good, with no more getting away. Lose and they laugh and leave you a tip, and come back a little easier. The second run's outlaws are a bit harder.
 - The WANTED board has a different poster for each of them, with its own caption, and the aquarium shows every outlaw you catch.
 - The crown is now the Baron's and the tiara the Duchess's. Hats, saves and progress carry over.
+- **Fish while you scroll FishTok.** The phone now sits in a strip beside the game instead of covering it: the game makes room, so you can keep casting and reeling (the Reel it in! round runs next to the phone) and auto-fish keeps going. The Phone button (or P) puts the phone away and the game takes its room back. The little dock icon at the top of the phone (or D) switches to the old full-screen phone, and the game remembers your choice. In a window too narrow to leave the game room, the phone stays full screen.
 
 ## 1.0 — shiny fish, live events and the Google Play version (5 November 2026)
 

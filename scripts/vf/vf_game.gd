@@ -1139,6 +1139,8 @@ var tok_seen_day := ""                    # last day FishTok was opened (badge)
 var tok_liked: Array = []                 # feed post ids you liked (today's ids only)
 var tok_trend_day := ""
 var tok_trend := ""
+var tok_dock := true                      # the phone docks beside the game (you keep fishing while you scroll); false = full screen
+var tok_dock_tip := false                 # the "it sits beside the game" tip was shown
 
 func _tok_connect() -> void:
 	trip_done.connect(_tok_on_trip)
@@ -1438,7 +1440,7 @@ func _tok_dict() -> Dictionary:
 		"banked_followers": tok_banked_followers, "claimed": tok_claimed, "announced": tok_announced,
 		"best_haul": tok_best_haul, "last_post": tok_last_post, "last_flex": tok_last_flex,
 		"ch": tok_ch, "ch_prog": tok_ch_prog, "ch_claimed": tok_ch_claimed, "seen_day": tok_seen_day,
-		"liked": tok_liked, "trend_day": tok_trend_day, "trend": tok_trend}
+		"liked": tok_liked, "trend_day": tok_trend_day, "trend": tok_trend, "dock": tok_dock, "dock_tip": tok_dock_tip}
 
 func _tok_apply(t: Dictionary) -> void:
 	tok_posts = []
@@ -1479,6 +1481,8 @@ func _tok_apply(t: Dictionary) -> void:
 	for id in t.get("liked", []): tok_liked.append(String(id))
 	tok_trend_day = String(t.get("trend_day", ""))
 	tok_trend = String(t.get("trend", ""))
+	tok_dock = bool(t.get("dock", true))
+	tok_dock_tip = bool(t.get("dock_tip", false))
 
 
 # ======================================================================

@@ -36,6 +36,7 @@ Bugs, balance, ideas and art notes are all welcome.
 - **The Most Wanted**, seven different outlaw fish to chase through the biomes (Gerald, Sizzle, Captain Swordbeard, Baron von Flap, Commander Chomp, Zlorp and The Duchess), each caught for good, with a WANTED board
 - **21 residents** to find when sailing, **34 achievements**, Fish Book rewards and an **aquarium**
 - **11 hats** for the captain, just for laughs
+- **FishTok beside the game**: the in-game phone docks at the side instead of covering the screen, so you keep casting and reeling while you scroll
 - **Prestige** with the Prestige Shop and the community P1–P160 buy-order guide; the first rebirth comes at
   level 60 and $5M, and no rebirth needs charms
 - A guided start: the Reel it in! mini-game with easy first rounds, a pointer for the first steps, starter goals

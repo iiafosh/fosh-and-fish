@@ -68,7 +68,19 @@ var _notif_busy := false
 var _home_drag := false
 var _home_y := 0.0
 var _rest_y := 0.0
+var _rest_x := 0.0
 var _tick := 0.0
+
+# Docked: the phone stands in a strip at the window's right edge and the game makes room for it (main.set_dock), so you
+# can keep fishing while you scroll. Not docked: the phone fills the middle, dims the game and nothing is cast.
+# (Not the home screen's dock of app icons, that's DOCK_APPS.)
+var docked := false
+var dock_btn: Control                # the little dock icon in the status bar
+var strip: ColorRect                 # the dark panel the docked phone stands on (it grows as the game gives up its room)
+var _dock_w := 0.0                   # width of the strip it takes while docked
+var _refresh_at := 0
+const DOCK_GAP := 12.0               # space round the docked phone
+const DOCK_ASPECT := 1.2             # the game's area keeps at least this width (x its height): the boat has to stay in view
 var _following := {}
 var _island_sb: StyleBoxFlat
 var _batt_sb: StyleBoxFlat
@@ -86,7 +98,7 @@ func _ready() -> void:
 	_fonts()
 	_build()
 	VF.changed.connect(_on_vf_changed)
-	get_viewport().size_changed.connect(_layout)
+	get_viewport().size_changed.connect(_on_resized)
 
 func _fonts() -> void:
 	var base: Font = load("res://assets/third_party/fonts/Fredoka.ttf")
@@ -103,9 +115,19 @@ func _fonts() -> void:
 func _build() -> void:
 	dim = ColorRect.new()
 	dim.color = Color(0.01, 0.05, 0.07, 0.62)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_preset(Control.PRESET_TOP_LEFT)       # (sized in _place: it covers the window, not just the room the game has left)
 	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: close())
 	add_child(dim)
+	strip = ColorRect.new()
+	strip.color = Color("#0d1b21")
+	strip.mouse_filter = Control.MOUSE_FILTER_STOP       # (it's the phone's: a tap on it must not cast)
+	strip.visible = false
+	add_child(strip)
+	var edge := ColorRect.new()
+	edge.color = Color(1, 1, 1, 0.1)
+	edge.size = Vector2(2, 4000)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.add_child(edge)
 	_build_hints()
 	device = Control.new()
 	device.size = DEV
@@ -172,6 +194,15 @@ func _build() -> void:
 	homebar.tooltip_text = "Tap: home screen  ·  Swipe up: put the phone away"
 	homebar.draw.connect(_draw_homebar)
 	homebar.gui_input.connect(_homebar_input)
+	dock_btn = _ctl(screen, Vector2(78, 8), Vector2(32, 28))
+	dock_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	dock_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	dock_btn.tooltip_text = "Dock: keep fishing while you scroll"
+	dock_btn.draw.connect(_draw_dock_btn)
+	dock_btn.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			dock_btn.accept_event()
+			toggle_dock())
 	_show_app("tok", false)
 	_layout()
 
@@ -189,7 +220,7 @@ func _build_hints() -> void:
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.visible = not main.is_touch()
 	for h in [["Wheel / arrows", "next post"], ["Double-click", "like"], ["Space", "pause"], ["C", "comments"],
-			["H", "home screen"], ["Esc", "put the phone away"]]:
+			["H", "home screen"], ["D", "dock beside the game"], ["Esc", "put the phone away"]]:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -198,21 +229,114 @@ func _build_hints() -> void:
 		hints.add_child(row)
 	add_child(hints)
 
+## The window changed size: the phone and, when docked, the room the game gives up change with it.
+func _on_resized() -> void:
+	_layout()
+	if docked and visible and not _closing: main.set_dock(_dock_w, false)
+
 func _layout() -> void:
+	if docked and visible and _dock_plan().is_empty():
+		_set_mode(false, false)                  # the window got too narrow for a dock: back to the full-screen phone
+		return
+	_place(false)
+
+## Where the device stands and how big it is, for the current mode (animate: slide there instead of jumping).
+func _place(animate: bool) -> void:
 	var vp := get_viewport_rect().size
+	dim.position = Vector2.ZERO                  # (the dim covers the whole window, whatever room the game has left)
+	dim.size = vp
 	var s := minf(1.0, (vp.y - 24.0) / DEV.y)
-	device.scale = Vector2(s, s)
-	device.position = Vector2((vp.x - DEV.x) * 0.5, (vp.y - DEV.y) * 0.5)
-	_rest_y = device.position.y
+	var pos := Vector2((vp.x - DEV.x) * 0.5, (vp.y - DEV.y) * 0.5)
+	if docked:
+		var plan := _dock_plan()
+		s = float(plan.get("k", s))
+		_dock_w = float(plan.get("w", 0.0))
+		pos = Vector2(vp.x - _dock_w * 0.5 - DEV.x * 0.5, (vp.y - DEV.y) * 0.5)
+	_rest_x = pos.x
+	_rest_y = pos.y
 	hints.reset_size()
 	hints.position = Vector2(vp.x * 0.5 + DEV.x * s * 0.5 + 34, vp.y * 0.5 - hints.size.y * 0.5)
-	hints.visible = not main.is_touch() and hints.position.x + hints.size.x < vp.x - 10
+	hints.visible = not docked and not main.is_touch() and hints.position.x + hints.size.x < vp.x - 10
+	if animate:
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(device, "position", pos, 0.42).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		tw.tween_property(device, "scale", Vector2(s, s), 0.42).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		tw.tween_property(device, "rotation", 0.0, 0.3)
+	else:
+		device.scale = Vector2(s, s)
+		device.position = pos
+
+## Room for the phone beside the game in this window: {"k": the device's scale, "w": the strip it takes}, or {} when
+## that would leave the game too narrow (the boat has to stay in view).
+func _dock_plan() -> Dictionary:
+	var vp := get_viewport_rect().size
+	var k := minf(1.0, (vp.y - 24.0) / DEV.y)
+	var w := DEV.x * k + DOCK_GAP * 2.0
+	var room := vp.x - DOCK_ASPECT * vp.y
+	if room < w:
+		k = (room - DOCK_GAP * 2.0) / DEV.x
+		w = room
+	if k < 0.6: return {}
+	return {"k": k, "w": w}
+
+## The dock icon in the status bar, and D: put the phone beside the game, or take it full screen.
+func toggle_dock() -> void:
+	if _closing or not visible: return
+	if not docked and _dock_plan().is_empty():
+		main._toast("There's no room beside the game in a window this narrow. Make it wider to dock the phone.", "warn")
+		return
+	VF.tok_dock = not docked
+	_set_mode(not docked, true)
+	AudioManager.play_click()
+
+func _set_mode(dock: bool, animate: bool) -> void:
+	docked = dock
+	dock_btn.tooltip_text = "Full screen" if docked else "Dock: keep fishing while you scroll"
+	dock_btn.queue_redraw()
+	if _tw: _tw.kill()
+	_place(animate)                              # (works out how much room the game gives up)
+	main.set_dock(_dock_w if docked else 0.0, animate)
+	if docked:
+		hints.modulate.a = 0.0
+		if animate:
+			_tw = create_tween()
+			_tw.tween_property(dim, "modulate:a", 0.0, 0.25)
+			_tw.tween_callback(func(): dim.visible = false)
+		else:
+			dim.visible = false
+	else:
+		dim.visible = true
+		hints.modulate.a = 1.0
+		if animate:
+			dim.modulate.a = 0.0
+			_tw = create_tween()
+			_tw.tween_property(dim, "modulate:a", 1.0, 0.25)
+		else:
+			dim.modulate.a = 1.0
+
+func _dock_tip() -> void:
+	if VF.tok_dock_tip: return
+	VF.tok_dock_tip = true
+	main._toast("FishTok sits beside the game, so you can keep fishing while you scroll. The little icon at the top (or D) makes it full screen.", "info")
+
+## docked: is the pointer on the phone? (then the keys are the phone's, otherwise they're the game's)
+func _pointer_on_phone() -> bool:
+	return (device.get_global_transform() * Rect2(Vector2.ZERO, DEV)).has_point(get_viewport().get_mouse_position())
+
+func _draw_dock_btn() -> void:
+	var col := C_INK if (_status_dark and app == "tok") else Color.WHITE
+	var r := Rect2(6, 7, 20, 14)
+	dock_btn.draw_rect(r, Color(col, 0.85), false, 1.6)
+	dock_btn.draw_rect(Rect2(r.position.x + r.size.x * 0.58, r.position.y + 1.0, r.size.x * 0.42 - 1.0, r.size.y - 2.0), Color(col, 0.95 if docked else 0.4))
 
 # ============================================================ open / close
 func open() -> void:
 	if visible and not _closing: return
 	_closing = false
 	visible = true
+	docked = VF.tok_dock and not main._recording() and not _dock_plan().is_empty()
+	dock_btn.tooltip_text = "Full screen" if docked else "Dock: keep fishing while you scroll"
+	dock_btn.queue_redraw()
 	_layout()
 	_show_app("tok", false)
 	_ensure_feed()
@@ -220,15 +344,24 @@ func open() -> void:
 	VF.tok_mark_seen()
 	_refresh_badges()
 	if _tw: _tw.kill()
-	device.position.y = get_viewport_rect().size.y + 30
-	device.rotation = 0.04
-	dim.modulate.a = 0.0
 	hints.modulate.a = 0.0
+	dim.modulate.a = 0.0
 	_tw = create_tween().set_parallel(true)
-	_tw.tween_property(dim, "modulate:a", 1.0, 0.25)
-	_tw.tween_property(device, "position:y", _rest_y, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	_tw.tween_property(device, "rotation", 0.0, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	_tw.tween_property(hints, "modulate:a", 1.0, 0.3).set_delay(0.25)
+	if docked:
+		dim.visible = false
+		device.position.x = get_viewport_rect().size.x + 30.0       # slides in from the right edge
+		device.rotation = 0.0
+		_tw.tween_property(device, "position:x", _rest_x, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		main.set_dock(_dock_w)
+		_dock_tip()
+	else:
+		dim.visible = true
+		device.position.y = get_viewport_rect().size.y + 30
+		device.rotation = 0.04
+		_tw.tween_property(dim, "modulate:a", 1.0, 0.25)
+		_tw.tween_property(device, "position:y", _rest_y, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		_tw.tween_property(device, "rotation", 0.0, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		_tw.tween_property(hints, "modulate:a", 1.0, 0.3).set_delay(0.25)
 	AudioManager.play_click()
 
 func close(animated := true) -> void:
@@ -242,21 +375,26 @@ func close(animated := true) -> void:
 		return
 	_closing = true
 	_tw = create_tween().set_parallel(true)
-	_tw.tween_property(dim, "modulate:a", 0.0, 0.25)
-	_tw.tween_property(hints, "modulate:a", 0.0, 0.15)
-	_tw.tween_property(device, "position:y", get_viewport_rect().size.y + 30, 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_tw.tween_property(device, "rotation", -0.03, 0.32)
+	if docked:
+		main.set_dock(0.0)                       # the game takes its room back while the phone slides off
+		_tw.tween_property(device, "position:x", get_viewport_rect().size.x + 30.0, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	else:
+		_tw.tween_property(dim, "modulate:a", 0.0, 0.25)
+		_tw.tween_property(hints, "modulate:a", 0.0, 0.15)
+		_tw.tween_property(device, "position:y", get_viewport_rect().size.y + 30, 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		_tw.tween_property(device, "rotation", -0.03, 0.32)
 	_tw.chain().tween_callback(func():
 		visible = false
 		_closing = false
 		_after_close())
 
 func _after_close() -> void:
+	if docked: main.set_dock(0.0, false)         # (an animated close has given the room back already; this one makes sure)
 	main.pill_badge(main.phone_btn, VF.tok_badge())
 
 ## open a game panel from the phone (shortcut apps, ads)
 func open_panel(kind: String, tab := "") -> void:
-	close(false)
+	if not docked: close(false)                  # (docked, the phone stays and the panel opens in the room beside it)
 	main._open_panel(kind, tab)
 
 func _input(e: InputEvent) -> void:
@@ -265,6 +403,7 @@ func _input(e: InputEvent) -> void:
 	var k := e as InputEventKey
 	var focus := get_viewport().gui_get_focus_owner()
 	if focus is LineEdit and k.keycode != KEY_ESCAPE: return      # typing a comment
+	if docked and k.keycode != KEY_P and not _pointer_on_phone(): return     # docked: the keys are the game's (Space casts...) unless the pointer is on the phone
 	if k.pressed and not k.echo:
 		match k.keycode:
 			KEY_ESCAPE:
@@ -283,6 +422,7 @@ func _input(e: InputEvent) -> void:
 					cur.set_liked(not cur.liked)
 			KEY_C:
 				if _active_feed() and _active_feed().current(): open_comments(_active_feed().current().item)
+			KEY_D: toggle_dock()
 			KEY_H: go_home()
 			KEY_BACKSPACE:
 				if page == "viewer": show_page("profile")
@@ -302,6 +442,10 @@ func _set_feeds_live(on: bool) -> void:
 
 func _process(delta: float) -> void:
 	if not visible: return
+	var vp := get_viewport_rect().size                   # the dark panel follows the room the game has given up
+	strip.visible = main.dock_w > 0.5
+	strip.position = Vector2(vp.x - main.dock_w, 0.0)
+	strip.size = Vector2(main.dock_w, vp.y)
 	_tick += delta
 	if _tick < 0.5: return
 	_tick = 0.0
@@ -597,6 +741,7 @@ func _battery() -> int:
 
 # ============================================================ status / bar
 func _draw_status() -> void:
+	if dock_btn: dock_btn.queue_redraw()                 # (its icon is dark on the light pages, white on the dark ones)
 	var col := C_INK if (_status_dark and app == "tok") else Color.WHITE
 	var t := Time.get_time_dict_from_system()
 	status.draw_string(font_black, Vector2(32, 25), "%d:%02d" % [t.hour, t.minute], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, col)
@@ -1801,4 +1946,25 @@ func _open_viewer(idx: int) -> void:
 func _on_vf_changed() -> void:
 	if not visible or _closing: return
 	if app == "home": _refresh_home()
-	elif page == "discover" or page == "inbox": show_page(page)
+	elif page == "discover" or page == "inbox":
+		if not docked:
+			show_page(page)
+			return
+		# Beside the game this fires with every catch: rebuild the page at most every few seconds, and keep where you were.
+		var now := Time.get_ticks_msec()
+		if now < _refresh_at: return
+		_refresh_at = now + 6000
+		var sc := _scroller()
+		var keep := sc.scroll_vertical if sc else 0
+		show_page(page)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		sc = _scroller()
+		if sc: sc.scroll_vertical = keep
+
+func _scroller() -> ScrollContainer:
+	for c in pages.get_children():
+		if c == feed_page or c.is_queued_for_deletion(): continue
+		var found := c.find_children("*", "ScrollContainer", true, false)
+		if not found.is_empty(): return found[0] as ScrollContainer
+	return null
