@@ -58,6 +58,32 @@ SHINY = {"base": 1.0 / 70.0, "each": 3, "day": 3, "wait": 30.0, "force": None}
 STOCK = {sp: {"species": sp, "supply": 3000, "minted": 0} for sp in SHINY_SPECIES}
 SHINIES = []      # {owner, species, serial, caught_at, _ts}
 ROLLS = {}        # user id -> time of the last roll
+DERBY_RUNS = []   # {id, owner, week, started, finished, score, wins, rounds, perfect} (schema.sql derby_runs)
+DERBY_CLAIMS = set()   # (owner, week)
+CLOCK = {"offset": 0.0}  # /__mock/advance?days=N moves the derby's clock (weeks end without waiting)
+
+
+def mnow():
+    return time.time() + CLOCK["offset"]
+
+
+def week_of(ts):
+    """the Monday (UTC) a week starts on, like date_trunc('week') in schema.sql"""
+    days = int(ts // 86400)
+    monday = days - (days + 3) % 7
+    return time.strftime("%Y-%m-%d", time.gmtime(monday * 86400))
+
+
+def derby_bests(week):
+    """owner -> {best, runs}: every player's best finished run that week (not banned), like the derby_bests view"""
+    out = {}
+    for r in DERBY_RUNS:
+        if r["week"] != week or r["finished"] is None or PROFILES.get(r["owner"], {}).get("banned"):
+            continue
+        b = out.setdefault(r["owner"], {"best": 0, "runs": 0})
+        b["best"] = max(b["best"], r["score"])
+        b["runs"] += 1
+    return out
 
 MAX_LEVEL = 25000
 MAX_PRESTIGE = 10000
@@ -404,6 +430,8 @@ class Handler(BaseHTTPRequestHandler):
             for store in (USERS, PROFILES, SAVES, ROLLS):
                 store.pop(uid, None)
             SHINIES[:] = [x for x in SHINIES if x["owner"] != uid]
+            DERBY_RUNS[:] = [x for x in DERBY_RUNS if x["owner"] != uid]       # (on delete cascade)
+            DERBY_CLAIMS.difference_update({c for c in DERBY_CLAIMS if c[0] == uid})
             return 204, None
         if path == "/rest/v1/rpc/try_shiny" and m == "POST":
             return 200, self._try_shiny(self._uid(), str(body.get("p_species", "")))
@@ -414,6 +442,36 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/rest/v1/shiny_board" and m == "GET":
             rows = [dict(st, left=st["supply"] - st["minted"]) for st in STOCK.values()]
             return 200, [project(r, q.get("select")) for r in rows]
+        if path == "/rest/v1/rpc/start_derby" and m == "POST":
+            return 200, self._start_derby(self._uid())
+        if path == "/rest/v1/rpc/finish_derby" and m == "POST":
+            return 200, self._finish_derby(self._uid(), body)
+        if path == "/rest/v1/rpc/claim_derby" and m == "POST":
+            wk = str(body.get("p_week", ""))
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", wk):
+                raise pg_error(400, "22007", "invalid input syntax for type date: \"%s\"" % wk)
+            return 200, self._claim_derby(self._uid(), wk)
+        if path == "/rest/v1/derby_board" and m == "GET":
+            bests = derby_bests(week_of(mnow()))
+            rows = [{"display_name": PROFILES[o]["display_name"], "best": b["best"], "runs": b["runs"]} for o, b in bests.items() if o in PROFILES]
+            rows.sort(key=lambda r: -r["best"])
+            return 200, [project(r, q.get("select")) for r in rows[:50]]
+        if path == "/rest/v1/players_public" and m == "GET":
+            rows = []
+            for uid, s in sorted(SAVES.items(), key=lambda kv: -kv[1].get("_ts", 0)):
+                p = PROFILES.get(uid)
+                if not p or p.get("banned") or time.time() - s.get("_ts", 0) > 14 * 86400:
+                    continue
+                d = s.get("data") or {}
+                boats = d.get("boats_owned", 0)
+                hat = d.get("hat", "straw")
+                biome = d.get("biome", "River")
+                whole = isinstance(boats, (int, float)) and not isinstance(boats, bool) and float(boats).is_integer()
+                rows.append({"display_name": p["display_name"], "level": s["level"], "prestige": s["prestige"],
+                             "boats": int(boats) if whole and 0 <= boats < 100 else 0,
+                             "hat": hat if isinstance(hat, str) and re.fullmatch(r"[a-z_]{1,24}", hat) else "straw",
+                             "biome": biome if isinstance(biome, str) and re.fullmatch(r"[A-Za-z]{1,16}", biome) else "River"})
+            return 200, [project(r, q.get("select")) for r in rows[:60]]
         if path == "/rest/v1/shiny_feed" and m == "GET":
             rows = []
             for x in sorted(SHINIES, key=lambda x: -x["_ts"])[:30]:
@@ -423,6 +481,51 @@ class Handler(BaseHTTPRequestHandler):
                                  "caught_at": x["caught_at"]})
             return 200, [project(r, q.get("select")) for r in rows]
         raise pg_error(404, "PGRST205", "mock: no route for %s %s" % (m, path))
+
+    def _start_derby(self, uid):
+        """schema.sql start_derby(): one run at a time"""
+        if PROFILES.get(uid, {}).get("banned"):
+            return {"ok": False, "reason": "banned"}
+        t = mnow()
+        if any(r["owner"] == uid and r["finished"] is None and r["started"] > t - 240 for r in DERBY_RUNS):
+            return {"ok": False, "reason": "busy"}
+        run = {"id": len(DERBY_RUNS) + 1, "owner": uid, "week": week_of(t), "started": t, "finished": None,
+               "score": 0, "wins": 0, "rounds": 0, "perfect": 0}
+        DERBY_RUNS.append(run)
+        return {"ok": True, "run": run["id"], "week": run["week"]}
+
+    def _finish_derby(self, uid, body):
+        """schema.sql finish_derby(): it took its three minutes, and the score fits its wins"""
+        r = next((x for x in DERBY_RUNS if x["id"] == int(body.get("p_run", -1)) and x["owner"] == uid), None)
+        if r is None:
+            return {"ok": False, "reason": "unknown"}
+        if r["finished"] is not None:
+            return {"ok": False, "reason": "done"}
+        secs = mnow() - r["started"]
+        if secs < ARGS.derby_secs:
+            return {"ok": False, "reason": "too_fast"}
+        score, wins, rounds, perfect = (int(body.get(k, -1)) for k in ("p_score", "p_wins", "p_rounds", "p_perfect"))
+        if secs > 1800 or not (0 <= rounds <= 90 and 0 <= wins <= rounds and 0 <= perfect <= wins and 0 <= score <= wins * 80):
+            r["finished"] = mnow()
+            return {"ok": False, "reason": "rejected"}
+        r.update(finished=mnow(), score=score, wins=wins, rounds=rounds, perfect=perfect)
+        bests = derby_bests(r["week"])
+        mine = bests.get(uid, {"best": 0})["best"]
+        return {"ok": True, "best": mine, "rank": 1 + sum(1 for b in bests.values() if b["best"] > mine),
+                "players": len(bests), "week": r["week"]}
+
+    def _claim_derby(self, uid, week):
+        """schema.sql claim_derby(): a finished week's prize, once"""
+        if week >= week_of(mnow()):
+            return {"ok": False, "reason": "running"}
+        if (uid, week) in DERBY_CLAIMS:
+            return {"ok": False, "reason": "claimed"}
+        bests = derby_bests(week)
+        if uid not in bests:
+            return {"ok": False, "reason": "no_run"}
+        mine = bests[uid]["best"]
+        DERBY_CLAIMS.add((uid, week))
+        return {"ok": True, "rank": 1 + sum(1 for b in bests.values() if b["best"] > mine), "players": len(bests), "best": mine}
 
     def _try_shiny(self, uid, species):
         """schema.sql try_shiny(): cooldown, stock, per-player caps, odds that fall per copy and as stock runs out"""
@@ -498,6 +601,9 @@ class Handler(BaseHTTPRequestHandler):
                 raise Fail(404, {"message": "no such user"})
             USERS[uid]["confirmed"] = True
             return 200, {"confirmed": True}
+        if what == "advance":
+            CLOCK["offset"] += float(q.get("days", 0)) * 86400.0
+            return 200, {"week": week_of(mnow())}
         if what == "shiny":
             if "force" in q:
                 SHINY["force"] = None if q["force"] == "" else q["force"] == "1"
@@ -522,6 +628,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0, help="add N fake players to the leaderboard")
     ap.add_argument("--confirm-email", action="store_true", help="sign-ups must confirm their email first")
     ap.add_argument("--token-ttl", type=int, default=3600, help="access token lifetime in seconds")
+    ap.add_argument("--derby-secs", type=float, default=170.0, help="how long a Derby run must take (tests: 0)")
     ARGS = ap.parse_args()
     seed(ARGS.seed)
     srv = ThreadingHTTPServer(("127.0.0.1", ARGS.port), Handler)

@@ -506,7 +506,7 @@ grant execute on function public.claim_derby(date) to authenticated;
 drop view if exists public.players_public;
 create view public.players_public as
   select p.display_name, s.level, s.prestige,
-         case when (s.data ->> 'boats_owned') ~ '^[0-9]{1,2}$' then (s.data ->> 'boats_owned')::int else 0 end as boats,
+         case when (s.data ->> 'boats_owned') ~ '^[0-9]{1,2}(\.0+)?$' then (s.data ->> 'boats_owned')::numeric::int else 0 end as boats,
          case when (s.data ->> 'hat') ~ '^[a-z_]{1,24}$' then s.data ->> 'hat' else 'straw' end as hat,
          case when (s.data ->> 'biome') ~ '^[A-Za-z]{1,16}$' then s.data ->> 'biome' else 'River' end as biome
     from public.saves s join public.profiles p on p.id = s.user_id

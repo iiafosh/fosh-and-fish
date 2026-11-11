@@ -202,7 +202,11 @@ func panel() -> void:
 	var go: Button = m._act("Play again" if not last.is_empty() else "Start the Derby", Color("#d4920f"), func(): start(); return "")
 	go.custom_minimum_size = Vector2(240, 52)
 	row.add_child(go)
-	var mine: Label = m.lbl("Your best this week: %s points%s" % [VF.commas(int(VF.derby_best_now())), "" if signed_in else "  (on this device)"], 15, C_TEXT)
+	var best := int(VF.derby_best_now())
+	if signed_in:                                   # (a run on another device is on the board too)
+		for r in Backend.derby_board:
+			if String(r.get("display_name", "")).to_lower() == Backend.display_name.to_lower(): best = maxi(best, int(r.get("best", 0)))
+	var mine: Label = m.lbl("Your best this week: %s points%s" % [VF.commas(best), "" if signed_in else "  (on this device)"], 15, C_TEXT)
 	mine.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(mine)
 	m.panel_body.add_child(row)

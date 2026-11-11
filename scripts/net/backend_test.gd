@@ -364,6 +364,62 @@ func run(main, out_dir: String) -> void:
 		and B.shiny_feed.size() >= 3, "your shinies, the stock board (2,997 Cod left) and the latest finds load from the server")
 	await mock(HTTPClient.METHOD_POST, "/__mock/shiny?force=&wait=30")
 
+	# ---- the derby (1.1): a run starts and ends on the server, the week's board, a finished week's prize once
+	await mock(HTTPClient.METHOD_POST, "/__mock/advance?days=-7")         # (race last week, then come back to claim it)
+	var last_week: String = VF.derby_week(Time.get_unix_time_from_system() - 7.0 * 86400.0)
+	var dr: Dictionary = await B.derby_start()
+	var run_id := int(dr.get("run", -1))
+	check(bool(dr.get("ok", false)) and run_id >= 1 and String(dr.get("week", "")) == last_week,
+		"a derby run starts on the server (run %s, week of %s)" % [dr.get("run"), dr.get("week")])
+	var busy: Dictionary = await B.derby_start()
+	check(busy.get("reason") == "busy", "one derby run at a time (%s)" % busy.get("reason"))
+	var fin: Dictionary = await B.derby_finish(run_id, 420, 9, 12, 3)
+	check(fin.get("reason") == "too_fast", "a run that ends right away doesn't count (%s)" % fin.get("reason"))
+	await mock(HTTPClient.METHOD_POST, "/__mock/advance?days=0.0025")      # (+3.6 minutes)
+	fin = await B.derby_finish(run_id, 420, 9, 12, 3)
+	check(bool(fin.get("ok", false)) and int(fin.get("best", 0)) == 420 and int(fin.get("rank", 0)) == 1 and int(fin.get("players", 0)) == 1,
+		"after its three minutes the run goes on the board (best %s, #%s of %s)" % [fin.get("best"), fin.get("rank"), fin.get("players")])
+	fin = await B.derby_finish(run_id, 999, 9, 12, 3)
+	check(fin.get("reason") == "done", "a run ends once (%s)" % fin.get("reason"))
+	dr = await B.derby_start()
+	await mock(HTTPClient.METHOD_POST, "/__mock/advance?days=0.0025")
+	fin = await B.derby_finish(int(dr.get("run", -1)), 5000, 9, 12, 3)
+	check(fin.get("reason") == "rejected", "a score its wins can't make is rejected (%s)" % fin.get("reason"))
+	B.derby_state = ""
+	B.load_derby()
+	await until(func(): return B.derby_state == "ok")
+	check(B.derby_board.size() == 1 and int(B.derby_board[0].get("best", 0)) == 420 and int(B.derby_board[0].get("runs", 0)) == 2
+		and String(B.derby_board[0].get("display_name", "")) == B.display_name, "the week's board: your best run, and how many you raced (%s)" % [B.derby_board])
+	var early: Dictionary = await B.derby_claim(last_week)
+	check(early.get("reason") == "running", "a week's prize waits for its week to end (%s)" % early.get("reason"))
+	await mock(HTTPClient.METHOD_POST, "/__mock/advance?days=6.995")       # (back to now: last week is over)
+	VF.derby.played = [last_week]
+	VF.derby.claimed = []
+	VF.hats_owned.erase("derby_cup")
+	var stars_before: int = VF.stars
+	m.derby._claimed_this_session = false
+	m._open_panel("derby")                                                  # (opening the Derby claims what's owed)
+	await until(func(): return last_week in VF.derby.claimed)
+	check(VF.stars == stars_before + 150 and "derby_cup" in VF.hats_owned and VF.derby_unclaimed().is_empty(),
+		"last week's winner gets the Derby Cup and 150 Event Stars (%d -> %d)" % [stars_before, VF.stars])
+	var again: Dictionary = await B.derby_claim(last_week)
+	var never: Dictionary = await B.derby_claim("2026-01-05")
+	check(again.get("reason") == "claimed" and never.get("reason") == "no_run", "a prize comes once, and only for a week you raced (%s, %s)" % [again.get("reason"), never.get("reason")])
+	dr = await B.derby_start()
+	await mock(HTTPClient.METHOD_POST, "/__mock/advance?days=0.0025")
+	fin = await B.derby_finish(int(dr.get("run", -1)), 265, 8, 11, 2)
+	B.derby_state = ""
+	B.load_derby()
+	await until(func(): return B.derby_state == "ok")
+	m.derby.last = {"score": 265, "wins": 8, "rounds": 11, "perfect": 2, "pay": 1200, "new_best": true, "best": 265,
+		"rank": int(fin.get("rank", 0)), "players": int(fin.get("players", 0)), "online": true, "why": ""}
+	m._open_panel("derby")
+	check(bool(fin.get("ok", false)) and B.derby_board.size() == 1 and int(B.derby_board[0].get("best", 0)) == 265,
+		"a new week starts a new board (%s)" % [B.derby_board])
+	await shot("derby_1_board")
+	m.derby.last = {}
+	m._close_panel()
+
 	# ---- delete account
 	await B.delete_account()
 	check(B.state == "signed_out" and not session_in_file(), "delete account -> signed out")
