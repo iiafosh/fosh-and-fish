@@ -336,3 +336,182 @@ end;
 $$;
 revoke all on function public.try_shiny(text) from public, anon;
 grant execute on function public.try_shiny(text) to authenticated;
+
+
+-- ================================================================ the fishing derby (1.1)
+-- A weekly board of 3-minute runs of Reel it in! at one fair difficulty for everyone (scripts/vf/vf_derby.gd). The game is
+-- client-authoritative (see the saves notes), so this keeps it honest-ish: a run starts and ends here, so it has to take
+-- its three minutes; one run at a time; a score can't be more than its wins allow (80 each at most); a finished week's
+-- prize is claimed once. A week starts on Monday 00:00 UTC (the game's VF.derby_week agrees).
+create table if not exists public.derby_runs (
+  id          bigint generated always as identity primary key,
+  owner       uuid not null references auth.users on delete cascade,
+  week        date not null,
+  started_at  timestamptz not null default now(),
+  finished_at timestamptz,
+  score       int not null default 0 check (score >= 0),
+  wins        int not null default 0,
+  rounds      int not null default 0,
+  perfect     int not null default 0
+);
+create index if not exists derby_runs_week on public.derby_runs (week, owner);
+alter table public.derby_runs enable row level security;
+drop policy if exists "derby_runs: read own" on public.derby_runs;
+create policy "derby_runs: read own" on public.derby_runs
+  for select using (owner = auth.uid());
+revoke all on public.derby_runs from anon, authenticated;
+grant select on public.derby_runs to authenticated;              -- written only by start_derby() / finish_derby()
+
+create table if not exists public.derby_claims (
+  owner      uuid not null references auth.users on delete cascade,
+  week       date not null,
+  rank       int  not null,
+  claimed_at timestamptz not null default now(),
+  primary key (owner, week)
+);
+alter table public.derby_claims enable row level security;      -- no policies: only claim_derby() uses it
+revoke all on public.derby_claims from anon, authenticated;
+
+-- every player's best finished run of each week (players who aren't banned). Internal: it has user ids.
+drop view if exists public.derby_board;
+drop view if exists public.derby_bests;
+create view public.derby_bests as
+  select r.week, r.owner, max(r.score) as best, count(*) as runs
+    from public.derby_runs r join public.profiles p on p.id = r.owner
+   where r.finished_at is not null and not p.banned
+   group by r.week, r.owner;
+revoke all on public.derby_bests from anon, authenticated;
+
+-- this week's board: anyone can read it (names and scores only)
+create view public.derby_board as
+  select p.display_name, b.best, b.runs
+    from public.derby_bests b join public.profiles p on p.id = b.owner
+   where b.week = (date_trunc('week', now() at time zone 'utc'))::date
+   order by b.best desc
+   limit 50;
+revoke all on public.derby_board from anon, authenticated;
+grant select on public.derby_board to anon, authenticated;
+
+create or replace function public.start_derby()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me  uuid := auth.uid();
+  wk  date := (date_trunc('week', now() at time zone 'utc'))::date;
+  run bigint;
+begin
+  if me is null then
+    return json_build_object('ok', false, 'reason', 'signed_out');
+  end if;
+  if exists (select 1 from profiles where id = me and banned) then
+    return json_build_object('ok', false, 'reason', 'banned');
+  end if;
+  -- one run at a time: an unfinished one from the last four minutes blocks another
+  if exists (select 1 from derby_runs where owner = me and finished_at is null and started_at > now() - interval '4 minutes') then
+    return json_build_object('ok', false, 'reason', 'busy');
+  end if;
+  insert into derby_runs (owner, week) values (me, wk) returning id into run;
+  return json_build_object('ok', true, 'run', run, 'week', wk);
+end;
+$$;
+
+create or replace function public.finish_derby(p_run bigint, p_score int, p_wins int, p_rounds int, p_perfect int)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me      uuid := auth.uid();
+  r       record;
+  secs    float;
+  my_best int;
+  rnk     int;
+  n       int;
+begin
+  if me is null then
+    return json_build_object('ok', false, 'reason', 'signed_out');
+  end if;
+  select * into r from derby_runs where id = p_run and owner = me for update;
+  if not found then
+    return json_build_object('ok', false, 'reason', 'unknown');
+  end if;
+  if r.finished_at is not null then
+    return json_build_object('ok', false, 'reason', 'done');
+  end if;
+  secs := extract(epoch from now() - r.started_at);
+  if secs < 170 then                                             -- (a run is three minutes)
+    return json_build_object('ok', false, 'reason', 'too_fast');
+  end if;
+  if secs > 1800 or p_rounds < 0 or p_rounds > 90 or p_wins < 0 or p_wins > p_rounds
+     or p_perfect < 0 or p_perfect > p_wins or p_score < 0 or p_score > p_wins * 80 then
+    update derby_runs set finished_at = now() where id = p_run;   -- (an impossible run counts as nothing)
+    return json_build_object('ok', false, 'reason', 'rejected');
+  end if;
+  update derby_runs set finished_at = now(), score = p_score, wins = p_wins, rounds = p_rounds, perfect = p_perfect
+   where id = p_run;
+  select best into my_best from derby_bests where week = r.week and owner = me;
+  select count(*) + 1 into rnk from derby_bests where week = r.week and best > coalesce(my_best, 0);
+  select count(*) into n from derby_bests where week = r.week;
+  return json_build_object('ok', true, 'best', coalesce(my_best, 0), 'rank', rnk, 'players', n, 'week', r.week);
+end;
+$$;
+
+-- a finished week's prize, once: the rank of your best run that week
+create or replace function public.claim_derby(p_week date)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me      uuid := auth.uid();
+  my_best int;
+  rnk     int;
+  n       int;
+begin
+  if me is null then
+    return json_build_object('ok', false, 'reason', 'signed_out');
+  end if;
+  if p_week >= (date_trunc('week', now() at time zone 'utc'))::date then
+    return json_build_object('ok', false, 'reason', 'running');
+  end if;
+  if exists (select 1 from derby_claims where owner = me and week = p_week) then
+    return json_build_object('ok', false, 'reason', 'claimed');
+  end if;
+  select best into my_best from derby_bests where week = p_week and owner = me;
+  if my_best is null then
+    return json_build_object('ok', false, 'reason', 'no_run');
+  end if;
+  select count(*) + 1 into rnk from derby_bests where week = p_week and best > my_best;
+  select count(*) into n from derby_bests where week = p_week;
+  insert into derby_claims (owner, week, rank) values (me, p_week, rnk);
+  return json_build_object('ok', true, 'rank', rnk, 'players', n, 'best', my_best);
+end;
+$$;
+revoke all on function public.start_derby() from public, anon;
+revoke all on function public.finish_derby(bigint, int, int, int, int) from public, anon;
+revoke all on function public.claim_derby(date) from public, anon;
+grant execute on function public.start_derby() to authenticated;
+grant execute on function public.finish_derby(bigint, int, int, int, int) to authenticated;
+grant execute on function public.claim_derby(date) to authenticated;
+
+
+-- ================================================================ players in your bay (1.1)
+-- Who fished lately, for the boats that sail by in other players' bays: their name, level and what they look like on the
+-- water. Nothing else (no ids, emails, saves or times). Odd values from an edited save fall back to defaults.
+drop view if exists public.players_public;
+create view public.players_public as
+  select p.display_name, s.level, s.prestige,
+         case when (s.data ->> 'boats_owned') ~ '^[0-9]{1,2}$' then (s.data ->> 'boats_owned')::int else 0 end as boats,
+         case when (s.data ->> 'hat') ~ '^[a-z_]{1,24}$' then s.data ->> 'hat' else 'straw' end as hat,
+         case when (s.data ->> 'biome') ~ '^[A-Za-z]{1,16}$' then s.data ->> 'biome' else 'River' end as biome
+    from public.saves s join public.profiles p on p.id = s.user_id
+   where not p.banned and s.updated_at > now() - interval '14 days'
+   order by s.updated_at desc
+   limit 60;
+revoke all on public.players_public from anon, authenticated;
+grant select on public.players_public to anon, authenticated;
