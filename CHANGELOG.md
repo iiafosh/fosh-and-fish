@@ -4,6 +4,7 @@
 
 ## Coming next
 
+- **Reel it in! goes easier on you after a bad streak.** Lose two rounds in a row and the next one has a slightly bigger net, a slower fish and a bit more time; lose more and it eases a little more; win and it's back to normal. Players who aren't losing won't notice anything, and the outlaw rounds keep their own easing. The Guide explains it.
 - **The Baron's crown and the Duchess's tiara look like theirs.** The crown has swept-back wings now (the Baron is a flying fish) and keeps his waxed moustache, and the tiara swapped its bow for a glowing anglerfish lure with a little chandelier of crystals hanging from it.
 
 ## 1.0.1 — the Most Wanted, and FishTok beside the game (11 November 2026)

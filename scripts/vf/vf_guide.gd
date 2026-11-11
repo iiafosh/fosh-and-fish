@@ -8,7 +8,7 @@ const TABS := {
 		["Welcome to fosh&fish", ["ui", "inventory"],
 		"Cast, catch, sell, upgrade, repeat. Everything you catch goes into your hold (bucket). Sell it for money, spend the money on better rods, bait, boats and upgrades, and travel to new biomes as you level up."],
 		["Fishing", ["rod", "Plastic Rod"],
-		"Tap the water, press FISH or hit Space. After every cast there is a short cooldown (the green bar on the FISH button). Each cast catches several fish at once — how many depends on your rod, boats, bait and buffs."],
+		"Tap the water, press FISH or hit Space. After every cast there is a short cooldown (the green bar on the FISH button). Each cast catches several fish at once — how many depends on your rod, boats, bait and buffs.\n\nReel it in! (the pill beside the FISH button) turns every bite into a little mini-game: hold to lift the net and keep the fish inside it. Win and that cast brings +200% fish. Lose twice in a row and the next round is a little easier; win and it's back to normal. Relax mode just catches, no mini-game."],
 		["Selling", ["ui", "money"],
 		"Press SELL (or E) to sell your whole hold. Fish are worth more with a higher Sell Price (Salesman, Fish Ovens, Marketing charms…). Tip: sell right before a big purchase."],
 		["Sailing", ["boat", "Rowboat"],

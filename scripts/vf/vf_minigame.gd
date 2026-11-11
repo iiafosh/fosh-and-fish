@@ -196,7 +196,7 @@ func setup(m, fname: String, ftier: int) -> void:
 	if tier >= 3: nick = ["Lord ", "Lady ", "Sir ", "The Great "].pick_random() + nick.trim_prefix("Sir ")
 	_fact = FACTS.pick_random()
 	reel_power = VFData.rod_reel_power(VF.rod)
-	_use_params(VFData.minigame_params(tier, reel_power, not main.is_touch(), VF.reel_rounds))
+	_use_params(VFData.minigame_params(tier, reel_power, not main.is_touch(), VF.reel_rounds, VF.reel_lose_streak))
 	fish_y = randf_range(0.45, 0.8)
 	fish_target = fish_y
 	_gag_wait = randf_range(0.7, 1.4)
@@ -758,6 +758,7 @@ func _finish(w: bool) -> void:
 	skip_lbl.visible = true
 	if rival == "":
 		streak = streak + 1 if w else 0
+		VF.reel_lose_streak = 0 if w else VF.reel_lose_streak + 1       # (lost twice in a row: the next round is eased, VFData.STREAK_EASE)
 		VF.stat_add("reel_wins" if w else "reel_losses")
 		if w and perfect: VF.stat_add("perfect_rounds")
 	VF.reel_rounds += 1

@@ -55,6 +55,7 @@ var ducks := 0                            # rubber ducks found (vf_fun.gd). Nobo
 var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
 var catch_mode := "reel"                  # "reel" (mini-game, VFData.MINIGAME_*) | "relax" (wait the cooldown). Saves without it: relax
 var reel_rounds := 0                      # rounds of Reel it in! played: the first few are easier (VFData.ROOKIE_ROUNDS)
+var reel_lose_streak := 0                 # rounds of Reel it in! lost in a row (not saved): after two the next is easier (VFData.STREAK_EASE)
 var quest_day := ""
 var quest_progress := {}
 var quest_claimed := {}

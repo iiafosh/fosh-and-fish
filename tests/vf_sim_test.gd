@@ -329,6 +329,7 @@ func _with_autoloads() -> void:
 	v._apply(v._defaults.duplicate(true))
 	_test_rookie_bots(v)
 	_test_rival_bots(v)
+	_test_lose_streak(v)
 	_test_resident_timing(v)
 	_test_counters(v)
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
@@ -404,6 +405,26 @@ func _test_rookie_rounds() -> void:
 		check(r0.time_limit > r1.time_limit and r1.time_limit > r2.time_limit and r2.time_limit > r3.time_limit, "%s: there's more time in the first rounds" % kinds)
 	var rare: Dictionary = VFData.minigame_params(4, 0.0, false, 0)
 	check(rare.zone_h == VFData.minigame_params(0, 0.0, false, 0).zone_h, "a rare fish on the very first round gets the same big net")
+
+	# after lost rounds in a row the next round is eased a little; nothing changes for a player who isn't losing
+	for desktop in [false, true]:
+		var kind2 := "phone" if not desktop else "desktop"
+		var s0: Dictionary = VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS, 0)
+		var s1: Dictionary = VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS, 1)
+		var s2: Dictionary = VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS, 2)
+		var s3: Dictionary = VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS, 3)
+		var s9: Dictionary = VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS, 99)
+		check(s0 == VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS) and s1 == s0, "%s: no easing after 0 or 1 lost rounds" % kind2)
+		check(s2.zone_h > s0.zone_h and s2.fish_speed < s0.fish_speed and s2.drain_rate < s0.drain_rate and s2.time_limit > s0.time_limit,
+			"%s: after two lost rounds the net is bigger, the fish slower, the ring slips less and there's more time" % kind2)
+		check(is_equal_approx(s2.fill_rate, s0.fill_rate), "%s: ...but the ring fills at the normal pace" % kind2)
+		check(s3.zone_h > s2.zone_h and s3.fish_speed < s2.fish_speed, "%s: a little more after three" % kind2)
+		check(s9 == VFData.minigame_params(3, 0.2, desktop, VFData.ROOKIE_ROUNDS, VFData.STREAK_EASE.size() - 1), "%s: ...and it stops at a limit" % kind2)
+	check(VFData.minigame_params(3, 0.2, false, 0, 4) == VFData.minigame_params(3, 0.2, false, 0, 0), "a beginner's first rounds don't stack with it")
+	check(VFData.minigame_params(3, 0.2, false, VFData.ROOKIE_ROUNDS, 4).zone_h < VFData.minigame_params(3, 0.2, false, 0, 0).zone_h, "...and it's never as easy as a beginner's very first round")
+	g.reel_lose_streak = 3
+	check(not g.to_dict().has("reel_lose_streak"), "the lost-round streak isn't saved (it starts again with the game)")
+	g.reel_lose_streak = 0
 
 
 ## the first rebirth is within reach; the ones after it are as far as they were
@@ -1034,6 +1055,47 @@ func _test_resident_timing(v) -> void:
 
 
 ## Gerald in the real mini-game: a rival round works without his art, he's a real fight, and nobody gets stuck
+## Reel it in!, in the real mini-game: lost rounds in a row are counted (not the outlaws'), the round after them is eased,
+## and a win puts it back
+func _test_lose_streak(v) -> void:
+	print("== Reel it in!: lost rounds in a row, played by bots")
+	var Bot = load("res://tests/reel_bot.gd")
+	var MG = load("res://scripts/vf/vf_minigame.gd")
+	seed(20261111)
+	v._apply(v._defaults.duplicate(true))
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
+	v.rod = "Plastic Rod"
+	v.reel_lose_streak = 0
+	var lost := 0
+	for i in 3:
+		if not Bot.play(self, "idle", "Raw Fish", 3, true).won: lost += 1
+	check(lost == 3 and v.reel_lose_streak == 3, "three lost rounds in a row are counted (%d lost, streak %d)" % [lost, v.reel_lose_streak])
+	var stub = Bot.StubMain.new()
+	var eased_round: Control = MG.new()
+	eased_round.setup(stub, "Raw Fish", 3)
+	var eased_net: float = eased_round.zone_h
+	eased_round.free()
+	v.reel_lose_streak = 0
+	var plain_round: Control = MG.new()
+	plain_round.setup(stub, "Raw Fish", 3)
+	var plain_net: float = plain_round.zone_h
+	plain_round.free()
+	check(eased_net > plain_net, "...and the round after them has a bigger net (%.2f against %.2f)" % [eased_net, plain_net])
+	v.reel_lose_streak = 3
+	var won := false
+	for i in 4:                                         # (a sharp player wins a common fish: one of a few tries is enough)
+		if Bot.play(self, "sharp", "Raw Fish", 0, true).won:
+			won = true
+			break
+	check(won and v.reel_lose_streak == 0, "a win puts it back to normal (streak %d)" % v.reel_lose_streak)
+	v.reel_lose_streak = 2
+	v.reel_rounds = VFData.ROOKIE_ROUNDS
+	v.gerald.stage = 0
+	Bot.play_rival(self, "idle", 0)
+	check(v.reel_lose_streak == 2, "a lost round against an outlaw isn't counted (they have their own easing)")
+	v.reel_lose_streak = 0
+	v.gerald.tries = 0
+
 func _test_rival_bots(v) -> void:
 	print("== Gerald, played by bots")
 	var Bot = load("res://tests/reel_bot.gd")

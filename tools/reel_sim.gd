@@ -20,6 +20,10 @@ func _run() -> void:
 		_rival_table(Bot, V)
 		quit()
 		return
+	if table_only == "streak":
+		_streak_table(Bot, V)
+		quit()
+		return
 	if table_only != "":
 		_table(Bot, V, table_only)
 		quit()
@@ -56,6 +60,35 @@ func _table(Bot, V, bot: String) -> void:
 				long += float(one.secs)
 			row += "  t%d %3d%% %.1fs" % [tier, int(round(100.0 * wins / (N / 2))), long / (N / 2)]
 		print(row)
+
+## after lost rounds in a row (VFData.STREAK_EASE): how often each bot wins the NEXT round, by how many it has just lost.
+## The clumsy player is who it's for; a sharp one should hardly notice it. Run: -s res://tools/reel_sim.gd -- --table=streak
+func _streak_table(Bot, V) -> void:
+	var cases := [["Plastic Rod", 2], ["Plastic Rod", 3], ["Steel Rod", 3], ["Steel Rod", 4], ["Alloy Rod", 4]]
+	var bots := ["novice", "sharp"]
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--bot="): bots = [a.substr(6)]
+		if a.begins_with("--n="): _n = int(a.substr(4))
+	var steps: int = VFData.STREAK_EASE.size()
+	for bot in bots:
+		print("== lost rounds in a row, then the next round: %s on a phone (%% won, %d rounds each); ease by streak %s" % [bot, _n, str(VFData.STREAK_EASE)])
+		var head := "   %-12s %-5s" % ["rod", "tier"]
+		for s in steps: head += " %6s" % (("%d+" % s) if s == steps - 1 else str(s))
+		print(head)
+		for c in cases:
+			V.rod = c[0]
+			var row := "   %-12s t%-4d" % [c[0], c[1]]
+			for streak in steps:
+				var wins := 0
+				for i in _n:
+					V.reel_rounds = VFData.ROOKIE_ROUNDS
+					V.reel_lose_streak = streak
+					if Bot.play(self, bot, "Raw Fish", c[1], true, 1.0 / 60.0).won: wins += 1
+				row += " %5d%%" % int(round(100.0 * wins / _n))
+			print(row)
+	V.reel_lose_streak = 0
+
+var _n := N                              # rounds per cell (-- --n=60 for a quicker, rougher table)
 
 ## the rival, stage by stage with a rod you could have by then: how often each bot wins, by how many times he has beaten them
 func _rival_table(Bot, V) -> void:

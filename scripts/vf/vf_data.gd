@@ -77,7 +77,8 @@ static func rod_reel_power(r: String) -> float:
 ## hard"), 0.5.2 ~100% (owner: "really easy"), 0.5.3 ~52% - a sharp player wins most common fish,
 ## rare fish need a better rod, and even the best rod can lose to the rarest fish (~60%).
 ## rounds: how many rounds the player has played (VF.reel_rounds): see ROOKIE_ROUNDS.
-static func minigame_params(tier: int, power: float, desktop := false, rounds := ROOKIE_ROUNDS) -> Dictionary:
+## streak: rounds lost in a row (VF.reel_lose_streak): after two, the next round is eased, see STREAK_EASE.
+static func minigame_params(tier: int, power: float, desktop := false, rounds := ROOKIE_ROUNDS, streak := 0) -> Dictionary:
 	var t := clampi(tier, 0, 4)
 	if rounds < ROOKIE_ROUNDS: t = mini(t, maxi(rounds, 0))      # a rare fish doesn't get to be hard this early
 	var pw := clampf(power, 0.0, 1.0)
@@ -114,9 +115,19 @@ static func minigame_params(tier: int, power: float, desktop := false, rounds :=
 		p.fill_rate *= 1.0 - 0.3 * e       # (a slower ring: the round lasts long enough for the fish to pull a gag)
 		p.drain_rate = lerpf(p.drain_rate, 0.02, e)
 		p.time_limit += 10.0 * e
+	var es: float = STREAK_EASE[clampi(streak, 0, STREAK_EASE.size() - 1)]
+	if es > 0.0 and rounds >= ROOKIE_ROUNDS:           # (a beginner's first rounds are an easing already: they don't stack)
+		p.zone_h = lerpf(p.zone_h, ROOKIE_ZONE, es)
+		p.fish_speed *= 1.0 - 0.35 * es
+		p.drain_rate = lerpf(p.drain_rate, 0.02, es)
+		p.time_limit += 10.0 * es                      # (the ring fills at the normal pace: a lost streak shouldn't also drag the rounds)
 	return p
 
 const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer fish: up to +1s)
+## Players who keep losing (DERIVED, not in the bot): after two lost rounds in a row the next one is eased like a
+## beginner's, by STREAK_EASE[lost in a row] (1 = a beginner's very first round), and a win puts it back to normal.
+## Good players rarely lose twice in a row, so for them nothing changes (measured: tools/reel_sim.gd --table=streak).
+const STREAK_EASE := [0.0, 0.0, 0.08, 0.12, 0.16]
 ## New players (not in the bot, DERIVED): the first ROOKIE_ROUNDS rounds someone plays are easier, by ROOKIE_EASE
 ## (1 = fully). The first is close to impossible to lose, even without touching anything (measured: tools/reel_sim.gd).
 const ROOKIE_ROUNDS := 3
