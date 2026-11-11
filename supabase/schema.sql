@@ -71,6 +71,8 @@ begin
   return new;
 end;
 $$;
+-- only the trigger below runs it: nobody should be able to call it through the API (Supabase's linter flags that)
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created

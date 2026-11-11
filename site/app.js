@@ -35,6 +35,6 @@
   // the version players get today (the base download plus in-game updates)
   fetch(`${ROOT}update.json?t=${Date.now()}`)
     .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-    .then((m) => (document.getElementById("ver-chip").textContent = `v${m.version} beta`))
+    .then((m) => (document.getElementById("ver-chip").textContent = `v${m.version}${String(m.version).startsWith("0.") ? " beta" : ""}`))
     .catch(() => {});
 })();

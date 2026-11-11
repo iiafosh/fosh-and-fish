@@ -19,6 +19,7 @@ builds build/play/fosh_fish-<version>-b<build>.aab from the "Android Play" prese
 billing and AdMob plugins, export feature "play"), signed with your upload key from the environment.
 
 Needs: Godot 4.7 (env GODOT), gh CLI, the update signing key (tools/update_sign.gd --keygen).
+Before a release, rehearse the in-game update on this PC (no internet, nothing published): python tools/updater_rehearsal.py
 Patches can't add autoloads, class_name scripts or project settings: use a full release.
 """
 import argparse

@@ -1,0 +1,39 @@
+# Keeps the free Supabase project awake. It is paused after a week without traffic, and while it is paused every player
+# sees "Can't reach the server" (progress stays on their device, but sign-in, cloud saves, the leaderboard and shiny
+# fish stop). One read of the public leaderboard every three days counts as traffic.
+#
+# It reads data/backend.json (url + the public key that ships inside every copy of the game) and changes nothing.
+# Scheduled workflows only run from the default branch (master). Run it by hand from the Actions tab to try it.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the leaderboard
+        run: |
+          python3 - <<'PY'
+          import json, sys, urllib.request
+          c = json.load(open("data/backend.json"))
+          if not c.get("url") or not c.get("anon_key"):
+              sys.exit("data/backend.json has no url / anon_key")
+          headers = {"apikey": c["anon_key"]}
+          if c["anon_key"].startswith("eyJ"):          # legacy anon keys are JWTs; the newer sb_publishable_ keys are not
+              headers["Authorization"] = "Bearer " + c["anon_key"]
+          req = urllib.request.Request(c["url"] + "/rest/v1/leaderboard?select=display_name&limit=1", headers=headers)
+          with urllib.request.urlopen(req, timeout=30) as r:
+              print("leaderboard answered", r.status)
+              if r.status != 200:
+                  sys.exit(1)
+          PY
