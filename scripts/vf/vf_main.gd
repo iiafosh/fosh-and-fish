@@ -105,6 +105,7 @@ var _portrait_note: CanvasLayer
 var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
 var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
 var collect                    # vf_collect_ui.gd: the WANTED board, finds, achievements, the aquarium, hats
+var derby                      # vf_derby.gd: the Fishing Derby (3-minute runs, the weekly board)
 var _calm_idle := 0.0
 var _calm_a := 1.0
 
@@ -126,6 +127,7 @@ func _ready() -> void:
 	radio.build_hud()
 	fun = load("res://scripts/vf/vf_fun.gd").new(self)
 	collect = load("res://scripts/vf/vf_collect_ui.gd").new(self)
+	derby = load("res://scripts/vf/vf_derby.gd").new(self)
 	collect.build_hud()
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
@@ -212,6 +214,7 @@ func _process(delta: float) -> void:
 	if v1: v1.tick(delta)
 	if fun: fun.tick(delta)
 	if idle: idle.tick(delta)
+	if derby: derby.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
 		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
@@ -1170,6 +1173,7 @@ func _apply_biome() -> void:
 # ================================================================ actions
 ## auto: an auto-fish cast (vf_idle_ui): always a Relax cast, no mini-game
 func _do_cast(auto := false) -> void:
+	if derby and derby.running: return             # (a Derby run brings its own fish, round after round)
 	if sail.busy() or minigame != null or _reel_card != null or Time.get_ticks_msec() < _reel_wait_until: return  # not while steering, between biomes or reeling
 	var why: String = VF.can_cast()
 	if why == "cooldown":
@@ -1576,7 +1580,7 @@ func _render_panel() -> void:
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
 		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
-		"achievements": "Achievements", "aquarium": "Aquarium"}
+		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		for t in PANEL_TABS[_panel_kind]:
@@ -1619,6 +1623,7 @@ func _render_panel() -> void:
 		"wanted": collect.panel_wanted()
 		"achievements": collect.panel_achievements()
 		"aquarium": collect.panel_aquarium()
+		"derby": derby.panel()
 
 ## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -2166,6 +2171,10 @@ func _check_capture() -> void:
 		return
 	if "--dock-test" in OS.get_cmdline_user_args():
 		await _dock_test(dir)
+		get_tree().quit()
+		return
+	if "--derby-test" in OS.get_cmdline_user_args():
+		await _derby_test(dir)
 		get_tree().quit()
 		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:
@@ -3501,6 +3510,7 @@ const MENU_TILES := [
 	["account", "Account", "user-circle", "", "Cloud save & leaderboard"],
 	["store", "Store", "shopping-bag-open", "", "Packs, Pearls & free rewards"],
 	["events", "Events", "confetti", "", "What's on & the Event Shop"],
+	["derby", "Derby", "trophy", "", "3 minutes, one board for all"],
 	["fleet", "Fleet", "sailboat", "", "Crews that fish for you"],
 	["daily", "Daily", "gift", "", "Calendar & the daily spin"],
 	["radio", "Radio", "music-notes", "", "The soundtrack, or just listen"],
@@ -3515,7 +3525,7 @@ const MENU_COLORS := {
 	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
 	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"), "fleet": Color("#0e7490"),
 	"daily": Color("#f97316"), "radio": Color("#db2777"), "achievements": Color("#c98b1c"), "aquarium": Color("#238b9c"),
-	"wanted": Color("#a8854d"),
+	"wanted": Color("#a8854d"), "derby": Color("#d4920f"),
 }
 
 func _panel_menu() -> void:
@@ -3821,6 +3831,47 @@ func _dock_test(dir: String) -> void:
 
 func _dock_check(ok: bool, what: String) -> void:
 	print("DOCK %s %s" % ["PASS" if ok else "FAIL", what])
+
+## godot --path . --resolution 1280x720 -- --capture=DIR --derby-test --derby-secs=25 [--touch --ui-dp=390]
+## A short Fishing Derby played by the mini-game's own winner: the panel, the 3-2-1, rounds, the clock, the results.
+## Prints DERBY PASS/FAIL lines. Never saves.
+func _derby_test(dir: String) -> void:
+	VF.autosave = false
+	_veteran("River")
+	VF.tutorial = 99
+	var money0: int = VF.money
+	var trips0: int = VF.stats.trips
+	_open_panel("derby")
+	await _wait(0.8)
+	await _shot(dir + "/derby_0_panel.png")
+	derby.start()
+	await _wait(1.3)
+	await _shot(dir + "/derby_1_countdown.png")
+	var shot_round := false
+	var cast_blocked := true
+	while derby.running:
+		if minigame != null and is_instance_valid(minigame):
+			if minigame.auto == "": minigame.auto = "win"
+			if not shot_round and minigame.phase == "play" and derby.rounds >= 2:
+				shot_round = true
+				await _shot(dir + "/derby_2_round.png")
+		elif derby.t_left > 1.0:
+			_do_cast()                                    # (between rounds a tap must not cast)
+			if VF.stats.trips != trips0: cast_blocked = false
+		await get_tree().process_frame
+	await _wait(0.9)
+	await _shot(dir + "/derby_3_results.png")
+	var r: Dictionary = derby.last
+	_dock_check_named("DERBY", r.get("rounds", 0) >= 3 and r.get("wins", 0) == r.get("rounds", -1), "a run plays round after round (%d rounds, %d won)" % [r.get("rounds", 0), r.get("wins", 0)])
+	_dock_check_named("DERBY", int(r.get("score", 0)) > 10 * int(r.get("rounds", 0)), "wins in a row score more (%d points)" % int(r.get("score", 0)))
+	_dock_check_named("DERBY", int(r.get("pay", 0)) > 0 and VF.money > money0, "the run pays (%s)" % money_str(int(r.get("pay", 0))))
+	_dock_check_named("DERBY", cast_blocked and VF.stats.trips == trips0, "no casting during the run, and its rounds catch no fish")
+	_dock_check_named("DERBY", _panel_kind == "derby" and overlay.visible and VF.derby_best_now() == int(r.get("score", -1)), "the results open in the Derby panel, and it's this week's best")
+	_dock_check_named("DERBY", VF.reel_lose_streak == 0, "Derby rounds don't touch the Reel it in! easing")
+	print("DERBY done")
+
+func _dock_check_named(tag: String, ok: bool, what: String) -> void:
+	print("%s %s %s" % [tag, "PASS" if ok else "FAIL", what])
 
 
 ## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --reel05

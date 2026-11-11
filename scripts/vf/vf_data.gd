@@ -128,6 +128,29 @@ const MINIGAME_TIME := 7.0        # seconds before the fish wriggles free (rarer
 ## beginner's, by STREAK_EASE[lost in a row] (1 = a beginner's very first round), and a win puts it back to normal.
 ## Good players rarely lose twice in a row, so for them nothing changes (measured: tools/reel_sim.gd --table=streak).
 const STREAK_EASE := [0.0, 0.0, 0.08, 0.12, 0.16]
+
+## The Fishing Derby (1.1, DERIVED: not in the bot; vf_derby.gd, supabase/schema.sql): a run lasts DERBY_SECS; round i
+## is a tier derby_tier(i) fish at the same difficulty for everyone (a middling rod, no beginner or streak easing).
+const DERBY_SECS := 180.0
+## after a week: [up to this rank, Event Stars, hat]
+const DERBY_PRIZES := [[1, 150, "derby_cup"], [3, 100, "derby_cup"], [10, 50, ""], [1000000, 15, ""]]
+
+static func derby_tier(round_i: int) -> int:
+	return mini(4, maxi(0, round_i) / 2)
+
+static func derby_params(tier: int, desktop: bool) -> Dictionary:
+	return minigame_params(tier, 0.5, desktop, ROOKIE_ROUNDS, 0)
+
+## a won round: 10 + 5 x tier, +10 when perfect, x1 .. x2 for 1 .. 5+ wins in a row
+static func derby_points(tier: int, perfect: bool, combo: int) -> int:
+	return int(round((10 + 5 * clampi(tier, 0, 4) + (10 if perfect else 0)) * (1.0 + 0.25 * clampi(combo - 1, 0, 4))))
+
+## -> [Event Stars, hat] for this final rank of a week (rank 0: nothing)
+static func derby_prize(rank: int) -> Array:
+	if rank <= 0: return [0, ""]
+	for p in DERBY_PRIZES:
+		if rank <= int(p[0]): return [int(p[1]), String(p[2])]
+	return [0, ""]
 ## New players (not in the bot, DERIVED): the first ROOKIE_ROUNDS rounds someone plays are easier, by ROOKIE_EASE
 ## (1 = fully). The first is close to impossible to lose, even without touching anything (measured: tools/reel_sim.gd).
 const ROOKIE_ROUNDS := 3
@@ -995,5 +1018,6 @@ const HATS := {
 	"duck": {"name": "Duck Hat", "price": 0.0, "ducks": 25, "desc": "It squeaks when he thinks."},
 	"crown": {"name": "The Baron's Crown", "price": 0.0, "from": "Baron von Flap", "desc": "He insisted. Very gracious, for a fish."},
 	"tiara": {"name": "The Duchess's Tiara", "price": 0.0, "from": "The Duchess", "desc": "Do curtsy when you wear it."},
+	"derby_cup": {"name": "Derby Cup", "price": 0.0, "from": "a top-three week in the Fishing Derby", "desc": "He polishes it between casts."},
 }
-const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]
+const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara", "derby_cup"]

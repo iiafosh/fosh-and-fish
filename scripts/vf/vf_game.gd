@@ -941,6 +941,7 @@ func to_dict() -> Dictionary:
 		"daily_last": daily_last, "daily_streak": daily_streak,
 		"discovered": discovered, "goals_done": goals_done, "tutorial": tutorial,
 		"tok": _tok_dict(),
+		"derby": derby.duplicate(true),
 		"sail_hint": sail_hint,
 		"catch_mode": catch_mode,
 		"reel_rounds": reel_rounds,
@@ -1000,6 +1001,7 @@ func _apply(d: Dictionary) -> void:
 	for k in ["sells", "bait_casts"]:
 		if not stats.has(k): stats[k] = 0
 	_tok_apply(d.get("tok", {}))           # FishTok (absent in old saves -> defaults)
+	_derby_apply(d.get("derby", {}))
 	_v1_apply(d.get("v1", {}))             # 1.0: pearls, packs, events, shinies, ads (absent before 1.0)
 	_idle_apply(d.get("idle", {}))         # idle: auto-fish, the fleet, the calendar & spin (absent before)
 	_gerald_apply(d.get("gerald", {}))
@@ -1102,6 +1104,70 @@ func _migrate_old_user_dir() -> void:
 
 
 # ======================================================================
+# ---- the Fishing Derby (1.1): what this device knows; the weekly board is the server's (Backend.derby_*, vf_derby.gd)
+var derby := {"week": "", "best": 0, "runs": 0, "played": [], "claimed": []}
+
+## the Monday (UTC) a week of the Derby starts on, "YYYY-MM-DD" (the server's date_trunc('week') agrees)
+func derby_week(unix := -1.0) -> String:
+	var t: float = Time.get_unix_time_from_system() if unix < 0.0 else unix
+	var days := int(floor(t / 86400.0))
+	var monday := days - posmod(days + 3, 7)              # (1970-01-01 was a Thursday)
+	var d := Time.get_date_dict_from_unix_time(monday * 86400)
+	return "%04d-%02d-%02d" % [d.year, d.month, d.day]
+
+## seconds until this week's race ends (Monday 00:00 UTC)
+func derby_ends_in(unix := -1.0) -> float:
+	var t: float = Time.get_unix_time_from_system() if unix < 0.0 else unix
+	var days := int(floor(t / 86400.0))
+	var next_monday := days - posmod(days + 3, 7) + 7
+	return float(next_monday) * 86400.0 - t
+
+func derby_best_now() -> int:
+	return int(derby.best) if String(derby.week) == derby_week() else 0
+
+## a run ended: this week's best (true if it's a new one). online: it went on the server's board (its prize can be claimed)
+func derby_record(score: int, online := false) -> bool:
+	var wk := derby_week()
+	if String(derby.week) != wk:
+		derby.week = wk
+		derby.best = 0
+		derby.runs = 0
+	derby.runs = int(derby.runs) + 1
+	var better := score > int(derby.best)
+	if better: derby.best = score
+	if online and not wk in derby.played:
+		derby.played.append(wk)
+		while derby.played.size() > 8: derby.played.pop_front()
+	changed.emit()
+	return better
+
+## weeks you raced on the board that are over and whose prize hasn't been asked for yet
+func derby_unclaimed() -> Array:
+	var now := derby_week()
+	return derby.played.filter(func(w): return String(w) < now and not w in derby.claimed)
+
+## a finished week's prize (rank 0: nothing, just remember it was asked). -> {stars, hat}
+func derby_grant(week: String, rank: int) -> Dictionary:
+	if week in derby.claimed: return {"stars": 0, "hat": ""}
+	derby.claimed.append(week)
+	while derby.claimed.size() > 12: derby.claimed.pop_front()
+	var p: Array = VFData.derby_prize(rank)
+	stars += int(p[0])
+	if String(p[1]) != "" and not p[1] in hats_owned: hats_owned.append(p[1])
+	changed.emit()
+	return {"stars": int(p[0]), "hat": String(p[1])}
+
+func _derby_apply(t) -> void:
+	derby = {"week": "", "best": 0, "runs": 0, "played": [], "claimed": []}
+	if typeof(t) != TYPE_DICTIONARY: return
+	derby.week = String(t.get("week", ""))
+	derby.best = maxi(0, int(t.get("best", 0)))
+	derby.runs = maxi(0, int(t.get("runs", 0)))
+	for key in ["played", "claimed"]:
+		var a = t.get(key, [])
+		if typeof(a) == TYPE_ARRAY:
+			for w in a: if typeof(w) == TYPE_STRING and w.length() == 10: derby[key].append(w)
+
 # ---- FishTok
 # The in-game phone's social app (UI: vf_phone.gd, content: vf_fishtok.gd).
 #  * Trending fish of the day: one species from your unlocked biomes, picked

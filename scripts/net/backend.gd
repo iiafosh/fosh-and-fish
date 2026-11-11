@@ -564,6 +564,44 @@ func load_shinies() -> void:
 	shiny_state = "ok" if b.ok else "error"
 	shiny_changed.emit()
 
+# ---------------------------------------------------------------- the derby
+## The Fishing Derby (vf_derby.gd, schema.sql "the fishing derby"): a run starts and ends on the server so it has to take
+## its three minutes; the weekly board is everyone's best run; a finished week's prize is claimed once.
+signal derby_changed
+var derby_board: Array = []      # this week: [{display_name, best, runs}], best first
+var derby_state := ""            # "" | loading | ok | error
+
+## -> {ok, run, week} or {ok: false, reason: signed_out | busy | banned | error}
+func derby_start() -> Dictionary:
+	if state != "signed_in": return {"ok": false, "reason": "signed_out"}
+	var r := await _authed(POST, "/rest/v1/rpc/start_derby", {})
+	if not r.ok or not (r.data is Dictionary): return {"ok": false, "reason": "error"}
+	return r.data
+
+## -> {ok, best, rank, players, week} or {ok: false, reason: too_fast | done | rejected | unknown | error}
+func derby_finish(run: int, score: int, wins: int, rounds: int, perfect: int) -> Dictionary:
+	if state != "signed_in": return {"ok": false, "reason": "signed_out"}
+	var r := await _authed(POST, "/rest/v1/rpc/finish_derby", {"p_run": run, "p_score": score, "p_wins": wins, "p_rounds": rounds, "p_perfect": perfect})
+	if not r.ok or not (r.data is Dictionary): return {"ok": false, "reason": "error"}
+	return r.data
+
+## a finished week ("YYYY-MM-DD", its Monday): -> {ok, rank, players, best} or {ok: false, reason: running | claimed | no_run | error}
+func derby_claim(week: String) -> Dictionary:
+	if state != "signed_in": return {"ok": false, "reason": "signed_out"}
+	var r := await _authed(POST, "/rest/v1/rpc/claim_derby", {"p_week": week})
+	if not r.ok or not (r.data is Dictionary): return {"ok": false, "reason": "error"}
+	return r.data
+
+## this week's board (anyone can read it)
+func load_derby() -> void:
+	if not configured() or derby_state == "loading": return
+	derby_state = "loading"
+	derby_changed.emit()
+	var b := await _http(GET, "/rest/v1/derby_board?select=display_name,best,runs")
+	if b.ok and b.data is Array: derby_board = b.data
+	derby_state = "ok" if b.ok else "error"
+	derby_changed.emit()
+
 # ------------------------------------------------------------------- HTTP
 ## One call to Supabase. Returns {ok, code, data, net}; net = the server couldn't be reached.
 func _http(method: int, path: String, body: Variant = null, extra := PackedStringArray(), token := "") -> Dictionary:

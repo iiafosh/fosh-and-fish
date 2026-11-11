@@ -99,6 +99,9 @@ var t := 0.0                 # time in the current phase
 var play_t := 0.0
 var won := false
 var perfect := true          # never slipped out once caught
+var derby := false           # a Fishing Derby round (setup_derby): points, a short ending, no easing
+var derby_points := 0        # what it scored (vf_derby sets it the moment the round is decided)
+var derby_combo := 0
 # column units: 0 = bottom, 1 = top
 var zone_y := 0.0
 var zone_v := 0.0
@@ -201,6 +204,12 @@ func setup(m, fname: String, ftier: int) -> void:
 	fish_target = fish_y
 	_gag_wait = randf_range(0.7, 1.4)
 	_load_fish()
+
+## A Fishing Derby round (vf_derby.gd): one fair difficulty for everyone (no rod, level or easing), points instead of fish
+func setup_derby(m, fname: String, ftier: int) -> void:
+	setup(m, fname, ftier)
+	derby = true
+	_use_params(VFData.derby_params(tier, not main.is_touch()))
 
 ## the round against this stage's outlaw (VF.gerald_due), as hard as they are by now
 func setup_rival(m) -> void:
@@ -375,7 +384,7 @@ func _build_labels() -> void:
 	var pips := ""
 	var lvl := int(round(reel_power * 10.0))
 	for i in 10: pips += "•" if i < lvl else "·"
-	rp.add_child(main.lbl("%s  reel power %d/10" % [VF.rod, lvl], 13, Color("#1a8a9d")))
+	rp.add_child(main.lbl("Derby: the same rod for everyone" if derby else "%s  reel power %d/10" % [VF.rod, lvl], 13, Color("#1a8a9d")))
 	rp.position = Vector2(RING.x - 130, RING.y + RING_R + 70)   # under the timer bar, above the hint
 	rp.size = Vector2(260, 24)
 	rp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -758,7 +767,7 @@ func _finish(w: bool) -> void:
 	skip_lbl.visible = true
 	if rival == "":
 		streak = streak + 1 if w else 0
-		VF.reel_lose_streak = 0 if w else VF.reel_lose_streak + 1       # (lost twice in a row: the next round is eased, VFData.STREAK_EASE)
+		if not derby: VF.reel_lose_streak = 0 if w else VF.reel_lose_streak + 1       # (lost twice in a row: the next round is eased, VFData.STREAK_EASE)
 		VF.stat_add("reel_wins" if w else "reel_losses")
 		if w and perfect: VF.stat_add("perfect_rounds")
 	VF.reel_rounds += 1
@@ -776,7 +785,8 @@ func _finish(w: bool) -> void:
 		status.add_theme_color_override("font_color", Color("#16865a"))
 		_pop("PERFECT!" if perfect else PUNS.pick_random(), Color("#ffcf4a"))
 		var extra := "  ·  x%d in a row!" % streak if streak >= 2 else ""
-		_sub("+%d%% fish!%s" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), extra], Color("#159a64"))
+		if derby: _sub("+%d points%s" % [derby_points, ("  ·  x%d combo!" % derby_combo) if derby_combo >= 2 else ""], Color("#159a64"))
+		else: _sub("+%d%% fish!%s" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), extra], Color("#159a64"))
 		_shake = 1.0
 		_confetti(COL.position + Vector2(COL.size.x * 0.5, 40.0))
 		AudioManager.play_sfx("splash_big", -2.0)
@@ -789,7 +799,7 @@ func _finish(w: bool) -> void:
 		tw.tween_property(self, "_fish_out", 430.0, 0.55).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 		tw.parallel().tween_property(self, "_fish_rot", -TAU - 0.4, 0.55)
 		tw.tween_property(self, "_poster_k", 1.0, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_end_len = 2.1
+		_end_len = 1.0 if derby else 2.1
 	else:
 		_face = "raspberry"
 		_show_emote("laugh")
@@ -797,7 +807,7 @@ func _finish(w: bool) -> void:
 		status.text = "IT GOT AWAY!"
 		status.add_theme_color_override("font_color", Color("#d9594e"))
 		_pop(["PFFFT!", "BLEHHH!", "NOPE!"].pick_random(), Color("#ff9db5"))
-		_sub("Slippery! Normal catch, no bonus", Color("#5d6f78"))
+		_sub("Missed! The combo starts again" if derby else "Slippery! Normal catch, no bonus", Color("#5d6f78"))
 		_shake = 0.4
 		for i in 6:      # a wet raspberry: pbbbbt
 			get_tree().create_timer(0.05 + i * 0.055).timeout.connect(func(): AudioManager.play_sfx("bubble", -5.0, randf_range(0.4, 0.52)))
@@ -808,7 +818,7 @@ func _finish(w: bool) -> void:
 		tw.tween_property(self, "_fish_out", -440.0, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.parallel().tween_callback(func(): AudioManager.play_sfx("splash", -6.0, 1.3)).set_delay(0.1)
 		tw.tween_property(self, "_poster_k", 1.0, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_end_len = 2.5
+		_end_len = 1.1 if derby else 2.5
 
 ## how a round against an outlaw ends: caught for good (the bounty, and at the end of a run their hat), or they laugh and leave a tip
 func _finish_rival(w: bool) -> void:

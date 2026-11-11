@@ -823,12 +823,12 @@ func _test_hats() -> void:
 	g.autosave = false
 	root.add_child(g)
 	g._apply(g._defaults.duplicate(true))
-	var slugs := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]
+	var slugs := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara", "derby_cup"]
 	var well_formed := true
 	for id in slugs:
 		var d: Dictionary = VFData.HATS.get(id, {})
 		well_formed = well_formed and String(d.get("name", "")) != "" and d.has("price") and not d.has("pearls")
-	check(VFData.HATS.size() == slugs.size() and VFData.HAT_ORDER == slugs and well_formed, "the eleven hats of the missing list, none of them for Pearls")
+	check(VFData.HATS.size() == slugs.size() and VFData.HAT_ORDER == slugs and well_formed, "the eleven hats of the missing list and the Derby Cup, none of them for Pearls")
 	check(g.hats_owned == ["straw"] and g.hat == "straw", "a new game: the straw hat, and he's wearing it")
 	check(g.hat_price("straw") == 0 and g.hat_lock("straw") == "", "the straw hat is free")
 	# buying
