@@ -1,0 +1,131 @@
+# Releases fosh&fish by itself (tools/release.py on a Linux runner): the web game at foshfish.xyz/play/, the
+# Windows / Linux / Android downloads on GitHub Releases, and the signed in-game update (update.json).
+#
+#   an in-game update:  git tag -a v1.0.1 -m "Faster casting" -m "New hat" && git push origin v1.0.1
+#                       (each -m becomes a "What's new" line; the tag must be on master's latest commit)
+#   a full release:     Actions -> Release -> Run workflow, kind "full" (needed when a change adds autoloads,
+#                       class_name scripts or project settings: a patch can't carry those)
+#
+# Secrets (Settings -> Secrets and variables -> Actions), set once by the repo owner:
+#   UPDATE_PRIVATE_KEY      the update signing key (tools/update_sign.gd --keygen), the whole PEM file
+#   ANDROID_DEBUG_KEYSTORE  base64 of the keystore the APK is signed with (base64 -w0 debug.keystore)
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. 1.0.1"
+        required: true
+      kind:
+        description: "patch = in-game update, full = new downloads for everyone"
+        type: choice
+        options: [patch, full]
+        default: patch
+      notes:
+        description: "What's new, one line per item separated by |"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Version, kind and notes
+        id: what
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+            echo "kind=patch" >> "$GITHUB_OUTPUT"
+            git fetch -q origin "refs/tags/$TAG:refs/tags/$TAG" --force
+            git for-each-ref "refs/tags/$TAG" --format='%(contents)' | sed '/^-----BEGIN PGP/,$d' | sed '/^\s*$/d' > notes.txt
+          else
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "kind=${{ inputs.kind }}" >> "$GITHUB_OUTPUT"
+            printf '%s' "${{ inputs.notes }}" | tr '|' '\n' | sed 's/^ *//;/^\s*$/d' > notes.txt
+          fi
+          cat notes.txt
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0 platform-tools"
+
+      - name: Cache Godot and its export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}
+
+      - name: Install Godot ${{ env.GODOT_VERSION }}
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+          mkdir -p ~/godot ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -sSfL -o /tmp/g.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/g.zip -d ~/godot && mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          curl -sSfL -o /tmp/t.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/t.tpz -d /tmp/t && cp -r /tmp/t/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+          rm -rf /tmp/g.zip /tmp/t.tpz /tmp/t
+
+      - name: Keys and editor settings
+        env:
+          UPDATE_PRIVATE_KEY: ${{ secrets.UPDATE_PRIVATE_KEY }}
+          ANDROID_DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
+        run: |
+          test -n "$UPDATE_PRIVATE_KEY" || { echo "::error::secret UPDATE_PRIVATE_KEY is missing"; exit 1; }
+          test -n "$ANDROID_DEBUG_KEYSTORE" || { echo "::error::secret ANDROID_DEBUG_KEYSTORE is missing"; exit 1; }
+          umask 077
+          mkdir -p "$RUNNER_TEMP/appdata/fosh-and-fish"
+          printf '%s\n' "$UPDATE_PRIVATE_KEY" > "$RUNNER_TEMP/appdata/fosh-and-fish/update_private.key"
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+          mkdir -p ~/.config/godot
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/java_sdk_path = "%s"\nexport/android/android_sdk_path = "%s"\n' \
+            "$JAVA_HOME" "$ANDROID_HOME" > ~/.config/godot/editor_settings-4.7.tres
+          mkdir -p build && touch build/.gdignore
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GODOT: /home/runner/godot/godot
+          APPDATA: ${{ runner.temp }}/appdata
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          args=()
+          while IFS= read -r line; do args+=(-n "$line"); done < notes.txt
+          extra=()
+          [ "${{ steps.what.outputs.kind }}" = "full" ] && extra+=(--no-old-patch)
+          python3 tools/release.py "${{ steps.what.outputs.kind }}" "${{ steps.what.outputs.version }}" "${args[@]}" "${extra[@]}" --publish
+
+      - name: Forget the keys
+        if: always()
+        run: rm -f "$RUNNER_TEMP/appdata/fosh-and-fish/update_private.key" "$RUNNER_TEMP/debug.keystore"

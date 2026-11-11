@@ -5,7 +5,7 @@ extends Node
 ## the files that changed since the full release ("base") the player installed. Patches are
 ## listed in update.json on the website, downloaded from GitHub Releases, checked against a
 ## SHA-256 and an RSA signature made with the private key that only the developer has, then
-## loaded at the next start. If a patched start never reaches the main menu, the next start
+## loaded at the next start (they download by themselves as soon as a check finds one). If a patched start never reaches the main menu, the next start
 ## runs the base game instead. The web build always serves the newest version: just reload.
 ##
 ## Limits of patches: no new autoloads, no new class_name scripts, no project setting or
@@ -136,6 +136,7 @@ func _on_manifest(result: int, code: int, _headers: PackedStringArray, body: Pac
 		_set_state("full_needed")
 	else:
 		_set_state("available")
+		download()                        # patches install themselves: fetched now, running at the next start
 
 ## the patch for this install (made against our base), or {} if there isn't one
 func patch_info() -> Dictionary:

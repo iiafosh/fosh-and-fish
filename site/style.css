@@ -19,7 +19,7 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; zoom: 0.75; }
 body {
   margin: 0;
   background: var(--deep);

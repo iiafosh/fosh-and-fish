@@ -2,7 +2,7 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
-## 1.0 — shiny fish, live events and the Google Play version (not released yet)
+## 1.0 — shiny fish, live events and the Google Play version (5 November 2026)
 
 - **Shiny fish.** Every species has a rare, sparkling shiny, and only **3,000 of each exist in the whole world**, numbered (No. 0001 to 3000). Each shiny species you own adds +2% to your sell price. The server hands them out so it stays fair: at most 3 of each species per player and 3 new ones a day, and the odds fall for every copy you own and as the stock runs out, so nobody can collect a whole stock. Shiny fish need a (free) account. See them in Fish Book → Shiny.
 - **An event every 10 minutes of play** (idle time doesn't count), each with its own look on the water:
