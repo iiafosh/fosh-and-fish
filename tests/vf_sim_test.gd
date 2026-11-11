@@ -479,15 +479,21 @@ func _test_gerald() -> void:
 	g._apply(g._defaults.duplicate(true))
 	g.tutorial = 99
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/vf/manifest.json"))
-	for who in VFData.GERALD_HATS:
-		check(manifest.mini.fish.has(who) and FileAccess.file_exists("res://assets/vf/mini/%s.png" % VFData.slug(who)), "%s has a picture for the mini-game" % who)
-	var looks := ["Gerald", "gerald_lava", "gerald_pirate", "gerald_pilot", "geraldine_astro", "geraldine_alien", "geraldine_lamp"]
+	check(manifest.mini.fish.has("Gerald") and FileAccess.file_exists("res://assets/vf/mini/gerald.png"), "Gerald has a picture for the mini-game")
+	var looks := ["Gerald", "sizzle", "swordbeard", "baron", "chomp", "zlorp", "duchess"]
+	var names := ["Gerald", "Sizzle", "Captain Swordbeard", "Baron von Flap", "Commander Chomp", "Zlorp", "The Duchess"]
 	var looks_ok := true
 	for i in VFData.GERALD.size():
-		looks_ok = looks_ok and VFData.GERALD[i].get("look", "") == looks[i] and g.gerald_info(i).look == looks[i]
-	check(looks_ok, "every stage has its own look, and gerald_info says which")
-	check(VFData.GERALD.size() == 7 and VFData.GERALD[3].get("final", false) and VFData.GERALD[6].get("final", false)
-		and not VFData.GERALD[0].get("final", false) and VFData.GERALD[4].who == "Geraldine", "seven stages: Gerald's four, then his mum's three")
+		looks_ok = looks_ok and VFData.GERALD[i].get("look", "") == looks[i] and VFData.GERALD[i].who == names[i] and g.gerald_info(i).look == looks[i] and g.gerald_info(i).who == names[i]
+	check(looks_ok, "every stage is a different outlaw with their own name and look, and gerald_info says which")
+	check(VFData.GERALD.size() == 7 and VFData.GERALD[3].get("final", false) and VFData.GERALD[6].get("final", false) and not VFData.GERALD[0].get("final", false)
+		and VFData.GERALD[3].hat == "crown" and VFData.GERALD[6].hat == "tiara" and VFData.GERALD[3].has("note"), "seven stages: the Baron ends the first run (crown, and the Duchess's note), the Duchess the second (tiara)")
+	var rows_ok := true
+	for row in VFData.GERALD:
+		rows_ok = rows_ok and row.has("intro") and row.has("lose") and row.has("caught") and row.has("tease") and row.get("gags", []).size() >= 2 and float(row.get("size", 0.0)) > 0.0
+		for k in ["first", "start", "escape", "caught", "almost"]:
+			rows_ok = rows_ok and row.say.get(k, []).size() >= 2
+	check(rows_ok, "every outlaw has an intro, lines for every moment, a tease, a size and their gags")
 	var info: Dictionary = g.gerald_info()
 	check(info.who == "Gerald" and info.biome == "River" and info.level == 10 and not info.met and not info.done and info.bounty > 0, "before anything happens: he's in the River, unmet")
 	check(not g.gerald_due() and not g.gerald_soon(), "level 1: not yet")
@@ -527,15 +533,14 @@ func _test_gerald() -> void:
 	var need1: int = VFData.gerald_need(0, 1)
 	var need2: int = VFData.gerald_need(0, 2)
 	check(need1 < first and need2 < need1 and VFData.gerald_need(0, 50) >= 20, "he comes back sooner each time (%d, %d casts), never at once" % [need1, need2])
-	# winning a stage: the bounty, and he gets away
+	# winning a stage: the outlaw is caught for good, the bounty, and the next one is wanted
 	g.gerald.casts = need1
 	check(g.gerald_due(), "he's back")
 	m0 = g.money
 	var won: Dictionary = g.gerald_result(true)
-	check(won.escaped and not won.caught and won.pay > lost.pay and g.money == m0 + won.pay and won.line != "" and won.stage == 0, "you win: the bounty ($%d), and he gets away: %s" % [won.pay, won.line])
-	check(g.gerald.stage == 1 and g.gerald.tries == 0 and g.gerald.wins == 1 and g.gerald.casts == 0 and g.gerald_info().biome == "Volcanic", "he moves on to the Volcano")
-	check("the Volcano" in won.line and not "%" in won.line, "and says so")
-	check(g.gerald_info().met and not g.gerald_due(), "you've met now, and he's not due in the River any more")
+	check(won.caught and not won.escaped and won.hat == "" and won.pay > lost.pay and g.money == m0 + won.pay and won.line != "" and won.stage == 0, "you win: Gerald is caught for good, the bounty ($%d): %s" % [won.pay, won.line])
+	check(g.gerald.stage == 1 and g.gerald.tries == 0 and g.gerald.wins == 1 and g.gerald.casts == 0 and g.gerald_info().biome == "Volcanic" and g.gerald_info().who == "Sizzle", "the next outlaw, Sizzle, is wanted in the Volcano")
+	check(g.gerald_info().met and not g.gerald_due(), "you've met now, and nobody is due in the River any more")
 	check(absf(g.cur_cooldown() - VFData.MINIGAME_COOLDOWN) < 0.001, "a won round: the next cast is ready like after any win")
 	# the final stage: caught, the crown, and his mum
 	g.gerald.stage = 3
@@ -546,20 +551,20 @@ func _test_gerald() -> void:
 	check(g.gerald_due(), "stage 4: the Sky at level 250")
 	check(not "crown" in g.hats_owned, "no crown yet")
 	var caught: Dictionary = g.gerald_result(true)
-	check(caught.caught and not caught.escaped and caught.pay > 0 and "crown" in g.hats_owned and not "tiara" in g.hats_owned, "caught at last: a big payout ($%d) and the crown: %s" % [caught.pay, caught.line])
-	check(g.gerald_info().who == "Geraldine" and g.gerald_info().biome == "Space" and not g.gerald_info().done, "then his mum starts")
+	check(caught.caught and not caught.escaped and caught.pay > 0 and caught.hat == "crown" and "crown" in g.hats_owned and not "tiara" in g.hats_owned, "the Baron is caught: a big payout ($%d) and the crown: %s" % [caught.pay, caught.line])
+	check(g.gerald_info().who == "Commander Chomp" and g.gerald_info().biome == "Space" and not g.gerald_info().done, "then run two starts with Commander Chomp")
 	g.gerald.stage = 6
 	g.level = 2500
 	g.biome = "Abyss"
 	g.rod = "Dark Rod"
 	g.gerald.casts = VFData.gerald_need(6, 0)
-	var mum: Dictionary = g.gerald_result(true)
-	check(mum.caught and "tiara" in g.hats_owned and g.gerald_info().done, "Geraldine gives the tiara, and that's the end of it")
+	var duchess: Dictionary = g.gerald_result(true)
+	check(duchess.caught and duchess.hat == "tiara" and "tiara" in g.hats_owned and g.gerald_info().done, "The Duchess gives the tiara, and that's the end of it")
 	check(not g.gerald_due() and not g.gerald_soon(), "all done: nobody's due")
 	var after: Dictionary = g.gerald_result(true)
 	check(after.pay == 0 and not after.caught and int(g.gerald.stage) == 7, "a stray result after the end changes nothing")
 	var poster: Dictionary = g.gerald_info(1)
-	check(poster.who == "Gerald" and poster.biome == "Volcanic" and poster.bounty > 0 and poster.done, "a poster for any stage: stage 2 is stamped")
+	check(poster.who == "Sizzle" and poster.biome == "Volcanic" and poster.bounty > 0 and poster.done, "a poster for any stage: stage 2 is Sizzle, and stamped")
 	# it survives
 	g._apply(g._defaults.duplicate(true))
 	g.gerald = {"stage": 2, "casts": 17, "tries": 3, "wins": 2, "losses": 5}
@@ -581,11 +586,11 @@ func _test_gerald() -> void:
 	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
 	g.do_prestige()
 	check(g.gerald.stage == 2 and g.gerald.losses == 5 and "crown" in g.hats_owned, "Gerald and the hats survive prestige")
-	var easy: Dictionary = VFData.rival_params("Gerald", 0.1, false, 3, 99)
-	var hard: Dictionary = VFData.rival_params("Gerald", 0.1, false, 0, 99)
-	var mum2: Dictionary = VFData.rival_params("Geraldine", 0.1, false, 0, 99)
-	check(easy.zone_h > hard.zone_h and easy.fish_speed < hard.fish_speed and easy.drain_rate < hard.drain_rate and easy.time_limit > hard.time_limit, "he gets easier every time you lose to him")
-	check(mum2.zone_h < hard.zone_h and mum2.fish_speed > hard.fish_speed, "his mum is harder")
+	var easy: Dictionary = VFData.rival_params(0, 0.1, false, 3, 99)
+	var hard: Dictionary = VFData.rival_params(0, 0.1, false, 0, 99)
+	var tough: Dictionary = VFData.rival_params(4, 0.1, false, 0, 99)
+	check(easy.zone_h > hard.zone_h and easy.fish_speed < hard.fish_speed and easy.drain_rate < hard.drain_rate and easy.time_limit > hard.time_limit, "they get easier every time you lose to them")
+	check(tough.zone_h < hard.zone_h and tough.fish_speed > hard.fish_speed, "run two's outlaws are harder")
 
 
 ## finds when sailing: the 21 residents, what tapping one pays, which one turns up next, and that they're kept
@@ -1026,14 +1031,19 @@ func _test_rival_bots(v) -> void:
 	seed(20261102)
 	var MG = load("res://scripts/vf/vf_minigame.gd")
 	check(not "Gerald" in MG.NAMES, "only the rival is called Gerald")
+	var gags_ok := true
+	for row in VFData.GERALD:
+		for gag in row.gags:
+			gags_ok = gags_ok and MG.GAGS.has(gag)
+	check(gags_ok, "every gag the outlaws pull exists")
 	var real: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/vf/manifest.json"))
 	check(MG.rival_picture(real, "Gerald", "Gerald") == "Gerald", "the River stage plays plain Gerald")
-	check(MG.rival_picture({}, "gerald_lava", "Gerald") == "Gerald" and MG.rival_picture({"mini": {"fish": {"gerald_lava": {}}}}, "gerald_nope", "Gerald") == "Gerald",
+	check(MG.rival_picture({}, "sizzle", "Gerald") == "Gerald" and MG.rival_picture({"mini": {"fish": {"sizzle": {}}}}, "no_such_look", "Gerald") == "Gerald",
 		"a look whose picture or manifest entry is missing falls back to plain Gerald")
 	var ready := 0
 	for i in VFData.GERALD.size():
 		var row: Dictionary = VFData.GERALD[i]
-		var want: String = row.look if (real.mini.fish.has(row.look) and ResourceLoader.exists("res://assets/vf/mini/%s.png" % VFData.slug(row.look))) else row.who
+		var want: String = row.look if (real.mini.fish.has(row.look) and ResourceLoader.exists("res://assets/vf/mini/%s.png" % VFData.slug(row.look))) else "Gerald"
 		var stub = Bot.StubMain.new()
 		stub.stage.manifest = real
 		v.gerald.stage = i
@@ -1042,7 +1052,7 @@ func _test_rival_bots(v) -> void:
 		if mg.fish_name == want and mg.rival == row.who: ready += 1
 		mg.free()
 	v.gerald.stage = 0
-	check(ready == VFData.GERALD.size(), "each stage's round plays its look where its picture exists, else plain %s (%d of %d)" % ["Gerald or Geraldine", ready, VFData.GERALD.size()])
+	check(ready == VFData.GERALD.size(), "each stage's round plays its outlaw's look where its picture exists, else plain Gerald (%d of %d)" % [ready, VFData.GERALD.size()])
 	check("IOU: 3 shrimp. Signed, Gerald." in load("res://scripts/vf/vf_fun.gd").NOTES, "the bottle note with his name stays")
 	v._apply(v._defaults.duplicate(true))
 	v.reel_rounds = VFData.ROOKIE_ROUNDS

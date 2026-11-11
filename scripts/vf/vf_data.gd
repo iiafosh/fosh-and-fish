@@ -743,54 +743,114 @@ const SPIN := [
 
 
 # ================================================================== Gerald
-## Gerald (not in the bot, all DERIVED) is a fish who has decided you're his rival. Each row is one meeting: in that biome,
-## at that level, he bites instead of a fish, in either catch mode, never on auto-fish. "bounty": what beating him pays, in
-## casts' worth (VF.pay_find). Beat him on a row that isn't "final" and he gets away to the next one; on a "final" row he's
-## caught and gives his hat (GERALD_HATS), and after Gerald his mum starts. Lose and he laughs, leaves a tip (GERALD_TIP),
-## and comes back sooner and a bit easier, so nobody gets stuck. Losing costs nothing. "look": they dress for each biome
-## (the round and the WANTED poster use mini/<look>.png, plain Gerald or Geraldine while it isn't there).
+## The Most Wanted (not in the bot, all DERIVED): seven outlaw fish, one per biome; Gerald is only the first and smallest crook
+## (the internal names GERALD / gerald_* stay). In that biome, at that level, the row's outlaw bites instead of a fish, in either
+## catch mode, never on auto-fish. "who": the name you see. "look": their picture (mini/<look>.png, plain Gerald while it isn't
+## there). "bounty": what catching them pays, in casts' worth (VF.pay_find). Win and they're caught, and the next one is wanted
+## in the next biome; the end of a run ("hat") gives a hat, and "note" comes in a bottle. Lose and they laugh, leave a tip
+## (GERALD_TIP) and come back sooner and a bit easier, so nobody gets stuck: losing costs nothing. "tough": a bit harder (run 2).
+## Their own lines: "intro" (under the card's title), "say" (during the round: the first time, the times after, when the fish
+## slips out, when it's in the net, when it's nearly reeled in), "lose", "caught", "tease" (the shape that passes when they're
+## near, vf_fun.gd), and "gags" (their own, in vf_minigame.gd). Funny and kind: never mean to the player.
 const GERALD := [
-	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0, "look": "Gerald"},
-	{"who": "Gerald", "biome": "Volcanic", "level": 50, "bounty": 30.0, "look": "gerald_lava"},
-	{"who": "Gerald", "biome": "Ocean", "level": 100, "bounty": 45.0, "look": "gerald_pirate"},
-	{"who": "Gerald", "biome": "Sky", "level": 250, "bounty": 80.0, "final": true, "look": "gerald_pilot"},
-	{"who": "Geraldine", "biome": "Space", "level": 500, "bounty": 80.0, "look": "geraldine_astro"},
-	{"who": "Geraldine", "biome": "Alien", "level": 1000, "bounty": 120.0, "look": "geraldine_alien"},
-	{"who": "Geraldine", "biome": "Abyss", "level": 2500, "bounty": 200.0, "final": true, "look": "geraldine_lamp"},
+	{"who": "Gerald", "biome": "River", "level": 10, "bounty": 20.0, "look": "Gerald", "size": 1.0,
+		"intro": "It's Gerald. Of course it's Gerald.",
+		"say": {"first": ["So you're the new fisher. I'm Gerald. Remember it.", "Nobody fishes here without meeting Gerald."],
+			"start": ["You again?", "Back for more?", "I've been practising. Have you?"],
+			"escape": ["Too slow!", "Is that all?", "Over here, champ!"],
+			"caught": ["Hey! Mind the moustache!", "This proves nothing!"],
+			"almost": ["Wait! Let's talk about this!", "MUM!", "I have a bad fin!"]},
+		"lose": ["Here's a shrimp for your trouble.", "Tell your friends you met Gerald.", "Buy yourself a better hook. My treat."],
+		"caught": "Fine. You got me. Tell my mum I was brave.",
+		"tease": ["Something big just laughed at you.", "Was that a moustache?", "Something down there knows your name."],
+		"gags": ["moustache", "poster", "mum"]},
+	{"who": "Sizzle", "biome": "Volcanic", "level": 50, "bounty": 30.0, "look": "sizzle", "size": 0.9,
+		"intro": "Sizzle is on the line. Mind the whiskers, they're on fire.",
+		"say": {"first": ["Name's Sizzle. Don't touch the whiskers.", "You caught Gerald? Cute. I'm hotter."],
+			"start": ["Hot enough for you?", "Back for more heat?", "I've been simmering."],
+			"escape": ["Too slow, too cold!", "Sizzle sizzle!", "Can't hold the heat!"],
+			"caught": ["Ow! Ow! Hot! Hot!", "Careful, I'm spicy!"],
+			"almost": ["I'm cooling down! No!", "Not the cold bucket!", "I'm only medium-rare!"]},
+		"lose": ["Too hot to handle! Here, cool off.", "Don't sweat it. Well, sweat a bit. It's a volcano.", "Come back when you're fireproof."],
+		"caught": "Fine. Put me in a cool bucket. A COOL one.",
+		"tease": ["Something down there is steaming.", "Did that lava just wink at you?", "Something hot-headed is circling."],
+		"gags": ["smoke", "marshmallow"]},
+	{"who": "Captain Swordbeard", "biome": "Ocean", "level": 100, "bounty": 45.0, "look": "swordbeard", "size": 1.5,
+		"intro": "Captain Swordbeard is on the line. Arr.",
+		"say": {"first": ["Captain Swordbeard, terror of the seven seas!", "Ye caught Sizzle? Then ye'll face the Captain!"],
+			"start": ["Ahoy again, landlubber!", "Ready to cross swords?", "Arr, it's you!"],
+			"escape": ["Ha! Missed me, matey!", "Too slow for a pirate!", "Yo ho ho!"],
+			"caught": ["Avast! Unhand me!", "Not the beard!"],
+			"almost": ["Parley! I call parley!", "Ye wouldn't sink a captain!", "Me treasure! Take me treasure!"]},
+		"lose": ["Arr! A doubloon for yer trouble.", "Good fight, matey. Here's a tip.", "Back to yer boat, and well fought!"],
+		"caught": "Arr, ye got me fair and square. Mind the beard.",
+		"tease": ["Something down there said 'arr'.", "Was that a sword or a nose?", "A gold tooth just glinted at you."],
+		"gags": ["swordfight", "plank"]},
+	{"who": "Baron von Flap", "biome": "Sky", "level": 250, "bounty": 80.0, "look": "baron", "size": 1.0, "final": true, "hat": "crown",
+		"note": "You caught the Baron? Cute. Come down to the deep. - The Duchess",
+		"intro": "Baron von Flap is on the line. Tally-ho!",
+		"say": {"first": ["Baron von Flap, at your service! Catch me if you can, old chap.", "I heard you sank the Captain. Jolly good!"],
+			"start": ["Back again, old bean?", "Chocks away!", "What a splendid day for it!"],
+			"escape": ["Wheee! Up and away!", "Too high for you, old chap!", "Tally-ho!"],
+			"caught": ["I say! Steady on!", "Mind the monocle!"],
+			"almost": ["Mayday! Mayday!", "Not the bucket, old boy!", "I'm far too dashing for a bucket!"]},
+		"lose": ["Jolly good effort, old bean. Have a tip.", "Tally-ho, and better luck next time!", "Splendid try! Do come again."],
+		"caught": "Oh, well done! Do keep the crown. I insist.",
+		"tease": ["Something just flew past. With a monocle.", "Did a fish just salute you?", "Something up there says 'tally-ho'."],
+		"gags": ["fly", "monocle"]},
+	{"who": "Commander Chomp", "biome": "Space", "level": 500, "bounty": 80.0, "look": "chomp", "size": 0.6, "tough": true,
+		"intro": "Commander Chomp is on the line. Small. Very confident.",
+		"say": {"first": ["Commander Chomp, the most feared shark in space. All three feet of me!", "The Duchess sent me. I'm her best."],
+			"start": ["Ready for launch?", "Back for round two, cadet?", "Commander on deck!"],
+			"escape": ["Thrusters on!", "Too slow for light speed!", "Wheee, no gravity!"],
+			"caught": ["Hey! I'm a COMMANDER!", "Mind the helmet!"],
+			"almost": ["Abort mission! Abort!", "This was not in the briefing!", "Houston, help!"]},
+		"lose": ["Chomp wins again! Have some space snacks.", "Mission accomplished. Tip enclosed.", "Good try, cadet. Here's your pay."],
+		"caught": "Fine. You can be my co-pilot. Just this once.",
+		"tease": ["Something small and confident just floated by.", "Was that a jetpack?", "A tiny shark just waved from orbit."],
+		"gags": ["zero_g", "bite"]},
+	{"who": "Zlorp", "biome": "Alien", "level": 1000, "bounty": 120.0, "look": "zlorp", "size": 0.9, "tough": true,
+		"intro": "Zlorp is on the line. Zlorp says hello. With all three eyes.",
+		"say": {"first": ["Greetings, Earth fisher. Zlorp has heard of your 'hooks'.", "Zlorp is studying you. Zlorp is impressed."],
+			"start": ["Zlorp is back! Zlorp is excited!", "Hello again, Earth friend.", "Blib! (That means hi.)"],
+			"escape": ["Zlorp slips through dimensions!", "Wheee, says Zlorp!", "Zlorp is over here now!"],
+			"caught": ["Zlorp is ticklish!", "Not the tentacles!"],
+			"almost": ["Zlorp requests diplomacy!", "Zlorp has nine cousins!", "Zlorp surrenders! No, wait!"]},
+		"lose": ["Zlorp wins! Zlorp leaves you a shiny rock.", "Earth fishing is very cute. Zlorp gives a tip.", "Zlorp will tell the others you tried hard."],
+		"caught": "Zlorp is caught! Zlorp will write home about this.",
+		"tease": ["Something down there blinked three times.", "Did that water just say 'zlorp'?", "Something purple is studying you."],
+		"gags": ["beam", "alien"]},
+	{"who": "The Duchess", "biome": "Abyss", "level": 2500, "bounty": 200.0, "look": "duchess", "size": 1.8, "final": true, "hat": "tiara", "tough": true,
+		"intro": "The Duchess is on the line. Do curtsy.",
+		"say": {"first": ["So you caught the Baron. How adorable.", "Welcome to the deep, darling. Wipe your feet."],
+			"start": ["Back again, darling?", "Mind the carpet.", "Tea? No? Fishing it is."],
+			"escape": ["Too slow, darling.", "Oh, do keep up.", "Not like that, dear."],
+			"caught": ["Mind the pearls!", "How dare you, darling!"],
+			"almost": ["Jeeves! JEEVES!", "Not the tiara!", "This is most irregular!"]},
+		"lose": ["Darling, how sweet. Here's a little something.", "You may try again. Eventually.", "Do have a biscuit on your way out."],
+		"caught": "Well, well. You've earned the tiara, darling.",
+		"tease": ["A chandelier just glowed down there.", "Something enormous is wearing pearls.", "Someone down there rang for the butler."],
+		"gags": ["chandelier", "butler"]},
 ]
-const GERALD_HATS := {"Gerald": "crown", "Geraldine": "tiara"}
 const GERALD_TIP := 2.0
 const GERALD_FIRST := 80          # casts in the River before the first meeting (level 10 too: within about 15 minutes)
-const GERALD_TEASE := 10          # this many casts before he's due, the stage teases him (VF.gerald_soon)
-const GERALD_BACK := 45           # after he beats you he's back after this many casts, GERALD_BACK_STEP fewer each time ...
+const GERALD_TEASE := 10          # this many casts before they're due, the stage teases them (VF.gerald_soon)
+const GERALD_BACK := 45           # after one beats you they're back after this many casts, GERALD_BACK_STEP fewer each time ...
 const GERALD_BACK_STEP := 10
 const GERALD_BACK_MIN := 20       # ... but never at once
-const RIVAL_EASE := 0.25          # every time he has beaten you he's this much closer to easy (1 = as easy as he gets)
+const RIVAL_EASE := 0.25          # every time one has beaten you they're this much closer to easy (1 = as easy as they get)
 const GERALD_PLACES := {"River": "the River", "Volcanic": "the Volcano", "Ocean": "the Ocean", "Sky": "the Sky", "Space": "Space", "Alien": "the Alien sea", "Abyss": "the Abyss"}
-## what he says when the round is decided ("%s" = where he's off to next)
-const GERALD_LINES := {
-	"Gerald": {
-		"lose": ["Here's a shrimp for your trouble.", "Tell your friends you met Gerald.", "You reel like my mum drives.", "Buy yourself a better hook. My treat."],
-		"escaped": ["Snip! See you in %s.", "Oops, was that your line? I'll be in %s.", "Nice try. Next stop: %s."],
-		"caught": "Fine. You got me. Tell my mum I was brave.",
-	},
-	"Geraldine": {
-		"lose": ["Sit down, dear. Here's bus fare.", "You caught my son with THAT?", "I've had tougher sandwiches."],
-		"escaped": ["Snip. I have bridge club in %s, dear.", "Do keep up. I'll be in %s.", "Mind your manners in %s."],
-		"caught": "Well. Somebody raised you properly. Take the tiara.",
-	},
-}
 
-## casts between meetings: every 60 to 120 for each new stage (a different number each, no dice), sooner after he beat you
+## casts between meetings: every 60 to 120 for each new stage (a different number each, no dice), sooner after they beat you
 static func gerald_need(stage: int, tries: int) -> int:
 	if tries > 0: return maxi(GERALD_BACK_MIN, GERALD_BACK - GERALD_BACK_STEP * (tries - 1))
 	return GERALD_FIRST if stage <= 0 else 60 + (stage * 23) % 61
 
-## The rival's round: the rarest fish's difficulty (a beginner's first rounds stay easy, see ROOKIE_ROUNDS), a bit easier for
-## every time he has beaten you. His mum is a bit harder. Measured with tools/reel_sim.gd.
-static func rival_params(who: String, power: float, desktop: bool, tries: int, rounds := ROOKIE_ROUNDS) -> Dictionary:
+## The outlaw's round: the rarest fish's difficulty (a beginner's first rounds stay easy, see ROOKIE_ROUNDS), a bit easier for
+## every time they've beaten you. The "tough" ones of run 2 are a bit harder. Measured with tools/reel_sim.gd.
+static func rival_params(stage: int, power: float, desktop: bool, tries: int, rounds := ROOKIE_ROUNDS) -> Dictionary:
 	var p := minigame_params(4, power, desktop, rounds)
-	if who == "Geraldine":
+	if GERALD[clampi(stage, 0, GERALD.size() - 1)].get("tough", false):
 		p.zone_h -= 0.03
 		p.fish_speed *= 1.1
 	var e := clampf(float(tries) * RIVAL_EASE, 0.0, 1.0)
@@ -885,9 +945,9 @@ const ACHIEVEMENTS := [
 	{"id": "honks_100", "name": "Honk If You're Lonely", "desc": "Honk the boat 100 times.", "stat": "honks", "goal": 100, "pearls": 5, "joke": true},
 	{"id": "robbed", "name": "Mugged by a Gull", "desc": "Let a gull fly off with your fish.", "stat": "robbed", "goal": 1, "pearls": 3, "joke": true},
 	{"id": "thieves_10", "name": "Neighbourhood Watch", "desc": "Stop 10 thieving gulls.", "stat": "thieves", "goal": 10, "pearls": 5, "joke": true},
-	{"id": "gerald_5", "name": "Gerald's Favourite", "desc": "Lose to Gerald 5 times.", "stat": "gerald_losses", "goal": 5, "pearls": 5, "joke": true},
+	{"id": "gerald_5", "name": "Good Sport", "desc": "Lose to the outlaws 5 times. They send their regards.", "stat": "gerald_losses", "goal": 5, "pearls": 5, "joke": true},
 	{"id": "gerald_caught", "name": "Moustache Envy", "desc": "Catch Gerald. Finally.", "stat": "gerald_caught", "goal": 1, "pearls": 10, "joke": true},
-	{"id": "mum_caught", "name": "Sorry, Mrs. Gerald", "desc": "Catch Geraldine.", "stat": "mum_caught", "goal": 1, "pearls": 25, "joke": true},
+	{"id": "mum_caught", "name": "Her Grace Is Not Amused", "desc": "Catch The Duchess.", "stat": "mum_caught", "goal": 1, "pearls": 25, "joke": true},
 	{"id": "ducks_10", "name": "It's Just a Phase", "desc": "Collect 10 rubber ducks.", "stat": "ducks", "goal": 10, "pearls": 3, "joke": true},
 	{"id": "ducks_50", "name": "The Ducks Are Concerned", "desc": "Collect 50 rubber ducks.", "stat": "ducks", "goal": 50, "pearls": 10, "joke": true},
 	{"id": "crabs_100", "name": "Crab Botherer", "desc": "Poke crabs 100 times. They know things.", "stat": "crab_pokes", "goal": 100, "pearls": 5, "joke": true},
@@ -911,7 +971,7 @@ static func ach_def(id: String) -> Dictionary:
 # ==================================================================== hats
 ## Silly hats for the captain (not in the bot, all DERIVED). They buy nothing but laughs: no stat looks at them. "price" is in casts'
 ## worth (VF.hat_price), so it follows your progress; none is sold for Pearls. "ducks": yours once you've found that many rubber
-## ducks. "from": Gerald or Geraldine gives it when they're caught (VFData.GERALD_HATS).
+## ducks. "from": the outlaw who gives it when they're caught (VFData.GERALD "hat").
 const HATS := {
 	"straw": {"name": "Straw Hat", "price": 0.0, "desc": "This hat has seen things."},
 	"pirate": {"name": "Pirate Hat", "price": 15.0, "desc": "Arr. That's all he knows."},
@@ -922,7 +982,7 @@ const HATS := {
 	"top_hat": {"name": "Top Hat", "price": 120.0, "desc": "Very distinguished. Still smells of fish."},
 	"sombrero": {"name": "Sombrero", "price": 160.0, "desc": "Shade for the whole boat."},
 	"duck": {"name": "Duck Hat", "price": 0.0, "ducks": 25, "desc": "It squeaks when he thinks."},
-	"crown": {"name": "Gerald's Crown", "price": 0.0, "from": "Gerald", "desc": "He wants it back. He can't have it."},
-	"tiara": {"name": "Geraldine's Tiara", "price": 0.0, "from": "Geraldine", "desc": "Sit up straight."},
+	"crown": {"name": "The Baron's Crown", "price": 0.0, "from": "Baron von Flap", "desc": "He insisted. Very gracious, for a fish."},
+	"tiara": {"name": "The Duchess's Tiara", "price": 0.0, "from": "The Duchess", "desc": "Do curtsy when you wear it."},
 }
 const HAT_ORDER := ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]

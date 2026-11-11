@@ -20,9 +20,7 @@ const DUCK_MILESTONES := {10: "Ten ducks. The fish are concerned.", 25: "Twenty-
 const CAUGHT_LINES := ["One of them looked at you funny.", "They seemed disappointed.", "A crab saw the whole thing.", "They'll tell their friends.",
 	"Nobody clapped. But they could have.", "Smells like success. And fish.", "One of them owes you money."]
 const EMPTY_LINES := ["The fish are on a break.", "Not even a boot.", "The bobber is judging you."]
-const TEASES := {"Gerald": ["Something big just laughed at you.", "Was that a moustache?", "Something down there knows your name."],
-	"Geraldine": ["Something big just tutted at you.", "Was that a pearl necklace?", "Something down there disapproves of your hat."]}
-const TEASE_MAX := 2             # his shape passes this often before each meeting: a tease, not a nag
+const TEASE_MAX := 2             # their shape passes this often before each meeting: a tease, not a nag
 
 var m                            # vf_main
 var _find_wait := 25.0
@@ -81,7 +79,12 @@ func _tick_tease(delta: float) -> void:
 	if _tease_wait > 0.0 or _teases >= TEASE_MAX or not m.stage.has_method("spawn_gerald"): return
 	_tease_wait = randf_range(50.0, 90.0)
 	_teases += 1
-	m.stage.spawn_gerald(TEASES[VF.gerald_info().who].pick_random())
+	var row: Dictionary = VFData.GERALD[int(VF.gerald.stage)]
+	m.stage.spawn_gerald(tease_lines(row).pick_random(), String(row.look), float(row.get("size", 1.0)))
+
+## what the passing shape says: the outlaw's own lines
+func tease_lines(row: Dictionary) -> Array:
+	return row.get("tease", ["Something big just laughed at you."])
 
 ## tap the boat, or H
 func honk() -> void:
@@ -162,7 +165,7 @@ func _found(id: String, at: Vector2) -> void:
 		AudioManager.play_fun("ding", -11.0)
 	if int(r.pay) > 0: _show_pay(int(r.pay), at)
 
-## the round against Gerald or Geraldine is decided: pay up. At the end of their run: the hat, and after Gerald, his mum.
+## the round against an outlaw is decided: pay up. At the end of a run: the hat. Some bring a note in a bottle: the next one's.
 func rival_result(mg, won: bool) -> void:
 	var r: Dictionary = VF.gerald_result(won)
 	mg.rival_result = r
@@ -172,10 +175,11 @@ func rival_result(mg, won: bool) -> void:
 	if r.caught: mg.tree_exited.connect(_rival_caught.bind(r), CONNECT_DEFERRED)
 
 func _rival_caught(r: Dictionary) -> void:
-	m._toast("New hat: the %s! (Shop - Hats)" % VFData.GERALD_HATS[r.who], "unlock")
-	if r.who == "Gerald":
+	if r.hat != "": m._toast("New hat: %s! (Shop - Hats)" % VFData.HATS[r.hat].name, "unlock")
+	var row: Dictionary = VFData.GERALD[clampi(int(r.stage), 0, VFData.GERALD.size() - 1)]
+	if row.has("note"):
 		AudioManager.play_fun("pop", -6.0)
-		note("You caught my son. - Geraldine")
+		note(row.note)
 
 ## the note out of a bottle, on a scrap of paper for a few seconds
 func note(text: String) -> void:
@@ -332,12 +336,12 @@ func gerald_test(dir: String) -> void:
 		VF.biome = row.biome
 		VF.changed.emit()
 		await wait.call(1.0)
-		m.stage.spawn_gerald(TEASES[row.who][0])
+		m.stage.spawn_gerald(tease_lines(row)[0], String(row.look), float(row.get("size", 1.0)))
 		var shape: Dictionary = m.stage._big.back()
 		shape.pos.x = m.stage.boat_pos.x - signf(shape.vel.x) * 240.0
 		await wait.call(1.9)
-		await m._shot(dir + "/gerald_shape_%s_%s.png" % [row.who.to_lower(), VFData.slug(row.biome)])
-		print("GERALD shape %s %s: says '%s'" % [row.who, row.biome, m.stage._say_text])
+		await m._shot(dir + "/gerald_shape_%s_%s.png" % [VFData.slug(row.who), VFData.slug(row.biome)])
+		print("GERALD shape %s %s (%s, %s, %.1f units long): says '%s'" % [row.who, row.biome, row.get("look", ""), shape.tex.resource_path.get_file(), shape.len, m.stage._say_text])
 
 ## one round against the rival, played by the capture's bot, with a picture of each part
 func _rival_round(dir: String, name: String, outcome: String) -> void:
@@ -376,10 +380,10 @@ func _rival_gags(dir: String) -> void:
 	await tree.create_timer(0.9).timeout
 	var fill: float = mg.fill_rate
 	mg.fill_rate = 0.0                     # (the round doesn't end while they go through their act)
-	for g in mg.RIVAL_GAGS[mg.rival]:
+	for g in mg._row.gags:
 		mg.test_gag(mg.fish_name, g)
 		await tree.create_timer(0.7).timeout
-		await m._shot(dir + "/gerald_gag_%s_%s.png" % [mg.rival.to_lower(), g])
+		await m._shot(dir + "/gerald_gag_%s_%s.png" % [VFData.slug(mg.rival), g])
 		await tree.create_timer(float(mg.GAGS[g].len)).timeout
 	mg.fill_rate = fill
 	mg.progress = 0.97

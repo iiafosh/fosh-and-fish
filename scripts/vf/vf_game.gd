@@ -2078,8 +2078,8 @@ func _idle_apply(d: Dictionary) -> void:
 
 # ======================================================================
 # ---- Gerald
-# A rival to chase. Data in vf_data.gd (GERALD). vf_main._do_cast asks gerald_due(); vf_minigame.gd plays the round
-# (setup_rival) and vf_fun.rival_result() calls gerald_result(). All of it survives prestige.
+# The Most Wanted: seven outlaws to chase, one per biome. Data in vf_data.gd (GERALD). vf_main._do_cast asks gerald_due();
+# vf_minigame.gd plays the round (setup_rival) and vf_fun.rival_result() calls gerald_result(). All of it survives prestige.
 
 # stage: the row of VFData.GERALD he's on (its size: all over). tries: he's beaten you this many times on it. casts: since you last met.
 var gerald := {"stage": 0, "casts": 0, "tries": 0, "wins": 0, "losses": 0}
@@ -2106,13 +2106,13 @@ func _gerald_cast() -> void:
 	if i < VFData.GERALD.size() and biome == VFData.GERALD[i].biome:
 		gerald.casts = int(gerald.casts) + 1
 
-## The round against him is decided (instead of cast_reel: he isn't a catch). stage: the row it was played on.
+## The round against this stage's outlaw is decided (instead of cast_reel: they aren't a catch). stage: the row it was played on.
+## Win: caught, the bounty, the next one is wanted (and at the end of a run, "hat": the hat you got). escaped: never, any more.
 func gerald_result(won: bool) -> Dictionary:
 	var i := int(gerald.stage)
-	var out := {"caught": false, "escaped": false, "pay": 0, "line": "", "stage": i, "who": ""}
+	var out := {"caught": false, "escaped": false, "pay": 0, "line": "", "stage": i, "who": "", "hat": ""}
 	if i >= VFData.GERALD.size(): return out
 	var s: Dictionary = VFData.GERALD[i]
-	var said: Dictionary = VFData.GERALD_LINES[s.who]
 	out.who = s.who
 	gerald.casts = 0
 	_last_active = Time.get_unix_time_from_system()
@@ -2122,28 +2122,25 @@ func gerald_result(won: bool) -> Dictionary:
 		gerald.tries = 0
 		gerald.stage = i + 1
 		out.pay = pay_find(float(s.bounty))
-		if s.get("final", false):
-			out.caught = true
-			out.line = said.caught
-			var hat_id: String = VFData.GERALD_HATS[s.who]
-			if not hat_id in hats_owned: hats_owned.append(hat_id)
-		else:
-			out.escaped = true
-			out.line = String(said.escaped[rng.randi() % said.escaped.size()]) % VFData.GERALD_PLACES[VFData.GERALD[i + 1].biome]
+		out.caught = true
+		out.line = s.caught
+		if s.has("hat"):
+			out.hat = s.hat
+			if not s.hat in hats_owned: hats_owned.append(s.hat)
 		_last_cast_ms = Time.get_ticks_msec()
 		_cd_override = VFData.MINIGAME_COOLDOWN
 	else:
 		gerald.losses = int(gerald.losses) + 1
 		gerald.tries = int(gerald.tries) + 1
 		out.pay = pay_find(VFData.GERALD_TIP)
-		out.line = said.lose[rng.randi() % said.lose.size()]
+		out.line = s.lose[rng.randi() % s.lose.size()]
 	changed.emit()
 	save_game()
 	return out
 
-## For the WANTED pill and board: the stage he's on, or any row i. bounty: about what it pays you today. done: that row is
-## behind you (with no i: all of it is). met: you've played him at least once. look: what they're wearing there
-## (vf_minigame.rival_picture says whether its picture exists yet).
+## For the WANTED pill and board: the stage you're on, or any row i. who: the outlaw's name. bounty: about what it pays you
+## today. done: that row is behind you (with no i: all of it is). met: you've played the outlaws at least once. look: their
+## picture (vf_minigame.rival_picture says whether it exists yet).
 func gerald_info(i := -1) -> Dictionary:
 	var at := int(gerald.stage)
 	var row := clampi(at if i < 0 else i, 0, VFData.GERALD.size() - 1)
@@ -2224,20 +2221,14 @@ func stat_value(id: String) -> int:
 		"ducks": return ducks
 		"hats": return hats_owned.size()
 		"gerald_losses": return int(gerald.losses)
-		"gerald_caught": return 1 if int(gerald.stage) > _gerald_last_of("Gerald") else 0
-		"mum_caught": return 1 if int(gerald.stage) > _gerald_last_of("Geraldine") else 0
+		"gerald_caught": return 1 if int(gerald.stage) > 0 else 0                        # (Gerald is the first)
+		"mum_caught": return 1 if int(gerald.stage) >= VFData.GERALD.size() else 0      # (The Duchess is the last)
 		"books":
 			var n := 0
 			for b in VFData.BIOME_ORDER:
 				if book_done(b): n += 1
 			return n
 	return int(stats.get(id, 0))
-
-## the last row of VFData.GERALD for who
-func _gerald_last_of(who: String) -> int:
-	var at := VFData.GERALD.size() - 1
-	while at > 0 and VFData.GERALD[at].who != who: at -= 1
-	return at
 
 ## the achievements you've reached and not claimed yet (the Menu's badge: their count)
 func ach_ready() -> Array:

@@ -1086,7 +1086,7 @@ func _life_draw(layer: Control, sp: Dictionary, p: Vector2, ang: float, scale_px
 	layer.draw_set_transform(p, -rest if flip else rest, Vector2(-sc if flip else sc, sc))
 	layer.draw_texture_rect_region(t, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fi * cell, row * cell, cell, cell), col)
 
-const BIG_LEN := {"whale": 11.0, "manta": 7.0, "gerald": 7.0}    # how long, in the scene's units
+const BIG_LEN := {"whale": 11.0, "manta": 7.0}    # how long, in the scene's units (a rival's shape has its own, spawn_gerald)
 
 ## He's a dark shape under the water, which on the darkest water would be no shape at all: there he's a pale one (the colour
 ## multiplies his dark sheet, so these numbers brighten it).
@@ -1098,7 +1098,7 @@ func _draw_life() -> void:
 	var u: float = float(_scene.get("unit_px", 56.0))
 	for b in _big:
 		if b.wait > 0.0: continue
-		var len_px: float = u * BIG_LEN[b.kind]
+		var len_px: float = u * float(b.get("len", BIG_LEN.get(b.kind, 7.0)))
 		var big_info: Dictionary = manifest.get("life", {}).get("big", {"cell": 192, "frames": 8})
 		var sp := {"tex": b.tex, "frames": big_info.frames, "cell": float(big_info.cell), "rows": 1, "unit_px": float(big_info.cell)}
 		_life_draw(life_layer, sp, b.pos + Vector2(30, 40), b.vel.angle(), len_px, Color(0, 0.05, 0.1, 0.12))
@@ -1921,13 +1921,15 @@ func _hats_pose(m, dir: String, boat_name: String, anim: String, yaw: float, hat
 func _kind_of(name: String) -> String:
 	return "find:" + name if VFData.find_def(name).size() > 0 else name
 
-## Gerald or his mum is close (vf_fun.gd, VF.gerald_soon): the shape swims past the boat, and as it goes by you hear about it
-func spawn_gerald(line: String) -> void:
-	var t := _tex("life/gerald.png")
+## An outlaw is close (vf_fun.gd, VF.gerald_soon): their shape swims past the boat, and as it goes by you hear about it.
+## look: whose it is (life/<look>.png, plain Gerald's while that one isn't there yet), size: how big next to Gerald (7 units long).
+func spawn_gerald(line: String, look := "Gerald", size := 1.0) -> void:
+	var t := _tex("life/%s.png" % look.to_lower())
+	if t == null: t = _tex("life/gerald.png")
 	if t == null: return
 	var dir := 1.0 if randf() < 0.5 else -1.0
 	var y := clampf(boat_pos.y + (170.0 if boat_pos.y < 760.0 else -170.0) + randf_range(-30.0, 30.0), 620.0, 900.0)    # (water from edge to edge in every biome)
-	_big.append({"tex": t, "kind": "gerald", "pos": Vector2(SCENE.x * 0.5 - dir * (SCENE.x * 0.5 + 460.0), y), "wait": 0.0,
+	_big.append({"tex": t, "kind": "gerald", "len": 7.0 * size, "pos": Vector2(SCENE.x * 0.5 - dir * (SCENE.x * 0.5 + 460.0), y), "wait": 0.0,
 		"vel": Vector2(dir * 190.0, randf_range(-6.0, 6.0)), "line": line})
 
 func spawn_thief() -> void:

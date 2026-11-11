@@ -41,25 +41,7 @@ const SAY_CAUGHT := ["Hey! Let go!", "This is fine.", "Okay, that tickles!", "Un
 const SAY_ALMOST := ["Wait wait, let's talk!", "I have a family! (I don't)", "MOMMYYY!", "I'll pay you 3 shrimp!", "Not the frying pan!", "I know a guy!"]
 const SAY_WIN := ["Fine. You win. THIS time.", "Tell my story...", "Ugh. GG.", "I'm too pretty for a bucket!"]
 const SAY_LOSE := ["PFFFT! Bye, loser!", "Later, sucker!", "blub blub, see ya!", "Git gud, fisher!"]
-# the rival (VF.gerald): what they say
-const RIVAL_WHO := {"Gerald": "It's Gerald. Of course it's Gerald.", "Geraldine": "Geraldine has arrived. Sit up straight."}
-const RIVAL_SAY := {
-	"Gerald": {
-		"first": ["So you're the new fisher. I'm Gerald. Remember it.", "Nobody fishes here without meeting Gerald.", "I've heard about you. None of it good."],
-		"start": ["You again?", "Back for more?", "I've been practising. Have you?", "Nice hat. Shame about the fishing."],
-		"escape": ["Too slow!", "Is that all?", "Over here, champ!", "My mum reels faster."],
-		"caught": ["Hey! Mind the moustache!", "Unhand me, amateur!", "This proves nothing!"],
-		"almost": ["Wait! Let's talk about this!", "MUM!", "You wouldn't dare!", "I have a bad fin!"],
-	},
-	"Geraldine": {
-		"first": ["So YOU'RE the one who caught my son.", "You caught my Gerald. Now catch me, dear."],
-		"start": ["Back again, dear?", "Stand up straight.", "I've got all day. You haven't."],
-		"escape": ["Oh, bless you for trying.", "Too slow, dear.", "My knitting moves faster."],
-		"caught": ["Mind the pearls!", "How dare you!", "I knew your mother!"],
-		"almost": ["I'll tell your mother!", "Not the necklace!", "Oh, you cheeky thing!"],
-	},
-}
-const RIVAL_GAGS := {"Gerald": ["moustache", "poster", "mum", "dance", "bribe", "banana", "rocket"], "Geraldine": ["tut", "handbag", "poster", "bribe", "boot", "rocket"]}
+# the outlaws (VF.gerald, VFData.GERALD): their intro, lines and gags come from the row of the stage you are on (setup_rival)
 const PUNS := ["GOTCHA!", "YOINK!", "REEL GOOD!", "FIN-TASTIC!", "HOLY MACKEREL!", "O-FISH-AL!", "SHELL YEAH!", "SPLOOSH!"]
 # what the fish can pull: how long it takes, what it says
 const GAGS := {
@@ -83,10 +65,20 @@ const GAGS := {
 	"moustache": {"len": 1.4, "say": ["Observe the moustache.", "Took me years, this.", "Jealous?"]},
 	"poster": {"len": 1.5, "say": ["I made one of YOU now.", "Wanted: you. Reward: nothing.", "It's not a good likeness."]},
 	"mum": {"len": 1.6, "say": ["MUM! They're doing it again!", "Hold on, it's my mum.", "Yes mum. No mum. I'm winning, mum."]},
-	"tut": {"len": 1.3, "say": ["Tut tut tut.", "I've had better from a worm.", "Is that your best, dear?"]},
-	"handbag": {"len": 1.1, "say": ["In my day we bit back.", "Mind your manners, dear.", "That's from my son."]},
+	"smoke": {"len": 1.6, "say": ["Oops. The whiskers.", "Don't mind the smoke.", "That's just my personality."]},
+	"marshmallow": {"len": 1.7, "say": ["Toast anyone?", "Fire's free. Marshmallow's not.", "Perfectly golden. Almost."]},
+	"swordfight": {"len": 1.4, "say": ["En garde, landlubber!", "Parry THIS!", "Mind the nose!"]},
+	"plank": {"len": 1.5, "say": ["Walk the plank, matey!", "Arr, down ye go!", "Mind the step."]},
+	"fly": {"len": 1.0, "say": ["Tally-ho!", "Chocks away!", "Too high for you, old chap!"]},
+	"monocle": {"len": 1.5, "say": ["Do wait. Polishing the monocle.", "Splendid. Quite splendid.", "One moment, old bean."]},
+	"zero_g": {"len": 1.8, "say": ["No gravity, no problem!", "Wheee, weightless!", "Hold my helmet!"]},
+	"bite": {"len": 1.0, "say": ["Nom nom nom!", "I bite things. It's my job.", "Mind your fingers!"]},
+	"beam": {"len": 1.5, "say": ["Zlorp borrows your net!", "Beam me up!", "Zlorp is just curious!"]},
+	"alien": {"len": 1.4, "say": ["Blib blob zlorp!", "Zlorp zlorp! (Hello!)", "Greetings, Earth! Blib!"]},
+	"chandelier": {"len": 1.5, "say": ["Do mind the sparkle, darling.", "Fabulous, isn't it?", "Chandelier on!"]},
+	"butler": {"len": 1.4, "say": ["Jeeves! The net, please!", "Ring for the butler!", "Jeeves has the day off."]},
 }
-const STAYS_PUT := ["disguise", "selfie", "dead", "nap", "dance", "bribe", "closed", "flip", "moustache", "poster", "mum", "tut"]
+const STAYS_PUT := ["disguise", "selfie", "dead", "nap", "dance", "bribe", "closed", "flip", "moustache", "poster", "mum", "smoke", "marshmallow", "swordfight", "plank", "monocle", "alien", "chandelier", "butler"]
 
 static var streak := 0        # wins in a row (this session): the fish start to hear about you
 
@@ -96,11 +88,11 @@ var tier := 0
 var auto := ""               # capture tests: "win" / "lose" plays by itself
 var sim_hold := Callable()   # tests/reel_bot.gd: a simulated player
 var nick := ""
-var rival := ""              # "Gerald" / "Geraldine": this round is against them (setup_rival)
+var rival := ""              # the outlaw's name: this round is against them (setup_rival)
+var _row := {}               # their VFData.GERALD row: intro, say, gags
 var rival_result := {}       # VF.gerald_result: vf_fun hands it over the moment the round is decided
 var _met := false            # you've played the rival before
 var _poster_line := ""       # what the WANTED poster says instead of the usual jokes
-var _heavy_bag := false      # what's weighing the net down is a handbag
 
 var phase := "intro"         # intro -> play -> end
 var t := 0.0                 # time in the current phase
@@ -210,17 +202,18 @@ func setup(m, fname: String, ftier: int) -> void:
 	_gag_wait = randf_range(0.7, 1.4)
 	_load_fish()
 
-## the round against Gerald or Geraldine (VF.gerald_due): whoever is on the current stage, as hard as they are by now
+## the round against this stage's outlaw (VF.gerald_due), as hard as they are by now
 func setup_rival(m) -> void:
 	var info: Dictionary = VF.gerald_info()
 	rival = info.who
+	_row = VFData.GERALD[int(VF.gerald.stage)]
 	_met = info.met
-	setup(m, rival_picture(m.stage.manifest, info.look, rival), 4)
+	setup(m, rival_picture(m.stage.manifest, info.look, "Gerald"), 4)
 	nick = rival
-	_fact = "Caught. Finally."
-	_use_params(VFData.rival_params(rival, reel_power, not main.is_touch(), int(VF.gerald.tries), VF.reel_rounds))
+	_fact = "Caught. For good."
+	_use_params(VFData.rival_params(int(VF.gerald.stage), reel_power, not main.is_touch(), int(VF.gerald.tries), VF.reel_rounds))
 
-## the picture for the rival's look on this stage, or plain Gerald / Geraldine while that one isn't there yet
+## the picture for this outlaw (their look), or plain Gerald while that one isn't there yet
 ## (the WANTED board can use it too)
 static func rival_picture(manifest: Dictionary, look: String, who: String) -> String:
 	if manifest.get("mini", {}).get("fish", {}).has(look) and ResourceLoader.exists("res://assets/vf/mini/%s.png" % VFData.slug(look)): return look
@@ -297,7 +290,7 @@ func _ready() -> void:
 	create_tween().tween_property(self, "_fish_out", 0.0, 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_show_emote("exclamation")
 	var line: String = SAY_START.pick_random()
-	if rival != "": line = RIVAL_SAY[rival]["start" if _met else "first"].pick_random()
+	if rival != "": line = _row.say["start" if _met else "first"].pick_random()
 	elif streak >= 3: line = SAY_FAMOUS.pick_random()
 	elif randf() < 0.55 and SAY_SPECIES.has(fish_name): line = SAY_SPECIES[fish_name]
 	_say(line)
@@ -338,7 +331,7 @@ func _build_labels() -> void:
 	head.offset_top = -24
 	card.add_child(head)
 	head.rotation = -0.03
-	var who: Label = main.lbl("%s the %s is on the line!" % [nick, fish_name] if rival == "" else RIVAL_WHO[rival], 15, TIER_COL[tier])
+	var who: Label = main.lbl("%s the %s is on the line!" % [nick, fish_name] if rival == "" else _row.intro, 15, TIER_COL[tier])
 	who.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	who.position = Vector2(0, 34)
 	who.size = Vector2(CW, 24)
@@ -563,13 +556,15 @@ func _play(delta: float) -> void:
 # ---------------------------------------------------------------- the gags
 ## what the fish shouts: the rival has their own lines
 func _taunt(kind: String, plain: Array) -> String:
-	return (RIVAL_SAY[rival][kind] if rival != "" else plain).pick_random()
+	return (_row.say[kind] if rival != "" else plain).pick_random()
 
 func _pick_gag() -> String:
 	if rival != "":
-		var theirs: Array = RIVAL_GAGS[rival]
-		var left := theirs.filter(func(g): return not g in _used)
-		return (left if not left.is_empty() else theirs).pick_random()
+		var own: Array = _row.gags.filter(func(g): return not g in _used)       # their own act first, then the usual ones
+		if not own.is_empty() and randf() < 0.75: return own.pick_random()
+		var usual := ["dance", "bribe", "banana", "rocket", "boot"]
+		var fresh := usual.filter(func(g): return not g in _used)
+		return (fresh if not fresh.is_empty() else _row.gags + usual).pick_random()
 	var own := ""
 	if "Puffer" in fish_name: own = "puff"
 	elif "Squid" in fish_name: own = "ink"
@@ -608,22 +603,40 @@ func _gag_tick(delta: float) -> void:
 			if _gag_step == 0 and _gag_t > 0.45:
 				_gag_step = 1
 				_heavy = 1.1
-				_heavy_bag = false
 				_shake = 0.3
 				AudioManager.play_fun("clunk", -6.0)
-		"handbag":
+		"swordfight":
+			if _gag_step == 0 and _gag_t > 0.5:
+				_gag_step = 1
+				_shake = 0.3
+				_hit("CLANG!")
+				AudioManager.play_fun("clunk", -8.0, 1.6)
+		"plank":
+			if _gag_step == 0 and _gag_t > 0.6:
+				_gag_step = 1
+				_shake = 0.3
+				_hit("SPLASH!")
+				AudioManager.play_fun("clunk", -8.0, 0.7)
+		"beam":
 			if _gag_step == 0 and _gag_t > 0.45:
 				_gag_step = 1
-				_heavy = 1.1
-				_heavy_bag = true
-				_shake = 0.4
-				_hit("WHACK!")
-				AudioManager.play_fun("clunk", -6.0, 0.8)
+				zone_v += 0.9                       # the net floats up for a moment
+				_hit("ZAP!")
+				AudioManager.play_fun("whoosh", -9.0, 0.8)
+		"chandelier":
+			if _gag_step == 0 and _gag_t > 0.55:
+				_gag_step = 1
+				_flash = 1.0
+				AudioManager.play_fun("ding", -8.0, 1.4)
+		"butler":
+			if _gag_step == 0 and _gag_t > 0.4:
+				_gag_step = 1
+				AudioManager.play_fun("ding", -9.0, 1.8)
 		"mum":
 			if _gag_step == 0 and _gag_t > 0.15:
 				_gag_step = 1
 				AudioManager.play_fun("ding", -12.0, 1.5)
-		"chomp":
+		"chomp", "bite":
 			if _gag_step == 0 and _gag_t > 0.4:
 				_gag_step = 1
 				_shake = 0.5
@@ -676,16 +689,15 @@ func _start_gag(g: String) -> void:
 			AudioManager.play_fun("pfff", -14.0, 1.5)
 		"flip": AudioManager.play_fun("boing", -9.0, 1.3)
 		"banana": AudioManager.play_fun("pop", -8.0)
-		"chomp": _face = "smug"
-		"moustache": _face = "smug"
+		"chomp", "bite", "moustache", "marshmallow", "swordfight", "plank", "monocle", "zero_g", "alien", "chandelier", "butler": _face = "smug"
 		"poster":
 			_face = "smug"
 			AudioManager.play_fun("pop", -9.0)
-		"mum": _face = "worried"
-		"tut": _face = "shut"
-		"handbag":
+		"mum", "smoke", "beam": _face = "worried"
+		"fly":
+			fish_target = 0.9 if fish_y < 0.5 else 0.1
 			_face = "smug"
-			AudioManager.play_fun("whoosh", -9.0)
+			AudioManager.play_fun("whoosh", -7.0, 1.2)
 
 func _end_gag() -> void:
 	_gag = ""
@@ -699,7 +711,14 @@ func _gag_pose() -> void:
 	match _gag:
 		"flip": _fish_rot = -TAU * clampf(_gag_t / _gag_len, 0.0, 1.0)
 		"moustache": _fish_rot = sin(_gag_t * 9.0) * 0.12
-		"tut": _fish_rot = sin(_gag_t * 14.0) * 0.1
+		"smoke": _fish_rot = sin(_gag_t * 20.0) * 0.06
+		"alien": _fish_squash = Vector2(1.0 + 0.14 * sin(_gag_t * 14.0), 1.0 - 0.14 * sin(_gag_t * 14.0))
+		"zero_g":
+			_fish_rot = -TAU * 0.6 * clampf(_gag_t / _gag_len, 0.0, 1.0)
+			_fish_x += sin(_gag_t * 3.0) * 26.0
+		"fly":
+			_fish_rot = -0.5 if fish_target > fish_y else 0.5
+			_fish_squash = Vector2(1.2, 0.88)
 		"dead":
 			_fish_squash.y *= -1.0                         # belly up
 			_fish_rot = 0.1
@@ -790,19 +809,21 @@ func _finish(w: bool) -> void:
 		tw.tween_property(self, "_poster_k", 1.0, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_end_len = 2.5
 
-## how a round against the rival ends: caught at the end of the run, otherwise they get away with a last-second snip, or laugh
+## how a round against an outlaw ends: caught for good (the bounty, and at the end of a run their hat), or they laugh and leave a tip
 func _finish_rival(w: bool) -> void:
 	var cash: String = main.money_str(int(rival_result.get("pay", 0)))
 	var line: String = rival_result.get("line", "")
 	var tw := create_tween()
-	if w and rival_result.get("caught", false):
+	if w:
+		var hat: String = String(rival_result.get("hat", ""))
 		_face = "dizzy"
 		_show_emote("swirl")
 		_say(line)
-		status.text = "CAUGHT AT LAST!"
+		status.text = "CAUGHT FOR GOOD!"
 		status.add_theme_color_override("font_color", Color("#16865a"))
-		_pop("GOT HIM!" if rival == "Gerald" else "GOT HER!", Color("#ffcf4a"))
-		_sub("+%s  and the %s!" % [cash, VFData.GERALD_HATS[rival]], Color("#159a64"))
+		_pop("GOTCHA!", Color("#ffcf4a"))
+		_sub("+%s%s" % [cash, ("  and %s!" % VFData.HATS[hat].name) if hat != "" else ""], Color("#159a64"))
+		_poster_line = "Caught. For good."
 		_shake = 1.0
 		_confetti(COL.position + Vector2(COL.size.x * 0.5, 40.0))
 		AudioManager.play_sfx("splash_big", -2.0)
@@ -811,25 +832,6 @@ func _finish_rival(w: bool) -> void:
 		tw.parallel().tween_property(self, "_fish_rot", -TAU - 0.4, 0.55)
 		tw.tween_property(self, "_poster_k", 1.0, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_end_len = 3.4
-	elif w:
-		_face = "smug"
-		_small = 9.0
-		_show_emote("laugh")
-		if line != "": _say(line)
-		_hit("SNIP!")
-		status.text = "SO CLOSE!"
-		status.add_theme_color_override("font_color", Color("#b0732a"))
-		_pop("SNIP!", Color("#ffcf4a"))
-		_sub("Bounty: +%s" % cash, Color("#159a64"))
-		_poster_line = "Last seen: %s" % VF.gerald_info().biome
-		_shake = 0.5
-		AudioManager.play_fun("snip", -5.0)
-		AudioManager.play_fun("sting", -9.0)
-		tw.tween_interval(0.35)
-		tw.tween_property(self, "_fish_rot", 0.9, 0.12)
-		tw.tween_property(self, "_fish_out", -440.0, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tw.tween_property(self, "_poster_k", 1.0, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_end_len = 3.0
 	else:
 		_face = "raspberry"
 		_show_emote("laugh")
@@ -837,7 +839,7 @@ func _finish_rival(w: bool) -> void:
 		status.text = "HA HA HA!"
 		status.add_theme_color_override("font_color", Color("#d9594e"))
 		_pop("HA HA!", Color("#ff9db5"))
-		_sub("%s left a tip: +%s" % ["He" if rival == "Gerald" else "She", cash], Color("#5d6f78"))
+		_sub("%s left a tip: +%s" % [rival, cash], Color("#5d6f78"))
 		_poster_line = "Back soon. Unfortunately."
 		_shake = 0.4
 		AudioManager.play_fun("laugh", -5.0)
@@ -1282,6 +1284,45 @@ func _draw_props(c: CanvasItem, fp: Vector2) -> void:
 			_ellipse(c, at, 28.0, 12.0, Color("#e5533d"))
 			_ellipse(c, at + Vector2(16, 0), 11.0, 8.0, Color("#f7f4ea"))
 			c.draw_colored_polygon(PackedVector2Array([at + Vector2(-14, -9), at + Vector2(-26, -20), at + Vector2(-4, -9)]), Color("#b83a28"))
+		"smoke":
+			for k in 4:
+				var ph := fmod(_gag_t * 1.2 + k * 0.25, 1.0)
+				_ellipse(c, m + Vector2(-10.0 + k * 9.0 + sin(ph * 6.0) * 6.0, -er - 6.0 - 48.0 * ph), 8.0 + 14.0 * ph, 6.0 + 11.0 * ph, Color(0.25, 0.25, 0.28, 0.6 * (1.0 - ph)))
+		"marshmallow":
+			var at := m + Vector2(30.0, -2.0)
+			c.draw_line(m + Vector2(4.0, 3.0), at + Vector2(34.0, 5.0), Color("#7a5230"), 3.0, true)
+			c.draw_style_box(main.sbox(Color("#fff7e8"), 6, 2, Color("#d9c6a0"), 0), Rect2(at + Vector2(16, -9), Vector2(26, 20)))
+			c.draw_style_box(main.sbox(Color("#a8672a"), 6, 0, Color.TRANSPARENT, 0), Rect2(at + Vector2(16, -9), Vector2(11, 20)))
+			_ellipse(c, at + Vector2(8, 9), 6.0 + 3.0 * sin(t * 18.0), 9.0, Color("#ffb52e"))
+		"swordfight":
+			c.draw_set_transform(m + Vector2(8.0, 4.0), sin(_gag_t * 14.0) * 0.5, Vector2.ONE)
+			c.draw_colored_polygon(PackedVector2Array([Vector2(0, -4), Vector2(56, -2), Vector2(66, 0), Vector2(56, 2), Vector2(0, 4)]), Color("#cfd8de"))
+			c.draw_rect(Rect2(-3, -10, 6, 20), Color("#d9a02e"))
+			c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		"plank":
+			var at := m + Vector2(18.0, 22.0)
+			c.draw_style_box(main.sbox(Color("#a8723a"), 3, 2, Color("#6f4d24"), 0), Rect2(at, Vector2(78, 13)))
+			c.draw_string(font, at + Vector2(10, -4), "ARR", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#3f2a10"))
+		"fly":
+			var fl := sin(_gag_t * 22.0)
+			c.draw_colored_polygon(PackedVector2Array([e + Vector2(-26, -er - 2), e + Vector2(-70, -er - 40 - 20.0 * fl), e + Vector2(-98, -er - 8 - 10.0 * fl), e + Vector2(-62, -er + 12)]), Color("#eef3f6"))
+		"monocle":
+			c.draw_arc(e, er + 5.0, 0, TAU, 24, Color("#d9a02e"), 3.5, true)
+			c.draw_line(e + Vector2(-2, er + 5.0), e + Vector2(-10, er + 42.0), Color("#d9a02e"), 2.0, true)
+			var gl := clampf(sin(_gag_t * 5.0), 0.0, 1.0)
+			var st := e + Vector2(er * 0.5, -er * 0.5)
+			c.draw_colored_polygon(PackedVector2Array([st + Vector2(0, -9.0 * gl), st + Vector2(2, -2), st + Vector2(9.0 * gl, 0), st + Vector2(2, 2), st + Vector2(0, 9.0 * gl), st + Vector2(-2, 2), st + Vector2(-9.0 * gl, 0), st + Vector2(-2, -2)]), Color(1, 1, 1, 0.9 * gl))
+		"zero_g":
+			for k in 5:
+				var ph := fmod(_gag_t * 0.8 + k * 0.2, 1.0)
+				c.draw_arc(Vector2(-70.0 + k * 38.0, -20.0 - 90.0 * ph + sin(ph * 9.0 + k) * 8.0), 4.0 + 3.0 * (k % 3), 0, TAU, 12, Color(1, 1, 1, 0.85 * (1.0 - ph)), 2.0, true)
+		"butler":
+			var at := m + Vector2(34.0, 14.0)
+			c.draw_set_transform(at, sin(t * 16.0) * (0.5 if _gag_step == 1 else 0.1), Vector2.ONE)
+			c.draw_arc(Vector2.ZERO, 12.0, PI, TAU, 14, Color("#b7c0c8"), 6.0, true)
+			c.draw_rect(Rect2(-14, -2, 28, 4), Color("#b7c0c8"))
+			c.draw_circle(Vector2(0, 5), 3.5, Color("#6f7a84"))
+			c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var zt := COL.position.y + _col_y(zone_y + _net_h())
 	var hook := Vector2(COL.position.x + COL.size.x * 0.5, zt)
@@ -1307,13 +1348,24 @@ func _draw_props(c: CanvasItem, fp: Vector2) -> void:
 		"boot":
 			var k := clampf(_gag_t / 0.45, 0.0, 1.0)
 			_boot(c, hook + Vector2(0, 26.0 - (1.0 - k * k) * 300.0), sin(t * 7.0) * 0.1)
-		"handbag":
-			var k := clampf(_gag_t / 0.45, 0.0, 1.0)
-			_handbag(c, hook + Vector2(0, 26.0 - (1.0 - k * k) * 300.0), sin(t * 7.0) * 0.1)
+		"beam":
+			var k := clampf(_gag_t / 0.4, 0.0, 1.0)
+			var tp := COL.position.y
+			c.draw_colored_polygon(PackedVector2Array([Vector2(hook.x - 12, tp), Vector2(hook.x + 12, tp), Vector2(hook.x + 52, hook.y + 22), Vector2(hook.x - 52, hook.y + 22)]), Color(0.5, 1.0, 0.7, 0.3 * k))
+			for j in 4:
+				var ph := fmod(_gag_t * 1.4 + j * 0.25, 1.0)
+				c.draw_circle(Vector2(hook.x + sin(ph * 8.0 + j) * 18.0, hook.y + 14.0 - (hook.y - tp) * ph), 3.0, Color(0.85, 1.0, 0.9, 0.9 * k))
+		"chandelier":
+			var at := fp + Vector2(0.0, -96.0)
+			c.draw_line(at + Vector2(0, -90), at + Vector2(0, -14), Color("#d9a02e"), 3.0, true)
+			c.draw_arc(at + Vector2(0, -10), 30.0, 0.15, PI - 0.15, 14, Color("#d9a02e"), 5.0, true)
+			for j in 5:
+				var cx := -24.0 + j * 12.0
+				c.draw_line(at + Vector2(cx, 2), at + Vector2(cx, -10), Color("#fff2c9"), 4.0, true)
+				c.draw_circle(at + Vector2(cx, -14), 3.5 + 1.5 * sin(t * 12.0 + j), Color("#ffcf4a"))
+			if _flash > 0.2: c.draw_circle(at + Vector2(0, -4), 40.0 * _flash, Color(1, 1, 0.8, 0.5 * _flash))
 	if _slip > 0.0 and _gag != "banana": _peel(c, hook + Vector2(30, 6), 0.2)
-	if _heavy > 0.0 and not _gag in ["boot", "handbag"]:
-		if _heavy_bag: _handbag(c, hook + Vector2(0, 26), sin(t * 7.0) * 0.1)
-		else: _boot(c, hook + Vector2(0, 26), sin(t * 7.0) * 0.1)
+	if _heavy > 0.0 and _gag != "boot": _boot(c, hook + Vector2(0, 26), sin(t * 7.0) * 0.1)
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _peel(c: CanvasItem, at: Vector2, rot: float) -> void:
@@ -1331,13 +1383,6 @@ func _boot(c: CanvasItem, at: Vector2, rot: float) -> void:
 	c.draw_rect(Rect2(-16, 18, 50, 8), Color("#3f2a19"))
 	for i in 3:
 		c.draw_line(Vector2(-8, -24 + i * 9), Vector2(8, -24 + i * 9), Color("#d9c7a5"), 2.0, true)
-	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-func _handbag(c: CanvasItem, at: Vector2, rot: float) -> void:
-	c.draw_set_transform(at, rot, Vector2.ONE)
-	c.draw_arc(Vector2(0, -14), 15.0, PI, TAU, 14, Color("#6a2e45"), 4.0, true)
-	c.draw_style_box(main.sbox(Color("#a8456c"), 7, 2, Color("#6a2e45"), 0), Rect2(-24, -16, 48, 36))
-	c.draw_circle(Vector2(0, -6), 4.0, Color("#f2c33d"))
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 ## where the fish was: its mugshot (you got it), or the WANTED poster (it got away)
