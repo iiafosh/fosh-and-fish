@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cq6osvjfurk0"
-path="res://.godot/imported/geraldine_astro.png-d1e729543d471940ed19c487262d0a73.ctex"
+uid="uid://b3rwwgw8ql2hq"
+path="res://.godot/imported/swordbeard.png-b8eb47ab1b047d623a2ed838d28ed03b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/mini/geraldine_astro.png"
-dest_files=["res://.godot/imported/geraldine_astro.png-d1e729543d471940ed19c487262d0a73.ctex"]
+source_file="res://assets/vf/mini/swordbeard.png"
+dest_files=["res://.godot/imported/swordbeard.png-b8eb47ab1b047d623a2ed838d28ed03b.ctex"]
 
 [params]
 

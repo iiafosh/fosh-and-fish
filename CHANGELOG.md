@@ -2,6 +2,13 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## Coming next — the Most Wanted
+
+- **Seven different outlaws, not one fish.** The chase through the biomes is a hunt for seven fish, each with its own name, body, voice and tricks, and each caught for good. **Gerald**, the grumpy River pufferfish with the MUM tattoo, is only the first. Then **Sizzle**, a hot-headed lava catfish with whiskers on fire (Volcanic), **Captain Swordbeard**, a swordfish pirate in sailor's stripes (Ocean) and **Baron von Flap**, a flying fish in goggles (Sky), who hands over his crown. His fall brings a note from the Duchess, and the hunt goes on with **Commander Chomp**, a small and very confident space shark (Space), **Zlorp**, a three-eyed alien blobfish (Alien) and **The Duchess**, a huge anglerfish lady with pearls and a chandelier for a lure (Abyss), who gives you her tiara.
+- Each one has their own intro, their own lines, a shadow that swims past your boat when they're near, and a round of gags: Sizzle sets the net smoking, the Captain duels with his nose, the Baron polishes his monocle, Zlorp beams your net up and the Duchess rings for her butler. Win a round and that outlaw is caught for good, with no more getting away. Lose and they laugh and leave you a tip, and come back a little easier. The second run's outlaws are a bit harder.
+- The WANTED board has a different poster for each of them, with its own caption, and the aquarium shows every outlaw you catch.
+- The crown is now the Baron's and the tiara the Duchess's. Hats, saves and progress carry over.
+
 ## 1.0 — shiny fish, live events and the Google Play version (5 November 2026)
 
 - **Shiny fish.** Every species has a rare, sparkling shiny, and only **3,000 of each exist in the whole world**, numbered (No. 0001 to 3000). Each shiny species you own adds +2% to your sell price. The server hands them out so it stays fair: at most 3 of each species per player and 3 new ones a day, and the odds fall for every copy you own and as the stock runs out, so nobody can collect a whole stock. Shiny fish need a (free) account. See them in Fish Book → Shiny.

@@ -539,13 +539,19 @@ def render_big(model, out_path):
     K.SOFT[0] = False
 
 
-def render_shape(out_path):
-    """the big dark shape that swims past the boat, heading right, in the whale's format"""
+def render_shape(out_path, name="Gerald"):
+    """the big dark shape that swims past the boat, heading right, in the whale's format. Every outlaw fills the cell the same
+    (VFData.GERALD "size" says how long it is on the stage)"""
     cam = _setup(BIG_CELL)
-    root, baked = _bake(RV.build_shape())
+    root, baked = _bake(RV.build_shape(name))
     K.outline_all([p for p, _ in baked], 0.05, color="#0a1119")
-    root.location.x = 0.23              # (the tail is longer than the nose: this centres him in the cell)
-    _frame(cam, 1.6)
+    xs = np.concatenate([a[:, 0] for _, a in baked])
+    if name == "Gerald":
+        root.location.x = 0.23          # (the tail is longer than the nose: this centres him in the cell)
+        _frame(cam, 1.6)
+    else:
+        root.location.x = -float(xs.min() + xs.max()) * 0.5
+        _frame(cam, float(xs.max() - xs.min()) * 0.69)
     tmp = tempfile.mkdtemp()
     paths = []
     for f in range(BIG_FRAMES):
@@ -582,4 +588,7 @@ def render_all(out_dir, only=None):
             render_big(m, os.path.join(out_dir, m + ".png"))
     if want("gerald"):
         render_shape(os.path.join(out_dir, "gerald.png"))
+    for look in RV.OUTLAWS:
+        if want(look):
+            render_shape(os.path.join(out_dir, look + ".png"), look)
     return e

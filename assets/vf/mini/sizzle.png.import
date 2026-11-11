@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1lwi6m6lw7q4"
-path="res://.godot/imported/gerald_pilot.png-f9cc7fe070450dbefe0fb510bdeb2606.ctex"
+uid="uid://bamu0ne3b4786"
+path="res://.godot/imported/sizzle.png-111b63680f72f063717ddf15d14c6ac9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/mini/gerald_pilot.png"
-dest_files=["res://.godot/imported/gerald_pilot.png-f9cc7fe070450dbefe0fb510bdeb2606.ctex"]
+source_file="res://assets/vf/mini/sizzle.png"
+dest_files=["res://.godot/imported/sizzle.png-111b63680f72f063717ddf15d14c6ac9.ctex"]
 
 [params]
 

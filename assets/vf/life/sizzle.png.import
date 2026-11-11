@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jfrh2pvtbuo0"
-path="res://.godot/imported/geraldine_lamp.png-c6a51879fc172d9fb2ce6e1021e2eca2.ctex"
+uid="uid://bnpxsnep5odh4"
+path="res://.godot/imported/sizzle.png-c10f9aac4b1e6bba12814a8cb292f9c9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/mini/geraldine_lamp.png"
-dest_files=["res://.godot/imported/geraldine_lamp.png-c6a51879fc172d9fb2ce6e1021e2eca2.ctex"]
+source_file="res://assets/vf/life/sizzle.png"
+dest_files=["res://.godot/imported/sizzle.png-c10f9aac4b1e6bba12814a8cb292f9c9.ctex"]
 
 [params]
 

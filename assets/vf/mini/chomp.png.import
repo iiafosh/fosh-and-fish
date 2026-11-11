@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ba0vg33l3mcjr"
-path="res://.godot/imported/geraldine.png-e4aa21759c86f8e52bd71a3c684b6f53.ctex"
+uid="uid://cuw5i5b6jsym3"
+path="res://.godot/imported/chomp.png-3d11a94dc73c82328ea0a7259d3685f3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/mini/geraldine.png"
-dest_files=["res://.godot/imported/geraldine.png-e4aa21759c86f8e52bd71a3c684b6f53.ctex"]
+source_file="res://assets/vf/mini/chomp.png"
+dest_files=["res://.godot/imported/chomp.png-3d11a94dc73c82328ea0a7259d3685f3.ctex"]
 
 [params]
 

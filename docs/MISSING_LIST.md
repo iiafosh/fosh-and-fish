@@ -1,6 +1,6 @@
 # The missing list: who builds what
 
-**Status (3 November 2026):** everything below is built, on `next`. Nothing is released, and none of it has been tested on a real phone, so nobody has felt the vibration yet. One decision is still the owner's: whether to ease the mini-game for clumsy players.
+**Status (11 November 2026):** everything below shipped in 1.0, except the seven outlaws ("The Most Wanted" in part 3), which are built on `next` and not released. None of it has been tested on a real phone, so nobody has felt the vibration yet. One decision is still the owner's: whether to ease the mini-game for clumsy players.
 
 The owner, 2026-11-01: "work on the list you listed we are missing in game and i loved the prev enter screen can we do smth similar to it".
 
@@ -78,6 +78,8 @@ Today it's off by default and the tutorial never mentions it, so most players ne
 - Under `--capture`, print one `HAPTIC <kind>` line per call instead of vibrating, so captures can prove the calls happen. **Nobody can feel this without a real phone; say so in the report.**
 
 ## 3. Gerald (all of them)
+
+> Replaced on 2026-11-03: the outfits and Geraldine below became seven different outlaws. The current plan is "The Most Wanted: seven different fish", at the end of this part.
 
 Gerald is a fish who has decided you're his rival. He turns up, fights you with the mini-game's comedy, gets away, and taunts you from a WANTED poster. Catch him at the end of his run. Then a bottle arrives: "You caught my son. - Geraldine", and his mum starts a harder run for the late game.
 

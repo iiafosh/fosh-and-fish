@@ -174,7 +174,8 @@ func _draw_poster(c: Control, i: int) -> void:
 	else:
 		_draw_portrait(c, _look(i), face_at, 132.0, later)
 	var ink := BROWN if not later else Color(BROWN, 0.6)
-	c.draw_string(font, Vector2(x, r.position.y + 196.0), "???" if secret else String(row.who), HORIZONTAL_ALIGNMENT_CENTER, cw, 22, ink)
+	var who := "???" if secret else String(row.who)
+	c.draw_string(font, Vector2(x, r.position.y + 196.0), who, HORIZONTAL_ALIGNMENT_CENTER, cw, 22 if who.length() <= 12 else (19 if who.length() <= 15 else 16), ink)       # (long names get smaller, not trimmed)
 	# where, and what they were up to (two lines at most)
 	var where := "Somewhere out there" if secret else "Last seen: %s, %s" % [VFData.GERALD_PLACES.get(row.biome, row.biome), UP_TO.get(row.biome, "up to no good")]
 	c.draw_multiline_string(font, Vector2(x + 8.0, r.position.y + 216.0), where, HORIZONTAL_ALIGNMENT_CENTER, cw - 16.0, 13, 2, Color(ink, 0.85))
@@ -182,7 +183,7 @@ func _draw_poster(c: Control, i: int) -> void:
 	c.draw_string(font, Vector2(x, r.position.y + 260.0), foot, HORIZONTAL_ALIGNMENT_CENTER, cw, 15, C_GOLD.darkened(0.25) if not later else Color(ink, 0.7))
 	if g.done:                                         # a rubber stamp over the picture's lower edge: the name and the caption stay readable
 		var word := "CAUGHT!"
-		c.draw_set_transform(c.size * 0.5 + Vector2(0, r.position.y + 150.0).rotated(tilt), tilt - 0.2, Vector2.ONE)
+		c.draw_set_transform(c.size * 0.5 + Vector2(12, r.position.y + 150.0).rotated(tilt), tilt - 0.2, Vector2(0.75, 0.75))
 		var sr := Rect2(-66, -20, 132, 40)
 		c.draw_style_box(m.sbox(Color(PAPER, 0.8), 7, 3, Color(STAMP, 0.9), 0), sr)
 		c.draw_string(font, Vector2(sr.position.x, 9), word, HORIZONTAL_ALIGNMENT_CENTER, sr.size.x, 25, STAMP)
@@ -656,3 +657,6 @@ func capture_test(dir: String) -> void:
 	await wait.call(0.4)
 	print("COLLECT all caught: pill=%s" % wanted_pill.visible)
 	await m._shot(dir + "/collect10_wanted_done.png")
+	m.panel_scroll.scroll_vertical = 100000
+	await wait.call(0.2)
+	await m._shot(dir + "/collect10_wanted_done_lower.png")

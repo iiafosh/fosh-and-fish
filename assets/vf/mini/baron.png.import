@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8e7t5u2fv35j"
-path="res://.godot/imported/geraldine_alien.png-8875b4eb68bc050899cffa44331e18e7.ctex"
+uid="uid://duflfhponpilq"
+path="res://.godot/imported/baron.png-62215d6e51c313306189a00aa26b922b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/mini/geraldine_alien.png"
-dest_files=["res://.godot/imported/geraldine_alien.png-8875b4eb68bc050899cffa44331e18e7.ctex"]
+source_file="res://assets/vf/mini/baron.png"
+dest_files=["res://.godot/imported/baron.png-62215d6e51c313306189a00aa26b922b.ctex"]
 
 [params]
 

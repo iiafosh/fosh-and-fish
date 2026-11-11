@@ -1,6 +1,6 @@
-"""Gerald and his mum, built from scratch: fat, solid and cross. vf_life renders them: close up from the side for the
-mini-game (which draws their eyes and mouths on top, so the eyes here only say where those go), and Gerald from the game's
-camera as the big dark shape that swims past the boat. They dress for every stage of the chase (the outfits below).
+"""Gerald, built from scratch: fat, solid and cross (the other six outlaws of the Most Wanted board are vf_outlaws.py's). vf_life
+renders him close up from the side for the mini-game (which draws his eyes and mouth on top, so the eyes here only say where
+those go), and from the game's camera as the big dark shape that swims past the boat.
 Everything faces +X and the camera's side is y < 0. A part's "wob" says how it moves (pose()).
 """
 import math
@@ -16,16 +16,19 @@ from vf_kit import cone, hexc, ico, mix, sphere, toon, tube, vcolor
 RIVALS = {
     "Gerald": dict(rival=True, top="#8fa24e", belly="#f4ecc2", blotch="#566a32", fin="#c8743a", fin2="#8a4522",
                    hair="#4a2c18", hair2="#8a5c36", mouth=(1.04, -0.3, -0.41), eye=(0.6, 0.17), eye_r=0.15),
-    "Geraldine": dict(rival=True, mum=True, top="#7fa27a", belly="#f6f0d4", blotch="#517458", fin="#d9708a", fin2="#a3425e",
-                      hair="#2f2430", hair2="#dcd2ea", mouth=(1.1, -0.2, -0.13), eye=(0.6, 0.17), eye_r=0.15),
 }
-# a look for every stage of the chase (docs/MISSING_LIST.md part 3): who wears it, the outfit, and what else moves for it
-LOOKS = {"gerald_lava": ("Gerald", "lava", {}), "gerald_pirate": ("Gerald", "pirate", {}), "gerald_pilot": ("Gerald", "pilot", {}),
-         "geraldine_astro": ("Geraldine", "astro", {"bow_at": (0.25, -0.12, 1.17)}),
-         "geraldine_alien": ("Geraldine", "alien", {"bow_at": (0.06, -0.2, 1.12)}),
-         "geraldine_lamp": ("Geraldine", "lamp", {"bow_at": (0.0, -0.2, 1.1), "pearl_glow": 0.35})}
-for _look, (_who, _outfit, _more) in LOOKS.items():
-    RIVALS[_look] = dict(RIVALS[_who], outfit=_outfit, **_more)
+# the other six outlaws of the Most Wanted board: each a different fish (vf_outlaws.py builds them). eye = x, z of the near eye
+# (the mini-game draws it there), mouth = where the mouth goes
+OUTLAWS = {
+    "sizzle": dict(top="#2d2926", belly="#6a4a3a", fin="#2b2724", fin2="#ff7a1f", accent="#ffd23f", eye=(0.62, 0.22), eye_r=0.2, mouth=(1.05, -0.2, -0.12)),
+    "swordbeard": dict(top="#2c5f9a", belly="#e6eef4", fin="#1f4a7e", fin2="#9cc4e8", accent="#d9a02e", eye=(0.78, 0.18), eye_r=0.215, mouth=(1.1, -0.1, -0.12)),
+    "baron": dict(top="#6fa8d8", belly="#f2f6fa", fin="#b8d8f0", fin2="#5a90c0", accent="#7a4a28", eye=(0.62, 0.16), eye_r=0.165, mouth=(1.0, -0.1, -0.1)),
+    "chomp": dict(top="#5d7a96", belly="#f1f5f8", fin="#4b6680", fin2="#2f465c", accent="#e5533d", eye=(0.5, 0.12), eye_r=0.178, mouth=(0.98, -0.2, -0.16)),
+    "zlorp": dict(top="#9a62c9", belly="#d9b8ee", fin="#7e4aa8", fin2="#c79be6", accent="#7dffb0", eye=(0.5, 0.2), eye_r=0.155, mouth=(0.98, -0.2, -0.3)),
+    "duchess": dict(top="#2b2f6b", belly="#7c6fb8", fin="#3a3f85", fin2="#6f7ad0", accent="#ffcf4a", eye=(0.6, 0.25), eye_r=0.183, mouth=(1.12, -0.2, -0.3)),
+}
+for _look, _spec in OUTLAWS.items():
+    RIVALS[_look] = dict(_spec, rival=True, outlaw=_look)
 TOP_H, BELLY_H, WIDE = 0.8, 0.86, 0.72
 FOLDS = ((0.62, 0.07),)                 # (his chins: where along him, how deep)
 
@@ -305,461 +308,20 @@ def build_gerald(spec, details=True):
     return parts
 
 
-def _pearls(body, glow=0.0):
-    """a good string of pearls, round her neck and resting on all that bosom, and a smaller one for Sundays"""
-    pearl = toon("#fbf6ec", spec=0.5, rim=0.25, emit=glow)
-    out = []
-    for n, x0, reach, r, lift in ((13, -0.08, 0.32, 0.078, 0.04), (11, -0.16, 0.24, 0.052, 0.03)):
-        for i in range(n):
-            t = i / (n - 1)
-            x, z = x0 + reach * math.sin(math.pi * t) ** 0.8, 0.5 - 1.14 * t
-            p = ico(loc=(x, _near(body, x, z) - lift, z), scale=r, mat=pearl, sub=3, smooth=True)
-            p["outline_k"] = 0.45
-            p["wob"] = "pearl"
-            out.append(p)
-    return out
-
-
-def _bow(at=(0.2, -0.2, 1.08)):
-    """big. Bigger. It is held on by willpower"""
-    silk, dark = toon("#ec3f78", spec=0.2), toon("#b42658")
-    out = []
-    at = Vector(at)
-    for s in (-1, 1):
-        lobe = sphere(scale=1.0, seg=32, rings=20, mat=silk)
-
-        def fold(co, s=s):
-            u = (co.x + 1.0) * 0.5                              # 0 at the knot .. 1 at the far end
-            flare = 0.26 + 0.74 * u ** 0.8
-            return Vector((s * u * 0.66, co.y * 0.13 + 0.06 * math.sin(u * 3.0), co.z * 0.38 * flare + 0.13 * u * u))
-        K.deform(lobe, fold)
-        lobe.location = at
-        lobe["wob"] = "bow"
-        lobe["root"] = tuple(at)
-        crease = K.tube([at + Vector((s * 0.08, -0.13, 0.02)), at + Vector((s * 0.3, -0.16, 0.03)), at + Vector((s * 0.5, -0.14, 0.12))], 0.012, mat=dark, res=6)
-        crease["decal"] = crease["no_outline"] = True
-        crease["wob"] = "bow"
-        crease["root"] = tuple(at)
-        out += [lobe, crease]
-    knot = sphere(loc=at + Vector((0, -0.08, 0.0)), scale=(0.13, 0.1, 0.13), mat=silk)
-    knot["wob"] = "still"
-    out.append(knot)
-    return out
-
-
-def _perm(spec):
-    """a shampoo and set, every Friday since 1962"""
-    curl = toon(spec["hair2"])
-    out = []
-    golden = math.pi * (3 - math.sqrt(5))
-    for i in range(52):
-        t = (i + 0.5) / 52
-        r = 0.56 * math.sqrt(t)
-        a = golden * i
-        x, y = 0.28 + r * math.cos(a), r * math.sin(a) * 1.05
-        c = ico(loc=(x, y, _over(x, y) + 0.06), scale=0.125, mat=curl, sub=2, smooth=True)
-        c["outline_k"] = 0.55
-        c["wob"] = "still"
-        out.append(c)
-    return out
-
-
-def build_geraldine(spec):
-    """(the mini-game draws her one thin eyebrow, already raised at you)"""
-    body = _body(spec)
-    bpy.context.view_layer.update()
-    parts = [body] + _fins(spec, body, torn=False)
-    parts += _face_eyes(spec, body)
-    ex, ez = spec["eye"]
-    lash = toon(spec["hair"])
-    y = _near(body, ex - 0.3, ez)
-    for a in (150, 172, 194):                                   # lashes, out past the eye the mini-game draws
-        d = Vector((math.cos(math.radians(a)), 0, math.sin(math.radians(a))))
-        c = tube([Vector((ex, y - 0.02, ez)) + d * 0.3, Vector((ex, y - 0.06, ez + 0.03)) + d * 0.46], 0.02, mat=lash, taper=(1.0, 0.2), res=4)
-        c["outline_k"] = 0.3
-        c["wob"] = "still"
-        parts.append(c)
-    # a mouth like a closed purse
-    upper = sphere(loc=(1.01, 0.0, -0.08), scale=(0.15, 0.24, 0.085), mat=toon("#d42c4f", spec=0.3))
-    lower = sphere(loc=(0.99, 0.0, -0.21), scale=(0.17, 0.26, 0.105), mat=toon("#e83a5e", spec=0.3))
-    for o in (upper, lower):
-        o["wob"] = "still"
-    parts += [upper, lower]
-    parts += _perm(spec) + _pearls(body, spec.get("pearl_glow", 0.0)) + _bow(spec.get("bow_at", (0.2, -0.2, 1.08)))
-    return parts
-
-
-# ------------------------------------------------------------------- outfits
-# Whatever they wear, his moustache, MUM and underbite stay in sight, and her perm, bow and pearls: it's obviously the
-# same fish. Nothing goes where the mini-game draws the eye (round spec["eye"], about twice the marker, a brow above
-# it) or the mouth, so caps stop above the brows and glasses are pushed up.
-def _skin(x, a, lift=0.0):
-    """a point on the top half of the fish: x along it, a degrees round from the top of the back (+ toward the camera)"""
-    k = 1.0 if x > -0.3 else max(0.14, 1.0 - 0.62 * ((-0.3 - x) / 0.55) ** 2)
-    r = math.sqrt(max(1.0 - x * x, 0.0)) * k
-    t = math.radians(a)
-    return Vector((x, -math.sin(t) * (WIDE * r + lift), math.cos(t) * (TOP_H * r + lift)))
-
-
-def _round(body, x, a, lift=0.0, mid=-0.05):
-    """the point on the fish at x, a degrees round from the top: all the way round, belly and all"""
-    d = Vector((0.0, -math.sin(math.radians(a)), math.cos(math.radians(a))))
-    ev = body.evaluated_get(bpy.context.evaluated_depsgraph_get())
-    hit, loc, _n, _i = ev.ray_cast(Vector((x, 0.0, mid)) + d * 3.0, -d)
-    return loc + d * lift if hit else Vector((x, 0.0, mid)) + d * 0.8
-
-
-def _edge(x):
-    """how far down the side a cap may come, here: above his brows in front, lower behind them"""
-    return 18.0 + 37.0 * _smooth((0.3 - x) / 0.25)
-
-
-def _shell(fn, nu, nv, thick, mat=None):
-    """a curved piece with a real thickness, so it gets an outline: fn(u, v) -> point, u and v from 0 to 1"""
-    verts = [tuple(fn(i / nu, j / nv)) for i in range(nu + 1) for j in range(nv + 1)]
-    faces = [(i * (nv + 1) + j, (i + 1) * (nv + 1) + j, (i + 1) * (nv + 1) + j + 1, i * (nv + 1) + j + 1) for i in range(nu) for j in range(nv)]
-    me = bpy.data.meshes.new("shell")
-    me.from_pydata(verts, [], faces)
-    ob = bpy.data.objects.new("shell", me)
-    bpy.context.collection.objects.link(ob)
-    bpy.ops.object.select_all(action="DESELECT")
-    ob.select_set(True)
-    bpy.context.view_layer.objects.active = ob
-    mod = ob.modifiers.new("thick", "SOLIDIFY")
-    mod.thickness = thick
-    mod.offset = 0.0
-    bpy.ops.object.modifier_apply(modifier=mod.name)
-    bm = bmesh.new()
-    bm.from_mesh(me)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    bm.to_mesh(me)
-    bm.free()
-    for p in me.polygons:
-        p.use_smooth = True
-    if mat is not None:
-        me.materials.append(mat)
-    ob["outline_even"] = False
-    return ob
-
-
-def _curve(points, u):
-    """a smooth way through the points (Catmull-Rom), u from 0 to 1"""
-    n = len(points) - 1
-    f = min(max(u, 0.0) * n, n - 1e-6)
-    i = int(f)
-    t = f - i
-    p0, p1, p2, p3 = (Vector(points[max(i - 1, 0)]), Vector(points[i]), Vector(points[i + 1]), Vector(points[min(i + 2, n)]))
-    return 0.5 * (2.0 * p1 + (p2 - p0) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t * t + (3.0 * p1 - p0 - 3.0 * p2 + p3) * t ** 3)
-
-
-def _ribbon(points, width, mat=None, taper=1.0, thick=0.025, n=40, twist=0.0):
-    """a strip of cloth along the points, its flat side to the camera. twist: how far it turns over as it goes"""
-    def at(u, v):
-        p = _curve(points, u)
-        d = (_curve(points, min(u + 0.01, 1.0)) - _curve(points, max(u - 0.01, 0.0))).normalized()
-        side = d.cross(Vector((0.0, -1.0, 0.0))).normalized()
-        if twist:
-            side = Quaternion(d, twist * math.sin(u * math.pi * 2.5)) @ side
-        return p + side * (v - 0.5) * width * (1.0 - (1.0 - taper) * u)
-    return _shell(at, n, 2, thick, mat)
-
-
-def _coil(a, b, turns=6, r=0.03, n=8):
-    """a spring from a to b"""
-    a, b = Vector(a), Vector(b)
-    d = (b - a).normalized()
-    e1 = d.cross(Vector((0.0, 1.0, 0.0))).normalized()
-    e2 = d.cross(e1)
-    pts = []
-    for i in range(turns * n + 1):
-        t = i / (turns * n)
-        w = t * turns * math.tau
-        pts.append(a.lerp(b, t) + (e1 * math.cos(w) + e2 * math.sin(w)) * r * min(1.0, t * 8.0, (1.0 - t) * 8.0))
-    return pts
-
-
-def _dots(base, dot, every=0.13, r=0.032):
-    """polka dots, laid round the fish"""
-    b, d = hexc(base), hexc(dot)
-
-    def paint(co, n):
-        u = co.x / every
-        w = math.atan2(-co.y, co.z) * 0.78 / every
-        row = math.floor(w)
-        u += (row % 2) * 0.5
-        dx, dw = (u - math.floor(u) - 0.5) * every, (w - row - 0.5) * every
-        return d if dx * dx + dw * dw < r * r else b
-    return paint
-
-
-def _dress(ob, paint, key):
-    vcolor(ob, paint)
-    ob.data.materials.clear()
-    ob.data.materials.append(toon(None, vcol="col", key=("rivaldress", key)))
-    return ob
-
-
-def _bare(*obs):
-    """no outline, and never taken for the eye marker (vf_life.render_mini)"""
-    for o in obs:
-        o["decal"] = o["no_outline"] = True
-    return list(obs)
-
-
-def _wob(obs, kind, root=None):
-    """how they move (pose()). And no even outline: on a tube with a tight bend it shoots out a long spike"""
-    for o in obs:
-        o["wob"] = kind
-        o["outline_even"] = False
-        if root is not None:
-            o["root"] = tuple(root)
-    return list(obs)
-
-
-def _take(parts, tag):
-    """leave a part of the fish out (under a helmet, say)"""
-    out = []
-    for p in parts:
-        if p.get("part") == tag:
-            bpy.data.objects.remove(p)
-        else:
-            out.append(p)
-    return out
-
-
-def _turned(ob, face, at):
-    """point the object's own +Z along face, and put it at"""
-    ob.rotation_mode = "QUATERNION"
-    ob.rotation_quaternion = Vector((0.0, 0.0, 1.0)).rotation_difference(Vector(face).normalized())
-    ob.location = at
-    return ob
-
-
-def _mitts(body):
-    """oven gloves where his paddles were: quilted, cuffs turned back, a thumb each"""
-    parts = []
-    near = _near(body, 0.2, -0.36)
-
-    def quilt(co, n):
-        q = abs(math.sin((co.x + co.z) * 42.0)) < 0.18 or abs(math.sin((co.x - co.z) * 42.0)) < 0.18
-        return hexc("#a8322a") if q else hexc("#e2513f")
-    for y0 in (near, -near):
-        out = 1.0 if y0 > 0 else -1.0
-        root = Vector((0.2, y0, -0.36))
-        d = Vector((math.cos(math.radians(225.0)), out * 0.45, math.sin(math.radians(225.0)))).normalized()
-        q = Vector((1.0, 0.0, 0.0)).rotation_difference(d)
-        mitt = sphere(seg=32, rings=16)
-        K.deform(mitt, lambda co: Vector((co.x * 0.25, co.y * 0.125, co.z * 0.17)))
-        _dress(mitt, quilt, "mitt")
-        thumb = sphere(scale=(0.09, 0.065, 0.08), mat=toon("#e2513f"))
-        cuff = K.cyl(r=0.13, depth=0.08, verts=24, mat=toon("#f2e8d2"))
-        for o, local in ((mitt, Vector((0.27, 0.0, 0.0))), (thumb, Vector((0.17, 0.0, 0.15)))):
-            o.rotation_mode = "QUATERNION"
-            o.rotation_quaternion = q
-            o.location = root + q @ local
-        _turned(cuff, d, root + d * 0.035)
-        parts += _wob([mitt, thumb, cuff], "paddle", root)
-    return parts
-
-
-def _lava(spec, parts):
-    """Volcanic: a fireproof helmet, a size too small, with the visor pushed up; oven gloves where his paddles were"""
-    body = parts[0]
-    parts = _take(_take(parts, "hair"), "paddle")
-    silver, rib, gold = toon("#d6dee5", spec=0.55, rim=0.25), toon("#8d99a5", spec=0.3), toon("#ef9f26", spec=0.8, rim=0.35)
-    c = Vector((0.36, 0.0, 0.84))
-    dome = sphere(seg=48, rings=24, mat=silver)
-    K.deform(dome, lambda co: Vector((co.x * 0.48, co.y * 0.54, max(co.z, -0.2) * 0.42)))
-    dome.location = c
-    crest = tube([c + Vector((0.48 * math.cos(t), 0.0, 0.45 * math.sin(t))) for t in (1.75, 2.1, 2.45, 2.8)], 0.05, mat=rib, res=8)
-    brim = sphere(seg=48, rings=12, mat=silver)
-    K.deform(brim, lambda co: Vector((co.x * (0.6 if co.x > 0 else 0.84), co.y * 0.62, co.z * 0.035)))
-    brim.location = c + Vector((-0.06, 0.0, -0.07))
-    brim.rotation_euler = (0.0, math.radians(-8.0), 0.0)
-
-    # the face shield, flipped up out of the way: tinted gold, on a hinge each side
-    def visor(u, v, out=0.0):
-        az, el = math.radians(-80.0 + 160.0 * u), math.radians(4.0 + 60.0 * v)
-        return c + Vector((math.cos(el) * math.cos(az) * (0.53 + out), math.cos(el) * math.sin(az) * (0.59 + out), math.sin(el) * (0.47 + out)))
-    shield = _shell(visor, 32, 12, 0.035, gold)
-    hinges = [sphere(loc=visor(u, 0.08, 0.04), scale=0.045, mat=rib) for u in (0.03, 0.97)]
-    glint = _bare(tube([visor(0.32, v, 0.03) for v in (0.25, 0.5, 0.75)], 0.02, mat=toon("#fff7d6", flat_glow=True), res=4))
-    return parts + _wob([dome, crest, brim, shield] + hinges + glint, "still") + _mitts(body)
-
-
-def _pirate(spec, parts):
-    """Ocean: a spotted bandana, a patch on the eye you can't see (its strap shows), and a gold earring"""
-    body = parts[0]
-    ink, gold = toon("#17131a", shade=1.0, rim=0.0), toon("#f2c33d", spec=0.6, rim=0.3)
-
-    def reach(x):
-        return 22.0 + 40.0 * _smooth((0.36 - x) / 0.3)             # (down to his gills behind the eye, up off it in front)
-
-    def cap(u, v):
-        x = 0.1 + 0.78 * u
-        w = 1.0 - abs(v - 0.5) * 2.0
-        return _skin(x, (v - 0.5) * 2.0 * reach(x), 0.035 + 0.09 * math.sin(math.pi * u) ** 0.7 * w ** 0.6)
-    spots = _dots("#d23a2c", "#fbf1df", every=0.17, r=0.046)
-    band = _dress(_shell(cap, 32, 24, 0.03), spots, "bandana")
-    knot_at = _skin(0.12, 30.0, 0.12)
-    knot = sphere(loc=knot_at, scale=(0.13, 0.1, 0.12), mat=toon("#c23226"))
-    tails = []
-    for pts, w in (([knot_at, knot_at + Vector((-0.2, -0.06, 0.14)), knot_at + Vector((-0.46, -0.08, 0.24)), knot_at + Vector((-0.72, -0.06, 0.18))], 0.15),
-                   ([knot_at, knot_at + Vector((-0.18, -0.1, -0.04)), knot_at + Vector((-0.4, -0.12, -0.1)), knot_at + Vector((-0.6, -0.12, -0.22))], 0.13)):
-        tails.append(_dress(_ribbon(pts, w, taper=0.55, twist=0.5), spots, "bandana"))
-    parts += _wob([band, knot], "body") + _wob(tails, "scarf", knot_at)
-    # the patch is on his far eye; the strap comes round the front of his face, under his brow, and away under the bandana
-    ex, ez = spec["eye"]
-    patch = sphere(loc=(ex, -_near(body, ex, ez) + 0.03, ez), scale=(0.17, 0.05, 0.15), mat=ink)
-    strap = tube([_skin(0.68, -60.0, 0.02), _skin(0.84, -28.0, 0.03), _skin(0.9, 0.0, 0.035), _skin(0.78, 34.0, 0.035), _skin(0.62, 44.0, 0.035),
-                  _skin(0.46, 48.0, 0.035), _skin(0.32, 48.0, 0.03), _skin(0.18, 42.0, 0.025), _skin(0.06, 34.0, 0.02)], 0.03, mat=ink, res=12)
-    strap["outline_k"] = 0.5
-    parts += _wob([patch, strap], "still")
-    # a gold earring, hanging from under his moustache
-    ear = Vector((0.27, _near(body, 0.27, -0.14) - 0.03, -0.14))
-    stud = sphere(loc=ear, scale=0.045, mat=gold)
-    hoop = K.torus(loc=ear + Vector((0.0, -0.02, -0.14)), R=0.13, r=0.03, rot=(90, 0, 0), mat=gold)
-    hoop["outline_k"] = 0.5
-    return parts + _wob([stud, hoop], "pearl")
-
-
-def _pilot(spec, parts):
-    """Sky: a leather flying cap with the goggles pushed up, and a scarf far too long for him"""
-    body = parts[0]
-    leather, seam_m, brass, fleece = toon("#b0703e", spec=0.15), toon("#5a3418"), toon("#c9923f", spec=0.5, rim=0.25), toon("#f1e4c8")
-
-    def cap(u, v):
-        x = 0.12 + 0.72 * u
-        return _skin(x, (v - 0.5) * 2.0 * _edge(x), 0.035 + 0.03 * math.sin(math.pi * u) * (1.0 - abs(v - 0.5) * 2.0) ** 0.5)
-    leather_cap = _shell(cap, 28, 20, 0.035, leather)
-    seam = tube([_skin(x, 0.0, 0.07) for x in (0.13, 0.34, 0.56, 0.8)], 0.016, mat=seam_m, res=6)
-    seam["outline_k"] = 0.3
-    # (a fleece rim all round the edge of it, so you can see where it stops)
-    rim = [_skin(0.12 + 0.72 * i / 12, s * _edge(0.12 + 0.72 * i / 12), 0.05) for s in (1.0,) for i in range(13)]
-    rim += [_skin(0.84, a, 0.05) for a in (9.0, 0.0, -9.0)] + [_skin(0.12 + 0.72 * i / 12, -_edge(0.12 + 0.72 * i / 12), 0.05) for i in range(12, -1, -1)]
-    trim = tube(rim, 0.04, mat=fleece, res=8)
-    trim["outline_k"] = 0.5
-    parts += _wob([leather_cap, seam, trim], "body")
-    # goggles on his forehead, the near lens turned a little toward you
-    glass = toon("#a6e1f5", spec=0.7, emit=0.25)
-    lenses = []
-    for a, face in ((22.0, (0.45, -0.75, 0.5)), (-22.0, (0.45, 0.35, 0.82))):
-        at = _skin(0.64, a, 0.12)
-        ring = _turned(K.torus(R=0.12, r=0.034, mat=brass), face, at)
-        lens = _turned(K.cyl(r=0.105, depth=0.02, verts=24, mat=glass), face, at)
-        shine = _bare(sphere(loc=at + ring.rotation_quaternion @ Vector((-0.035, 0.03, 0.02)), scale=(0.025, 0.018, 0.01), mat=toon("#ffffff", flat_glow=True)))
-        lenses.append(at)
-        parts += _wob([ring, lens] + shine, "still")
-    # (the strap round the back, and a bridge between the lenses: separate, so no curve overshoots a lens)
-    straps = [tube([lenses[0], _skin(0.42, 24.0, 0.075), _skin(0.16, 30.0, 0.06)], 0.026, mat=seam_m, res=8),
-              tube([lenses[0], _skin(0.7, 0.0, 0.14), lenses[1]], 0.022, mat=brass, res=8),
-              tube([lenses[1], _skin(0.42, -24.0, 0.075), _skin(0.16, -30.0, 0.06)], 0.026, mat=seam_m, res=8)]
-    for s in straps:
-        s["outline_k"] = 0.5
-    parts += _wob(straps, "still")
-    # the scarf: round his neck (such as it is), knotted at the side, and the ends streaming out behind
-    white = toon("#f6f2e8")
-    band = _shell(lambda u, v: _round(body, 0.21 + (v - 0.5) * 0.15, u * 360.0, 0.045), 48, 2, 0.03, white)
-    knot_at = _round(body, 0.21, 52.0, 0.09)
-    knot = sphere(loc=knot_at, scale=(0.1, 0.07, 0.09), mat=white)
-    parts += _wob([band, knot], "body")
-    # (low along his back, under the cap and over the dorsal fin, clear of MUM)
-    long = [(-0.2, -0.06, 0.12), (-0.48, -0.05, 0.22), (-0.78, -0.03, 0.18), (-1.06, -0.01, 0.3), (-1.34, 0.01, 0.24), (-1.56, 0.03, 0.34)]
-    short = [(-0.18, -0.08, -0.02), (-0.42, -0.08, 0.04), (-0.66, -0.06, -0.02), (-0.9, -0.05, 0.06), (-1.08, -0.04, 0.0)]
-    for path, w, tw in ((long, 0.12, 0.9), (short, 0.11, 0.8)):
-        pts = [knot_at] + [knot_at + Vector(p) for p in path]
-        tip_x = pts[-1].x
-
-        def stripes(co, n, tip_x=tip_x):
-            s = co.x - tip_x
-            return hexc("#d23a2c") if (0.05 < s < 0.1 or 0.16 < s < 0.21) else hexc("#f6f2e8")
-        parts += _wob([_dress(_ribbon(pts, w, taper=0.7, twist=tw), stripes, ("scarf", round(tip_x, 3)))], "scarf", knot_at)
-    return parts
-
-
-def _astro(spec, parts):
-    """Space: a glass bubble for a helmet, over her head and the perm, with the bow still on top (outside); a collar"""
-    c, R, back = Vector((0.25, 0.0, 0.0)), 1.1, -0.4
-    glass_m = toon("#d8f3ff", alpha=0.2, rim=0.8, key="rivalglass")
-    glass_m.use_backface_culling = True
-    glass = sphere(loc=c, scale=R, seg=64, rings=32, mat=glass_m)
-    bm = bmesh.new()
-    bm.from_mesh(glass.data)
-    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=((back - c.x) / R, 0.0, 0.0), plane_no=(1.0, 0.0, 0.0), clear_inner=True)
-    bm.to_mesh(glass.data)
-    bm.free()
-    rr = math.sqrt(R * R - (back - c.x) ** 2)
-    steel = toon("#c7d0d8", spec=0.5)
-    collar = K.torus(loc=(back, 0.0, 0.0), R=rr, r=0.075, rot=(0, 90, 0), mat=steel, seg=64)
-    rivets = [sphere(loc=(back + 0.06, -math.sin(math.radians(t)) * rr, math.cos(math.radians(t)) * rr), scale=0.028, mat=toon("#8d99a5")) for t in (35, 65, 95, 125)]
-    for r in rivets:
-        r["outline_k"] = 0.4
-
-    def on_glass(*d):
-        return c + Vector(d).normalized() * (R + 0.01)
-    shine = toon("#ffffff", flat_glow=True)
-    glints = _bare(glass, tube([on_glass(-0.5, -0.55, 0.66), on_glass(-0.28, -0.58, 0.76), on_glass(-0.04, -0.58, 0.82)], 0.022, mat=shine, res=8),
-                   sphere(loc=on_glass(0.12, -0.6, 0.79), scale=0.026, mat=shine))
-    return parts + _wob(glints + [collar] + rivets, "still")
-
-
-def _alien(spec, parts):
-    """Alien: a headband with antennae on springs, and sunglasses for three eyes pushed up on the perm"""
-    green, glow = toon("#76d24a", spec=0.3), toon("#b6ff6a", emit=0.85)
-    band = _shell(lambda u, v: _skin(0.44 + (v - 0.5) * 0.1, -44.0 + 88.0 * u, 0.235), 24, 2, 0.03, toon("#c6d0d8", spec=0.55))
-    gem = sphere(loc=_skin(0.44, 0.0, 0.27), scale=0.05, mat=green)
-    parts += _wob([band, gem], "still")
-    for base, tip in ((_skin(0.5, 16.0, 0.25), (0.72, -0.44, 1.5)), (_skin(0.38, -16.0, 0.25), (0.16, 0.36, 1.58))):
-        spring = tube(_coil(base, tip), 0.013, mat=toon("#cfd8e0", spec=0.5), res=4)
-        spring["outline_k"] = 0.35
-        ball = sphere(loc=tip, scale=0.085, mat=glow)
-        shine = _bare(sphere(loc=Vector(tip) + Vector((0.025, -0.06, 0.035)), scale=0.022, mat=toon("#ffffff", flat_glow=True)))
-        parts += _wob([spring, ball] + shine, "antenna", base)
-    # three lenses, one for each eye she hasn't got, facing you from the top of her head
-    frame_m, lens_m = toon("#ff4fa0", spec=0.4), toon("#241a33", spec=0.7, rim=0.3)
-    face = (0.15, -0.9, 0.4)
-    centres = [Vector((0.5, -0.38, 0.98)), Vector((0.71, -0.4, 0.93)), Vector((0.9, -0.36, 0.83))]
-    shades = []
-    for p in centres:
-        shades += [_turned(K.torus(R=0.115, r=0.017, mat=frame_m), face, p), _turned(K.cyl(r=0.108, depth=0.025, verts=24, mat=lens_m), face, p)]
-        shades += _bare(sphere(loc=p + Vector((-0.032, -0.05, 0.036)), scale=(0.028, 0.012, 0.02), mat=toon("#ffffff", flat_glow=True)))
-    for a, b in zip(centres, centres[1:]):
-        shades.append(tube([a + (b - a).normalized() * 0.105, b - (b - a).normalized() * 0.105], 0.018, mat=frame_m, res=4))
-    shades.append(tube([centres[0] + Vector((-0.1, 0.0, 0.0)), centres[0] + Vector((-0.22, 0.22, 0.02)), Vector((0.2, 0.12, 0.94))], 0.018, mat=frame_m, res=6))
-    return parts + _wob(shades, "still")
-
-
-def _lamp(spec, parts):
-    """Abyss: a miner's lamp strapped on top of the perm (it is very dark down there), and the good pearls, which glow"""
-    brass, steel, dark = toon("#d9a43a", spec=0.45), toon("#b8c2cc", spec=0.5), toon("#3c3640")
-    d = Vector((0.85, -0.42, -0.2)).normalized()            # (where it shines: ahead, and a little at you)
-    at = Vector((0.7, -0.18, 0.97))
-    housing = _turned(K.cyl(r=0.13, depth=0.24, verts=24, mat=brass), d, at)
-    bezel = _turned(K.torus(R=0.13, r=0.032, mat=steel), d, at + d * 0.12)
-    lens = _turned(K.cyl(r=0.11, depth=0.02, verts=24, mat=toon("#fff6c8", flat_glow=True)), d, at + d * 0.126)
-    beam_m = toon("#fff2b0", flat_glow=True, alpha=0.24, key="rivalbeam")
-    beam_m.use_backface_culling = True
-    beam = _turned(K.cone(r1=0.11, r2=0.28, depth=0.36, verts=32, mat=beam_m), d, at + d * (0.13 + 0.18))
-    halo = sphere(loc=at + d * 0.16, scale=0.21, mat=toon("#ffe98a", flat_glow=True, alpha=0.24))
-    strap = tube([at - d * 0.08, _skin(0.5, 4.0, 0.24), _skin(0.26, 0.0, 0.26), _skin(0.0, 0.0, 0.22), _skin(-0.22, 6.0, 0.12)], 0.035, mat=dark, res=8)
-    strap["outline_k"] = 0.5
-    return parts + _wob([housing, bezel, strap] + _bare(lens, beam, halo), "still")
-
-
-OUTFITS = {"lava": _lava, "pirate": _pirate, "pilot": _pilot, "astro": _astro, "alien": _alien, "lamp": _lamp}
-
-
 def build(spec):
-    parts = build_geraldine(spec) if spec.get("mum") else build_gerald(spec)
-    if spec.get("outfit"):
-        parts = OUTFITS[spec["outfit"]](spec, parts)
-    return parts
+    if spec.get("outlaw"):
+        import vf_outlaws as OUT              # (the other six build on this file's helpers, so it's imported when needed)
+        return OUT.build(spec)
+    return build_gerald(spec)
 
 
-def build_shape():
-    """Gerald in the dark, from above: only the bulk of him, his moustache and two very cross eyes"""
-    spec = dict(RIVALS["Gerald"], top="#22344a", belly="#101c2a", blotch="#182838", fin="#1b2b3c", fin2="#101c28", hair="#0a1119", hair2="#121d2a")
+def build_shape(name="Gerald"):
+    """an outlaw in the dark, from above: only the bulk of them and two very cross eyes (Gerald: and his moustache)"""
+    night = dict(top="#22344a", belly="#101c2a", blotch="#182838", fin="#1b2b3c", fin2="#101c28", hair="#0a1119", hair2="#121d2a", accent="#16222f")
+    if name != "Gerald":
+        import vf_outlaws as OUT
+        return OUT.build(dict(RIVALS[name], dark=True, **night))
+    spec = dict(RIVALS["Gerald"], **night)
     body = _body(spec)
     bpy.context.view_layer.update()
     parts = [body] + _fins(spec, body) + _moustache(spec)
@@ -824,5 +386,15 @@ def pose(baked, ph):
             r = p["root"].to_list()
             k = np.clip((a[:, 2] - r[2]) / 0.6, 0.0, 1.0) ** 2
             o[:, 0] += k * np.sin(ph + 0.6) * 0.07
+        elif kind == "whisker":                                                 # (strands reaching forward: they waft)
+            o[:, 2] += np.clip((a[:, 0] - 0.9) / 0.9, 0.0, 1.0) * np.sin(ph * 2.0 - a[:, 0] * 3.0) * 0.08
+        elif kind == "sway":                                                    # (hangs from its root and swings)
+            r = p["root"].to_list()
+            k = np.clip(np.hypot(a[:, 0] - r[0], a[:, 2] - r[2]) / 0.9, 0.0, 1.0)
+            o[:, 0] += k * np.sin(ph - k * 3.0) * 0.07
+        elif kind == "wing":                                                    # (big side fins: they flap)
+            r = p["root"].to_list()
+            k = np.clip(np.hypot(a[:, 0] - r[0], a[:, 2] - r[2]) / 1.0, 0.0, 1.0)
+            o[:, 2] += k * np.sin(ph * 2.0 - 0.4) * 0.14
         p.data.vertices.foreach_set("co", o.ravel())
         p.data.update()

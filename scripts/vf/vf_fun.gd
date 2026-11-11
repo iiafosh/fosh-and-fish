@@ -332,6 +332,16 @@ func gerald_test(dir: String) -> void:
 	await wait.call(2.0)
 	await _rival_round(dir, "5_caught_geraldine", "win")
 	print("GERALD all done: %s hats=%s info=%s due=%s" % [VF.gerald, VF.hats_owned, VF.gerald_info(), VF.gerald_due()])
+	for i in VFData.GERALD.size():         # every outlaw's whole act
+		var act: Dictionary = VFData.GERALD[i]
+		VF.gerald = {"stage": i, "casts": 999, "tries": 0, "wins": i, "losses": 0}
+		VF.biome = act.biome
+		VF.level = int(act.level)
+		VF.rod = "Dark Rod"
+		if not "Dark Rod" in VF.owned_rods: VF.owned_rods.append("Dark Rod")
+		VF.changed.emit()
+		await wait.call(2.0)
+		await _rival_gags(dir)
 	for row in VFData.GERALD:              # their shape going past the boat, wherever they turn up
 		VF.biome = row.biome
 		VF.changed.emit()

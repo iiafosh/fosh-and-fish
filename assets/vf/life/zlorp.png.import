@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bdmm648o8i1pt"
-path="res://.godot/imported/gerald_lava.png-68d33c01b2a91048b64594b7ec9022cc.ctex"
+uid="uid://u15xbfx2o12e"
+path="res://.godot/imported/zlorp.png-365fdf8eecd354c168b928bfab400dd9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/vf/mini/gerald_lava.png"
-dest_files=["res://.godot/imported/gerald_lava.png-68d33c01b2a91048b64594b7ec9022cc.ctex"]
+source_file="res://assets/vf/life/zlorp.png"
+dest_files=["res://.godot/imported/zlorp.png-365fdf8eecd354c168b928bfab400dd9.ctex"]
 
 [params]
 
