@@ -1,15 +1,28 @@
 {
-  "version": "1.0",
-  "build": 18,
+  "version": "1.0.1",
+  "build": 19,
   "base": 18,
   "notes": [
-    "Shiny fish: only 3,000 of each in the world, numbered",
-    "Live events every 10 minutes of play, and the Leviathan boss",
-    "Idle play: auto-fish, your fleet, daily rewards",
-    "Gerald and Geraldine, 21 residents to find, 34 achievements, 11 hats, the aquarium",
-    "A new look, a real soundtrack, and rebirths much sooner"
+    "Seven different outlaws to catch, one per world, each caught for good",
+    "FishTok sits beside the game: keep fishing while you scroll",
+    "Smaller fixes: the guide's sell key, boat keys while you scroll the phone"
   ],
-  "date": "2026-11-05",
+  "date": "2026-11-11",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
-  "patches": {}
+  "patches": {
+    "18": {
+      "desktop": {
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v1.0.1/fosh_fish-1.0.1-patch-desktop.pck",
+        "size": 1450204,
+        "sha256": "a82ce8e4db2eaf1a1d37a854e8186c37d5f1fb88955204cc7ed5e93cbddbd262",
+        "sig": "pzI7lS4nIlRe2RVVpSOvyCejFdlR3ZPg8jed8acbxLR/KP3u2KyV4GO6YRBuRKiDullWKSspZ2RP0G/g4bNsKAq/U9i7tcmYKQXqtkIC6kV1WOphqTTcVrSofpLfgoIAe97+0STvX3Cu2xP7SN4WdxFKUWlSLnYLXudVNBKDkvA3Zydlg21X1dNw/4OPGNBLbEgi10/WP0adEfmKjLno91raVEl+7YKlncP8O3mqLURMdxXsjt/8PN0+ZYXBrFZOjIb3WcIJG7vDDZYK4Uh1xRhqXINwSrkqZbI3JWQCX8fqTOTQys/P/0Ys6NjJCEteIthGdzG8BgpQfNehCBm0fA=="
+      },
+      "android": {
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v1.0.1/fosh_fish-1.0.1-patch-android.pck",
+        "size": 1450204,
+        "sha256": "a82ce8e4db2eaf1a1d37a854e8186c37d5f1fb88955204cc7ed5e93cbddbd262",
+        "sig": "pzI7lS4nIlRe2RVVpSOvyCejFdlR3ZPg8jed8acbxLR/KP3u2KyV4GO6YRBuRKiDullWKSspZ2RP0G/g4bNsKAq/U9i7tcmYKQXqtkIC6kV1WOphqTTcVrSofpLfgoIAe97+0STvX3Cu2xP7SN4WdxFKUWlSLnYLXudVNBKDkvA3Zydlg21X1dNw/4OPGNBLbEgi10/WP0adEfmKjLno91raVEl+7YKlncP8O3mqLURMdxXsjt/8PN0+ZYXBrFZOjIb3WcIJG7vDDZYK4Uh1xRhqXINwSrkqZbI3JWQCX8fqTOTQys/P/0Ys6NjJCEteIthGdzG8BgpQfNehCBm0fA=="
+      }
+    }
+  }
 }
