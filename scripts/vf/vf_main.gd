@@ -109,6 +109,7 @@ var derby                      # vf_derby.gd: the Fishing Derby (3-minute runs, 
 var visitors                   # vf_visitors.gd: real players' boats sailing through your bay
 var share                      # vf_share.gd: share cards (a shiny, a Derby score) to post anywhere
 var party                      # vf_party.gd: fish with friends, live (a party code, their boats in your bay)
+var beta                       # vf_beta.gd: BETA branch only: expeditions, pet eggs, codes
 var _calm_idle := 0.0
 var _calm_a := 1.0
 
@@ -134,6 +135,7 @@ func _ready() -> void:
 	visitors = load("res://scripts/vf/vf_visitors.gd").new(self)
 	share = load("res://scripts/vf/vf_share.gd").new(self)
 	party = load("res://scripts/vf/vf_party.gd").new(self)
+	beta = load("res://scripts/vf/vf_beta.gd").new(self)
 	collect.build_hud()
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
@@ -1651,7 +1653,7 @@ func _render_panel() -> void:
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
 		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
 		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby", "leaderboard": "Leaderboard",
-		"party": "Fish with friends"}
+		"party": "Fish with friends", "beta": "Beta: new ideas"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		var tabs: Array = PANEL_TABS[_panel_kind]
@@ -1713,6 +1715,7 @@ func _render_panel() -> void:
 		"aquarium": collect.panel_aquarium()
 		"derby": derby.panel()
 		"party": party.panel()
+		"beta": beta.panel()
 
 ## Menu -> Account: sign in, cloud save (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -2332,6 +2335,10 @@ func _check_capture() -> void:
 		return
 	if "--party-test" in OS.get_cmdline_user_args():
 		await party.test(dir)
+		get_tree().quit()
+		return
+	if "--beta-test" in OS.get_cmdline_user_args():
+		await beta.test(dir)
 		get_tree().quit()
 		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:
@@ -3665,6 +3672,7 @@ const MENU_TILES := [      # [panel, name, icon, key, what it is]
 	["leaderboard", "Leaderboard", "ranking", "L", "The top fishers, and this week's Derby"],
 	["derby", "Derby", "trophy", "", "3 minutes, one board for all"],
 	["party", "Friends", "sailboat", "", "Fish together, live"],
+	["beta", "Beta", "flask", "", "Expeditions, pet eggs, codes"],
 	["events", "Events", "confetti", "", "What's on, and the Event Shop"],
 	["prestige", "Prestige", "crown", "8", "Start over, stronger"],
 	["pets", "Pets", "paw-print", "5", "Companions with buffs"],
@@ -3684,7 +3692,7 @@ const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
 	"pets": Color("#ec4899"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"), "stats": Color("#0ea5e9"),
 	"events": Color("#f59e0b"), "leaderboard": Color("#0e7490"), "achievements": Color("#c98b1c"),
-	"wanted": Color("#a8854d"), "derby": Color("#d4920f"), "party": Color("#7c5cd6"),
+	"wanted": Color("#a8854d"), "derby": Color("#d4920f"), "party": Color("#7c5cd6"), "beta": Color("#9333ea"),
 }
 
 ## what a tile or a small button says beside its name, if anything: [text, color], or []

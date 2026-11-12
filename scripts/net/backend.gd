@@ -121,6 +121,10 @@ func _load_config() -> void:
 	# real session and uploaded its demo save - Lv 120, P1 - over the owner's real cloud save.)
 	if capturing and not url_given:
 		url = ""
+	# the BETA branch's builds play offline: they have their own save folder (project.godot) and must never sync a beta
+	# save over a real cloud save
+	if str(ProjectSettings.get_setting("application/config/custom_user_dir_name", "")).ends_with("-beta") and not url_given:
+		url = ""
 
 func _vf():                     # untyped: VF's own methods (to_dict, _apply, ...)
 	return get_node_or_null("/root/VF")
