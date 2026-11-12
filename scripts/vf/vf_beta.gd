@@ -54,11 +54,11 @@ func _save() -> void:
 	var f := FileAccess.open(SAVE, FileAccess.WRITE)
 	if f: f.store_string(JSON.stringify({"trips": trips, "eggs": eggs, "codes": codes}))
 
-func _tick() -> void:                            # (the open panel's clocks count down)
+func _tick() -> void:                            # (the open panel's clocks count down, once a second of real time)
 	if m._panel_kind != "beta" or not m.overlay.visible: return
-	_redraw -= m.get_process_delta_time()
-	if _redraw <= 0.0:
-		_redraw = 1.0
+	var t := Time.get_ticks_msec() / 1000.0
+	if t - _redraw >= 1.0:
+		_redraw = t
 		m._render_panel()
 
 static func clock(secs: float) -> String:
