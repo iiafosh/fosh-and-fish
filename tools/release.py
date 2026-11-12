@@ -307,6 +307,13 @@ def main():
         return
     save(STATE, manifest)
     print("manifest saved:", STATE)
+    # The release commit goes up FIRST, and gh tags exactly that commit: gh makes the tag on GitHub, from the remote
+    # branch, so before this the tag landed on the remote's old head (v1.0.0 got the 1.0.1 code, and the Release
+    # workflow it started was the old one, without the "already released" check).
+    run(["git", "add", BUILD_JSON, STATE, os.path.join(ROOT, "export_presets.cfg")])
+    run(["git", "commit", "-qm", f"release {a.version} (build {build})"])
+    run(["git", "push", "-q", "origin", "HEAD"])
+    sha = subprocess.run(["git", "rev-parse", "HEAD"], check=True, cwd=ROOT, capture_output=True, text=True).stdout.strip()
     notes = "\n".join("- " + n for n in a.note) or "See CHANGELOG.md"
     relaunch = False
     if a.kind == "full":
@@ -317,22 +324,19 @@ def main():
             run(["gh", "release", "edit", tag, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes,
                  "--prerelease=false", "--latest"])
         else:
-            run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version}", "--notes", notes])
+            run(["gh", "release", "create", tag, *assets, "-R", REPO, "--target", sha, "--title", f"fosh&fish {a.version}", "--notes", notes])
     else:
         # an in-game update: players get it from Menu -> Updates. Keep "latest" pointing at the full download.
         notes += ("\n\n**How to get it:** open the game and press *Update now* (Menu -> Updates). "
                   "New players: download the latest full release.")
-        run(["gh", "release", "create", tag, *assets, "-R", REPO, "--title", f"fosh&fish {a.version} (in-game update)",
+        run(["gh", "release", "create", tag, *assets, "-R", REPO, "--target", sha, "--title", f"fosh&fish {a.version} (in-game update)",
              "--notes", notes, "--latest=false"])
     if a.kind == "full":
-        run(["gh", "release", "create", f"dev-base-b{build}", *dev_assets,
+        run(["gh", "release", "create", f"dev-base-b{build}", *dev_assets, "--target", sha,
              "-R", REPO, "--prerelease", "--latest=false", "--title", f"dev base b{build} (not for players)",
              "--notes", "Developer files: the base .pck files in-game update patches are built against, and the "
                         "in-game update for installs of the previous full release. Players: download the latest fosh&fish release instead."])
     deploy_pages(STATE)
-    run(["git", "add", BUILD_JSON, STATE, os.path.join(ROOT, "export_presets.cfg")])
-    run(["git", "commit", "-qm", f"release {a.version} (build {build})"])
-    run(["git", "push", "-q", "origin", "HEAD"])
     if relaunch:
         # the release's tag (and its "Source code" downloads) now point at this release commit
         run(["git", "tag", "-f", tag])
