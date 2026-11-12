@@ -207,6 +207,13 @@ func panel() -> void:
 	if signed_in:                                   # (a run on another device is on the board too)
 		for r in Backend.derby_board:
 			if String(r.get("display_name", "")).to_lower() == Backend.display_name.to_lower(): best = maxi(best, int(r.get("best", 0)))
+	if best > 0:                                    # (a picture of your score, to post anywhere: vf_share.gd)
+		var rank := 0
+		for i in Backend.derby_board.size():
+			if String(Backend.derby_board[i].get("display_name", "")).to_lower() == Backend.display_name.to_lower() and signed_in: rank = i + 1
+		var sh: Button = m._act("Share", Color("#7c5cd6"), func(): m.share.derby(best, rank); return "")
+		sh.custom_minimum_size = Vector2(110, 52)
+		row.add_child(sh)
 	var mine: Label = m.lbl("Your best this week: %s points%s" % [VF.commas(best), "" if signed_in else "  (on this device)"], 15, C_TEXT)
 	mine.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(mine)

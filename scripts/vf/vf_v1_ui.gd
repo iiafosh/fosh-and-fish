@@ -259,6 +259,11 @@ func celebrate(species: String, serial: int, left: int) -> void:
 	v.add_child(m.lbl("Shiny %s" % species, 30, Color.WHITE))
 	v.add_child(m.lbl("No. %04d of %s  ·  %s left in the world" % [serial, VF.commas(VFData.SHINY_SUPPLY), VF.commas(left)], 15, Color(1, 1, 1, 0.85)))
 	v.add_child(m.lbl("+%d%% sell price for every shiny species you own" % int(VFData.SHINY_SELL_BONUS * 100), 12, Color("#c4b5fd")))
+	var sh: Button = m.btn("Share it", Color("#7c5cd6"), 14, 110)        # (a picture to post: vf_share.gd)
+	sh.mouse_filter = Control.MOUSE_FILTER_STOP
+	sh.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	sh.pressed.connect(func(): m.share.shiny(species, serial))
+	v.add_child(sh)
 	h.add_child(v)
 	p.add_child(h)
 	m.fx_layer.add_child(p)
@@ -270,7 +275,7 @@ func celebrate(species: String, serial: int, left: int) -> void:
 	p.scale = Vector2(0.4, 0.4)
 	var tw := p.create_tween()
 	tw.tween_property(p, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(3.2)
+	tw.tween_interval(6.0)                       # (time to press Share)
 	tw.tween_property(p, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(p.queue_free)
 

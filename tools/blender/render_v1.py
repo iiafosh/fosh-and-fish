@@ -272,9 +272,15 @@ def gold_coin():
     return [coin, ring, star]
 
 
+def _derby_cup():
+    import vf_hats as H                    # (the hat itself: a gold loving cup, the winning fish stuck in it)
+    return H._derby_cup()
+
+
 def do_ui(only):
+    # derby_cup: for the Derby share card (vf_share.gd), render it with --size 512
     for name, build, rot in [("pearl", big_pearl, (70, 0, 16)), ("star", event_star, (84, 0, 12)),
-                             ("coin", gold_coin, (80, 0, 22))]:
+                             ("coin", gold_coin, (80, 0, 22)), ("derby_cup", _derby_cup, (68, 0, 24))]:
         if only and name not in only:
             continue
         scene(rot=rot, light=(40, 10, 30))
