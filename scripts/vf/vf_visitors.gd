@@ -102,6 +102,11 @@ func _spot(rng: RandomNumberGenerator) -> Vector2:
 			if p.distance_to(f.home) < 230.0: ok = false
 		for v in boats:
 			if p.distance_to(v.a) < 280.0 or p.distance_to(v.b) < 280.0: ok = false
+		if m.party != null:                                # (and clear of your party's boats)
+			for id in m.party.friends:
+				var f: Dictionary = m.party.friends[id]
+				for q in [f.get("pos", Vector2.INF), f.get("shown", Vector2.INF), f.get("beside", Vector2.INF)]:
+					if q is Vector2 and q != Vector2.INF and p.distance_to(q) < 320.0: ok = false
 		if ok: return p
 	return Vector2.INF
 

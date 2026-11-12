@@ -134,6 +134,10 @@ func _tick() -> void:
 		if cfg.load(SAVE) == OK and str(cfg.get_value("party", "code", "")) != "" and not "--party-test" in OS.get_cmdline_user_args():
 			join(str(cfg.get_value("party", "code", "")))
 	if code == "": return
+	_net(dt)
+	_draw(dt)
+
+func _net(dt: float) -> void:
 	if _retry_in >= 0.0:
 		_retry_in -= dt
 		if _retry_in < 0.0: _connect()
@@ -161,7 +165,6 @@ func _tick() -> void:
 		_retry_in = RETRY[mini(_tries, RETRY.size() - 1)]
 		_tries += 1
 		changed.emit()
-	_draw(dt)
 
 func _on_text(s: String) -> void:
 	var msg: Variant = JSON.parse_string(s)

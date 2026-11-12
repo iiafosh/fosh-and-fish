@@ -760,8 +760,40 @@ func play_shots(dir: String) -> void:
 	celebrate("Rainbow Fish", 42, 2958)
 	await m._wait(0.9)
 	await m._shot(dir + "/2_shiny.png")
-	await m._wait(4.5)
-	# 3. the boss, somewhere dramatic
+	await m._wait(6.5)
+	# 3. fishing with friends (vf_party.gd): two friends' boats with purple tags, and a player passing by (vf_visitors.gd)
+	m._veteran("River")
+	await m._wait(2.0)
+	var p = m.party
+	p.code = "FOSH42"
+	p.state = "live"
+	for f in [["mia", "Mia", 212, 2, 9, Vector2(560, 650)], ["leo", "Leo", 87, 0, 5, Vector2(1380, 700)]]:
+		p.friends[f[0]] = {"name": f[1], "level": f[2], "prestige": f[3], "boats": f[4], "hat": "straw", "biome": "River",
+			"pos": f[5], "shown": Vector2.INF, "said": 0.0, "seen": 1e12, "msgs": []}
+	m.visitors._arrive({"display_name": "Captain Kipper", "level": 412, "prestige": 3, "boats": 12, "hat": "pirate", "biome": "River"})
+	for v in m.visitors.boats: v.t = 2.0
+	await m._wait(2.5)
+	m._toast("Mia caught a Rainbow Fish!", "quest")
+	await m._wait(0.6)
+	await m._shot(dir + "/3_friends.png")
+	for id in p.friends.keys(): p._unshow(p.friends[id])
+	p.friends.clear()
+	p.code = ""
+	p.state = ""
+	m.visitors.clear()
+	# 4. the Fishing Derby: a round on the clock
+	m.derby.start()
+	for i in 3000:
+		await m.get_tree().process_frame
+		if m.minigame != null and is_instance_valid(m.minigame):
+			if m.minigame.auto == "": m.minigame.auto = "win"
+			if m.minigame.phase == "play" and m.derby.rounds >= 3 and m.derby.score > 0: break
+	await m._wait(1.2)                                   # (past the round's "FISH!")
+	await m._shot(dir + "/4_derby.png")
+	m.derby._end()
+	await m._wait(1.0)
+	m._close_panel()
+	# 5. the boss, somewhere dramatic
 	m._veteran("Volcanic")
 	await m._wait(1.0)
 	VF.start_event("boss")
@@ -771,9 +803,9 @@ func play_shots(dir: String) -> void:
 		VF._last_cast_ms = -100000
 		m._do_cast()
 		await m._wait(1.2)
-	await m._shot(dir + "/3_boss.png")
+	await m._shot(dir + "/5_boss.png")
 	VF._ev_end(true)
-	# 4. a meteor shower in space
+	# 6. a meteor shower in space
 	m._veteran("Space")
 	await m._wait(3.0)
 	VF.start_event("meteor_shower")
@@ -781,29 +813,25 @@ func play_shots(dir: String) -> void:
 	VF._last_cast_ms = -100000
 	m._do_cast()
 	await m._wait(1.3)
-	await m._shot(dir + "/4_meteor_shower.png")
+	await m._shot(dir + "/6_meteor_shower.png")
 	VF._ev_end(true)
 	m._veteran("Ocean")
 	await m._wait(3.0)
-	# 5. the shiny collection, as a signed-in player sees it (captures never talk to a server)
+	# 7. the shiny collection, as a signed-in player sees it (captures never talk to a server)
 	var bs: String = Backend.state
 	Backend.state = "signed_in"
 	m._open_panel("inventory", "Shiny")
 	await m._wait(0.6)
-	await m._shot(dir + "/5_shiny_book.png")
+	await m._shot(dir + "/7_shiny_book.png")
 	Backend.state = bs
-	# 6. events and their fish
-	m._open_panel("events", "Events")
-	await m._wait(0.6)
-	await m._shot(dir + "/6_events.png")
-	# 7. the Store as it looks in the Google Play build (no test-mode notes)
+	# 8. the Store as it looks in the Google Play build (no test-mode notes)
 	var was: String = Store.mode
 	Store.mode = "play"
 	Store.online = true
 	Store.message = ""
 	m._open_panel("store", "Packs")
 	await m._wait(0.6)
-	await m._shot(dir + "/7_store.png")
+	await m._shot(dir + "/8_store.png")
 	Store.mode = was
 	m._close_panel()
 	VF.trip_done.disconnect(on_trip)
