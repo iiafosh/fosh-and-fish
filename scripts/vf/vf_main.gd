@@ -108,6 +108,7 @@ var collect                    # vf_collect_ui.gd: the WANTED board, finds, achi
 var derby                      # vf_derby.gd: the Fishing Derby (3-minute runs, the weekly board)
 var visitors                   # vf_visitors.gd: real players' boats sailing through your bay
 var share                      # vf_share.gd: share cards (a shiny, a Derby score) to post anywhere
+var party                      # vf_party.gd: fish with friends, live (a party code, their boats in your bay)
 var _calm_idle := 0.0
 var _calm_a := 1.0
 
@@ -132,6 +133,7 @@ func _ready() -> void:
 	derby = load("res://scripts/vf/vf_derby.gd").new(self)
 	visitors = load("res://scripts/vf/vf_visitors.gd").new(self)
 	share = load("res://scripts/vf/vf_share.gd").new(self)
+	party = load("res://scripts/vf/vf_party.gd").new(self)
 	collect.build_hud()
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
@@ -1648,7 +1650,8 @@ func _render_panel() -> void:
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
 		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
-		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby", "leaderboard": "Leaderboard"}
+		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby", "leaderboard": "Leaderboard",
+		"party": "Fish with friends"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
 		var tabs: Array = PANEL_TABS[_panel_kind]
@@ -1709,6 +1712,7 @@ func _render_panel() -> void:
 		"achievements": collect.panel_achievements()
 		"aquarium": collect.panel_aquarium()
 		"derby": derby.panel()
+		"party": party.panel()
 
 ## Menu -> Account: sign in, cloud save (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -2324,6 +2328,10 @@ func _check_capture() -> void:
 		return
 	if "--share-test" in OS.get_cmdline_user_args():
 		await share.test(dir)
+		get_tree().quit()
+		return
+	if "--party-test" in OS.get_cmdline_user_args():
+		await party.test(dir)
 		get_tree().quit()
 		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:
@@ -3656,6 +3664,7 @@ const MENU_TILES := [      # [panel, name, icon, key, what it is]
 	["quests", "Quests", "target", "7", "Quests, the daily calendar and the spin"],
 	["leaderboard", "Leaderboard", "ranking", "L", "The top fishers, and this week's Derby"],
 	["derby", "Derby", "trophy", "", "3 minutes, one board for all"],
+	["party", "Friends", "sailboat", "", "Fish together, live"],
 	["events", "Events", "confetti", "", "What's on, and the Event Shop"],
 	["prestige", "Prestige", "crown", "8", "Start over, stronger"],
 	["pets", "Pets", "paw-print", "5", "Companions with buffs"],
@@ -3675,7 +3684,7 @@ const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
 	"pets": Color("#ec4899"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"), "stats": Color("#0ea5e9"),
 	"events": Color("#f59e0b"), "leaderboard": Color("#0e7490"), "achievements": Color("#c98b1c"),
-	"wanted": Color("#a8854d"), "derby": Color("#d4920f"),
+	"wanted": Color("#a8854d"), "derby": Color("#d4920f"), "party": Color("#7c5cd6"),
 }
 
 ## what a tile or a small button says beside its name, if anything: [text, color], or []
@@ -3688,6 +3697,9 @@ func _menu_note(kind: String) -> Array:
 			if VF.level >= 20: return ["%d / %d" % [VF.charms_total(), VFData.charm_total_cap(VF.prestige)], Color("#7c3aed")]
 		"update":
 			if Updater.state in ["available", "full_needed", "ready"]: return ["new!", C_GOOD]
+		"party":
+			if party != null and party.code != "":
+				return [("%d in your party" % (party.friends.size() + 1)) if party.state == "live" else "connecting", Color("#7c5cd6")]
 		"account":
 			if not Backend.conflict.is_empty(): return ["choose a save", C_BAD]
 			if Backend.state == "signed_in": return [Backend.display_name, C_MUTED]

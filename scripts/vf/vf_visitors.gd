@@ -105,13 +105,59 @@ func _spot(rng: RandomNumberGenerator) -> Vector2:
 		if ok: return p
 	return Vector2.INF
 
-func _arrive(who: Dictionary) -> void:
+func _layer() -> Control:
 	if layer == null or not is_instance_valid(layer):
 		layer = Control.new()
 		layer.size = st.SCENE
 		layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		st.root.add_child(layer)
 		st.root.move_child(layer, st.boat.get_index())      # over the water and the fleet, under your boat
+	return layer
+
+## another player's boat on your water (visitors here, party friends in vf_party.gd): the boat with its reflection and
+## foam, and a name tag -> {node, tag, label, top (where the tag sits, from node.position)}, or {} if there's no picture
+func build_boat(bname: String, text: String, tag_col: Color, flip: bool, seed := 0.0) -> Dictionary:
+	if st == null: st = m.stage
+	var t: Texture2D = st._tex("boats_top/%s.png" % VFData.slug(bname))
+	if t == null: return {}
+	var info: Dictionary = st.manifest.get("boats_top", {}).get(bname, {"origin": [0.5, 0.6], "unit_px": 100.0})
+	var r := TextureRect.new()
+	r.texture = t
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_SCALE
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.size = t.get_size() * float(st._scene.unit_px) / float(info.unit_px) * 0.7     # (a bit smaller than yours: you're the star)
+	r.pivot_offset = Vector2(info.origin[0], info.origin[1]) * r.size
+	r.flip_h = flip
+	# where the boat really is in its picture (the sheets have empty margins): the tag sits just over its top
+	if not _used.has(bname):
+		var img := t.get_image()
+		_used[bname] = Rect2(img.get_used_rect()) if img != null else Rect2(Vector2.ZERO, t.get_size())
+	var u: Rect2 = _used[bname]
+	var k := r.size / t.get_size()
+	var cx := (u.position.x + u.size.x * 0.5) * k.x
+	var top := Vector2(r.size.x - cx if r.flip_h else cx, u.position.y * k.y)
+	_layer().add_child(r)
+	var mirror: TextureRect = st._reflect_rect()
+	r.add_child(mirror)
+	st._fit_reflect(mirror, bname, info, r.size)
+	mirror.flip_h = r.flip_h
+	(mirror.material as ShaderMaterial).set_shader_parameter("seed", seed)
+	var foam: TextureRect = st._foam_rect()
+	r.add_child(foam)
+	st._fit_foam(foam, bname, info, r.size)
+	foam.flip_h = r.flip_h
+	(foam.material as ShaderMaterial).set_shader_parameter("seed", seed)
+	var tag := PanelContainer.new()                         # the name tag: a pill over the boat
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.add_theme_stylebox_override("panel", m.sbox(tag_col, 999, 0, Color.TRANSPARENT, 12, 0))
+	var label: Label = m.lbl(text, 22, Color.WHITE)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.add_child(label)
+	layer.add_child(tag)
+	return {"node": r, "tag": tag, "label": label, "top": top}
+
+func _arrive(who: Dictionary) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var a := _spot(rng)
@@ -125,48 +171,11 @@ func _arrive(who: Dictionary) -> void:
 		if ok and c.distance_to(st.boat_pos) > 420.0:
 			b = c
 			break
-	var bname := _boat_name(who)
-	var t: Texture2D = st._tex("boats_top/%s.png" % VFData.slug(bname))
-	if t == null: return
-	var info: Dictionary = st.manifest.get("boats_top", {}).get(bname, {"origin": [0.5, 0.6], "unit_px": 100.0})
-	var r := TextureRect.new()
-	r.texture = t
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	r.size = t.get_size() * float(st._scene.unit_px) / float(info.unit_px) * 0.7     # (a bit smaller than yours: you're the star)
-	r.pivot_offset = Vector2(info.origin[0], info.origin[1]) * r.size
-	r.flip_h = b.x < a.x
-	# where the boat really is in its picture (the sheets have empty margins): the tag sits just over its top
-	if not _used.has(bname):
-		var img := t.get_image()
-		_used[bname] = Rect2(img.get_used_rect()) if img != null else Rect2(Vector2.ZERO, t.get_size())
-	var u: Rect2 = _used[bname]
-	var k := r.size / t.get_size()
-	var cx := (u.position.x + u.size.x * 0.5) * k.x
-	var top := Vector2(r.size.x - cx if r.flip_h else cx, u.position.y * k.y)
-	r.modulate.a = 0.0
-	layer.add_child(r)
-	var mirror: TextureRect = st._reflect_rect()
-	r.add_child(mirror)
-	st._fit_reflect(mirror, bname, info, r.size)
-	mirror.flip_h = r.flip_h
-	(mirror.material as ShaderMaterial).set_shader_parameter("seed", rng.randf() * 50.0)
-	var foam: TextureRect = st._foam_rect()
-	r.add_child(foam)
-	st._fit_foam(foam, bname, info, r.size)
-	foam.flip_h = r.flip_h
-	(foam.material as ShaderMaterial).set_shader_parameter("seed", rng.randf() * 50.0)
-	# the name tag: a dark pill over the boat
-	var tag := PanelContainer.new()
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tag.add_theme_stylebox_override("panel", m.sbox(Color(C_TAG, 0.72), 999, 0, Color.TRANSPARENT, 12, 0))
-	var label: Label = m.lbl(_tag_text(who), 22, Color.WHITE)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tag.add_child(label)
-	tag.modulate.a = 0.0
-	layer.add_child(tag)
-	boats.append({"who": who, "node": r, "tag": tag, "label": label, "a": a, "b": b, "t": 0.0, "top": top,
+	var bb := build_boat(_boat_name(who), _tag_text(who), Color(C_TAG, 0.72), b.x < a.x, rng.randf() * 50.0)
+	if bb.is_empty(): return
+	(bb.node as Control).modulate.a = 0.0
+	(bb.tag as Control).modulate.a = 0.0
+	boats.append({"who": who, "node": bb.node, "tag": bb.tag, "label": bb.label, "a": a, "b": b, "t": 0.0, "top": bb.top,
 		"stay": rng.randf_range(STAY[0], STAY[1]), "ph": rng.randf() * TAU, "splash": rng.randf_range(4.0, 9.0), "said": 0.0})
 	st._add_ripple(a, 60.0, 2.4)
 

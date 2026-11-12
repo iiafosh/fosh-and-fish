@@ -29,8 +29,10 @@ Test helpers (not part of Supabase):
 Nothing is written to disk; tokens are random strings, never printed.
 """
 import argparse
+import base64
 import hashlib
 import json
+import struct
 import random
 import re
 import secrets
@@ -282,6 +284,61 @@ def seed(n):
         SAVES[uid] = apply_guard(None, {"user_id": uid, "data": data})
 
 
+# ------------------------------------------------------------ realtime sockets
+WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+RT_LOCK = threading.Lock()
+RT_SUBS = {}                            # topic -> set of WSConn
+
+
+class WSConn:
+    """one WebSocket (RFC 6455) on a handler's socket: text frames in and out, ping -> pong, close"""
+
+    def __init__(self, handler):
+        self.h = handler
+        self.lock = threading.Lock()
+        self.topics = {}                # topic -> broadcast to itself too
+
+    def _frame(self, op, data):
+        hdr = bytearray([0x80 | op])
+        n = len(data)
+        if n < 126:
+            hdr.append(n)
+        elif n < 65536:
+            hdr.append(126)
+            hdr += struct.pack(">H", n)
+        else:
+            hdr.append(127)
+            hdr += struct.pack(">Q", n)
+        with self.lock:
+            self.h.wfile.write(bytes(hdr) + data)
+            self.h.wfile.flush()
+
+    def send(self, obj):
+        self._frame(0x1, json.dumps(obj).encode())
+
+    def recv(self):
+        """the next text message; "" for anything else; None when it's closed"""
+        r = self.h.rfile
+        head = r.read(2)
+        if len(head) < 2:
+            return None
+        op, n = head[0] & 0x0F, head[1] & 0x7F
+        if n == 126:
+            n = struct.unpack(">H", r.read(2))[0]
+        elif n == 127:
+            n = struct.unpack(">Q", r.read(8))[0]
+        mask = r.read(4) if head[1] & 0x80 else b"\0\0\0\0"
+        data = bytearray(r.read(n))
+        for i in range(n):
+            data[i] ^= mask[i % 4]
+        if op == 0x8:
+            return None
+        if op == 0x9:
+            self._frame(0xA, bytes(data))
+            return ""
+        return data.decode("utf-8", "replace") if op == 0x1 else ""
+
+
 # ------------------------------------------------------------ handler
 class Handler(BaseHTTPRequestHandler):
     server_version = "mock-supabase/1"
@@ -313,8 +370,74 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.end_headers()
 
-    def do_GET(self): self._handle()
+    def do_GET(self):
+        if self.path.startswith("/realtime/v1/websocket") and "websocket" in (self.headers.get("Upgrade") or "").lower():
+            return self._realtime()
+        self._handle()
+
     def do_POST(self): self._handle()
+
+    # --------------------------------------------------- realtime (fish with friends, vf_party.gd)
+    def _realtime(self):
+        """Supabase Realtime, the part the game uses: Phoenix v1 JSON over a WebSocket, phx_join / heartbeat /
+        phx_leave, and "broadcast" relayed to everyone else on the same topic (self: false). No presence, no
+        postgres_changes, no private channels. The apikey must match --key."""
+        if dict(parse_qsl(urlsplit(self.path).query)).get("apikey", "") != ARGS.key:
+            return self._send(401, {"message": "bad apikey"})
+        accept = base64.b64encode(hashlib.sha1((self.headers.get("Sec-WebSocket-Key", "") + WS_GUID).encode()).digest()).decode()
+        self.send_response(101, "Switching Protocols")
+        self.send_header("Upgrade", "websocket")
+        self.send_header("Connection", "Upgrade")
+        self.send_header("Sec-WebSocket-Accept", accept)
+        self.end_headers()
+        self.wfile.flush()
+        conn = WSConn(self)
+        print("WS     realtime connected", flush=True)
+        try:
+            while True:
+                raw = conn.recv()
+                if raw is None:
+                    break
+                if not raw:
+                    continue
+                try:
+                    msg = json.loads(raw)
+                except ValueError:
+                    continue
+                topic, event, ref, jref = msg.get("topic"), msg.get("event"), msg.get("ref"), msg.get("join_ref")
+                if event == "heartbeat":
+                    conn.send({"topic": "phoenix", "event": "phx_reply", "payload": {"status": "ok", "response": {}}, "ref": ref})
+                elif event == "phx_join":
+                    cfg = (msg.get("payload") or {}).get("config") or {}
+                    conn.topics[topic] = bool((cfg.get("broadcast") or {}).get("self", False))
+                    with RT_LOCK:
+                        RT_SUBS.setdefault(topic, set()).add(conn)
+                    conn.send({"topic": topic, "event": "phx_reply", "payload": {"status": "ok", "response": {"postgres_changes": []}}, "ref": ref, "join_ref": jref})
+                    print("WS     join %s" % topic, flush=True)
+                elif event == "phx_leave":
+                    conn.topics.pop(topic, None)
+                    with RT_LOCK:
+                        RT_SUBS.get(topic, set()).discard(conn)
+                    conn.send({"topic": topic, "event": "phx_reply", "payload": {"status": "ok", "response": {}}, "ref": ref, "join_ref": jref})
+                elif event == "broadcast" and topic in conn.topics:
+                    out = {"topic": topic, "event": "broadcast", "payload": msg.get("payload"), "ref": None}
+                    with RT_LOCK:
+                        subs = list(RT_SUBS.get(topic, ()))
+                    for c in subs:
+                        if c is conn and not conn.topics.get(topic):
+                            continue
+                        try:
+                            c.send(out)
+                        except OSError:
+                            pass
+        except (OSError, ValueError):
+            pass
+        finally:
+            with RT_LOCK:
+                for s in RT_SUBS.values():
+                    s.discard(conn)
+            print("WS     realtime closed", flush=True)
+        self.close_connection = True
     def do_PATCH(self): self._handle()
     def do_PUT(self): self._handle()
 
