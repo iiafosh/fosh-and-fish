@@ -172,19 +172,29 @@ create trigger saves_guard
 
 
 -- =========================================================== leaderboard
--- security_invoker = false: the view runs as its owner, so anyone with the anon key can read it even though
--- RLS hides other players' rows in the tables. It exposes ONLY these four columns. (Supabase's linter will
--- flag it as a "security definer view"; that is intended here.)
-drop view if exists public.leaderboard;
-create view public.leaderboard
-with (security_invoker = false)
-as
-  select p.display_name, s.level, s.prestige, s.money_earned
-  from public.saves s
-  join public.profiles p on p.id = s.user_id
-  where not p.banned
-  order by s.prestige desc, s.level desc, s.money_earned desc;
+-- The public boards (this one, shiny_board, shiny_feed, derby_board, players_public) show a few columns of
+-- everyone's rows, which RLS keeps out of reach in the tables themselves. So each one is read by a SECURITY
+-- DEFINER function in the "private" schema (not in the API: nobody can call it directly), and the public view
+-- runs as whoever reads it (security_invoker) and only calls that function. Same columns as always. (1.1: they
+-- were security-definer views before, which Supabase's linter calls critical.) This one: ONLY these four columns.
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated;
 
+create or replace function private.leaderboard_rows()
+returns table (display_name text, level integer, prestige integer, money_earned bigint)
+language sql stable security definer set search_path = ''
+as $$
+  select p.display_name, s.level, s.prestige, s.money_earned
+    from public.saves s join public.profiles p on p.id = s.user_id
+   where not p.banned
+$$;
+revoke all on function private.leaderboard_rows() from public, anon, authenticated;
+grant execute on function private.leaderboard_rows() to anon, authenticated;
+
+drop view if exists public.leaderboard;
+create view public.leaderboard with (security_invoker = true) as
+  select * from private.leaderboard_rows() order by prestige desc, level desc, money_earned desc;
 revoke all on public.leaderboard from anon, authenticated;
 grant select on public.leaderboard to anon, authenticated;
 
@@ -257,20 +267,32 @@ alter table public.shiny_rolls enable row level security;      -- no policies: o
 revoke all on public.shiny_rolls from anon, authenticated;
 
 -- what's left of every stock: anyone can read it (the game shows "1,284 of 3,000 left")
+create or replace function private.shiny_board_rows()
+returns table (species text, supply integer, minted integer, "left" integer)
+language sql stable security definer set search_path = ''
+as $$ select st.species, st.supply, st.minted, st.supply - st.minted from public.shiny_stock st $$;
+revoke all on function private.shiny_board_rows() from public, anon, authenticated;
+grant execute on function private.shiny_board_rows() to anon, authenticated;
 drop view if exists public.shiny_board;
-create view public.shiny_board as
-  select species, supply, minted, supply - minted as "left" from public.shiny_stock;
+create view public.shiny_board with (security_invoker = true) as select * from private.shiny_board_rows();
 revoke all on public.shiny_board from anon, authenticated;
 grant select on public.shiny_board to anon, authenticated;
 
 -- the latest finds (names of players who aren't banned)
-drop view if exists public.shiny_feed;
-create view public.shiny_feed as
+create or replace function private.shiny_feed_rows()
+returns table (display_name text, species text, serial integer, caught_at timestamptz)
+language sql stable security definer set search_path = ''
+as $$
   select p.display_name, s.species, s.serial, s.caught_at
     from public.shinies s join public.profiles p on p.id = s.owner
    where not p.banned
    order by s.caught_at desc
-   limit 30;
+   limit 30
+$$;
+revoke all on function private.shiny_feed_rows() from public, anon, authenticated;
+grant execute on function private.shiny_feed_rows() to anon, authenticated;
+drop view if exists public.shiny_feed;
+create view public.shiny_feed with (security_invoker = true) as select * from private.shiny_feed_rows() order by caught_at desc;
 revoke all on public.shiny_feed from anon, authenticated;
 grant select on public.shiny_feed to anon, authenticated;
 
@@ -383,12 +405,19 @@ create view public.derby_bests as
 revoke all on public.derby_bests from anon, authenticated;
 
 -- this week's board: anyone can read it (names and scores only)
-create view public.derby_board as
+create or replace function private.derby_board_rows()
+returns table (display_name text, best integer, runs bigint)
+language sql stable security definer set search_path = ''
+as $$
   select p.display_name, b.best, b.runs
     from public.derby_bests b join public.profiles p on p.id = b.owner
    where b.week = (date_trunc('week', now() at time zone 'utc'))::date
    order by b.best desc
-   limit 50;
+   limit 50
+$$;
+revoke all on function private.derby_board_rows() from public, anon, authenticated;
+grant execute on function private.derby_board_rows() to anon, authenticated;
+create view public.derby_board with (security_invoker = true) as select * from private.derby_board_rows() order by best desc;
 revoke all on public.derby_board from anon, authenticated;
 grant select on public.derby_board to anon, authenticated;
 
@@ -503,15 +532,22 @@ grant execute on function public.claim_derby(date) to authenticated;
 -- ================================================================ players in your bay (1.1)
 -- Who fished lately, for the boats that sail by in other players' bays: their name, level and what they look like on the
 -- water. Nothing else (no ids, emails, saves or times). Odd values from an edited save fall back to defaults.
-drop view if exists public.players_public;
-create view public.players_public as
+create or replace function private.players_public_rows()
+returns table (display_name text, level integer, prestige integer, boats integer, hat text, biome text)
+language sql stable security definer set search_path = ''
+as $$
   select p.display_name, s.level, s.prestige,
-         case when (s.data ->> 'boats_owned') ~ '^[0-9]{1,2}(\.0+)?$' then (s.data ->> 'boats_owned')::numeric::int else 0 end as boats,
-         case when (s.data ->> 'hat') ~ '^[a-z_]{1,24}$' then s.data ->> 'hat' else 'straw' end as hat,
-         case when (s.data ->> 'biome') ~ '^[A-Za-z]{1,16}$' then s.data ->> 'biome' else 'River' end as biome
+         case when (s.data ->> 'boats_owned') ~ '^[0-9]{1,2}(\.0+)?$' then (s.data ->> 'boats_owned')::numeric::int else 0 end,
+         case when (s.data ->> 'hat') ~ '^[a-z_]{1,24}$' then s.data ->> 'hat' else 'straw' end,
+         case when (s.data ->> 'biome') ~ '^[A-Za-z]{1,16}$' then s.data ->> 'biome' else 'River' end
     from public.saves s join public.profiles p on p.id = s.user_id
    where not p.banned and s.updated_at > now() - interval '14 days'
    order by s.updated_at desc
-   limit 60;
+   limit 60
+$$;
+revoke all on function private.players_public_rows() from public, anon, authenticated;
+grant execute on function private.players_public_rows() to anon, authenticated;
+drop view if exists public.players_public;
+create view public.players_public with (security_invoker = true) as select * from private.players_public_rows();
 revoke all on public.players_public from anon, authenticated;
 grant select on public.players_public to anon, authenticated;
