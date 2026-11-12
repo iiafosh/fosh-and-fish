@@ -1,27 +1,29 @@
 {
-  "version": "1.0.1",
-  "build": 19,
+  "version": "1.0.0",
+  "build": 20,
   "base": 18,
   "notes": [
-    "Seven different outlaws to catch, one per world, each caught for good",
-    "FishTok sits beside the game: keep fishing while you scroll",
-    "Smaller fixes: the guide's sell key, boat keys while you scroll the phone"
+    "The Fishing Derby: 3-minute runs and a weekly board (Menu - Derby), with the Derby Cup hat for the top three",
+    "A Leaderboard of its own (Menu - Leaderboard, or L)",
+    "One Shop for everything, and a quieter Menu",
+    "Charms you can fill before you prestige, and chests that say what they gave",
+    "A calmer phone screen, and no more black box when the captain dances"
   ],
-  "date": "2026-11-11",
+  "date": "2026-11-12",
   "full_url": "https://github.com/iiafosh/fosh-and-fish/releases/latest",
   "patches": {
     "18": {
       "desktop": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v1.0.1/fosh_fish-1.0.1-patch-desktop.pck",
-        "size": 1450204,
-        "sha256": "a82ce8e4db2eaf1a1d37a854e8186c37d5f1fb88955204cc7ed5e93cbddbd262",
-        "sig": "pzI7lS4nIlRe2RVVpSOvyCejFdlR3ZPg8jed8acbxLR/KP3u2KyV4GO6YRBuRKiDullWKSspZ2RP0G/g4bNsKAq/U9i7tcmYKQXqtkIC6kV1WOphqTTcVrSofpLfgoIAe97+0STvX3Cu2xP7SN4WdxFKUWlSLnYLXudVNBKDkvA3Zydlg21X1dNw/4OPGNBLbEgi10/WP0adEfmKjLno91raVEl+7YKlncP8O3mqLURMdxXsjt/8PN0+ZYXBrFZOjIb3WcIJG7vDDZYK4Uh1xRhqXINwSrkqZbI3JWQCX8fqTOTQys/P/0Ys6NjJCEteIthGdzG8BgpQfNehCBm0fA=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v1.0.0/fosh_fish-1.0.0-patch-desktop.pck",
+        "size": 2179100,
+        "sha256": "8d99c09d689efb722982110939650990adf843d003f0e3256c4a300442f7a3d9",
+        "sig": "mXB37Nd7JjV610CoADdSacTWg523NcfkSpAmgixV0MfBLv8OKSdnzaEz4qPio2ObiCV6PcwzecxsoNUwknc2XXsCX+gqdFL3LFeHmcVGsV83y+SK/HPA71J5jDzvTngh4ymDfjSIe3qbevCd44YvIj3zQrc1kY94FRlb/8uU5L4GsDj0dbvltEvjjf8eV6EhJ4HrSWmacgsAgp0WjcZ9I/3VjyZpERS1xXFnz8wgPFZ1qCJxKoy3gbeQDTHdy2RaQp0bQEPziio40C1z8Z1YrSUHlequikdwWYsjR7AAiaUwhMAUWnMsjpX0lJ+xYLKKvzpjxPnoAlpDEN3d5neU4g=="
       },
       "android": {
-        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v1.0.1/fosh_fish-1.0.1-patch-android.pck",
-        "size": 1450204,
-        "sha256": "a82ce8e4db2eaf1a1d37a854e8186c37d5f1fb88955204cc7ed5e93cbddbd262",
-        "sig": "pzI7lS4nIlRe2RVVpSOvyCejFdlR3ZPg8jed8acbxLR/KP3u2KyV4GO6YRBuRKiDullWKSspZ2RP0G/g4bNsKAq/U9i7tcmYKQXqtkIC6kV1WOphqTTcVrSofpLfgoIAe97+0STvX3Cu2xP7SN4WdxFKUWlSLnYLXudVNBKDkvA3Zydlg21X1dNw/4OPGNBLbEgi10/WP0adEfmKjLno91raVEl+7YKlncP8O3mqLURMdxXsjt/8PN0+ZYXBrFZOjIb3WcIJG7vDDZYK4Uh1xRhqXINwSrkqZbI3JWQCX8fqTOTQys/P/0Ys6NjJCEteIthGdzG8BgpQfNehCBm0fA=="
+        "url": "https://github.com/iiafosh/fosh-and-fish/releases/download/v1.0.0/fosh_fish-1.0.0-patch-android.pck",
+        "size": 2179100,
+        "sha256": "8d99c09d689efb722982110939650990adf843d003f0e3256c4a300442f7a3d9",
+        "sig": "mXB37Nd7JjV610CoADdSacTWg523NcfkSpAmgixV0MfBLv8OKSdnzaEz4qPio2ObiCV6PcwzecxsoNUwknc2XXsCX+gqdFL3LFeHmcVGsV83y+SK/HPA71J5jDzvTngh4ymDfjSIe3qbevCd44YvIj3zQrc1kY94FRlb/8uU5L4GsDj0dbvltEvjjf8eV6EhJ4HrSWmacgsAgp0WjcZ9I/3VjyZpERS1xXFnz8wgPFZ1qCJxKoy3gbeQDTHdy2RaQp0bQEPziio40C1z8Z1YrSUHlequikdwWYsjR7AAiaUwhMAUWnMsjpX0lJ+xYLKKvzpjxPnoAlpDEN3d5neU4g=="
       }
     }
   }
