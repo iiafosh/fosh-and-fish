@@ -460,10 +460,15 @@ declare
   my_best int;
   rnk     int;
   n       int;
+  cap     int;
 begin
   if me is null then
     return json_build_object('ok', false, 'reason', 'signed_out');
   end if;
+  -- the most p_wins wins can score: every one perfect, in one unbroken streak, the fish as rare as the run allows
+  -- (VFData.derby_points: 10 + 5 x tier, +10 perfect, x1 .. x2 for 1 .. 5+ in a row; tier = min(4, round / 2))
+  select coalesce(sum(round((20 + 5 * least(4, i / 2)) * (1 + 0.25 * least(i, 4)))), 0)::int into cap
+    from generate_series(0, p_wins - 1) as i;
   select * into r from derby_runs where id = p_run and owner = me for update;
   if not found then
     return json_build_object('ok', false, 'reason', 'unknown');
@@ -475,8 +480,9 @@ begin
   if secs < 170 then                                             -- (a run is three minutes)
     return json_build_object('ok', false, 'reason', 'too_fast');
   end if;
-  if secs > 1800 or p_rounds < 0 or p_rounds > 90 or p_wins < 0 or p_wins > p_rounds
-     or p_perfect < 0 or p_perfect > p_wins or p_score < 0 or p_score > p_wins * 80 then
+  -- (180 s of play fits 52 rounds at most: a round can't be won in under 3.5 s, the test bot needs 4.2)
+  if secs > 1800 or p_rounds < 0 or p_rounds > 52 or p_wins < 0 or p_wins > p_rounds
+     or p_perfect < 0 or p_perfect > p_wins or p_score < 0 or p_score > cap then
     update derby_runs set finished_at = now() where id = p_run;   -- (an impossible run counts as nothing)
     return json_build_object('ok', false, 'reason', 'rejected');
   end if;

@@ -628,7 +628,8 @@ class Handler(BaseHTTPRequestHandler):
         if secs < ARGS.derby_secs:
             return {"ok": False, "reason": "too_fast"}
         score, wins, rounds, perfect = (int(body.get(k, -1)) for k in ("p_score", "p_wins", "p_rounds", "p_perfect"))
-        if secs > 1800 or not (0 <= rounds <= 90 and 0 <= wins <= rounds and 0 <= perfect <= wins and 0 <= score <= wins * 80):
+        cap = sum(int((20 + 5 * min(4, i // 2)) * (1 + 0.25 * min(i, 4)) + 0.5) for i in range(max(wins, 0)))   # (schema.sql)
+        if secs > 1800 or not (0 <= rounds <= 52 and 0 <= wins <= rounds and 0 <= perfect <= wins and 0 <= score <= cap):
             r["finished"] = mnow()
             return {"ok": False, "reason": "rejected"}
         r.update(finished=mnow(), score=score, wins=wins, rounds=rounds, perfect=perfect)
