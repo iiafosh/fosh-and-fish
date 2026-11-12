@@ -106,6 +106,7 @@ var launcher: Control          # the title screen (vf_launcher.gd) until the pla
 var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
 var collect                    # vf_collect_ui.gd: the WANTED board, finds, achievements, the aquarium, hats
 var derby                      # vf_derby.gd: the Fishing Derby (3-minute runs, the weekly board)
+var visitors                   # vf_visitors.gd: real players' boats sailing through your bay
 var _calm_idle := 0.0
 var _calm_a := 1.0
 
@@ -128,6 +129,7 @@ func _ready() -> void:
 	fun = load("res://scripts/vf/vf_fun.gd").new(self)
 	collect = load("res://scripts/vf/vf_collect_ui.gd").new(self)
 	derby = load("res://scripts/vf/vf_derby.gd").new(self)
+	visitors = load("res://scripts/vf/vf_visitors.gd").new(self)
 	collect.build_hud()
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
@@ -2312,6 +2314,10 @@ func _check_capture() -> void:
 		return
 	if "--derby-test" in OS.get_cmdline_user_args():
 		await _derby_test(dir)
+		get_tree().quit()
+		return
+	if "--visitors-test" in OS.get_cmdline_user_args():
+		await visitors.test(dir)
 		get_tree().quit()
 		return
 	if "--launcher" in OS.get_cmdline_user_args() and launcher:

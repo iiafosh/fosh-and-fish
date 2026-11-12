@@ -513,6 +513,32 @@ func load_leaderboard() -> void:
 		lb_time = Time.get_unix_time_from_system()  # retried once it's stale, like a good result
 	leaderboard_changed.emit()
 
+# -------------------------------------------------------- players in your bay
+## Other people who played in the last 14 days (schema.sql players_public: name, level, prestige, boats, hat, biome,
+## nothing else from their save). The stage sails a few of them through your bay (vf_visitors.gd). Anyone can read it,
+## signed in or not. Loaded at most every PLAYERS_EVERY seconds.
+signal players_changed
+const PLAYERS_EVERY := 600.0
+var players: Array = []
+var players_time := -1e9
+var _players_busy := false
+
+func load_players(force := false) -> void:
+	if not configured() or _players_busy: return
+	var now := Time.get_unix_time_from_system()
+	if not force and now - players_time < PLAYERS_EVERY: return
+	_players_busy = true
+	var r := await _http(GET, "/rest/v1/players_public?select=display_name,level,prestige,boats,hat,biome&limit=60")
+	_players_busy = false
+	players_time = now
+	if r.ok and r.data is Array:
+		var out: Array = []
+		for p in r.data:
+			var who := str(p.get("display_name", "")) if p is Dictionary else ""
+			if who != "" and who.to_lower() != display_name.to_lower(): out.append(p)     # (not yourself)
+		players = out
+		players_changed.emit()
+
 ## index of the player's row in the leaderboard, or -1
 func my_rank() -> int:
 	if display_name == "": return -1

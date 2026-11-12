@@ -336,6 +336,11 @@ func run(main, out_dir: String) -> void:
 	await until(func(): return B.lb_state != "loading", 20.0)   # a request sent while "offline" times out
 	B.load_leaderboard()
 	await until(func(): return B.lb_state == "ok" and B.my_rank() >= 0)
+	# ---- players in your bay (1.1): the public list, without yourself
+	await B.load_players(true)
+	var mine: Array = B.players.filter(func(p): return str(p.get("display_name", "")).to_lower() == B.display_name.to_lower())
+	check(B.players.size() >= 1 and mine.is_empty() and B.players[0].has("boats") and B.players[0].has("hat") and B.players[0].has("biome"),
+		"other players load for your bay (%d, not you)" % B.players.size())
 	m._open_panel("account", "Account")
 	await shot("account_8_signed_in_final")
 

@@ -1694,6 +1694,9 @@ func say_rect() -> Rect2:
 ## a tap on the scene: if it hit something that's there for poking, it reacts -> true (no cast then)
 func poke(screen: Vector2) -> bool:
 	var p := to_scene(screen)
+	var main = get_parent()
+	while main != null and not ("visitors" in main): main = main.get_parent()
+	if main != null and main.visitors != null and main.visitors.tap(p): return true     # another player's boat (vf_visitors.gd)
 	if on_resident(screen):
 		var spot: Vector2 = _resident.pos
 		if boat_pos.distance_to(spot) > FIND_REACH:
