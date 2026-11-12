@@ -45,6 +45,10 @@ const TABS := {
 		"Menu - Derby: three minutes of Reel it in! rounds back to back, the same for everyone (your rod and level don't count). Each win scores points, more for rarer fish, a perfect round and a streak of wins. Play as often as you like: your best run of the week goes on the weekly board. When the week ends, the top three get the Derby Cup hat and Event Stars, and everyone who played gets some Stars."],
 		["Leaderboard", ["ui", "prestige"],
 		"Menu - Leaderboard (or L): the top fishers by prestige and level, and this week's Derby board. You need a free account to be on them."],
+		["Fish with friends", ["ui", "quests"],
+		"Menu - Friends: make a party and send the code to your friends. In the same biome you see each other's boats sail, live, and you hear about each other's new catches. Wave from the Friends panel. Other players who played lately also sail through your bay now and then: tap one to see who it is."],
+		["Share", ["ui", "star"],
+		"Caught a shiny, or set a Derby score you're proud of? Press Share for a picture with your name and the game's link. On a phone it opens the share menu; on a computer it's saved in Pictures/fosh&fish and the text is copied."],
 	],
 	"Prestige": [
 		["Prestiging", ["ui", "prestige"],

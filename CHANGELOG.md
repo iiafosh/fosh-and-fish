@@ -2,6 +2,14 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
+## Coming next
+
+- **Fish with friends, live.** Menu → Friends: make a party and send its 6-letter code to your friends. When they join, their boats sail in your bay with purple name tags, live, wherever they go, and you hear about their new catches and their waves. No account needed, and your party is still there the next time you play, until you leave it.
+- **Other players in your bay.** People who played lately sail into your bay now and then, in their best boat, with their name and level over it. They fish for a while and sail off. Tap one and they call out something friendly, and you see who they are.
+- **Share cards.** "Share it" on a shiny fish and "Share" on your Derby score make a picture to post anywhere: your biome, the shiny (or the gold Derby Cup), your name and the link to the game. On a phone the share menu opens; on a computer it's saved in Pictures/fosh&fish with the text copied.
+- **The web version starts much faster.** The first visit downloads a third less (about 33 MB instead of 50), and a loading screen with the bay, the logo and a progress bar shows at once instead of a blank page.
+- **A fairer Derby board.** The server now checks every score against the best a run could really make, so nobody can post an impossible score.
+
 ## 1.0.0 — the Fishing Derby, one Shop, and charms you can fill (12 November 2026)
 
 - **The Fishing Derby.** Menu → Derby: three minutes of Reel it in! rounds back to back, at the same difficulty for everyone (your rod, your level and the easing don't count). Every win scores points: more for rarer fish (they get rarer as the run goes on), for a perfect round and for a streak of wins. Play as often as you like: your best run of the week goes on the weekly board. When the week ends, the top three get the new **Derby Cup** hat (a gold trophy with the winning fish still stuck in it, head first) and Event Stars, the top ten get Stars, and everyone who played gets a few. It plays without an account too, and your best then stays on your device.
