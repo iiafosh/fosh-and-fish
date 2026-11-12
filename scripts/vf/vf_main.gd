@@ -65,7 +65,7 @@ var boost_label: Label
 # panel
 var overlay: Control
 var panel_title: Label
-var panel_tabs: HBoxContainer
+var panel_tabs: VBoxContainer
 var panel_body: VBoxContainer
 var _panel_kind := ""
 var _panel_tab := ""
@@ -135,6 +135,8 @@ func _ready() -> void:
 	stage.night_changed.connect(func(_on): AudioManager.music_place(VF.biome, stage.night_music()))
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
+	VF.charms_found.connect(_on_charms_found)
+	VF.chest_found.connect(_on_chest_found)
 	VF.goal_done.connect(_on_goal_done)
 	stage.merchant_clicked.connect(func(): _open_panel("shop", "Rods"))
 	_refresh()
@@ -339,11 +341,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_G:
 				if overlay.visible and _panel_kind == "guide": _close_panel()
 				else: _open_panel("guide")
+			KEY_L:
+				if overlay.visible and _panel_kind == "leaderboard": _close_panel()
+				else: _open_panel("leaderboard")
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
-				var kinds := ["shop", "biomes", "inventory", "charms", "pets", "boosts", "quests", "prestige", "stats"]   # same order as the Menu tiles
-				var k: String = kinds[event.keycode - KEY_1]
-				if overlay.visible and _panel_kind == k: _close_panel()
-				else: _open_panel(k)
+				var kinds := ["shop", "biomes", "inventory", "charms", "pets", "boosts", "quests", "prestige", "stats"]   # (6: the Shop's Boosts)
+				var home: Array = _panel_home(kinds[event.keycode - KEY_1], "")
+				if overlay.visible and _panel_kind == home[0] and (home[1] == "" or _panel_tab == home[1]): _close_panel()
+				else: _open_panel(home[0], home[1])
 
 # ================================================================ helpers
 func _load_manifest() -> void:
@@ -478,6 +483,13 @@ func _update_ui_scale() -> void:
 	ui_k = k
 	_layout_panel.call_deferred()
 	_check_portrait.call_deferred()
+	_hud_words.call_deferred()
+
+## 1.1, phones: the top-right pills are just their icons and badges (with their words the top of the screen was busy)
+func _hud_words() -> void:
+	var words: bool = not (is_touch() and compact())
+	for pair in [[book_btn, "Fish Book"], [phone_btn, "Phone"], [menu_btn, "Menu"], [idle.gift_btn if idle else null, "Daily"]]:
+		if pair[0] != null and is_instance_valid(pair[0]): (pair[0] as Button).text = pair[1] if words else ""
 
 func _short_side_dp() -> float:
 	if _sim_dp > 0.0: return _sim_dp
@@ -923,7 +935,7 @@ func _show_card() -> void:
 	if popping: v1.pop_card()
 	if _card_tw: _card_tw.kill()
 	_card_tw = card.create_tween()
-	_card_tw.tween_interval(6.0)
+	_card_tw.tween_interval(3.5 if compact() else 6.0)          # (phones: it covers more of the water)
 	_card_tw.tween_property(card, "modulate:a", 0.0, 0.8)
 
 var _bottom: HBoxContainer
@@ -1045,8 +1057,8 @@ func _refresh_mode_pill() -> void:
 		if reel: sb.bg_color = C_TEAL.lightened(0.1 if st == "hover" else 0.0).darkened(0.12 if st == "pressed" else 0.0)
 		elif st == "hover": sb.bg_color = C_LIGHT_HOVER
 		mode_pill.add_theme_stylebox_override(st, sb)
-	mode_pill.tooltip_text = ("Catch mode: Reel it in! - play a quick mini-game after each bite: win for +%d%% fish and a %ss cooldown. Click for Relax." if reel
-		else "Catch mode: Relax - cast and wait for the cooldown. Click for Reel it in! (mini-game: +%d%% fish, %ss cooldown)") % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)]
+	mode_pill.tooltip_text = ("Catch mode: Reel it in! - play a quick mini-game after each bite: win for +%d%% fish, a %ss cooldown and better odds of a chest. Click for Relax." if reel
+		else "Catch mode: Relax - cast and wait for the cooldown. Click for Reel it in! (mini-game: +%d%% fish, %ss cooldown, better chest odds)") % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)]
 
 func _draw_cast_ring() -> void:
 	var c := cast_ring.size * 0.5
@@ -1149,7 +1161,7 @@ func _build_overlay() -> void:
 	tabs_track = PanelContainer.new()
 	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), 999, 0, Color.TRANSPARENT, 4))
 	tabs_track.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	panel_tabs = HBoxContainer.new()
+	panel_tabs = VBoxContainer.new()                 # rows of tabs: a second one when they don't fit across (the Shop on a phone)
 	panel_tabs.add_theme_constant_override("separation", 2)
 	tabs_track.add_child(panel_tabs)
 	v.add_child(tabs_track)
@@ -1337,6 +1349,39 @@ func _toast(text: String, kind: String) -> void:
 	tw.tween_property(p, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(p.queue_free)
 
+# ============================================================ charm & chest banners
+## 1.1: every charm you get gets a banner (its tier, and how close the next one is), and so does a chest that wasn't
+## from your own cast (a worker's, the Pearl Shop's, a reward's: the catch card shows a cast's). The onboarding's
+## banner queue shows them, one at a time.
+
+## VF.charms_found: charms came in (kind -> how many); chest: the chest they came from ("" for none)
+func _on_charms_found(got: Dictionary, chest: String) -> void:
+	if launcher_open(): return
+	var cap: int = VFData.charm_tier_cap(VF.prestige)
+	for id in got:
+		var n := int(VF.charms.get(id, 0))
+		var t: int = VF.charm_tier(id)
+		var before: int = mini(int((sqrt(8.0 * (n - int(got[id])) + 1.0) - 1.0) / 2.0), cap)
+		var line := ""
+		if t >= cap: line = "Maxed: tier %d of %d!" % [t, cap]
+		elif t > before: line = "Tier %d!  %s per tier" % [t, VFData.CHARMS[id].desc]
+		else: line = "Tier %d  ·  %d of %d to tier %d" % [t, n - t * (t + 1) / 2, t + 1, t + 1]
+		line += "
+All your charms: %s / %s%s" % [VF.commas(VF.charms_total()), VF.commas(VFData.charm_total_cap(VF.prestige)),
+			("  ·  from a %s chest" % chest.capitalize()) if chest != "" else ""]
+		_banner("+%d %s" % [int(got[id]), VFData.CHARMS[id].name if int(got[id]) == 1 else VFData.CHARMS[id].name + "s"], line,
+			icon_for("charm", id), Color("#8b5cf6"))
+
+## VF.chest_found: a chest opened that wasn't from your own cast. from: worker | reward
+func _on_chest_found(out: Dictionary, from: String) -> void:
+	if launcher_open(): return
+	var items: Dictionary = out.get("items", {})
+	if not (items.get("charms", {}) as Dictionary).is_empty(): return      # (the charm's own banner says it)
+	var what: String = VF.chest_text(out)
+	if from == "worker": what += "
+Your worker fished it up"
+	_banner("%s chest!" % String(out.get("tier", "")).capitalize(), what, icon_for("chest", String(out.get("tier", "common"))), C_GOLD)
+
 # ============================================================ catch card
 func _clear(node: Node) -> void:
 	for c in node.get_children():
@@ -1365,6 +1410,7 @@ func _show_catch(res: Dictionary) -> void:
 	if quip != "": card_body.add_child(lbl(quip, 13, C_MUTED))
 	var names: Array = res.fish.keys()
 	names.sort_custom(func(a, b): return VFData.FISH[a].price > VFData.FISH[b].price)
+	if compact(): names = names.slice(0, 3)                  # (phones: the best three)
 	for f in names:
 		var row := HBoxContainer.new()
 		row.add_child(icon(icon_for("fish", f), 34))
@@ -1402,7 +1448,7 @@ func _show_catch(res: Dictionary) -> void:
 		row.add_child(icon(icon_for("pet", res.pet), 40))
 		row.add_child(lbl("You found a %s!" % res.pet, 15, Color("#c0367a")))
 		card_body.add_child(row)
-	if res.bait_used != "":
+	if res.bait_used != "" and not compact():                 # (phones: the bait chip says it)
 		card_body.add_child(lbl("%s left: %s" % [res.bait_used, VF.commas(int(VF.bait_stock.get(res.bait_used, 0)))], 12, C_MUTED))
 
 # ================================================================ refresh
@@ -1544,18 +1590,36 @@ func _avg_fish() -> float:
 
 # ================================================================= panels
 const PANEL_TABS := {
-	"shop": ["Rods", "Bait", "Boats", "Upgrades", "Special", "League", "Hats"],
-	"store": ["Packs", "Pearls", "Pearl Shop", "Free"],
+	"shop": ["Rods", "Bait", "Boats", "Boosts", "Fleet", "Upgrades", "Special", "League", "Hats", "Pearls"],
 	"events": ["Events", "Event Shop"],
-	"inventory": ["Fish", "Finds", "Shiny", "Event fish"],
+	"inventory": ["Fish", "Finds", "Shiny", "Event fish", "Aquarium"],
 	"prestige": ["Prestige", "Shop", "Guide"],
-	"fleet": ["Crews", "Upgrades"],
-	"daily": ["Calendar", "Spin"],
+	"quests": ["Quests", "Calendar", "Spin"],
+	"leaderboard": ["Top fishers", "Derby"],
 	"guide": VFGuide.TAB_ORDER,
-	"account": ["Account", "Leaderboard"],
 }
+const STORE_TABS := [["Pearl Shop", "Pearl Shop"], ["Packs", "Packs"], ["Pearls", "Get Pearls"], ["Free", "Free"]]   # the Shop's Pearls tab: [vf_v1_ui tab, its name here]
+var store_tab := "Pearl Shop"
+
+## Panels that live inside another one now (1.1): the Shop has the boosts, the fleet and the Store; Quests has the daily
+## rewards; the Fish Book has the aquarium; the leaderboard has a panel of its own. Old links (HUD pills, the phone,
+## goals, hotkeys, the launcher) land in the right place. -> [kind, tab]
+func _panel_home(kind: String, tab: String) -> Array:
+	match kind:
+		"boosts": return ["shop", "Boosts"]
+		"fleet": return ["shop", "Fleet"]
+		"store":
+			for st in STORE_TABS: if st[0] == tab: store_tab = tab
+			return ["shop", "Pearls"]
+		"daily": return ["quests", tab if tab in ["Calendar", "Spin"] else "Calendar"]
+		"aquarium": return ["inventory", "Aquarium"]
+		"account": return ["leaderboard", "Top fishers"] if tab == "Leaderboard" else ["account", "Account"]
+	return [kind, tab]
 
 func _open_panel(kind: String, tab: String = "") -> void:
+	var home: Array = _panel_home(kind, tab)
+	kind = home[0]
+	tab = home[1]
 	if VF.tutorial == 2 and kind == "shop":
 		_coach_next(3)
 	var opening := not overlay.visible
@@ -1580,10 +1644,26 @@ func _render_panel() -> void:
 	var titles := {"inventory": "Fish Book", "shop": "Shop", "biomes": "Biomes", "charms": "Charms", "pets": "Pets",
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
 		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
-		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby"}
+		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby", "leaderboard": "Leaderboard"}
 	panel_title.text = titles.get(_panel_kind, "")
 	if PANEL_TABS.has(_panel_kind):
-		for t in PANEL_TABS[_panel_kind]:
+		var tabs: Array = PANEL_TABS[_panel_kind]
+		var font: Font = get_theme_default_font()
+		var widths := tabs.map(func(t): return maxf(86.0, font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 16.0) + 2.0)
+		var room := maxf(300.0, (size.x - 16.0 - 28.0 if compact() else 916.0) - 8.0)
+		var per_row := tabs.size()
+		var total: float = widths.reduce(func(a, w): return a + w, 0.0)
+		if total > room:                                 # two rows (or more), evenly split
+			per_row = ceili(tabs.size() / ceilf(total / room))
+		var radius := 999 if per_row >= tabs.size() else 20
+		tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), radius, 0, Color.TRANSPARENT, 4))
+		var row: HBoxContainer
+		for i in tabs.size():
+			var t: String = tabs[i]
+			if i % per_row == 0:
+				row = HBoxContainer.new()
+				row.add_theme_constant_override("separation", 2)
+				panel_tabs.add_child(row)
 			var b := Button.new()
 			b.text = t
 			b.focus_mode = Control.FOCUS_NONE
@@ -1597,17 +1677,18 @@ func _render_panel() -> void:
 			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 				b.add_theme_color_override(k, C_TEXT if on else C_MUTED)
 			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel(); panel_scroll.scroll_vertical = 0)
-			panel_tabs.add_child(b)
+			row.add_child(b)
 	tabs_track.visible = PANEL_TABS.has(_panel_kind)
 	panel_back.visible = _panel_kind != "menu" and not launcher_open()   # from the title screen: just Close
 	match _panel_kind:
-		"inventory": _panel_inventory()
+		"inventory": collect.panel_aquarium() if _panel_tab == "Aquarium" else _panel_inventory()
 		"shop": _panel_shop()
 		"biomes": _panel_biomes()
 		"charms": _panel_charms()
 		"pets": _panel_pets()
 		"boosts": _panel_boosts()
-		"quests": _panel_quests()
+		"quests": idle.panel_daily(_panel_tab) if _panel_tab in ["Calendar", "Spin"] else _panel_quests()
+		"leaderboard": _panel_leaderboard()
 		"prestige": _panel_prestige()
 		"stats": _panel_stats()
 		"guide": _panel_guide()
@@ -1625,9 +1706,14 @@ func _render_panel() -> void:
 		"aquarium": collect.panel_aquarium()
 		"derby": derby.panel()
 
-## Menu -> Account: sign in, cloud save, leaderboard (built by scripts/net/account_ui.gd)
+## Menu -> Account: sign in, cloud save (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
-	account_ui.build(_panel_tab)
+	account_ui.build("Account")
+
+## Menu -> Leaderboard: the top fishers of all time, and this week's Derby
+func _panel_leaderboard() -> void:
+	if _panel_tab == "Derby": derby.board_panel()
+	else: account_ui.build("Leaderboard")
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -1665,7 +1751,7 @@ func _grid(cols := 2) -> GridContainer:
 	# would be wider than the room and slide under the phone
 	if cols >= 4 and size.x < 900.0: cols -= 1
 	if cols >= 4 and size.x < 700.0: cols -= 1
-	if cols == 2 and size.x < 860.0: cols = 1          # (two shop cards side by side need about 860)
+	if cols == 2 and size.x < 940.0: cols = 1          # (two cards side by side need up to about 940: the Pearls tab's packs)
 	g.columns = cols
 	g.add_theme_constant_override("h_separation", 8)
 	g.add_theme_constant_override("v_separation", 8)
@@ -1722,6 +1808,21 @@ func _panel_inventory() -> void:
 
 func _panel_shop() -> void:
 	match _panel_tab:
+		"Boosts":
+			_panel_boosts()
+		"Fleet":
+			idle.panel_fleet("")                         # (crews, then their upgrades)
+		"Pearls":
+			var row := HFlowContainer.new()
+			row.add_theme_constant_override("h_separation", 6)
+			row.add_theme_constant_override("v_separation", 6)
+			for st in STORE_TABS:
+				var key: String = st[0]
+				var b: Button = btn(st[1], Color("#7c5cd6") if key == store_tab else C_NEUTRAL, 14, 110)
+				b.pressed.connect(func(): store_tab = key; _render_panel(); panel_scroll.scroll_vertical = 0)
+				row.add_child(b)
+			panel_body.add_child(row)
+			v1.panel_store(store_tab)
 		"Hats":
 			collect.tab_hats()
 		"Rods":
@@ -1855,8 +1956,43 @@ func _panel_biomes() -> void:
 
 func _panel_charms() -> void:
 	var cap: int = VFData.charm_tier_cap(VF.prestige)
-	panel_body.add_child(lbl("Charms come from Rare+ chests (level 20+). Tier n costs n charms. Total %d / %d (prestige needs all of them)." %
-		[VF.charms_total(), VFData.charm_total_cap(VF.prestige)], 14, C_MUTED))
+	var total: int = VF.charms_total()
+	var full: int = VFData.charm_total_cap(VF.prestige)
+	var purple := Color("#7c3aed")
+	# the big picture first: how far along you are, and the rules
+	var head := PanelContainer.new()
+	head.add_theme_stylebox_override("panel", sbox(Color("#f3edff"), 14, 2, Color("#c4b5fd"), 14))
+	var hv := VBoxContainer.new()
+	hv.add_theme_constant_override("separation", 6)
+	head.add_child(hv)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(icon(ph("sparkle"), 30))
+	(top.get_child(0) as TextureRect).modulate = purple
+	top.add_child(lbl("%s / %s charms%s" % [VF.commas(total), VF.commas(full), "  ·  all maxed!" if total >= full else ""], 24, purple.darkened(0.2)))
+	hv.add_child(top)
+	var all_bar := ProgressBar.new()
+	all_bar.show_percentage = false
+	all_bar.custom_minimum_size = Vector2(0, 14)
+	all_bar.max_value = maxi(1, full)
+	all_bar.value = total
+	all_bar.add_theme_stylebox_override("background", sbox(Color("#e4dcf7"), 7, 0, Color.TRANSPARENT, 0))
+	all_bar.add_theme_stylebox_override("fill", sbox(Color("#8b5cf6"), 7, 0, Color.TRANSPARENT, 0))
+	hv.add_child(all_bar)
+	var odds := []
+	for c in VFData.CHESTS:
+		if c.drops.has("charm"):
+			var sum := 0.0
+			for k in c.drops: sum += float(c.drops[k])
+			odds.append("%s %s%%" % [c.name, str(snappedf(100.0 * float(c.drops.charm) / sum, 0.1))])
+	var rules := lbl(("Charms come from chests once you're level 20: a chest's chance of one is %s. Super Crates and your workers' crates can have them too. " +
+		"Every kind goes up in tiers (tier n takes n charms), up to tier %d at Prestige %d. They make you a lot stronger, and they start over when you prestige: fill them before you do!") %
+		[", ".join(odds), cap, VF.prestige], 14, C_TEXT)
+	rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hv.add_child(rules)
+	if VF.level < 20:
+		hv.add_child(lbl("You're level %d: chests start giving charms at level 20." % VF.level, 14, C_BAD))
+	panel_body.add_child(head)
 	var g := _grid(2)
 	for id in VFData.CHARM_ORDER:
 		var n := int(VF.charms.get(id, 0))
@@ -1870,9 +2006,10 @@ func _panel_charms() -> void:
 		bar.add_theme_stylebox_override("background", sbox(Color("#e4d6bb"), 5, 0, Color.TRANSPARENT, 0))
 		bar.add_theme_stylebox_override("fill", sbox(C_GOLD, 5, 0, Color.TRANSPARENT, 0))
 		var box := VBoxContainer.new()
-		box.add_child(lbl("Tier %d / %d" % [t, cap], 14, C_GOLD))
+		box.add_child(lbl("Tier %d / %d" % [t, cap], 14, C_GOOD if t >= cap else C_GOLD))
 		box.add_child(bar)
-		_add_to(g, _card(icon_for("charm", id), VFData.CHARMS[id].name, VFData.CHARMS[id].desc + " per tier", box))
+		var next := "Maxed!" if t >= cap else "%d of %d to tier %d" % [into, t + 1, t + 1]
+		_add_to(g, _card(icon_for("charm", id), VFData.CHARMS[id].name, "%s per tier\n%s" % [VFData.CHARMS[id].desc, next], box))
 
 func _panel_pets() -> void:
 	panel_body.add_child(lbl("Pets can't be bought: each cast has a 1 in 10,000 chance (more with Support Bait and prestige). Max level %d." % VF.pet_level_cap(), 14, C_MUTED))
@@ -2347,9 +2484,11 @@ func _check_capture() -> void:
 	var shots := [["menu", ""], ["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""], ["account", "Account"], ["update", ""]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
-		for k in ["inventory", "shop", "biomes", "charms", "pets", "boosts", "quests", "prestige", "stats", "guide"]:
+		for k in ["menu", "inventory", "shop", "biomes", "charms", "pets", "quests", "leaderboard", "prestige", "stats", "events", "derby", "account", "guide"]:
 			for t in PANEL_TABS.get(k, [""]):
-				shots.append([k, t])
+				if k == "shop" and t == "Pearls":
+					for st in STORE_TABS: shots.append(["store", st[0]])     # (each part of the Store, in the Shop's Pearls tab)
+				else: shots.append([k, t])
 	var docked_run := "--dock" in OS.get_cmdline_user_args()       # --dock: FishTok stands beside the game, so every panel has to fit in the room that's left
 	if docked_run:
 		VF.tok_dock = true
@@ -2809,7 +2948,7 @@ func _panel_settings() -> void:
 	var cv := VBoxContainer.new()
 	cv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cv.add_child(lbl("How you catch", 18))
-	var csub := lbl("Relax: cast and wait for the cooldown. Reel it in!: a quick mini-game - win for +%d%% fish and a %ss cooldown" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)], 13, C_MUTED)
+	var csub := lbl("Relax: cast and wait for the cooldown. Reel it in!: a quick mini-game - win for +%d%% fish, a %ss cooldown and better odds of a chest" % [int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), str(VFData.MINIGAME_COOLDOWN)], 13, C_MUTED)
 	csub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cv.add_child(csub)
 	ch.add_child(cv)
@@ -3494,93 +3633,118 @@ func _update_test_report(msg: String) -> void:
 
 
 # =================================================================== menu
-const MENU_TILES := [
-	["shop", "Shop", "storefront", "1", "Rods, bait, boats & upgrades"],
+## Menu (1.1, quieter): big tiles for the places you go, a small row for the rest. A tile only says something when
+## there's something to say (ready to claim, your charms, an update); what it is and its key are in its tooltip.
+## Boosts, the fleet and the Store are in the Shop now, the daily rewards in Quests, the aquarium in the Fish Book.
+const MENU_TILES := [      # [panel, name, icon, key, what it is]
+	["shop", "Shop", "storefront", "1", "Rods, bait, boats, boosts, your fleet, upgrades, hats and Pearls"],
 	["biomes", "Map", "map-trifold", "2", "Travel to other waters"],
-	["inventory", "Fish Book", "book-open-text", "Tab", "Your hold & collection"],
-	["charms", "Charms", "sparkle", "4", "Permanent boosts"],
-	["pets", "Pets", "paw-print", "5", "Companions with buffs"],
-	["boosts", "Boosts", "lightning", "6", "Timed boosts & workers"],
-	["quests", "Quests", "target", "7", "Daily & league quests"],
-	["prestige", "Prestige", "crown", "8", "Start over, stronger"],
-	["stats", "Buffs", "chart-bar", "9", "Your multipliers & odds"],
-	["guide", "Guide", "question", "G", "How everything works"],
-	["settings", "Settings", "gear-six", "O", "Sound, screen, save"],
-	["update", "Updates", "arrow-circle-up", "", "Get the newest version"],
-	["account", "Account", "user-circle", "", "Cloud save & leaderboard"],
-	["store", "Store", "shopping-bag-open", "", "Packs, Pearls & free rewards"],
-	["events", "Events", "confetti", "", "What's on & the Event Shop"],
+	["inventory", "Fish Book", "book-open-text", "Tab", "Your hold, your collection and the aquarium"],
+	["charms", "Charms", "sparkle", "4", "Boosts from chests that last until you prestige"],
+	["quests", "Quests", "target", "7", "Quests, the daily calendar and the spin"],
+	["leaderboard", "Leaderboard", "ranking", "L", "The top fishers, and this week's Derby"],
 	["derby", "Derby", "trophy", "", "3 minutes, one board for all"],
-	["fleet", "Fleet", "sailboat", "", "Crews that fish for you"],
-	["daily", "Daily", "gift", "", "Calendar & the daily spin"],
-	["radio", "Radio", "music-notes", "", "The soundtrack, or just listen"],
-	["achievements", "Achievements", "trophy", "", "Goals, jokes & a few Pearls"],
-	["aquarium", "Aquarium", "fish", "", "Your fish, swimming. Visitors pay"],
+	["events", "Events", "confetti", "", "What's on, and the Event Shop"],
+	["prestige", "Prestige", "crown", "8", "Start over, stronger"],
+	["pets", "Pets", "paw-print", "5", "Companions with buffs"],
+	["stats", "Buffs", "chart-bar", "9", "Your multipliers and odds"],
+	["achievements", "Achievements", "medal", "", "Goals, jokes and a few Pearls"],
 	["wanted", "Wanted", "target", "", "Gerald, and the bounty"],
+]
+const MENU_MORE := [       # the small row: [panel, name, icon, key]
+	["guide", "Guide", "question", "G"],
+	["settings", "Settings", "gear-six", "O"],
+	["account", "Account", "user-circle", ""],
+	["radio", "Radio", "music-notes", ""],
+	["update", "Updates", "arrow-circle-up", ""],
 ]
 
 const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
-	"pets": Color("#ec4899"), "boosts": Color("#f5b301"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"),
-	"stats": Color("#0ea5e9"), "guide": Color("#64748b"), "settings": Color("#475569"), "update": Color("#14b8a6"),
-	"account": Color("#6366f1"), "store": Color("#a855f7"), "events": Color("#f59e0b"), "fleet": Color("#0e7490"),
-	"daily": Color("#f97316"), "radio": Color("#db2777"), "achievements": Color("#c98b1c"), "aquarium": Color("#238b9c"),
+	"pets": Color("#ec4899"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"), "stats": Color("#0ea5e9"),
+	"events": Color("#f59e0b"), "leaderboard": Color("#0e7490"), "achievements": Color("#c98b1c"),
 	"wanted": Color("#a8854d"), "derby": Color("#d4920f"),
 }
 
+## what a tile or a small button says beside its name, if anything: [text, color], or []
+func _menu_note(kind: String) -> Array:
+	match kind:
+		"achievements":
+			var n: int = VF.ach_ready().size()
+			if n > 0: return ["%d to claim!" % n, C_GOOD]
+		"charms":
+			if VF.level >= 20: return ["%d / %d" % [VF.charms_total(), VFData.charm_total_cap(VF.prestige)], Color("#7c3aed")]
+		"update":
+			if Updater.state in ["available", "full_needed", "ready"]: return ["new!", C_GOOD]
+		"account":
+			if not Backend.conflict.is_empty(): return ["choose a save", C_BAD]
+			if Backend.state == "signed_in": return [Backend.display_name, C_MUTED]
+	return []
+
 func _panel_menu() -> void:
-	var g := _grid(4)
-	g.add_theme_constant_override("h_separation", 12)
-	g.add_theme_constant_override("v_separation", 12)
+	var g := GridContainer.new()
+	g.columns = clampi(int((size.x - 44.0 if compact() else 916.0) / 148.0), 3, 6)
+	g.add_theme_constant_override("h_separation", 10)
+	g.add_theme_constant_override("v_separation", 10)
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel_body.add_child(g)
 	for t in MENU_TILES:
 		if t[0] == "wanted" and not VF.gerald_info().met: continue        # (he hasn't turned up yet)
-		var b := Button.new()
-		b.focus_mode = Control.FOCUS_NONE
-		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		b.custom_minimum_size = Vector2(196, 120)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_stylebox_override("normal", sbox(C_PANEL2, 18, 0, Color.TRANSPARENT, 12))
-		b.add_theme_stylebox_override("hover", sbox(Color.WHITE, 18, 2, C_TEAL.lightened(0.3), 12, 8))
-		b.add_theme_stylebox_override("pressed", sbox(Color("#e6dfd0"), 18, 2, C_TEAL, 12))
-		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		var v := VBoxContainer.new()
-		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		v.offset_left = 14
-		v.offset_top = 12
-		v.offset_right = -12
-		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_theme_constant_override("separation", 4)
-		var top := HBoxContainer.new()
-		var bubble := PanelContainer.new()
-		bubble.add_theme_stylebox_override("panel", sbox(MENU_COLORS.get(t[0], C_TEAL), 12, 0, Color.TRANSPARENT, 7))
-		var ic := icon(ph(t[2]), 22)
-		bubble.add_child(ic)
-		top.add_child(bubble)
-		var sp := Control.new()
-		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		top.add_child(sp)
-		if t[3] != "": top.add_child(keycap(t[3]))
-		v.add_child(top)
-		v.add_child(lbl(t[1], 17))
-		var sub := lbl(t[4], 12, C_MUTED)
-		sub.clip_text = true
-		v.add_child(sub)
-		b.add_child(v)
-		if t[0] == "update" and Updater.state in ["available", "full_needed", "ready"]:
-			bubble.add_theme_stylebox_override("panel", sbox(C_GOOD, 12, 0, Color.TRANSPARENT, 7))
-			sub.text = "Update available!"
-			sub.add_theme_color_override("font_color", C_GOOD)
-		if t[0] == "account": sub.text = account_ui.tile_subtitle()
-		if t[0] == "achievements" and not VF.ach_ready().is_empty():
-			bubble.add_theme_stylebox_override("panel", sbox(C_GOOD, 12, 0, Color.TRANSPARENT, 7))
-			sub.text = "%d ready to claim!" % VF.ach_ready().size()
-			sub.add_theme_color_override("font_color", C_GOOD)
+		g.add_child(_menu_tile(t[0], t[1], t[2], t[3], t[4]))
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 4
+	panel_body.add_child(gap)
+	var more := HFlowContainer.new()
+	more.add_theme_constant_override("h_separation", 8)
+	more.add_theme_constant_override("v_separation", 8)
+	more.alignment = FlowContainer.ALIGNMENT_CENTER
+	for t in MENU_MORE:
+		var note: Array = _menu_note(t[0])
+		var b := pill_button(t[2], t[1] + ("  ·  " + String(note[0]) if not note.is_empty() else ""), t[3], true)
+		if not note.is_empty() and note[1] != C_MUTED:
+			for k in ["font_color", "font_hover_color", "icon_normal_color", "icon_hover_color"]: b.add_theme_color_override(k, note[1])
 		var kind: String = t[0]
-		b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
-		g.add_child(b)
+		b.pressed.connect(func(): _open_panel(kind))
+		more.add_child(b)
+	panel_body.add_child(more)
 	var by := lbl("Made by afosh", 13, C_MUTED)
 	by.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel_body.add_child(by)
+
+func _menu_tile(kind: String, title: String, icon_name: String, key: String, what: String) -> Button:
+	var b := Button.new()
+	b.name = "Tile_" + kind
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.custom_minimum_size = Vector2(130, 126 if is_touch() else 104)        # (phones make small type bigger, later)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.tooltip_text = what + ("   [%s]" % key if key != "" and not is_touch() else "")
+	b.add_theme_stylebox_override("normal", sbox(C_PANEL2, 18, 0, Color.TRANSPARENT, 10))
+	b.add_theme_stylebox_override("hover", sbox(Color.WHITE, 18, 2, C_TEAL.lightened(0.3), 10, 8))
+	b.add_theme_stylebox_override("pressed", sbox(Color("#e6dfd0"), 18, 2, C_TEAL, 10))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 6)
+	var note: Array = _menu_note(kind)
+	var bubble := PanelContainer.new()
+	var col: Color = C_GOOD if not note.is_empty() and note[1] == C_GOOD else MENU_COLORS.get(kind, C_TEAL)
+	bubble.add_theme_stylebox_override("panel", sbox(col, 14, 0, Color.TRANSPARENT, 10))
+	bubble.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bubble.add_child(icon(ph(icon_name), 26))
+	v.add_child(bubble)
+	var n := lbl(title, 16)
+	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(n)
+	var s := lbl(String(note[0]) if not note.is_empty() else " ", 12, note[1] if not note.is_empty() else C_MUTED)
+	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER       # (every tile has the line, so the icons line up)
+	v.add_child(s)
+	b.add_child(v)
+	b.pressed.connect(func(): AudioManager.play_click(); _open_panel(kind))
+	return b
 
 # ================================================================== phone
 ## The phone + FishTok live in vf_phone.gd (state in VF's FishTok section).

@@ -253,7 +253,8 @@ func _sync_signs() -> void:
 		var key := ""
 		if lanes.has(side):
 			var b: String = lanes[side].biome
-			key = "%s|%s" % [b, _locked(b)]
+			if not (_locked(b) and main.compact() and main.is_touch()):     # (phones: a locked biome's sign is just more on the screen)
+				key = "%s|%s" % [b, _locked(b)]
 		if String(_sign_keys.get(side, "")) == key: continue
 		_sign_keys[side] = key
 		if _signs.has(side):

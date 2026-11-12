@@ -22,8 +22,9 @@ func _init() -> void:
 
 	print("== tables")
 	check(g.xp_to_next(1) == 100 and g.xp_to_next(250) == 6367500, "XP table loaded (L1=100, L250=6,367,500)")
-	check(VFData.charm_total_cap(0) == 440, "P0 charm cap is 440")
-	check(VFData.charm_total_cap(1) == 528, "P1 charm cap is 8*11*12/2 = 528")
+	check(VFData.charm_total_cap(0) == 168, "P0 charm cap is 8*6*7/2 = 168 (1.1: tier 6, one more every two prestiges)")
+	check(VFData.charm_total_cap(1) == 168 and VFData.charm_total_cap(2) == 224 and VFData.charm_tier_cap(8) == 10, "P1 charm cap 168, P2 224 (8*7*8/2), the old tier 10 at P8")
+	_test_charm_drops()
 	var s := 0
 	for i in VFData.UPGRADES.better_fish.max:
 		s += VFData.curve_cost(VFData.UPGRADES.better_fish.total, VFData.UPGRADES.better_fish.max, i + 1)
@@ -476,7 +477,7 @@ func _test_first_rebirth() -> void:
 	g.money -= 1
 	check(not g.prestige_check().ok, "... all of the money")
 	g._apply(g._defaults.duplicate(true))
-	check(VFData.charm_total_cap(0) == 440 and VFData.charm_total_cap(1) == 528 and g.charms_total() == 0, "the charm caps themselves don't change")
+	check(VFData.charm_total_cap(0) == 168 and VFData.charm_total_cap(2) == 224 and g.charms_total() == 0, "the charm caps themselves don't change")
 	# it's on the screen: the last starter goal is the rebirth, and you're told when it's ready
 	var said := []
 	g.toast.connect(func(text, _kind): said.append(text))
@@ -1057,6 +1058,40 @@ func _test_resident_timing(v) -> void:
 ## Gerald in the real mini-game: a rival round works without his art, he's a real fight, and nobody gets stuck
 ## Reel it in!, in the real mini-game: lost rounds in a row are counted (not the outlaws'), the round after them is eased,
 ## and a win puts it back
+## 1.1 charms: a drop is a few of one kind (the banner hears of it), a chest with every charm maxed gives money and XP
+## instead of nothing, and a chest says what it gave
+func _test_charm_drops() -> void:
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	g.rng.seed = 77
+	g.level = 30
+	var heard := []
+	g.charms_found.connect(func(got, tier): heard.append([got, tier]))
+	var o: Dictionary = {"tier": "legendary", "items": {}}
+	g._give_charms(7.0, o)
+	check(o.items.charms.size() == 1 and int(o.items.charms.values()[0]) == 7 and g.charms_total() == 7 and heard.size() == 1 and heard[0][1] == "legendary",
+		"a charm drop is 7 of one kind, and the banner hears of it (%s)" % [o.items.charms])
+	check(g.chest_text(o).begins_with("7 ") and g.chest_text(o).ends_with("Charms"), "a chest says what it gave: " + g.chest_text(o))
+	var per: int = VFData.charm_total_cap(0) / 8
+	g.charms = {}
+	for id in VFData.CHARM_ORDER: g.charms[id] = per
+	g.charms["haste"] = per - 2
+	var o2: Dictionary = {"tier": "epic", "items": {}}
+	g._give_charms(5.0, o2)
+	check(int(o2.items.charms.get("haste", 0)) == 2 and o2.items.charms.size() == 1 and g.charms_total() == VFData.charm_total_cap(0),
+		"a drop bigger than what's left fills the last kind and stops (%s)" % [o2.items.charms])
+	var o3: Dictionary = {"tier": "epic", "items": {}}
+	g._give_charms(3.0, o3)
+	check(o3.items.charms.is_empty() and o3.items.has("money") and o3.items.has("xp"), "every charm maxed: the chest gives money and XP, never nothing")
+	check(g.got_text({"chest": o3}).begins_with("Epic chest: $"), "a bought chest says what was in it: " + g.got_text({"chest": o3}))
+	var amounts: Array = []
+	for c in VFData.CHESTS:
+		if c.drops.has("charm"): amounts.append(c.charms)
+	check(amounts == [[1, 3], [3, 6], [6, 12], [15, 30]], "the better the chest, the more charms in a drop: %s" % [amounts])
+	g.queue_free()
+
 func _test_lose_streak(v) -> void:
 	print("== Reel it in!: lost rounds in a row, played by bots")
 	var Bot = load("res://tests/reel_bot.gd")
@@ -1282,7 +1317,7 @@ func _test_v1() -> void:
 	var odds: String = VFData.chest_odds("legendary")
 	var total := 0
 	for hit in RegEx.create_from_string("([0-9]+)%").search_all(odds): total += int(hit.get_string(1))
-	check(odds.begins_with("Charms 40%") and "Emerald Fish 10%" in odds and total == 100,
+	check(odds.begins_with("Charms 55%") and "Emerald Fish 5%" in odds and total == 100,
 		"the Legendary Chest's odds are shown and add up to 100%: " + odds)
 	check("1 in 3,500 catches" in VFData.shiny_odds() and "1 in 1,167 with the lure" in VFData.shiny_odds(), "shiny odds: " + VFData.shiny_odds())
 

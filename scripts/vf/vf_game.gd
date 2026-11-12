@@ -12,6 +12,8 @@ signal event_ended(id: String, boss_caught: bool)
 signal shiny_ticket(species: String)       # a catch earned a shiny roll: the UI asks the server (Backend.try_shiny)
 signal crew_trip(n: int)                   # the fleet landed n fish (vf_idle_ui: a splash by a crew boat, the hold grows)
 signal offline_ready(r: Dictionary)        # back from being away: what the crews caught waits in `offline`
+signal charms_found(got: Dictionary, chest: String)   # charms came in (kind -> how many), from a chest of that tier ("" none): the banner
+signal chest_found(out: Dictionary, from: String)     # a chest opened that wasn't your cast's (worker | reward): the banner says what
 
 const SAVE_PATH := "user://vf_save.json"
 const SAVE_VERSION := 1
@@ -376,7 +378,7 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	res.count = n
 	res.xp = int(round(xp_gain))
 	# chest
-	if level >= 10 and rng.randf() < treasure_chance():
+	if level >= 10 and rng.randf() < treasure_chance() * (VFData.MINIGAME_CHEST_MULT if fish_bonus > 0.0 else 1.0):
 		res.chest = _open_chest(_roll_chest_tier())
 		_quest_add("chests", 1)
 	elif lg("super_crates") > 0 and rng.randf() < treasure_quality() * lg("super_crates") / 4000.0:
@@ -526,10 +528,8 @@ func _open_chest(tier: String) -> Dictionary:
 		if level < 20:
 			cat = "xpmoney"
 		else:
-			var x := _charm_qty_mult()
-			if tier == "artifact":
-				x = rng.randf_range(x, 3.0 * x)
-			_give_charms(x, out)
+			var amt: Array = def.get("charms", [1, 1])
+			_give_charms(rng.randf_range(float(amt[0]), float(amt[1]) + 0.999) * _charm_qty_mult(), out)
 			return out
 	if cat != "xpmoney" and level < VFData.EXOTICS[cat].level:
 		cat = "xpmoney"
@@ -551,22 +551,47 @@ func _give_xpmoney(mult: float, out: Dictionary) -> void:
 	out.items["xp"] = gx
 	add_xp(gx)
 
+## a charm drop: x charms (its fraction is the chance of one more), all of one kind picked from those not maxed yet
+## (1.1: what goes past that kind's top tier goes to another). Every charm maxed: money and XP instead, so a chest
+## never comes up empty.
 func _give_charms(x: float, out: Dictionary) -> void:
 	var count := int(floor(x))
 	if rng.randf() < x - count: count += 1
 	var per_cap := VFData.charm_total_cap(prestige) / 8
 	var got := {}
-	for _i in count:
-		var open := []
-		for id in VFData.CHARM_ORDER:
-			if int(charms.get(id, 0)) < per_cap: open.append(id)
-		if open.is_empty(): break
-		var id: String = open[rng.randi() % open.size()]
+	var id := ""
+	while count > 0:
+		if id == "" or int(charms.get(id, 0)) >= per_cap:
+			var open := []
+			for c in VFData.CHARM_ORDER:
+				if int(charms.get(c, 0)) < per_cap: open.append(c)
+			if open.is_empty(): break
+			id = open[rng.randi() % open.size()]
 		charms[id] = int(charms.get(id, 0)) + 1
 		got[id] = int(got.get(id, 0)) + 1
 		stats.charms += 1
 		_quest_add("charms", 1)
+		count -= 1
 	out.items["charms"] = got
+	if got.is_empty():
+		_give_xpmoney(1.5, out)
+	else:
+		charms_found.emit(got, String(out.get("tier", "")))
+
+## what a chest gave, in words: "4 Haste Charms", "12 Gold Fish", "$1.2M and 300 XP"
+func chest_text(out: Dictionary) -> String:
+	var bits := []
+	var items: Dictionary = out.get("items", {})
+	for k in items:
+		match k:
+			"charms":
+				for c in items.charms:
+					var n := int(items.charms[c])
+					bits.append(VFData.CHARMS[c].name if n == 1 else "%d %ss" % [n, VFData.CHARMS[c].name])
+			"money": bits.append("$" + fmt(items.money))
+			"xp": bits.append("%s XP" % fmt(items.xp))
+			_: bits.append("%s %s" % [commas(int(items[k])), VFData.EXOTICS[k].name])
+	return " and ".join(bits) if bits.size() <= 2 else ", ".join(bits)
 
 # --------------------------------------------------------------------- pets
 func _roll_pet() -> String:
@@ -632,7 +657,7 @@ func _worker_trip() -> void:
 	add_xp(int(round(gx * xp_mult())))
 	var wc := lg("worker_crates")
 	if wc > 0 and rng.randf() < [0.0, 1.0 / 50, 1.0 / 40, 1.0 / 32, 1.0 / 26, 1.0 / 20][wc]:
-		_open_chest(_roll_chest_tier())
+		chest_found.emit(_open_chest(_roll_chest_tier()), "worker")
 	changed.emit()
 
 # ------------------------------------------------------------------ economy
@@ -1379,7 +1404,7 @@ func _tok_give(r: Dictionary) -> Dictionary:
 	if r.has("bait"):
 		bait_stock[r.bait[0]] = int(bait_stock.get(r.bait[0], 0)) + int(r.bait[1])
 		if bait == "" or not has_bait(): bait = r.bait[0]
-	if r.has("chest"): return _open_chest(String(r.chest))
+	if r.has("chest"): return _open_chest(String(r.chest))        # (the phone's notification says what was in it)
 	return {}
 
 # ----------------------------------------------------------- daily challenge
@@ -1751,7 +1776,7 @@ func got_text(got: Dictionary) -> String:
 	if got.has("rods"): bits.append(", ".join(got.rods))
 	if got.has("money"): bits.append("+$" + fmt(got.money))
 	if got.has("xp"): bits.append("+%s XP" % fmt(got.xp))
-	if got.has("chest"): bits.append("%s chest" % String(got.chest.get("tier", "")).capitalize())
+	if got.has("chest"): bits.append("%s chest: %s" % [String(got.chest.get("tier", "")).capitalize(), chest_text(got.chest)])
 	if got.has("bait"): bits.append("%s %s" % [commas(int(got.bait[1])), got.bait[0]])
 	if got.has("spins"): bits.append("+%d spin%s" % [int(got.spins), "" if int(got.spins) == 1 else "s"])
 	if got.has("offline"): bits.append("+%s fish" % commas(int(got.offline.n)))
@@ -1774,6 +1799,7 @@ func _give_item(d: Dictionary) -> Dictionary:
 		add_xp(got.xp)
 	if d.has("chest"):
 		got["chest"] = _open_chest(String(d.chest))
+		chest_found.emit(got.chest, "reward")
 	if d.has("lure"):
 		shiny_lure += int(d.lure)
 	if d.has("rod"):

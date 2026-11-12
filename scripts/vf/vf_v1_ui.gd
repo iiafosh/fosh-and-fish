@@ -33,8 +33,8 @@ func _init(main) -> void:
 	VF.event_ended.connect(_on_event_ended)
 	VF.shiny_ticket.connect(_on_shiny_ticket)
 	VF.trip_done.connect(_on_trip)
-	Store.changed.connect(func(): _rerender(["store"]))
-	Ads.changed.connect(func(): _rerender(["store"]))
+	Store.changed.connect(func(): _rerender(["store", "shop"]))
+	Ads.changed.connect(func(): _rerender(["store", "shop"]))
 	Backend.shiny_changed.connect(func(): _rerender(["inventory"]))
 
 
@@ -167,7 +167,7 @@ func tick(delta: float) -> void:
 		boss_bar.visible = false
 		event_pill.add_theme_stylebox_override("panel", m.pill_box(false, 10, 5))
 	event_sub.visible = on and not m.compact()
-	event_pill.visible = VF.level >= 3 or on                     # not in the very first minutes
+	event_pill.visible = (VF.level >= 3 or on) and (on or not m.compact() or VF.event_next_in() < 60.0)   # (phones: just the last minute)
 	var fx_id: String = VF.ev_id if on else ""
 	if m.stage.event_fx_id != fx_id: m.stage.set_event_fx(fx_id)
 	_glow_k = move_toward(_glow_k, 1.0 if on else 0.0, delta * 1.5)

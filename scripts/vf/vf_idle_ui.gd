@@ -41,7 +41,7 @@ func _init(main) -> void:
 	VF.leveled_up.connect(_on_level)
 	Ads.changed.connect(func():
 		if back_card: _fill_back()
-		_rerender(["daily"]))
+		_rerender(["daily", "quests"]))
 
 
 func _rerender(kinds: Array) -> void:
@@ -352,8 +352,12 @@ func panel_fleet(tab: String) -> void:
 	m.panel_body.add_child(_card(m.ph("sailboat"), title, desc, total, false, 52))
 	if tab == "Upgrades":
 		_fleet_upgrades()
-	else:
+	elif tab == "Crews":
 		_fleet_crews()
+	else:                                       # the Shop's Fleet tab: both
+		_fleet_crews()
+		m.panel_body.add_child(m.lbl("Fleet upgrades", 18))
+		_fleet_upgrades()
 	_note("Your fleet starts over when you prestige, like your boats.", C_MUTED, 12)
 
 
@@ -564,7 +568,7 @@ func _spin() -> void:
 	_spin_to = _spin_rot + 360.0 * 5.0 + fposmod(target - _spin_rot, 360.0)
 	_spin_t0 = Time.get_ticks_msec()
 	_spin_prize = r
-	_rerender(["daily"])
+	_rerender(["daily", "quests"])
 
 
 func _spin_angle() -> float:
@@ -580,7 +584,7 @@ func _spin_done() -> void:
 	if d.name == "JACKPOT": AudioManager.play_bell()
 	AudioManager.play_levelup()
 	m._banner("%s!" % d.name, VF.got_text(_spin_prize.got), _item_tex(d), d.color)
-	_rerender(["daily"])
+	_rerender(["daily", "quests"])
 
 
 ## the wheel: VFData.SPIN in equal slices (the odds are listed next to it), turning under a fixed pointer

@@ -33,7 +33,7 @@ var _claimed_this_session := false
 func _init(main) -> void:
 	m = main
 	Backend.derby_changed.connect(func():
-		if m._panel_kind == "derby" and m.overlay.visible and not running: m._render_panel())
+		if m._panel_kind in ["derby", "leaderboard"] and m.overlay.visible and not running: m._render_panel())
 
 ## how long a run is (-- --derby-secs=N for tests)
 static func run_secs() -> float:
@@ -229,6 +229,37 @@ func panel() -> void:
 		VFData.DERBY_PRIZES[0][1], VFData.DERBY_PRIZES[1][1], VFData.DERBY_PRIZES[2][1], VFData.DERBY_PRIZES[3][1]], 13, C_MUTED)
 	prizes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	m.panel_body.add_child(prizes)
+
+## Menu -> Leaderboard -> Derby: this week's whole board (the Derby panel shows its top 20 beside the Start button)
+func board_panel() -> void:
+	var signed_in: bool = Backend.state == "signed_in"
+	if Backend.configured() and Backend.derby_state == "": Backend.load_derby()      # (not on "error": that would ask again on every redraw)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	var tv := VBoxContainer.new()
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_child(m.lbl("This week's Derby", 22))
+	tv.add_child(m.lbl("Everyone's best 3-minute run  ·  ends in %s" % _ends_text(), 13, C_MUTED))
+	head.add_child(tv)
+	var go: Button = m.btn("Race", Color("#d4920f"), 15, 110)
+	go.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	go.pressed.connect(func(): m._open_panel("derby"))
+	head.add_child(go)
+	m.panel_body.add_child(head)
+	if Backend.derby_board.is_empty():
+		m.panel_body.add_child(m.lbl("Loading the board..." if Backend.derby_state == "loading" else "No one on it yet. Be the first!", 15, C_MUTED))
+	else:
+		m.panel_body.add_child(m.account_ui._lb_row(["#", "Fisher", "", "Best", "Runs"], -1, false, true))
+		var i := 0
+		for r in Backend.derby_board:
+			var me: bool = signed_in and String(r.get("display_name", "")).to_lower() == Backend.display_name.to_lower()
+			m.panel_body.add_child(m.account_ui._lb_row([str(i + 1), String(r.get("display_name", "?")), "",
+				"%s pts" % VF.commas(int(r.get("best", 0))), str(int(r.get("runs", 1)))], i, me, false))
+			i += 1
+	if not signed_in:
+		var n: Label = m.lbl("Sign in (Menu -> Account) to race everyone on the weekly board.", 14, Color("#7c3aed"))
+		n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		m.panel_body.add_child(n)
 
 func _result_card() -> PanelContainer:
 	var p := PanelContainer.new()

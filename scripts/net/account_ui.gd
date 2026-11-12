@@ -36,7 +36,7 @@ func _init(main) -> void:
 	Backend.conflict_found.connect(_on_conflict)
 
 func _open() -> bool:
-	return m.overlay.visible and m._panel_kind == "account"
+	return m.overlay.visible and m._panel_kind in ["account", "leaderboard"]     # (Menu -> Leaderboard is built here too)
 
 func _on_status() -> void:
 	if Backend.state == "signed_in":

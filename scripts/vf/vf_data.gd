@@ -51,6 +51,8 @@ const MIN_COOLDOWN := 2.0         # Haste charm floor (wiki Charm page)
 const CATCH_MODES := ["relax", "reel"]
 const MINIGAME_FISH_BONUS := 2.0  # win the mini-game: +200% fish on that cast (owner: "make the mini game gives 200%")
 const MINIGAME_COOLDOWN := 0.5    # ... and the next cast is ready after 0.5s (instead of the normal cooldown)
+const MINIGAME_CHEST_MULT := 2.5  # ... and 2.5x the chance of a chest (1.1: a round takes longer than a cast, so Reel it in!
+                                  # found about a third of Relax's chests, and charms; measured: tools/pace_sim.gd -- --charms)
 ## Interface scale for a touch screen whose short side is short_dp (CSS px on the web, dp on Android):
 ## about 1.28 layout px per dp, at least 500 px of height, never smaller than the 1280x720 desktop layout.
 ## (vf_main applies it, times the player's Settings -> Interface size, as the window's content scale;
@@ -331,20 +333,22 @@ const BAITS := {
 const BAIT_ORDER := ["Worms", "Leeches", "Magnet", "Wise Bait", "Fish", "Artifact Magnet", "Magic Bait", "Support Bait"]
 
 ## Chest tiers. "w" is the DERIVED base weight before treasure quality is
-## applied; drop tables are the encyclopedia percentages.
+## applied; drop tables started as the encyclopedia percentages. 1.1: charms come more often from the better chests,
+## and a charm drop is "charms" of one kind (min..max, times _charm_qty_mult) instead of one: maxing them all in a
+## prestige's run is hard but doable (owner, 2026-11-12; measured: tools/pace_sim.gd -- --charms).
 const CHESTS := [
 	{"id": "common",    "name": "Common",    "mult": 1.0, "w": 55.0,
 	 "drops": {"gold": 15, "emerald": 2, "lava": 1, "xpmoney": 82}},
 	{"id": "uncommon",  "name": "Uncommon",  "mult": 1.0, "w": 27.0,
 	 "drops": {"gold": 25, "emerald": 5, "lava": 1.9, "diamond": 1, "xpmoney": 67.1}},
-	{"id": "rare",      "name": "Rare",      "mult": 1.4, "w": 12.0,
-	 "drops": {"gold": 38, "emerald": 15, "lava": 6.5, "diamond": 6, "charm": 2, "xpmoney": 32.5}},
-	{"id": "epic",      "name": "Epic",      "mult": 1.7, "w": 4.5,
-	 "drops": {"gold": 25, "emerald": 25, "lava": 10, "diamond": 15, "charm": 25}},
-	{"id": "legendary", "name": "Legendary", "mult": 2.2, "w": 1.3,
-	 "drops": {"gold": 15, "emerald": 10, "lava": 15, "diamond": 20, "charm": 40}},
-	{"id": "artifact",  "name": "Artifact",  "mult": 3.0, "w": 0.2,
-	 "drops": {"gold": 5, "emerald": 5, "lava": 5, "diamond": 10, "charm": 75}},
+	{"id": "rare",      "name": "Rare",      "mult": 1.4, "w": 12.0, "charms": [1, 3],
+	 "drops": {"gold": 38, "emerald": 15, "lava": 6.5, "diamond": 6, "charm": 6, "xpmoney": 28.5}},
+	{"id": "epic",      "name": "Epic",      "mult": 1.7, "w": 4.5, "charms": [3, 6],
+	 "drops": {"gold": 17.5, "emerald": 17.5, "lava": 10, "diamond": 15, "charm": 40}},
+	{"id": "legendary", "name": "Legendary", "mult": 2.2, "w": 1.3, "charms": [6, 12],
+	 "drops": {"gold": 10, "emerald": 5, "lava": 10, "diamond": 20, "charm": 55}},
+	{"id": "artifact",  "name": "Artifact",  "mult": 3.0, "w": 0.2, "charms": [15, 30],
+	 "drops": {"gold": 3, "emerald": 3, "lava": 3, "diamond": 6, "charm": 85}},
 ]
 
 const CHARMS := {
@@ -497,8 +501,10 @@ static func prestige_money_req(p: int) -> int:
 static func prestige_charm_req(_p: int) -> int:
 	return 0
 
+## the top tier of every charm this prestige (1.1: 6, and one more every two prestiges, so a run's charms can be
+## filled; it was 10 + p, 440 charms at P0 when a run got about 7 of them. The old tier 10 comes at P8 now)
 static func charm_tier_cap(p: int) -> int:
-	return 10 + p if p <= 99 else 2 * p - 88
+	return 6 + maxi(p, 0) / 2
 
 static func charm_total_cap(p: int) -> int:
 	var t := charm_tier_cap(p)

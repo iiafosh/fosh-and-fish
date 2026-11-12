@@ -38,6 +38,9 @@ func _init() -> void:
 	elif "--table" in args:
 		for mode in MODES:
 			if mode.name in NORMAL: _table(mode)
+	elif "--charms" in args:
+		for mode in MODES:
+			if mode.name in ["Relax", "Relax + crews", "Reel it in!, good"]: _charms(mode)
 	else:
 		for mode in MODES: _run_mode(mode)
 	quit()
@@ -120,6 +123,48 @@ func _chain(mode: Dictionary) -> void:
 	if stuck > 0: line += "  (%d runs stuck over %d hours)" % [stuck, int(CHAIN_CAP_HOURS)]
 	print(line)
 	print("   requirements: " + ", ".join(range(CHAIN_TO).map(func(p): return "P%d Lv%d $%s" % [p, VFData.prestige_level_req(p), G.fmt(VFData.prestige_money_req(p))])))
+
+## --charms: in each prestige's run, how many charms you have when its rebirth is ready, and how many hours from the
+## start of the run until every charm is maxed (then it prestiges). Charms start over at every rebirth.
+func _charms(mode: Dictionary) -> void:
+	const TO := 4
+	const RUNS_C := 3
+	const CAP_H := 40.0
+	var ready_sum := []
+	var ready_h := []
+	var max_h := []
+	var maxed := []
+	for p in TO:
+		ready_sum.append(0.0); ready_h.append(0.0); max_h.append(0.0); maxed.append(0)
+	for run in RUNS_C:
+		var g = _new_game(7000 + run)
+		var t := 0.0
+		var since := 0.0
+		var n := 0
+		var ready := false
+		while g.prestige < TO:
+			t += _step(g, mode, n)
+			n += 1
+			var p: int = g.prestige
+			if not ready and g.prestige_check().ok:
+				ready = true
+				ready_sum[p] += g.charms_total()
+				ready_h[p] += (t - since) / 3600.0
+			var full: bool = g.charms_total() >= VFData.charm_total_cap(p)
+			if ready and g.prestige_check().ok and (full or t - since > CAP_H * 3600.0):
+				if full:
+					max_h[p] += (t - since) / 3600.0
+					maxed[p] += 1
+				g.do_prestige()
+				_guide_perks(g)
+				since = t
+				ready = false
+		g.queue_free()
+	var line := "== %-22s" % mode.name
+	for p in TO:
+		line += "  P%d: ready %.1fh with %d/%d charms, all maxed %s" % [p, ready_h[p] / RUNS_C, int(ready_sum[p] / RUNS_C),
+			VFData.charm_total_cap(p), ("%.1fh" % (max_h[p] / maxed[p])) if maxed[p] > 0 else "not in %dh" % int(CAP_H)]
+	print(line)
 
 ## after each rebirth (a new game played to its first rebirth, then the Guide's perks for each prestige up to p): when
 ## this mode reaches each level, and what it has earned by then
