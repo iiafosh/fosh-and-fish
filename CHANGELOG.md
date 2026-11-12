@@ -2,10 +2,18 @@
 
 ![fosh&fish](https://raw.githubusercontent.com/iiafosh/fosh-and-fish/master/assets/brand/cover_1280x720.png)
 
-## Coming next
+## 1.0.0 — the Fishing Derby, one Shop, and charms you can fill (12 November 2026)
 
+- **The Fishing Derby.** Menu → Derby: three minutes of Reel it in! rounds back to back, at the same difficulty for everyone (your rod, your level and the easing don't count). Every win scores points: more for rarer fish (they get rarer as the run goes on), for a perfect round and for a streak of wins. Play as often as you like: your best run of the week goes on the weekly board. When the week ends, the top three get the new **Derby Cup** hat (a gold trophy with the winning fish still stuck in it, head first) and Event Stars, the top ten get Stars, and everyone who played gets a few. It plays without an account too, and your best then stays on your device.
+- **A Leaderboard of its own.** Menu → Leaderboard (or L): the top fishers, and this week's Derby board. No more digging through Account.
+- **One Shop for everything.** Rods, Bait, Boats, Boosts, Fleet, Upgrades, Special, League, Hats and Pearls are tabs of the same Shop, so whatever you want to buy is where you open it.
+- **A quieter Menu.** 12 big tiles instead of 22, without the descriptions, and a tile only speaks up when something's waiting ("7 to claim!"). Guide, Settings, Account, Radio and Updates are a small row at the bottom. The daily calendar and spin are tabs of Quests, the aquarium a tab of the Fish Book.
+- **Charms are worth chasing.** Better chests drop charms more often, several of one kind at a time, and a won Reel it in! round finds a chest 2.5 times as often. Each kind goes up to tier 6 (one more tier every two prestiges), so filling every charm takes about 8 to 14 hours of a run: hard, but doable before you prestige. Every charm you find shows a banner with its tier and how close the next one is, and Menu → Charms shows your total and the real rules. Charms still start over when you prestige, and prestige doesn't need them.
+- **Chests say what they gave**, every one: the ones you buy (the Legendary chest from the Pearl Shop too), the ones your workers fish up and the ones in rewards. A chest never comes up empty once your charms are full.
+- **A calmer phone screen**: icon-only buttons at the top right, a shorter catch card that fades sooner, the event countdown only in its last minute, and no locked-biome sign over the water.
 - **Reel it in! goes easier on you after a bad streak.** Lose two rounds in a row and the next one has a slightly bigger net, a slower fish and a bit more time; lose more and it eases a little more; win and it's back to normal. Players who aren't losing won't notice anything, and the outlaw rounds keep their own easing. The Guide explains it.
 - **The Baron's crown and the Duchess's tiara look like theirs.** The crown has swept-back wings now (the Baron is a flying fish) and keeps his waxed moustache, and the tiara swapped its bow for a glowing anglerfish lure with a little chandelier of crystals hanging from it.
+- The public boards (the leaderboard, the shiny stock and feed, the Derby board) are read in a safer way on the server. Nothing changes for you.
 
 ## 1.0.1 — the Most Wanted, and FishTok beside the game (11 November 2026)
 

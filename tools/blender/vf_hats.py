@@ -23,7 +23,7 @@ import vf_topdown as TD
 import vf_vendor as V
 from vf_kit import cone, cube, cyl, hexc, ico, mix, sphere, toon, torus, tube
 
-ORDER = ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara"]
+ORDER = ["straw", "pirate", "chef", "propeller", "viking", "traffic_cone", "top_hat", "sombrero", "duck", "crown", "tiara", "derby_cup"]
 UNIT_PX = round(C.CELL / C.SCALE, 3)       # (as sharp as the fishing sheets)
 SUN_TURN, SUN_FISHER = (42, 0, 28), (35, 0, 30)
 
@@ -228,6 +228,39 @@ def _tiara():
     return parts
 
 
+def _lathe(profile, mat, n=48, thick=0.05):
+    """a round piece turned on a lathe, open at both ends: profile = [(radius, z), ...] from the bottom up"""
+    m = len(profile)
+    verts = [(r * math.cos(i / n * math.tau), r * math.sin(i / n * math.tau), z) for i in range(n) for r, z in profile]
+    faces = [(i * m + j, ((i + 1) % n) * m + j, ((i + 1) % n) * m + j + 1, i * m + j + 1) for i in range(n) for j in range(m - 1)]
+    ob = FD._sheet(verts, faces, thick)
+    for p in ob.data.polygons:
+        p.use_smooth = True
+    ob.data.materials.append(mat)
+    return ob
+
+
+def _derby_cup():
+    """the Fishing Derby's trophy (a top-three week), worn: a gold loving cup on a wooden stand, this week's catch still in it"""
+    gold, gold_dk, brass = toon("#f2c33d", spec=0.45), toon("#d39a26", spec=0.4), toon("#f5e2a0", spec=0.35)
+    wood, orange, fin = toon("#7a4a2a"), toon("#ff8a3d", spec=0.25), toon("#ff6b2b")
+    parts = [cyl(loc=(0, 0, 0.27), r=0.78, depth=0.3, verts=48, mat=wood),
+             torus(loc=(0, 0, 0.42), R=0.78, r=0.03, mat=gold, seg=48, mseg=8),
+             cube(loc=(0, -0.77, 0.27), scale=(0.6, 0.05, 0.16), mat=brass, bevel=0.015),
+             cone(loc=(0, 0, 0.5), r1=0.4, r2=0.14, depth=0.16, verts=32, mat=gold),
+             cyl(loc=(0, 0, 0.68), r=0.11, depth=0.22, verts=24, mat=gold),
+             sphere(loc=(0, 0, 0.76), scale=(0.18, 0.18, 0.1), mat=gold_dk),
+             _lathe([(0.12, 0.8), (0.28, 0.83), (0.44, 0.9), (0.57, 1.0), (0.67, 1.13), (0.74, 1.27), (0.79, 1.41), (0.84, 1.52)], gold),
+             torus(loc=(0, 0, 1.52), R=0.84, r=0.05, mat=gold_dk, seg=48, mseg=10)]
+    for s in (1, -1):                                       # (big ears, so everyone can see it from the shore)
+        parts.append(tube([(s * 0.76, 0, 1.38), (s * 1.08, 0, 1.42), (s * 1.2, 0, 1.22), (s * 1.08, 0, 1.02), (s * 0.6, 0, 1.0)], 0.06, mat=gold, res=8))
+    # (the winning fish went in head first and won't come out: only its tail shows)
+    parts.append(sphere(loc=(0.1, 0.06, 1.48), scale=(0.17, 0.13, 0.27), rot=(0, 16, 0), mat=orange))
+    for d in (-1, 1):
+        parts.append(sphere(loc=(0.18 + d * 0.085, 0.06, 1.84), scale=(0.18, 0.04, 0.09), rot=(0, -d * 58, 0), mat=fin))
+    return parts
+
+
 def _points(objs):
     """every vertex as it is now, outlines and all, in the world -> N x 3"""
     dg = bpy.context.evaluated_depsgraph_get()
@@ -252,7 +285,7 @@ def _lean(parts, rot):
 
 
 BUILD = {"pirate": _pirate, "chef": _chef, "propeller": _propeller, "viking": _viking, "traffic_cone": _traffic_cone,
-         "top_hat": _top_hat, "sombrero": _sombrero, "duck": _duck, "crown": _crown, "tiara": _tiara}
+         "top_hat": _top_hat, "sombrero": _sombrero, "duck": _duck, "crown": _crown, "tiara": _tiara, "derby_cup": _derby_cup}
 
 
 def _wear(slug, arm, place):

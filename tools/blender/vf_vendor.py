@@ -204,16 +204,21 @@ def render_sheet(out_path, frames_fn, n, size, cam, objs, margin=1.1):
     return cam
 
 
-def _stitch(paths, out_path, size):
+def _stitch(paths, out_path, size, max_w=0):
+    """frames -> one sheet, left to right. max_w: wrap onto more rows (as even as it gets) so it's never wider than
+    that: many phones can't load a picture over 4096 px (the game reads the columns from the sheet's width)"""
     imgs = [bpy.data.images.load(p) for p in paths]
     n = len(imgs)
-    sheet = bpy.data.images.new("sheet", width=size * n, height=size, alpha=True)
-    px = [0.0] * (size * n * size * 4)
+    rows = 1 if not max_w or size * n <= max_w else math.ceil(n / max(1, max_w // size))
+    cols = math.ceil(n / rows)
+    sheet = bpy.data.images.new("sheet", width=size * cols, height=size * rows, alpha=True)
+    px = [0.0] * (size * cols * size * rows * 4)
     for k, im in enumerate(imgs):
         src = list(im.pixels)
+        y0 = (rows - 1 - k // cols) * size              # (image rows run bottom-up: frame 0 is top left)
         for y in range(size):
             row = y * size * 4
-            dst = (y * size * n + k * size) * 4
+            dst = ((y0 + y) * size * cols + (k % cols) * size) * 4
             px[dst:dst + size * 4] = src[row:row + size * 4]
     sheet.pixels = px
     sheet.filepath_raw = out_path

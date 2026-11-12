@@ -352,7 +352,7 @@ def render(out_dir, setup):
                     paths.append(p)
                 i += 1
         if paths:
-            V._stitch(paths, os.path.join(out_dir, name + ".png"), CELL)
+            V._stitch(paths, os.path.join(out_dir, name + ".png"), CELL, max_w=4096)
         e = {"frames": total, "fps": a["fps"], "rod_grip": grips, "rod_tip": tips, "head": heads}
         if a.get("loop"):
             e["loop"] = True

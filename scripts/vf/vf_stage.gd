@@ -824,9 +824,12 @@ func _set_frame() -> void:
 	var t: Texture2D = _fisher_tex.get(_anim)
 	if t == null: return
 	var cell: float = _fisher_info.get("cell", 256)
+	# (a long sheet wraps onto more rows: many phones can't load a picture over 4096 px and draw a black box instead)
+	var cols := maxi(1, int(t.get_width() / cell))
+	var i := _frame_index()
 	var at := AtlasTexture.new()
 	at.atlas = t
-	at.region = Rect2(_frame_index() * cell, 0, cell, cell)
+	at.region = Rect2((i % cols) * cell, floori(float(i) / cols) * cell, cell, cell)
 	fisher.texture = at
 
 ## His hat, a picture of assets/vf/hats/<VF.hat>.png (one per view, tools/blender/vf_hats.py) with its pivot on his head. In the

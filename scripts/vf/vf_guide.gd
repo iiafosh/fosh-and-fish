@@ -16,7 +16,7 @@ const TABS := {
 		["Poke things", ["ui", "inventory"],
 		"Everything's alive and it doesn't mind (much). Tap crabs and gulls. Tap your boat to honk (or H). Bottles and rubber ducks float by: tap them for a little money and a note. And if a gull flies off with your fish, tap it before it's gone."],
 		["The merchant", ["ui", "shop"],
-		"The fish shop on the island is the merchant. Tap it (or the Shop button) to buy rods, bait, boats and upgrades."],
+		"The fish shop on the island is the merchant. Tap it (or the Shop button) to buy rods, bait, boats, boosts, crews for your fleet, upgrades, hats and Pearls: everything you can buy is in the Shop, one tab each."],
 		["Next goal", ["ui", "xp"],
 		"The bar under your level shows the next rod or boat you're saving for. Tap it to jump straight to that item in the shop."],
 	],
@@ -41,6 +41,10 @@ const TABS := {
 		"Pets can't be bought: every cast has a 1 in 10,000 chance to find one. Equipped pets level up as you fish and give big buffs."],
 		["Boosts, workers & quests", ["ui", "boosts"],
 		"Boosts (Lv10) cost Gold/Emerald fish: Fish boost, Treasure boost and Workers that fish for you. Daily quests pay money/XP, the league quest pays Hooks, and the Daily reward (Lv10) grows with your streak."],
+		["Fishing Derby", ["ui", "star"],
+		"Menu - Derby: three minutes of Reel it in! rounds back to back, the same for everyone (your rod and level don't count). Each win scores points, more for rarer fish, a perfect round and a streak of wins. Play as often as you like: your best run of the week goes on the weekly board. When the week ends, the top three get the Derby Cup hat and Event Stars, and everyone who played gets some Stars."],
+		["Leaderboard", ["ui", "prestige"],
+		"Menu - Leaderboard (or L): the top fishers by prestige and level, and this week's Derby board. You need a free account to be on them."],
 	],
 	"Prestige": [
 		["Prestiging", ["ui", "prestige"],
@@ -50,7 +54,7 @@ const TABS := {
 	],
 	"Controls": [
 		["Desktop", ["ui", "settings"],
-		"Click the water — cast right there (hold to keep fishing)\nSpace / F — cast where you aimed last (hold to keep fishing)\nE — sell everything · Tab — Fish Book · P — phone (FishTok sits beside the game, so you keep fishing while you scroll; D, with the pointer on the phone, makes it full screen)\nEsc — menu (or close a panel) · 1–9 — Shop, Map, Fish Book, Charms, Pets, Boosts, Quests, Prestige, Buffs\nG — guide · O — settings (music, sound, fullscreen)"],
+		"Click the water — cast right there (hold to keep fishing)\nSpace / F — cast where you aimed last (hold to keep fishing)\nE — sell everything · Tab — Fish Book · P — phone (FishTok sits beside the game, so you keep fishing while you scroll; D, with the pointer on the phone, makes it full screen)\nEsc — menu (or close a panel) · 1–9 — Shop, Map, Fish Book, Charms, Pets, Boosts, Quests, Prestige, Buffs\nL — leaderboard · G — guide · O — settings (music, sound, fullscreen)"],
 		["Phone & tablet", ["ui", "settings"],
 		"Tap the water to cast exactly there; keep your finger down to keep fishing. The round button bottom-right casts too. The Phone button opens FishTok beside the game: scroll it with one hand and keep fishing with the other (the little icon at the top of the phone makes it full screen). Tap the fish shop to buy. On the web version use your browser's \"Add to Home Screen\" to play full-screen in landscape."],
 		["Saving", ["ui", "daily"],

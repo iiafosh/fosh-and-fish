@@ -140,7 +140,8 @@ func _build_hud() -> void:
 	_layer.layer = 6
 	m.add_child(_layer)
 	_hud = PanelContainer.new()
-	_hud.add_theme_stylebox_override("panel", m.sbox(Color("#10303a", 0.92), 999, 2, Color("#ffd75e"), 18, 8))
+	var tight: bool = m.compact()                    # (phones: a slimmer pill, so it clears the top of the mini-game card)
+	_hud.add_theme_stylebox_override("panel", m.sbox(Color("#10303a", 0.92), 999, 2, Color("#ffd75e"), 10 if tight else 18, 4 if tight else 8))
 	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
@@ -163,7 +164,7 @@ func _update_hud() -> void:
 	_hud_time.text = "DERBY  %s" % m._clock(ceilf(t_left))
 	_hud_score.text = "%s pts%s" % [VF.commas(score), ("   x%d" % combo) if combo >= 2 else ""]
 	_hud.reset_size()
-	_hud.position = Vector2((m.size.x - _hud.size.x) * 0.5, 10.0)
+	_hud.position = Vector2((m.size.x - _hud.size.x) * 0.5, 2.0 if m.compact() else 10.0)
 
 func _show_big(text: String) -> void:
 	if _big == null or not is_instance_valid(_big): return
