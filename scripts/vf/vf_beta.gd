@@ -156,6 +156,14 @@ func panel() -> void:
 	var note: Label = m.lbl("BETA: ideas being tried, not in the game yet. This copy has its own save and plays offline.", 13, C_BETA)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_child(note)
+	if VF.level < 60:                               # (testers: try it all without playing up to it; only this beta save)
+		body.add_child(m._act("Skip ahead for testing: a level 120 save with 500 Event Stars", C_BETA, func():
+			m._veteran("River")
+			VF.tutorial = 99
+			VF.stars = maxi(VF.stars, 500)
+			VF.changed.emit()
+			m._render_panel()
+			return ""))
 	body.add_child(m.lbl("Expeditions", 22, m.C_TEXT))
 	var t_now := now()
 	for t in TRIPS:
