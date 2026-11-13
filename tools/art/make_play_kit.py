@@ -101,8 +101,9 @@ def badge(ui, center, r, angle=-14.0):
     d = ImageDraw.Draw(b)
     d.polygon(pts, fill=(255, 196, 46, 255))
     d.ellipse((c - r * 0.72, c - r * 0.72, c + r * 0.72, c + r * 0.72), outline=(255, 238, 170, 255), width=max(2, int(r * 0.05)))
-    d.text((c, c - r * 0.3), "NEW", font=MB.font(int(r * 0.3), 700, 100), fill=MB.DEEP, anchor="mm")
-    d.text((c, c + r * 0.14), "1.0", font=MB.font(int(r * 0.66), 700, 112), fill=MB.DEEP, anchor="mm")
+    # (no version number on it: the listing outlives every update)
+    d.text((c, c - r * 0.3), "PLAY", font=MB.font(int(r * 0.3), 700, 100), fill=MB.DEEP, anchor="mm")
+    d.text((c, c + r * 0.14), "FREE", font=MB.font(int(r * 0.44), 700, 112), fill=MB.DEEP, anchor="mm")
     b = b.rotate(-angle, Image.BICUBIC)
     ui.alpha_composite(b, (int(center[0] - c), int(center[1] - c)))
 
@@ -175,7 +176,7 @@ def feature():
                                            fill=(11, 41, 48, 150))
     ui.alpha_composite(pill)
     ImageDraw.Draw(ui).text((px, py), text, font=f, fill=(255, 255, 255), anchor="mm")
-    chips(ui, px, py + th * 1.25, [("shiny", "Shiny fish", GOLD), ("bolt", "Live events", MB.MINT), ("globe", "7 worlds", (150, 220, 255))],
+    chips(ui, px, py + th * 1.25, [("globe", "Fish with friends", (150, 220, 255)), ("bolt", "Weekly Derby", MB.MINT), ("shiny", "Shiny fish", GOLD)],
           17 * SS)
     badge(ui, (950 * SS, 212 * SS), 44 * SS)
     c.alpha_composite(ui.resize((w, h), Image.LANCZOS))

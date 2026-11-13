@@ -41,7 +41,7 @@ Made with love by afosh.
 **What's new in this version** (500 max):
 
 ```
-fosh&fish 1.0 is here! Shiny fish (only 3,000 of each in the world), a live event every 10 minutes of play with event fish and the Leviathan boss, the Event Shop and the Starfall Rod, Supporter Packs and Pearls, free ad rewards, new art and effects, and the whole game is 10% easier.
+Fish with friends, live: party codes, and their boats in your bay. Other players sail by. The weekly Fishing Derby with the Derby Cup. Share cards for your shinies and Derby scores. One Shop for everything, a quieter Menu, a Leaderboard of its own, and charms you can really fill (a rebirth needs them all again). A calmer phone screen and a much faster web start.
 ```
 
 **App category**: Game → Casual (or Simulation). **Tags**: Fishing, Casual, Idle, Collecting, Relaxing.

@@ -34,8 +34,10 @@ Google mixes these itself. Headlines: 30 characters at most. Descriptions: 90 at
 - Only 3,000 of each shiny fish exist, and every one is numbered. Catch yours in fosh&fish, a cozy fishing game.
 - Every 10 minutes of fishing, a new event: Golden Hour, Fish Frenzy, Meteor Showers, and the Leviathan.
 - Cast. Catch. Collect. A cozy fishing game with 7 worlds to fish in. Free on phone and PC.
+- Fish with your friends: send a code and their boats sail into your bay, live. Free in your browser.
+- 3 minutes, the same fish for everyone, one weekly board. Win the Derby Cup in fosh&fish.
 
-**Headline** (40 max): `Play fosh&fish free` · `Catch a numbered shiny` · `Something HUGE is coming`
+**Headline** (40 max): `Play fosh&fish free` · `Catch a numbered shiny` · `Something HUGE is coming` · `Fish with your friends` · `Win the Derby Cup`
 **Button**: Play Game (or Download / Install Now)
 
 ## YouTube: the trailer
