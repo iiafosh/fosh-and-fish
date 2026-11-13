@@ -465,6 +465,19 @@ func set_catch_mode(m: String) -> void:
 		save_game()
 
 # ------------------------------------------------------------------ chests
+## the share of chests that are Rare or better at today's treasure quality (the Charms panel's hint; _roll_chest_tier's math)
+func rare_or_better() -> float:
+	var tq := treasure_quality()
+	var total := 0.0
+	for c in VFData.CHESTS: total += c.w
+	var used := 0.0
+	var good := 0.0
+	for i in range(VFData.CHESTS.size() - 1, 0, -1):
+		var e := minf(float(VFData.CHESTS[i].w) / total * tq, 1.0 - used)
+		used += e
+		if VFData.CHESTS[i].drops.has("charm"): good += e
+	return good
+
 func _roll_chest_tier() -> String:
 	var tq := treasure_quality()
 	var w := []

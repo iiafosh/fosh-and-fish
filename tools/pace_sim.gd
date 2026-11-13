@@ -20,6 +20,11 @@ const MODES := [
 	{"name": "Reel it in!, clumsy + crews", "reel": true, "crews": true},
 	{"name": "Reel it in!, good", "reel": true, "crews": false, "sharp": true},
 	{"name": "Reel it in!, good + crews", "reel": true, "crews": true, "sharp": true},
+	# (--charms) plays for charms like a Virtual Fisher player: Magnet bait from Lv20, Artifact Magnet from Lv60, the
+	# More Chests and Better Chests upgrades, and it keeps shopping after the rebirth level (no treasure boosts: they run
+	# on the real clock, which this can't fake, so the real thing is a bit faster still)
+	{"name": "Charm hunter, Reel good", "reel": true, "crews": true, "sharp": true, "hunter": true},
+	{"name": "Charm hunter, Relax", "reel": false, "crews": true, "hunter": true},
 ]
 const NORMAL := ["Relax", "Relax + crews", "Reel it in!, good", "Reel it in!, good + crews"]
 const CHAIN_TO := 7
@@ -40,7 +45,7 @@ func _init() -> void:
 			if mode.name in NORMAL: _table(mode)
 	elif "--charms" in args:
 		for mode in MODES:
-			if mode.name in ["Relax", "Relax + crews", "Reel it in!, good"]: _charms(mode)
+			if mode.name in ["Relax + crews", "Charm hunter, Relax", "Charm hunter, Reel good"]: _charms(mode)
 	else:
 		for mode in MODES: _run_mode(mode)
 	quit()
@@ -64,7 +69,8 @@ func _step(g, mode: Dictionary, n: int, keep_shopping := false) -> float:
 			g._crew_trips(k)
 	if n % 5 == 0:
 		g.sell_all()
-		if keep_shopping or g.level < VFData.prestige_level_req(g.prestige): _shop(g, mode.crews)
+		var hunter: bool = mode.get("hunter", false)
+		if keep_shopping or hunter or g.level < VFData.prestige_level_req(g.prestige): _shop(g, mode.crews, hunter)
 	return dt
 
 ## the Azure Fish of the prestige just reached go where the Prestige Guide says ("FW | AO": the first one)
@@ -272,7 +278,7 @@ func _run_mode(mode: Dictionary) -> void:
 	else:
 		print("   first rebirth (%s): not reached in %.0f hours" % [want, MAX_MINUTES / 60.0])
 
-func _shop(g, with_crews: bool) -> void:
+func _shop(g, with_crews: bool, hunter := false) -> void:
 	for r in VFData.ROD_ORDER:
 		var d: Dictionary = VFData.RODS[r]
 		if r in g.owned_rods or VFData.is_exclusive_rod(r) or g.level < d.level: continue
@@ -281,9 +287,15 @@ func _shop(g, with_crews: bool) -> void:
 	var nb: String = g.next_boat()
 	if nb != "" and g.level >= VFData.BOATS[nb].level and g.money >= VFData.BOATS[nb].cost * 2:
 		g.buy_boat()
-	if g.money > 400 and int(g.bait_stock.get("Worms", 0)) < 20:
-		g.buy_bait("Worms", 50)
-		g.select_bait("Worms")
+	var tb := "Worms"
+	if hunter: tb = "Artifact Magnet" if g.level >= 60 else ("Magnet" if g.level >= 20 else "Worms")
+	if g.money > maxf(400.0, float(VFData.BAITS[tb].cost) * 200.0) and int(g.bait_stock.get(tb, 0)) < 30:
+		g.buy_bait(tb, 100 if hunter else 50)
+	if int(g.bait_stock.get(tb, 0)) > 0: g.select_bait(tb)
+	if hunter:
+		for id in ["more_chests", "better_chests"]:
+			var c: int = g.upgrade_cost(id)
+			if c > 0 and g.money >= c * 2: g.buy_upgrade(id)
 	for b in VFData.BIOME_ORDER:
 		if g.level >= VFData.BIOMES[b].level and g.rod_usable(g.rod, b): g.biome = b
 	if with_crews and g.fleet_unlocked() and g.next_crew_cost() > 0 and g.money >= 2 * g.next_crew_cost():

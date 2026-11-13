@@ -1998,6 +1998,11 @@ func _panel_charms() -> void:
 		[", ".join(odds), cap, VF.prestige], 14, C_TEXT)
 	rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hv.add_child(rules)
+	# (what finds more and better chests, as on Discord: the gear is the whole trick, and nobody would guess it)
+	var hunt := lbl("Hunting charms? Magnet bait (Lv20) finds more chests, Artifact Magnet (Lv60) more and better ones; the More Chests and Better Chests upgrades, a Treasure boost, the Treasure Tide event, Dolphin and Axolotl, and won Reel it in! rounds all add up. You find a chest on %s%% of casts now, and %s%% of them are Rare or better." %
+		[str(snappedf(100.0 * VF.treasure_chance(), 0.1)), str(snappedf(100.0 * VF.rare_or_better(), 0.1))], 13, Color("#6d28d9"))
+	hunt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hv.add_child(hunt)
 	if VF.level < 20:
 		hv.add_child(lbl("You're level %d: chests start giving charms at level 20." % VF.level, 14, C_BAD))
 	panel_body.add_child(head)

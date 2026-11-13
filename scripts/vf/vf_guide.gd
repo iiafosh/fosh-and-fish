@@ -36,7 +36,7 @@ const TABS := {
 		["Chests & exotic fish", ["chest", "epic"],
 		"From Lv10 casts can find chests (Common » Artifact). They give money, XP, charms and exotic fish: Gold & Emerald (Lv10), Lava (Lv50), Diamond (Lv100). Exotic fish pay for boosts and special upgrades — check your Wallet."],
 		["Charms", ["charm", "quality"],
-		"Rare, Epic, Legendary and Artifact chests drop charms from Lv20, a few of one kind at a time (the better the chest, the more). Each kind goes up in tiers: tier n takes n charms, up to tier 6 (one more every two prestiges). They make you a lot stronger and start over when you prestige, so fill them first. Menu - Charms shows how close you are."],
+		"Rare, Epic, Legendary and Artifact chests drop charms from Lv20, a few of one kind at a time (the better the chest, the more). Each kind goes up in tiers: tier n takes n charms, up to tier 6 (one more every two prestiges). They make you a lot stronger and start over when you prestige, so fill them first. Menu - Charms shows how close you are.\n\nTo find more: Magnet bait (Lv20) brings more chests, Artifact Magnet (Lv60) more and better ones, and the More Chests and Better Chests upgrades, a Treasure boost, the Treasure Tide event, Dolphin and Axolotl and won Reel it in! rounds all help."],
 		["Pets", ["pet", "Puffer"],
 		"Pets can't be bought: every cast has a 1 in 10,000 chance to find one. Equipped pets level up as you fish and give big buffs."],
 		["Boosts, workers & quests", ["ui", "boosts"],
