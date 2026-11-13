@@ -847,6 +847,141 @@ func play_shots(dir: String) -> void:
 ## godot --path . --fullscreen --write-movie WORK/reel.avi --fixed-fps 30 -- --reel10 > WORK/reel_log.txt
 ## The 1.0 footage for the marketing videos and ads (tools/video/edit10.py): every 1.0 moment, with the
 ## same MARK lines as the other reels. Never saves; plays on the test account file (Backend.RECORDING_FLAGS).
+## godot --path . --fullscreen --write-movie WORK/reel.avi --fixed-fps 30 -- --reel11 > WORK/reel_log.txt
+## Footage of today's game for the music trailer and ads (tools/video/edit11.py): the bay at golden hour, a new species
+## (the captain dances), friends' boats sailing in, Reel it in!, a Derby round, a shiny, three biomes at dusk and night,
+## the Derby Cup. MARK lines as in reel10. The HUD is hidden in the scenery shots (cleaner, more like a film; the
+## trailer brings its own music). Never saves; plays on the test account file (Backend.RECORDING_FLAGS).
+func reel11() -> void:
+	VF.autosave = false
+	AudioManager.music_on = false
+	AudioManager.sfx_on = true
+	AudioManager.apply_settings()
+	VF.player_name = "Fisher"
+	for f in ["Rainbow Fish", "Cod", "Tropical Fish", "Pufferfish", "Turtle"]:
+		VF.add_shiny(f, 37 + f.length() * 97)
+	for l in m.find_children("*", "Label", true, false):
+		if l.text.begins_with("fosh&fish "): l.visible = false          # the version label
+	# the HUD round the edges stays hidden in every frame (the game shows parts of it again after a catch and fades it on
+	# its own, so it's hidden again just before each frame is drawn); the mini-game card, the Derby clock, panels and
+	# toasts aren't part of it
+	var enforce := func():
+		var nodes: Array = [m.card, m.sell_btn, m.fish_btn, m.mode_pill, m.top_right, m.hud_col, m.boost_pill,
+			m.chips.rod.get_parent().get_parent(), m.idle.auto_pill, m._coach]
+		for s in m.sail._signs.values(): nodes.append(s)
+		for n in nodes:
+			if n != null and is_instance_valid(n): n.visible = false
+	RenderingServer.frame_pre_draw.connect(enforce)
+	var hud_on := func(_on: bool): pass
+	var go := func(biome: String, day: float):
+		m._veteran(biome)
+		VF.tutorial = 99
+		VF.catch_mode = "relax"
+		m._close_panel()
+		m._apply_biome()
+		m._coach_show()
+		m.stage.set_time_of_day(day)
+		VF.changed.emit()
+	go.call("River", 0.54)
+	hud_on.call(false)
+	await m._wait(2.0)
+	# 1. the bay, a cast, a new species hanging in the air with its name (and the captain dances)
+	m._mark("bay")
+	await m._wait(2.6)
+	var fishes: Array = VFData.BIOMES["River"].fish
+	m._mark("cast")
+	m.stage.cast(func():
+		m.stage._last_big_show = -100.0
+		m.stage.show_catch({"fish": {fishes.back(): 1}, "count": 1, "chest": {}, "new_species": [fishes.back()]}))
+	await m._wait(1.2)
+	m._mark("catch")
+	await m._wait(4.2)
+	# 2. friends' boats sail into the bay (vf_party.gd), and one passer-by (vf_visitors.gd)
+	var p = m.party
+	p.code = "FOSH42"
+	p.state = "live"
+	for f in [["mia", "Mia", 212, 2, 9, Vector2(1640, 820)], ["leo", "Leo", 87, 0, 5, Vector2(1700, 600)]]:
+		p.friends[f[0]] = {"name": f[1], "level": f[2], "prestige": f[3], "boats": f[4], "hat": "straw", "biome": "River",
+			"pos": f[5], "shown": Vector2.INF, "said": 0.0, "seen": 1e12, "msgs": []}
+	await m._wait(0.6)
+	m._mark("friends")
+	p.friends.mia.pos = Vector2(1180, 760)
+	p.friends.leo.pos = Vector2(1380, 560)
+	await m._wait(2.2)
+	m._toast("Mia caught a Rainbow Fish!", "quest")
+	await m._wait(1.6)
+	m._mark("friends_wave")
+	p.friends.leo.said = 3.0
+	m._toast("Leo waves at you!", "quest")
+	await m._wait(2.6)
+	for id in p.friends.keys(): p._unshow(p.friends[id])
+	p.friends.clear()
+	p.code = ""
+	p.state = ""
+	# 3. Reel it in!, a normal round with a funny fish
+	VF.catch_mode = "reel"
+	VF._last_cast_ms = -100000
+	m._do_cast()
+	for i in 900:
+		await m.get_tree().process_frame
+		if m.minigame != null and is_instance_valid(m.minigame):
+			if m.minigame.auto == "": m.minigame.auto = "win"
+			if m.minigame.phase == "play": break
+	m._mark("reel")
+	for i in 900:
+		await m.get_tree().process_frame
+		if m.minigame == null or not is_instance_valid(m.minigame): break
+	m._mark("reel_won")
+	await m._wait(2.4)
+	VF.catch_mode = "relax"
+	# 4. the Fishing Derby: rounds on the clock, then the score
+	m.derby.start()
+	for i in 3000:
+		await m.get_tree().process_frame
+		if m.minigame != null and is_instance_valid(m.minigame):
+			if m.minigame.auto == "": m.minigame.auto = "win"
+			if m.minigame.phase == "play" and m.derby.rounds >= 3 and m.derby.score > 0: break
+	m._mark("derby")
+	await m._wait(3.0)
+	m.derby._end()
+	await m._wait(0.8)
+	m._mark("derby_result")
+	await m._wait(2.4)
+	m._close_panel()
+	# 5. a shiny
+	await m._wait(0.6)
+	m._mark("shiny")
+	celebrate("Pufferfish", 42, 2958)
+	await m._wait(4.6)
+	# 6. other worlds: the Sky at sunset, the Volcanic at night, Space
+	go.call("Sky", 0.565)
+	hud_on.call(false)
+	await m._wait(1.6)
+	m._mark("sky")
+	await m._wait(3.0)
+	go.call("Volcanic", 0.78)
+	hud_on.call(false)
+	await m._wait(1.6)
+	m._mark("volcanic")
+	await m._wait(3.0)
+	go.call("Space", 0.4)
+	hud_on.call(false)
+	await m._wait(1.6)
+	m._mark("space")
+	await m._wait(3.0)
+	# 7. the Derby Cup on his head, back home
+	go.call("River", 0.5)
+	VF.hat = "derby_cup"
+	VF.changed.emit()
+	hud_on.call(false)
+	await m._wait(1.6)
+	m._mark("cup")
+	await m._wait(3.2)
+	RenderingServer.frame_pre_draw.disconnect(enforce)
+	print("REEL11 done")
+	m.get_tree().quit()
+
+
 func reel10() -> void:
 	VF.autosave = false
 	AudioManager.music_on = true

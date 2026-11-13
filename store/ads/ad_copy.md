@@ -42,7 +42,31 @@ Google mixes these itself. Headlines: 30 characters at most. Descriptions: 90 at
 **Headline** (40 max): `Play fosh&fish free` · `Catch a numbered shiny` · `Something HUGE is coming` · `Fish with your friends` · `Win the Derby Cup`
 **Button**: Play Game (or Download / Install Now)
 
-## YouTube: the trailer
+## YouTube: the new trailer (tools/video/edit11.py: fosh-and-fish-trailer-16x9.mp4)
+
+**Title**: fosh&fish: Fish With Friends, the Weekly Derby and Shiny Fish (Trailer)
+
+**Description** (the music credit must stay in it: CC BY 4.0):
+
+```
+A cozy fishing game you can play free in your browser.
+
+Fish with friends: send a code and their boats sail into your bay, live.
+The weekly Fishing Derby: three minutes, the same fish for everyone, and the Derby Cup for the top three.
+Shiny fish: only 3,000 of each exist in the whole world, every one numbered.
+Seven worlds, from a calm river to the Abyss, and seven outlaw fish to catch.
+
+Play free: https://foshfish.xyz
+
+Music: "Felicity" by Scott Buckley – www.scottbuckley.com.au (CC BY 4.0)
+
+#fosh&fish #fishinggame #cozygames #indiegame
+```
+
+The ads `fosh-and-fish-friends-9x16.mp4` / `-1x1` and `fosh-and-fish-derby-9x16.mp4` / `-1x1` use the same track: put the same credit
+line in their post text.
+
+## YouTube: the 1.0 trailer (old look)
 
 **Title**: fosh&fish 1.0: Shiny Fish, Live Events and the Leviathan (Launch Trailer)
 
