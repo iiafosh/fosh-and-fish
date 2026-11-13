@@ -60,6 +60,7 @@ body { color: #fff; background: #2a8fa0; overflow: hidden; touch-action: none; f
 #status::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,48,58,.15) 0%, rgba(16,48,58,.0) 35%, rgba(16,48,58,.55) 100%); }
 #status.gone { opacity: 0; pointer-events: none; }
 #box { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(86vw, 460px); margin-top: -4vh; }
+@media (min-aspect-ratio: 4/3) { #box { margin-left: 38vw; } }   /* wide screens: over the open water, clear of the captain (where the title screen has its logo) */
 #logo { width: min(64vw, 330px); height: auto; max-height: 42vh; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0,0,0,.28)); animation: bob 3.2s ease-in-out infinite; }
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
 #bar { width: 100%; height: 16px; border-radius: 99px; background: rgba(16,48,58,.55); border: 2px solid #ffd75e; overflow: hidden;

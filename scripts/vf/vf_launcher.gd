@@ -9,8 +9,8 @@ extends Control
 const BG := "res://assets/launcher/launcher_bg.jpg"
 const MASKS := "res://assets/launcher/launcher_masks.png"
 const LOGO := "res://assets/brand/logo.png"                 # tools/art/make_brand.py
-const BOBBER := Vector2(0.3772, 0.6885)                     # points in the picture (fractions)
-const LANTERNS := [Vector2(0.1356, 0.2862), Vector2(0.2663, 0.4296)]
+const BOBBER := Vector2(0.4455, 0.7035)                     # points in the picture (fractions: tools/art/make_launcher.py has the same)
+const LANTERNS := [Vector2(0.2455, 0.4040), Vector2(0.1190, 0.4350)]      # the lamp on the post, the lit window
 const SPLASH_LOGO := Rect2(0.575, 0.288, 0.25, 0.3635)      # where the boot splash has the logo (make_brand.py SPLASH_LOGO)
 
 const GOLD := Color("#ffcf4a")
@@ -241,7 +241,7 @@ func _tick_jump(delta: float) -> void:
 			# out on the turquoise water, this side of the panel; further off it's smaller
 			var r := _cover_rect()
 			var right := clampf((_panel_x() - 90.0 * r.size.x / 1920.0 - r.position.x) / r.size.x, 0.46, 0.68)
-			var at := Vector2(randf_range(0.43, right), randf_range(0.5, 0.84))
+			var at := Vector2(randf_range(0.5, maxf(right, 0.52)), randf_range(0.5, 0.84))       # (right of the captain's line)
 			var near := inverse_lerp(0.5, 0.84, at.y)
 			var dir := 1.0 if randf() < 0.5 else -1.0
 			var w := lerpf(0.022, 0.04, near)

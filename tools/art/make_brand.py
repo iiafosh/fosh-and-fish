@@ -6,7 +6,7 @@
 
 Writes to assets/brand/:
   logo.png                     stacked "fosh & fish" logo, transparent (title screen, covers, splash)
-  icon_{64..1024}.png, icon.ico, android_192.png, android_fg_432.png, android_bg_432.png
+  icon_{64..1024}.png, icon.ico, android_192.png, android_fg_432.png, android_bg_432.png   (from tools/art/icon_source.png)
   splash.png                   boot / web loading screen (the painted bay, logo)
   cover_1920x1080.png, cover_1280x720.png, social_1280x640.png, itch_cover_630x500.png
 The logo and icon come from Blender (tools/blender/render_assets.py -- brand, assets/brand/src), the picture is the
@@ -205,18 +205,15 @@ def icon_tile(size):
     return tile
 
 
-def icon_art(size, bg=True):
-    """the app icon: a fish leaping through a life ring (tools/blender/vf_brand.py) on sunny water"""
-    s = size / 1024
+ICON_SRC = os.path.join(ROOT, "tools", "art", "icon_source.png")       # the owner's picture (2026-11-14, an image model)
+ICON_CROP = (90, 40, 1190, 1140)                                         # a little tighter: the fish reads better small
+
+
+def icon_art(size):
+    """the app icon: a happy orange fish leaping from the water, a bobber beside it, on a rounded tile"""
+    src = Image.open(ICON_SRC).convert("RGB").crop(ICON_CROP).resize((size, size), Image.LANCZOS).convert("RGBA")
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    if bg:
-        img.paste(icon_tile(size), (0, 0), rounded(size, int(230 * s)))
-    raw = Image.open(os.path.join(SRC, "icon_3d.png")).convert("RGBA")
-    raw = raw.crop(raw.getbbox())
-    k = size * 0.86 / max(raw.size)
-    art = raw.resize((int(raw.size[0] * k), int(raw.size[1] * k)), Image.LANCZOS)
-    art = sticker(art, max(2, int(size * 0.012)))
-    img.alpha_composite(art, ((size - art.size[0]) // 2, (size - art.size[1]) // 2))
+    img.paste(src, (0, 0), rounded(size, int(230 * size / 1024)))
     return img
 
 
@@ -227,12 +224,19 @@ def save_icons():
         big.resize((n, n), Image.LANCZOS).save(os.path.join(BRAND, "icon_%d.png" % n))
     big.resize((192, 192), Image.LANCZOS).save(os.path.join(BRAND, "android_192.png"))
     big.save(os.path.join(BRAND, "icon.ico"), sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-    # Android adaptive: the art inside the 66% safe zone over a full-bleed sea background
+    # Android adaptive: the whole picture at 76% in the middle (the fish inside the 66% safe zone), its edges melting
+    # into a blurred, enlarged copy of itself that fills the rest
+    src = Image.open(ICON_SRC).convert("RGB")
+    back = src.resize((432, 432), Image.LANCZOS).filter(ImageFilter.GaussianBlur(26))
+    back.save(os.path.join(BRAND, "android_bg_432.png"))
+    n = 328
+    art = src.resize((n, n), Image.LANCZOS).convert("RGBA")
+    edge = Image.new("L", (n, n), 0)
+    ImageDraw.Draw(edge).rounded_rectangle((26, 26, n - 26, n - 26), 60, fill=255)
+    art.putalpha(edge.filter(ImageFilter.GaussianBlur(16)))
     fg = Image.new("RGBA", (432, 432), (0, 0, 0, 0))
-    inner = icon_art(300, bg=False)
-    fg.alpha_composite(inner, (66, 66))
+    fg.alpha_composite(art, ((432 - n) // 2, (432 - n) // 2))
     fg.save(os.path.join(BRAND, "android_fg_432.png"))
-    icon_tile(432).convert("RGB").save(os.path.join(BRAND, "android_bg_432.png"))
 
 
 # ------------------------------------------------------------------ splash + covers

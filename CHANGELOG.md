@@ -4,6 +4,7 @@
 
 ## Coming next
 
+- **A new picture on the enter screen, and a new icon.** The bay you start in is a new painting: the captain on his dock, a lantern, a rowboat and open turquoise water, with the same moving water, swaying leaves and leaping fish. The web version's loading page shows it too, and the game's icon is now a happy orange fish jumping beside a bobber.
 - **Fish with friends, live.** Menu → Friends: make a party and send its 6-letter code to your friends. When they join, their boats sail in your bay with purple name tags, live, wherever they go, and you hear about their new catches and their waves. No account needed, and your party is still there the next time you play, until you leave it.
 - **Other players in your bay.** People who played lately sail into your bay now and then, in their best boat, with their name and level over it. They fish for a while and sail off. Tap one and they call out something friendly, and you see who they are.
 - **Share cards.** "Share it" on a shiny fish and "Share" on your Derby score make a picture to post anywhere: your biome, the shiny (or the gold Derby Cup), your name and the link to the game. On a phone the share menu opens; on a computer it's saved in Pictures/fosh&fish with the text copied.
