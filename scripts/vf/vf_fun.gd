@@ -460,6 +460,13 @@ func rebirth_test(dir: String) -> void:
 	VF.money = VFData.prestige_money_req(0)
 	VF.check_goals()
 	VF.changed.emit()
+	m._open_panel("prestige", "Prestige")                  # (1.1: and every charm, as on Discord)
+	await tree.create_timer(0.5).timeout
+	await m._shot(dir + "/rebirth3_needs_charms.png")
+	m._close_panel()
+	for id in VFData.CHARM_ORDER: VF.charms[id] = VFData.charm_total_cap(VF.prestige) / 8
+	VF.check_goals()
+	VF.changed.emit()
 	await tree.create_timer(0.8).timeout
 	await m._shot(dir + "/rebirth3_ready_toast.png")
 	print("REBIRTH ready=%s check=%s goal=%s" % [VF.prestige_check().ok, VF.prestige_check(), VF.current_goal().get("id", "")])

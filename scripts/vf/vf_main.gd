@@ -1994,7 +1994,7 @@ func _panel_charms() -> void:
 			for k in c.drops: sum += float(c.drops[k])
 			odds.append("%s %s%%" % [c.name, str(snappedf(100.0 * float(c.drops.charm) / sum, 0.1))])
 	var rules := lbl(("Charms come from chests once you're level 20: a chest's chance of one is %s. Super Crates and your workers' crates can have them too. " +
-		"Every kind goes up in tiers (tier n takes n charms), up to tier %d at Prestige %d. They make you a lot stronger, and they start over when you prestige: fill them before you do!") %
+		"Every kind goes up in tiers (tier n takes n charms), up to tier %d at Prestige %d. They make you a lot stronger, a rebirth needs every one of them maxed, and they start over when you prestige.") %
 		[", ".join(odds), cap, VF.prestige], 14, C_TEXT)
 	rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hv.add_child(rules)
@@ -2106,6 +2106,10 @@ func _panel_prestige() -> void:
 			panel_body.add_child(_req_row("Level", c.level[0], c.level[1]))
 			panel_body.add_child(_req_row("Money", c.money[0], c.money[1], true))
 			if c.charms[1] > 0: panel_body.add_child(_req_row("Charms", c.charms[0], c.charms[1]))
+			if c.charms[0] < c.charms[1]:                # (as on Discord: the treasure gear is how you fill them)
+				var tip := lbl("Every charm maxed, as on Discord. They come from chests: Magnet bait (Lv20) and Artifact Magnet (Lv60), the More Chests and Better Chests upgrades and a Treasure boost find many more. Menu - Charms shows how close you are.", 13, Color("#6d28d9"))
+				tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				panel_body.add_child(tip)
 			var note := lbl("Prestiging resets level, money, fish, rods, boats, bait, shop & special upgrades, exotic fish and charms. You keep pets, hooks, league upgrades and prestige perks, and gain 1 Azure Fish. Every rebirth asks for a little more than the last.", 13, C_MUTED)
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			panel_body.add_child(note)

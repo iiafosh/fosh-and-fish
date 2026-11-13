@@ -8,6 +8,7 @@
 - **Other players in your bay.** People who played lately sail into your bay now and then, in their best boat, with their name and level over it. They fish for a while and sail off. Tap one and they call out something friendly, and you see who they are.
 - **Share cards.** "Share it" on a shiny fish and "Share" on your Derby score make a picture to post anywhere: your biome, the shiny (or the gold Derby Cup), your name and the link to the game. On a phone the share menu opens; on a computer it's saved in Pictures/fosh&fish with the text copied.
 - **The web version starts much faster.** The first visit downloads a third less (about 33 MB instead of 50), and a loading screen with the bay, the logo and a progress bar shows at once instead of a blank page.
+- **A rebirth needs every charm maxed again, as on Discord.** With the treasure gear (Magnet and Artifact Magnet bait, the More Chests and Better Chests upgrades, a Treasure boost) a run's charms fill in about 5 to 6 hours, around when your level and money are there. The Charms and Prestige panels now say what finds more and better chests, with your own odds.
 - **A fairer Derby board.** The server now checks every score against the best a run could really make, so nobody can post an impossible score.
 
 ## 1.0.0 — the Fishing Derby, one Shop, and charms you can fill (12 November 2026)

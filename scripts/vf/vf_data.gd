@@ -498,8 +498,10 @@ static func prestige_money_req(p: int) -> int:
 	if p < REBIRTH_MONEY.size(): return REBIRTH_MONEY[maxi(p, 0)]
 	return int(minf(1e18, float(REBIRTH_MONEY[-1]) * pow(REBIRTH_MONEY_GROWTH, p - REBIRTH_MONEY.size() + 1)))
 
-static func prestige_charm_req(_p: int) -> int:
-	return 0
+## every charm maxed, as in Virtual Fisher on Discord (the owner, 2026-11-13: "ye", after measuring a charm hunter with
+## Magnet baits and the chest upgrades: every charm in 5-6 h of a run, about when the level and money are there)
+static func prestige_charm_req(p: int) -> int:
+	return charm_total_cap(p)
 
 ## the top tier of every charm this prestige (1.1: 6, and one more every two prestiges, so a run's charms can be
 ## filled; it was 10 + p, 440 charms at P0 when a run got about 7 of them. The old tier 10 comes at P8 now)
@@ -584,7 +586,7 @@ const STARTER_GOALS := [
 	{"id": "crew", "text": "Hire a crew: they fish for you (Menu - Fleet)", "stat": "crews", "goal": 1, "reward": {"chest": "rare"}},
 	# (these two say FIRST_REBIRTH_LEVEL and FIRST_REBIRTH_MONEY: tests/vf_sim_test.gd checks they match)
 	{"id": "lv60", "text": "Reach level 60: your first rebirth is close", "stat": "level", "goal": FIRST_REBIRTH_LEVEL, "reward": {"chest": "rare"}},
-	{"id": "rebirth", "text": "Your first rebirth: have $5M, then Menu - Prestige", "stat": "prestige", "goal": 1, "reward": {"chest": "legendary"}},
+	{"id": "rebirth", "text": "Your first rebirth: have $5M and every charm maxed, then Menu - Prestige", "stat": "prestige", "goal": 1, "reward": {"chest": "legendary"}},
 ]
 
 

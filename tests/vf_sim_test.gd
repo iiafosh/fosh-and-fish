@@ -121,6 +121,7 @@ func _init() -> void:
 	for id in VFData.CHARM_ORDER: g.charms[id] = 55
 	g.money = 5_000_000_000; g.level = 250
 	check(g.prestige_check().ok, "P0 prestige requirements met with 440 charms, L250, $5B")
+	_fill_charms(g)
 	check(g.do_prestige() == "" and g.prestige == 1 and g.exotics.azure == 1 and g.level == 1, "Prestige resets and grants 1 Azure Fish")
 	check(g.buy_perk("international_ties") == "" and g.pk("international_ties") == 1, "Buy International Ties with Azure Fish")
 	check(g.buy_perk("virtual_fisher") != "", "Virtual Fisher perk locked before P5")
@@ -389,6 +390,7 @@ func _test_rookie_rounds() -> void:
 	g.prestige = 0; g.level = 250; g.money = 5000000000
 	g.charms = {}
 	for id in VFData.CHARM_ORDER: g.charms[id] = 55
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.reel_rounds == 5 and g.catch_mode == "reel", "prestige keeps your rounds and your catch mode")
 
@@ -437,7 +439,7 @@ func _test_first_rebirth() -> void:
 	g._apply(g._defaults.duplicate(true))
 	var lv: int = VFData.prestige_level_req(0)
 	var cash: int = VFData.prestige_money_req(0)
-	check(lv < 250 and cash < 5000000000 and VFData.prestige_charm_req(0) == 0, "the first rebirth asks for less than the bot's P0 (Lv%d, $%s, no charms)" % [lv, g.fmt(cash)])
+	check(lv < 250 and cash < 5000000000 and VFData.prestige_charm_req(0) == VFData.charm_total_cap(0), "the first rebirth asks for less than the bot's P0 (Lv%d, $%s, every charm: %d)" % [lv, g.fmt(cash), VFData.charm_total_cap(0)])
 	g.level = lv
 	g.money = cash - 1
 	check(not g.prestige_check().ok and g.do_prestige() != "" and g.prestige == 0, "a dollar short: not yet")
@@ -445,12 +447,14 @@ func _test_first_rebirth() -> void:
 	g.money = cash
 	check(not g.prestige_check().ok, "a level short: not yet")
 	g.level = lv
-	check(g.prestige_check().ok and g.prestige_check().charms == [0, 0], "the level and the money are enough, no charms needed")
+	check(not g.prestige_check().ok and g.prestige_check().charms == [0, VFData.charm_total_cap(0)], "the level and the money aren't enough: every charm too (as on Discord)")
+	_fill_charms(g)
+	check(g.prestige_check().ok, "with every charm maxed, it's time")
 	check(g.do_prestige() == "" and g.prestige == 1 and g.level == 1 and g.money == 0 and g.exotics.azure == 1, "reborn: back to level 1, with an Azure Fish")
 	# the ones after it: each asks a little more than the last, none needs charms, and the level cap is still at the far end
 	var more := true
 	var gentle := true
-	var no_charms := true
+	var every_charm := true
 	var cap_at := -1
 	for p in range(1, 300):
 		var lv_p: int = VFData.prestige_level_req(p)
@@ -462,18 +466,20 @@ func _test_first_rebirth() -> void:
 		if p <= 160: more = more and cash_p > cash0
 		else: more = more and cash_p >= cash0
 		gentle = gentle and float(lv_p) / lv0 <= 1.4 and cash_p <= 1000000000000000000
-		no_charms = no_charms and VFData.prestige_charm_req(p) == 0
+		every_charm = every_charm and VFData.prestige_charm_req(p) == VFData.charm_total_cap(p)
 		if lv_p == 25000 and cap_at < 0: cap_at = p
 	check(more, "every prestige asks for more level and more money than the one before")
 	check(gentle, "never a big jump in level (at most 40% more; the perks make you faster too), and the money never overflows")
-	check(no_charms, "no rebirth needs charms any more")
+	check(every_charm, "every rebirth needs every charm maxed (the owner, 2026-11-13)")
 	check(cap_at >= 150 and cap_at <= 170, "the 25,000 level cap is still there at the far end (P%d)" % cap_at)
 	check(VFData.prestige_level_req(1) > lv and VFData.prestige_level_req(1) < 100 and VFData.prestige_money_req(1) < 100000000, "the second rebirth: Lv%d and $%s (it was level 400, $8B and 528 charms)" % [VFData.prestige_level_req(1), g.fmt(VFData.prestige_money_req(1))])
 	g.prestige = 1
 	g.level = VFData.prestige_level_req(1)
 	g.money = VFData.prestige_money_req(1)
 	g.charms = {}
-	check(g.prestige_check().ok and g.prestige_check().charms == [0, 0], "at P1 the level and the money are enough")
+	check(not g.prestige_check().ok, "at P1 the charms are needed too")
+	_fill_charms(g)
+	check(g.prestige_check().ok and g.prestige_check().charms == [VFData.charm_total_cap(1), VFData.charm_total_cap(1)], "at P1: the level, the money and every charm (%d)" % VFData.charm_total_cap(1))
 	g.money -= 1
 	check(not g.prestige_check().ok, "... all of the money")
 	g._apply(g._defaults.duplicate(true))
@@ -491,11 +497,14 @@ func _test_first_rebirth() -> void:
 	var guide := ""
 	for entry in VFGuide.TABS["Prestige"]: guide += entry[2]
 	for entry in VFGuide.TABS["Basics"]: guide += entry[2]
-	check(("Level %d" % lv) in guide and ("$" + g.fmt(cash)) in guide and not "every charm" in guide, "the guide says the real numbers, and doesn't ask for every charm")
+	check(("Level %d" % lv) in guide and ("$" + g.fmt(cash)) in guide and "every charm" in guide, "the guide says the real numbers, and that every charm is needed")
+	check(not g.prestige_check().ok and "every charm" in last.text, "the goal says every charm too: %s" % last.text)
+	_fill_charms(g)
 	g.check_goals()
 	check(said.size() == 1 and "rebirth" in said[0].to_lower(), "you're told once when the rebirth is ready: %s" % ("" if said.is_empty() else said[0]))
 	g.check_goals()
 	check(said.size() == 1, "... only once")
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.goals_done == VFData.STARTER_GOALS.size(), "being reborn finishes that goal")
 
@@ -614,6 +623,7 @@ func _test_gerald() -> void:
 	check(g.gerald.stage == 7 and g.gerald.casts == 0 and g.gerald.losses == 0, "a damaged save can't break him")
 	g._apply(sd)
 	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.gerald.stage == 2 and g.gerald.losses == 5 and "crown" in g.hats_owned, "Gerald and the hats survive prestige")
 	var easy: Dictionary = VFData.rival_params(0, 0.1, false, 3, 99)
@@ -703,6 +713,7 @@ func _test_finds() -> void:
 	check(g.finds == {"otter": 2}, "ids that don't exist are dropped")
 	g._apply(sd)
 	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.finds.otter == 4, "finds survive prestige")
 
@@ -752,6 +763,7 @@ func _test_collecting() -> void:
 	g.money = VFData.prestige_money_req(1)
 	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(1) / 8
 	g.stat_add("voyages", 3)
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.level == 1 and g.crews == 0 and g.stat_value("level") >= 100 and g.stat_value("crews") == 5 and g.stats.voyages == 3 and "level_100" in g.ach_ready() and "crews_5" in g.ach_ready(), "a rebirth doesn't take back what you've done")
 	check(g.ach_claimed.has("honks_100"), "... or what you've claimed")
@@ -783,6 +795,7 @@ func _test_collecting() -> void:
 	check(is_equal_approx(g.sell_mult(), base), "... and not anywhere else")
 	g.biome = "River"
 	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.book_done("River"), "stamps are permanent: they survive prestige")
 	check(g.stat_value("books") == 1 and "book_1" in g.ach_ready(), "and the first stamp is an achievement")
@@ -905,6 +918,7 @@ func _test_hats() -> void:
 	check(g.hats_owned == ["straw", "pirate"] and g.hat == "straw", "a damaged save: hats that don't exist are dropped, and he never wears one he doesn't own")
 	g._apply(sd)
 	g.prestige = 0; g.level = VFData.prestige_level_req(0); g.money = VFData.prestige_money_req(0)
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.hat == "duck" and "pirate" in g.hats_owned and "crown" in g.hats_owned, "hats survive prestige")
 	check(g.stat_value("hats") == g.hats_owned.size(), "they count for Hat Person")
@@ -1271,6 +1285,7 @@ func _test_v1() -> void:
 	g.prestige = 0; g.level = 250; g.money = 5000000000
 	g.charms = {}
 	for id in VFData.CHARM_ORDER: g.charms[id] = 55
+	_fill_charms(g)
 	g.do_prestige()
 	check("Pearl Rod" in g.owned_rods and "Supporter Rod" in g.owned_rods and g.owned_rods.size() == 3,
 		"exclusive rods survive prestige")
@@ -1444,6 +1459,7 @@ func _test_idle() -> void:
 	for id in VFData.CHARM_ORDER: g.charms[id] = 55
 	g.crews = 5
 	g.fleet_up = {"nets": 3}
+	_fill_charms(g)
 	g.do_prestige()
 	check(g.crews == 0 and g.fleet_up.is_empty(), "prestige starts the fleet over, like the boats")
 
@@ -1464,3 +1480,7 @@ func _test_idle() -> void:
 	old.erase("idle")
 	h._apply(old)
 	check(h.crews == 0 and not h.auto_on and h.offline.is_empty() and h.idle_seen > 0.0, "a save from before idle play loads with no fleet")
+
+## every charm maxed for g's prestige (1.1: a rebirth needs them all, as on Discord)
+func _fill_charms(g) -> void:
+	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(g.prestige) / 8
