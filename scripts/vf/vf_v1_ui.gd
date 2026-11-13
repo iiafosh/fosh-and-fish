@@ -507,6 +507,12 @@ func tab_shiny() -> void:
 		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(sub)
+		if not mine.is_empty():                       # (a picture of it to post, any time: vf_share.gd)
+			var best := int(mine.min())
+			var sh: Button = m.btn("Share", Color("#7c5cd6"), 11, 64)
+			sh.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			sh.pressed.connect(func(): m.share.shiny(f, best))
+			box.add_child(sh)
 		var cell := PanelContainer.new()
 		cell.add_theme_stylebox_override("panel", m.sbox(Color("#f3efff") if not mine.is_empty() else Color("#efe9dc"), 12, 1 if not mine.is_empty() else 0, Color("#c4b5fd"), 8))
 		cell.add_child(box)
