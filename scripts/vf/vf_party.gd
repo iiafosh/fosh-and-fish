@@ -83,6 +83,21 @@ func join(c: String) -> bool:
 	changed.emit()
 	return true
 
+## the link that joins this party in a browser
+func invite_link() -> String:
+	return "https://foshfish.xyz/play?party=" + code
+
+## web: the code of an invite link the page was opened with (and the link is tidied away, so a reload after leaving
+## doesn't join again), else ""
+func _link_code() -> String:
+	if not OS.has_feature("web"): return ""
+	var c: Variant = JavaScriptBridge.eval("""(function () {
+	var p = new URLSearchParams(window.location.search); var c = p.get('party') || '';
+	if (c) { p.delete('party'); var q = p.toString();
+		window.history.replaceState(null, '', window.location.pathname + (q ? '?' + q : '') + window.location.hash); }
+	return c; })()""", true)
+	return clean_code(str(c)) if c != null else ""
+
 func leave(forget := true) -> void:
 	if state == "live":
 		_cast("bye", {})
@@ -130,8 +145,11 @@ func _tick() -> void:
 	_last = now
 	if _rejoin:                                       # (back in the party you were in last time)
 		_rejoin = false
+		var link := _link_code()
 		var cfg := ConfigFile.new()
-		if cfg.load(SAVE) == OK and str(cfg.get_value("party", "code", "")) != "" and not "--party-test" in OS.get_cmdline_user_args():
+		if link != "":                                # (an invite link: foshfish.xyz/play?party=ABC123)
+			if join(link): m._toast("You joined the party %s! Your friends' boats sail in when you're in the same biome." % link, "quest")
+		elif cfg.load(SAVE) == OK and str(cfg.get_value("party", "code", "")) != "" and not "--party-test" in OS.get_cmdline_user_args():
 			join(str(cfg.get_value("party", "code", "")))
 	if code == "": return
 	_net(dt)
@@ -391,7 +409,7 @@ func panel() -> void:
 	head.add_child(m.lbl("Your party:", 18, m.C_TEXT))
 	head.add_child(m.lbl(code, 34, C_PARTY))
 	var cp: Button = m._act("Copy code", m.C_NEUTRAL, func():
-		DisplayServer.clipboard_set("Fish with me in fosh&fish! Party code: %s  https://foshfish.xyz/play" % code)
+		DisplayServer.clipboard_set("Fish with me in fosh&fish! Party code: %s  %s" % [code, invite_link()])
 		return "")
 	cp.pressed.connect(func(): m._toast("Copied: send it to your friends.", "quest"))
 	head.add_child(cp)
