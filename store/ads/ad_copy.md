@@ -27,6 +27,8 @@ Google mixes these itself. Headlines: 30 characters at most. Descriptions: 90 at
 - **shiny**: Only 3,000 of each shiny fish exist. Every one is numbered. Mine is No. 0042 🐟✨ #fishing #cozygames #indiegame
 - **boss**: Something huge is coming... every catch wears the Leviathan down 🐋 #fishinggame #bossfight #indiegame
 - **events**: Every 10 minutes of fishing, something happens 🎣 Golden Hour, Fish Frenzy, Meteor Showers and a Boss Fish #cozygame #indiedev
+- **friends**: Send your friends a code and their boats sail into your bay, live 🚤🚤 Fishing is better together #cozygames #multiplayer #indiegame
+- **derby**: 3 minutes. One board. Everyone gets the same fish 🏆 Think you can beat my score? #fishinggame #leaderboard #indiedev
 
 ## Facebook / Instagram feed (with the 1080x1080 or 1080x1350 pictures)
 

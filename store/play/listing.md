@@ -17,8 +17,11 @@ Copy these into Play Console. The art is next to this file (`make_play_kit.py` m
 ```
 fosh&fish is a cozy fishing game for a quick cast or a long evening. Throw your line, reel in fish, sell your catch and upgrade your way from a calm river to the deepest Abyss.
 
-NEW IN 1.0
-★ Shiny fish: rare, sparkling versions of every species. Only 3,000 of each exist in the whole world, and every one is numbered, so your Shiny Cod No. 0042 is yours alone.
+HIGHLIGHTS
+★ Fish with friends, live: make a party, send the code, and their boats sail in your bay while you play. Other players who played lately sail by too.
+★ The weekly Fishing Derby: three minutes of Reel it in!, the same for everyone, one board for the whole world, and the Derby Cup for the top three.
+★ Shiny fish: rare, sparkling versions of every species. Only 3,000 of each exist in the whole world, and every one is numbered, so your Shiny Cod No. 0042 is yours alone. Share yours with one tap.
+★ Seven outlaw fish to catch across the biomes, from Gerald the grumpy pufferfish to the Duchess.
 ★ An event every 10 minutes of play: Golden Hour, Fish Frenzy, Treasure Tide, Meteor Shower, and the Boss Fish: wear down the Leviathan before it swims away!
 ★ Event fish and Event Stars: catch the Golden Koi, the Frenzy Piranha and more, and trade your stars for the exclusive Starfall Rod.
 ★ Supporter Packs: optional one-time packs with exclusive rods, Pearls and bonuses that last forever.
