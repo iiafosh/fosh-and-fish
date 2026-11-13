@@ -435,7 +435,7 @@ func _daily_calendar() -> void:
 	var ready: bool = VF.daily_ready_in() <= 0.0
 	var next: int = VF.calendar_next()
 	var row := GridContainer.new()
-	row.columns = 7
+	row.columns = 7 if m.size.x >= 844.0 else 4          # (seven tiles need 832 px inside the panel: narrower phones get two rows)
 	row.add_theme_constant_override("h_separation", 8)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for i in 7:

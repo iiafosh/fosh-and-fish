@@ -2025,7 +2025,9 @@ func _panel_charms() -> void:
 		_add_to(g, _card(icon_for("charm", id), VFData.CHARMS[id].name, "%s per tier\n%s" % [VFData.CHARMS[id].desc, next], box))
 
 func _panel_pets() -> void:
-	panel_body.add_child(lbl("Pets can't be bought: each cast has a 1 in 10,000 chance (more with Support Bait and prestige). Max level %d." % VF.pet_level_cap(), 14, C_MUTED))
+	var pets_note := lbl("Pets can't be bought: each cast has a 1 in 10,000 chance (more with Support Bait and prestige). Max level %d." % VF.pet_level_cap(), 14, C_MUTED)
+	pets_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # (one long line was wider than a small phone)
+	panel_body.add_child(pets_note)
 	var g := _grid(1)
 	for p in VFData.PET_ORDER:
 		if not VF.pets.has(p):
@@ -3048,6 +3050,7 @@ func _panel_settings() -> void:
 	reset.pressed.connect(func():
 		if reset.text == "Click again to erase everything":
 			VF.reset_save()
+			if party != null: party.leave(false)             # (say bye, so friends don't see two of you; you rejoin after)
 			get_tree().reload_current_scene()
 		else:
 			reset.text = "Click again to erase everything"

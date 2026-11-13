@@ -80,6 +80,7 @@ var strip: ColorRect                 # the dark panel the docked phone stands on
 var _dock_w := 0.0                   # width of the strip it takes while docked
 var _refresh_at := 0
 const DOCK_GAP := 12.0               # space round the docked phone
+const DOCK_MIN_GAME := 670.0         # the game's area is never narrower than this beside the docked phone
 const DOCK_ASPECT := 1.2             # the game's area keeps at least this width (x its height): the boat has to stay in view
 var _following := {}
 var _island_sb: StyleBoxFlat
@@ -277,6 +278,7 @@ func _dock_plan() -> Dictionary:
 		k = (room - DOCK_GAP * 2.0) / DEV.x
 		w = room
 	if k < 0.6: return {}
+	if vp.x - w < DOCK_MIN_GAME: return {}       # (the panels need this much: on a small 16:9 phone they slid under the phone)
 	return {"k": k, "w": w}
 
 ## The dock icon in the status bar, and D: put the phone beside the game, or take it full screen.

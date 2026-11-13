@@ -19,8 +19,10 @@ const POS_EVERY := 0.5
 const GONE_AFTER := 45.0
 const BEAT_EVERY := 25.0
 const RETRY := [3.0, 6.0, 12.0, 30.0]
+const TOAST_GAP := 3.0                 # seconds between two lines about the same friend
 const C_PARTY := Color("#7c5cd6")
 const SAVE := "user://party.cfg"
+const NO_SERVER := "Playing with friends needs the online game, and this copy can't reach it."
 
 var m                                   # vf_main
 var code := ""                          # the party you're in, "" when none
@@ -282,15 +284,19 @@ func _on_cast(kind: String, d: Variant) -> void:
 			var fish := str(d.get("fish", ""))
 			var f: Dictionary = friends[id]
 			f.seen = now
-			m._toast(("%s caught a %s!" % [f.name, fish]) if _known_fish.has(fish) else ("%s caught something good!" % f.name), "quest")
 			got["catch"] = true
+			if now - float(f.get("told", -99.0)) < TOAST_GAP: return     # (one line every few seconds per friend)
+			f.told = now
+			m._toast(("%s caught a %s!" % [f.name, fish]) if _known_fish.has(fish) else ("%s caught something good!" % f.name), "quest")
 		"wave":
 			if not friends.has(id): return
 			var f: Dictionary = friends[id]
 			f.seen = now
 			f.said = 3.0
-			m._toast("%s waves at you!" % f.name, "quest")
 			got["wave"] = true
+			if now - float(f.get("waved", -99.0)) < TOAST_GAP: return
+			f.waved = now
+			m._toast("%s waves at you!" % f.name, "quest")
 		"bye":
 			if friends.has(id): _drop(id, true)
 
@@ -382,7 +388,7 @@ func panel() -> void:
 		var intro: Label = m.lbl("Make a party and send its code to your friends. When they join, their boats sail in your bay, live, and you see what they catch. No account needed.", 15, m.C_TEXT)
 		intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		body.add_child(intro)
-		var mk: Button = m._act("Make a party", C_PARTY, func(): make(); return "")
+		var mk: Button = m._act("Make a party", C_PARTY, func(): make(); return "" if Backend.configured() else NO_SERVER)
 		mk.custom_minimum_size = Vector2(240, 52)
 		body.add_child(mk)
 		body.add_child(m.lbl("Got a code from a friend?", 15, m.C_TEXT))
@@ -394,11 +400,11 @@ func panel() -> void:
 		edit.custom_minimum_size = Vector2(170, 48)
 		edit.add_theme_font_size_override("font_size", 22)
 		row.add_child(edit)
-		var jb: Button = m._act("Join", C_PARTY, func(): return "" if join(edit.text) else "That code doesn't look right: 6 letters and numbers.")
+		var jb: Button = m._act("Join", C_PARTY, func(): return "" if join(edit.text) else _why_not())
 		jb.custom_minimum_size = Vector2(120, 48)
 		row.add_child(jb)
 		edit.text_submitted.connect(func(t):
-			if not join(t): m._toast("That code doesn't look right: 6 letters and numbers.", "warn"))
+			if not join(t): m._toast(_why_not(), "warn"))
 		body.add_child(row)
 		var note: Label = m.lbl("Anyone with a code can join its party, so share it with friends only.", 13, m.C_MUTED)
 		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -435,6 +441,9 @@ func panel() -> void:
 	var tip: Label = m.lbl("Sail to the same biome to see each other's boats. Your party is still here the next time you play, until you leave it.", 13, m.C_MUTED)
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_child(tip)
+
+func _why_not() -> String:
+	return "That code doesn't look right: 6 letters and numbers." if Backend.configured() else NO_SERVER
 
 func _rerender() -> void:
 	if m._panel_kind == "party" and m.overlay.visible: m._render_panel()

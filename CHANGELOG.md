@@ -10,6 +10,7 @@
 - **The web version starts much faster.** The first visit downloads a third less (about 33 MB instead of 50), and a loading screen with the bay, the logo and a progress bar shows at once instead of a blank page.
 - **A rebirth needs every charm maxed again, as on Discord.** With the treasure gear (Magnet and Artifact Magnet bait, the More Chests and Better Chests upgrades, a Treasure boost) a run's charms fill in about 5 to 6 hours, around when your level and money are there. The Charms and Prestige panels now say what finds more and better chests, with your own odds.
 - **A fairer Derby board.** The server now checks every score against the best a run could really make, so nobody can post an impossible score.
+- **Small fixes.** On small phones FishTok no longer squeezes the Calendar, Pets, Biomes and Spin panels off the screen. In a party, a friend's waves and catches show one line every few seconds instead of a flood, and resetting your save no longer leaves a ghost of your boat in your friends' bays.
 
 ## 1.0.0 — the Fishing Derby, one Shop, and charms you can fill (12 November 2026)
 
