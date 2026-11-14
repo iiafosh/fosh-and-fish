@@ -2356,6 +2356,10 @@ func _check_capture() -> void:
 			await _shot(dir + "/aim%d.png" % i)
 		get_tree().quit()
 		return
+	if "--fish-test" in OS.get_cmdline_user_args():
+		await _fish_test(dir)
+		get_tree().quit()
+		return
 	if "--minigame-test" in OS.get_cmdline_user_args():
 		await _minigame_test(dir)
 		get_tree().quit()
@@ -2610,6 +2614,37 @@ func _onboarding_round(dir: String, shot := "") -> void:
 		await get_tree().process_frame
 
 ## Reel-it-in mode end to end: toggle, cast, play the mini-game to a WIN and to a LOSS (simulated input)
+## godot --path . --resolution 1280x720 -- --capture=DIR --fish-test : the fish made from the owner's picture
+## (tools/art/make_fish.py) where you meet them: Reel it in!, the Fish Book, the aquarium. Never saves.
+func _fish_test(dir: String) -> void:
+	var trial := ["Cod", "Pufferfish", "Shark"]
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tutorial = 99
+	_veteran("Ocean")
+	VF.changed.emit()
+	await get_tree().create_timer(1.0).timeout
+	var script: GDScript = load("res://scripts/vf/vf_minigame.gd")
+	for f in trial:
+		var mg: Control = script.new()
+		mg.setup(self, f, 2)
+		minigame = mg
+		add_child(mg)
+		await get_tree().create_timer(1.7).timeout
+		print("FISH %s: own face=%s" % [f, mg._sp.get("own", false)])
+		await _shot(dir + "/fish_mg_%s.png" % VFData.slug(f))
+		mg.queue_free()
+		minigame = null
+		await get_tree().create_timer(0.3).timeout
+	_open_panel("inventory", "Fish")
+	await get_tree().create_timer(0.5).timeout
+	await _shot(dir + "/fish_book.png")
+	VF.discovered = {}
+	for f in trial: VF.discovered[f] = 40
+	_open_panel("aquarium")
+	await get_tree().create_timer(1.6).timeout
+	await _shot(dir + "/fish_aquarium.png")
+
+
 func _minigame_test(dir: String) -> void:
 	VF._apply(VF._defaults.duplicate(true))
 	VF.tutorial = 99

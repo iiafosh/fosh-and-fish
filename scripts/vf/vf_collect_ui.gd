@@ -626,8 +626,13 @@ func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float, rot :
 	var mo := (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * px
 	var er := maxf(float(info.er) * px * 1.9, 11.0 * k)
 	var w := maxf(1.2, 2.5 * k)
+	var own: bool = info.get("own", false)             # (its picture has a face: tools/art/make_fish.py)
 	if asleep or fmod(ph + float(f.length()), 4.3) < 0.14:      # a blink now and then
+		if own: _tank.draw_circle(e, er * 1.02, Color(String(info.get("lid", "#888888"))), true, -1.0, true)
 		_tank.draw_arc(e + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
+	elif own:
+		var opr := er * 0.5
+		load("res://scripts/vf/vf_minigame.gd").glossy_eye(_tank, e, er, e + Vector2(er - opr - 1.0, er * 0.08), opr)
 	else:
 		var pr := er * 0.48
 		var look := e + Vector2(er - pr - w * 0.6, er * 0.1)      # ahead, where it's going
@@ -635,7 +640,7 @@ func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float, rot :
 		_tank.draw_circle(look, pr, INK)
 		_tank.draw_circle(look - Vector2(pr, pr) * 0.35, maxf(1.0, pr * 0.3), Color.WHITE)
 		_tank.draw_arc(e, er, 0, TAU, 24, INK, w, true)
-	_tank.draw_arc(mo + Vector2(-3, -5) * k, 6.0 * k, PI * 0.2, PI * 0.8, 8, INK, w, true)      # quite content, really
+	if not own: _tank.draw_arc(mo + Vector2(-3, -5) * k, 6.0 * k, PI * 0.2, PI * 0.8, 8, INK, w, true)      # quite content, really
 	return true
 
 

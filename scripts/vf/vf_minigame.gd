@@ -250,7 +250,8 @@ func _load_fish() -> void:
 	_sp = {"tex": main.stage._tex("mini/%s.png" % VFData.slug(fish_name)), "frames": int(mini.frames), "cell": cell,
 		"eye": (Vector2(info.eye[0], info.eye[1]) - Vector2(0.5, 0.5)) * FISH_PX,
 		"mouth": (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * FISH_PX,
-		"er": maxf(float(info.er) * cell * k * 1.9, 11.0)}
+		"er": maxf(float(info.er) * cell * k * 1.9, 11.0),
+		"own": bool(info.get("own", false)), "lid": Color(String(info.get("lid", "#888888")))}      # (a picture with a face of its own)
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1175,6 +1176,15 @@ func _draw_top() -> void:
 	if _poster_k > 0.01: _draw_poster(c)
 
 ## the fish and its cartoon face, with the transform left on it (the props are drawn around it)
+## An eye to go over a painted one (a fish whose picture has a face already: "own" in the manifest, tools/art/make_fish.py):
+## shaded like the picture, no ink line round it. pupil: where it looks.
+static func glossy_eye(c: CanvasItem, e: Vector2, r: float, pupil: Vector2, pr: float) -> void:
+	c.draw_circle(e, r, Color("#aebbc8"), true, -1.0, true)                 # the shade under the rim
+	c.draw_circle(e + Vector2(r, -r) * 0.07, r * 0.92, Color.WHITE, true, -1.0, true)
+	c.draw_circle(pupil, pr, Color("#3a2c22"), true, -1.0, true)
+	c.draw_circle(pupil, pr * 0.66, Color("#120e0c"), true, -1.0, true)
+	c.draw_circle(pupil + Vector2(pr, -pr) * 0.36, maxf(1.2, pr * 0.3), Color.WHITE, true, -1.0, true)
+
 func _draw_fish(c: CanvasItem, at: Vector2, rot: float, sq: Vector2, face: String, talking: bool, shades := false) -> void:
 	if _sp.is_empty(): return
 	c.draw_set_transform(at, rot, sq)
@@ -1187,6 +1197,8 @@ func _draw_fish(c: CanvasItem, at: Vector2, rot: float, sq: Vector2, face: Strin
 	var m: Vector2 = _sp.mouth
 	var er: float = _sp.er
 	var ink := INK
+	var own: bool = _sp.get("own", false)
+	if own and face in ["raspberry", "shut"]: c.draw_circle(e, er * 1.02, _sp.lid, true, -1.0, true)      # its eyelid, over the painted eye
 	match face:
 		"raspberry":
 			c.draw_arc(e + Vector2(0, er * 0.35), er * 0.75, PI * 1.12, PI * 1.88, 10, ink, 3.5, true)       # ^ squeezed shut
@@ -1208,14 +1220,17 @@ func _draw_fish(c: CanvasItem, at: Vector2, rot: float, sq: Vector2, face: Strin
 			var worried: bool = face in ["worried", "panic"]
 			var r2 := er * (1.25 if worried else 1.0)
 			if face == "panic": r2 = er * 1.5
-			c.draw_circle(e, r2, Color.WHITE)
 			# pupil: watches the net, or you while talking
 			var zc := COL.position + Vector2(COL.size.x * 0.5, _col_y(zone_y + _net_h() * 0.5))
 			var dir := (zc - at).rotated(-rot).normalized() if not talking else Vector2(0.9, 0.2)
 			var pr := r2 * (0.26 if face == "panic" else (0.34 if worried else 0.48))
-			c.draw_circle(e + dir * (r2 - pr - 1.5), pr, ink)
-			c.draw_circle(e + dir * (r2 - pr - 1.5) + Vector2(-1.5, -1.5), maxf(1.2, pr * 0.3), Color.WHITE)
-			c.draw_arc(e, r2, 0, TAU, 24, ink, 2.5, true)
+			if own:
+				glossy_eye(c, e, r2, e + dir * (r2 - pr - 1.5), pr)
+			else:
+				c.draw_circle(e, r2, Color.WHITE)
+				c.draw_circle(e + dir * (r2 - pr - 1.5), pr, ink)
+				c.draw_circle(e + dir * (r2 - pr - 1.5) + Vector2(-1.5, -1.5), maxf(1.2, pr * 0.3), Color.WHITE)
+				c.draw_arc(e, r2, 0, TAU, 24, ink, 2.5, true)
 			if worried:
 				c.draw_line(e + Vector2(-r2 * 0.95, -r2 * 1.35), e + Vector2(r2 * 0.75, -r2 * 1.75), ink, 4.0, true)    # brows up
 			else:
@@ -1230,7 +1245,7 @@ func _draw_fish(c: CanvasItem, at: Vector2, rot: float, sq: Vector2, face: Strin
 				_ellipse(c, m, 6.0, 2.0 + 5.0 * absf(sin(t * 22.0)), Color("#3a1420"))
 			elif worried:
 				_ellipse(c, m, 4.0, 4.0, Color("#3a1420"))
-			else:
+			elif not own:                                                                    # (a painted one is smiling already)
 				c.draw_arc(m + Vector2(-3, -5), 6.0, PI * 0.2, PI * 0.8, 8, ink, 2.5, true)  # smirk
 	if shades:
 		_shades(c, e, er)
