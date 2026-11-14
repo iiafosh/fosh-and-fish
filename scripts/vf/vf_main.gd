@@ -65,6 +65,8 @@ var boost_label: Label
 # panel
 var overlay: Control
 var panel_title: Label
+var panel_close: Button
+var skin                                 # vf_skin.gd: the new look of the panels
 var panel_tabs: VBoxContainer
 var panel_body: VBoxContainer
 var _panel_kind := ""
@@ -463,6 +465,7 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 	b.add_theme_stylebox_override("disabled", sbox(Color("#e4ecef"), 14, 0, Color.TRANSPARENT, 9))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	if min_w > 0: b.custom_minimum_size.x = min_w
+	if skin != null and skin.on() and color != C_NEUTRAL: skin.style_btn(b, color)      # (glossy, in the new look)
 	b.pressed.connect(func(): AudioManager.play_click())
 	return b
 
@@ -545,8 +548,9 @@ func _layout_panel() -> void:
 		panel_box.anchor_bottom = 0.5
 		panel_box.offset_left = -480
 		panel_box.offset_right = 480
-		panel_box.offset_top = -300
-		panel_box.offset_bottom = 290
+		var tall: bool = skin != null and skin.on()
+		panel_box.offset_top = -322 if tall else -300
+		panel_box.offset_bottom = 330 if tall else 290
 		if sb: sb.set_content_margin_all(22)
 
 ## Phones held upright: the game plays sideways, so say so instead of showing a squashed screen.
@@ -1163,7 +1167,10 @@ func _build_overlay() -> void:
 	var close := pill_button("x", "Close", "Esc", true)
 	close.pressed.connect(_close_panel)
 	head.add_child(close)
+	panel_close = close
 	v.add_child(head)
+	skin = load("res://scripts/vf/vf_skin.gd").new(self)      # the new look (the Menu and the Shop so far)
+	skin.build(head)
 	tabs_track = PanelContainer.new()
 	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), 999, 0, Color.TRANSPARENT, 4))
 	tabs_track.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -1653,23 +1660,27 @@ func _render_panel() -> void:
 		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby", "leaderboard": "Leaderboard",
 		"party": "Fish with friends"}
 	panel_title.text = titles.get(_panel_kind, "")
+	skin.frame()
+	var new_look: bool = skin.on()
 	if PANEL_TABS.has(_panel_kind):
 		var tabs: Array = PANEL_TABS[_panel_kind]
 		var font: Font = get_theme_default_font()
 		var widths := tabs.map(func(t): return maxf(86.0, font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 16.0) + 2.0)
+		if new_look: widths = tabs.map(func(t): return maxf(92.0, skin.bold().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 28.0) + 8.0)
 		var room := maxf(300.0, (size.x - 16.0 - 28.0 if compact() else 916.0) - 8.0)
 		var per_row := tabs.size()
 		var total: float = widths.reduce(func(a, w): return a + w, 0.0)
 		if total > room:                                 # two rows (or more), evenly split
 			per_row = ceili(tabs.size() / ceilf(total / room))
 		var radius := 999 if per_row >= tabs.size() else 20
-		tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), radius, 0, Color.TRANSPARENT, 4))
+		tabs_track.add_theme_stylebox_override("panel", StyleBoxEmpty.new() if new_look else sbox(Color("#e8e1d2"), radius, 0, Color.TRANSPARENT, 4))
+		panel_tabs.add_theme_constant_override("separation", 6 if new_look else 2)
 		var row: HBoxContainer
 		for i in tabs.size():
 			var t: String = tabs[i]
 			if i % per_row == 0:
 				row = HBoxContainer.new()
-				row.add_theme_constant_override("separation", 2)
+				row.add_theme_constant_override("separation", 8 if new_look else 2)
 				panel_tabs.add_child(row)
 			var b := Button.new()
 			b.text = t
@@ -1683,6 +1694,7 @@ func _render_panel() -> void:
 			b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 				b.add_theme_color_override(k, C_TEXT if on else C_MUTED)
+			if new_look: skin.style_tab(b, on)
 			b.pressed.connect(func(): AudioManager.play_click(); _panel_tab = t; _render_panel(); panel_scroll.scroll_vertical = 0)
 			row.add_child(b)
 	tabs_track.visible = PANEL_TABS.has(_panel_kind)
@@ -1713,6 +1725,7 @@ func _render_panel() -> void:
 		"aquarium": collect.panel_aquarium()
 		"derby": derby.panel()
 		"party": party.panel()
+	skin.finish()
 
 ## Menu -> Account: sign in, cloud save (built by scripts/net/account_ui.gd)
 func _panel_account() -> void:
@@ -1725,17 +1738,20 @@ func _panel_leaderboard() -> void:
 
 func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim := false, icon_size := 64) -> PanelContainer:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 10))
+	var new_look: bool = skin.on()                    # (cream, a golden rim, a bigger picture and bolder words)
+	p.add_theme_stylebox_override("panel", skin.card_box() if new_look else sbox(C_PANEL2, 12, 0, Color.TRANSPARENT, 10))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	p.add_child(h)
-	if t: h.add_child(icon(t, icon_size))
+	if t: h.add_child(icon(t, maxi(icon_size, 76) if new_look else icon_size))
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_child(lbl(title, 17))
+	var name_l := lbl(title, 19 if new_look else 17, skin.INK if new_look else C_TEXT)
+	if new_look: name_l.add_theme_font_override("font", skin.bold())
+	v.add_child(name_l)
 	if desc != "":
-		var d := lbl(desc, 13, C_MUTED)
+		var d := lbl(desc, 14 if new_look else 13, skin.INK_SOFT if new_look else C_MUTED)
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(d)
 	h.add_child(v)
@@ -1837,7 +1853,7 @@ func _panel_shop() -> void:
 			var g := _grid(2)
 			for r in VFData.ROD_ORDER:
 				var d: Dictionary = VFData.RODS[r]
-				var desc := "%d-%d fish • %s%% treasure%s • reel %d/10\n%s" % [d.min, d.max, str(snappedf(d.tc * 100.0, 0.1)),
+				var desc := "%d-%d fish • %s%% treasure%s\nreel %d/10 • %s" % [d.min, d.max, str(snappedf(d.tc * 100.0, 0.1)),
 					(" • +%d%% TQ" % int(d.tq * 100)) if d.tq > 0 else "", int(round(VFData.rod_reel_power(r) * 10.0)),
 					", ".join(d.biomes) if d.biomes.size() < 7 else "All biomes"]
 				var right: Control
@@ -3722,7 +3738,7 @@ func _menu_note(kind: String) -> Array:
 
 func _panel_menu() -> void:
 	var g := GridContainer.new()
-	g.columns = clampi(int((size.x - 44.0 if compact() else 916.0) / 148.0), 3, 6)
+	g.columns = clampi(int((size.x - 44.0 if compact() else 916.0) / 148.0), 3, 5 if skin.on() else 6)
 	g.add_theme_constant_override("h_separation", 10)
 	g.add_theme_constant_override("v_separation", 10)
 	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3751,6 +3767,7 @@ func _panel_menu() -> void:
 	panel_body.add_child(by)
 
 func _menu_tile(kind: String, title: String, icon_name: String, key: String, what: String) -> Button:
+	if skin.on(): return skin.tile(kind, title, icon_name, key, what)
 	var b := Button.new()
 	b.name = "Tile_" + kind
 	b.focus_mode = Control.FOCUS_NONE
