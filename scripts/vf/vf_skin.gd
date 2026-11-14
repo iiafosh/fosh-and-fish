@@ -1,13 +1,13 @@
 extends RefCounted
-## The new look of the panels (1.1), after the mockup the owner picked on 2026-11-14 (tools/art/ui_mockup_source.png):
+## The look of the game's interface (1.1), after the mockup the owner picked on 2026-11-14 (tools/art/ui_mockup_source.png):
 ## a deep teal panel with a golden rim, a wooden plank for the title, a round red close button, glossy tabs and
 ## buttons, cream cards with big pictures, and the Menu's big icons (assets/vf/ui/menu, tools/art/make_menu_icons.py).
-## It's on for the panels in KINDS; the others keep the old paper look until they're moved over. vf_main asks on()
-## wherever it builds a frame, a tab, a card, a button or a Menu tile; finish() then turns the dark text that sits
-## straight on the teal light.
+## Every panel has it, and so do the main screen's pills, cards and buttons. vf_main asks on() wherever it builds a
+## frame, a tab, a card, a button, a pill or a Menu tile; finish() then turns the dark text that sits straight on the
+## teal light, gives hand-made cards and text boxes the cream look, and puts a faint picture in a roomy panel's corner.
+## --old-look turns it all off (the paper look of 1.0).
 ## Look at it: godot --path . --resolution 1280x720 -- --capture=DIR --all-panels [--old-look]
 
-const KINDS := ["menu", "shop"]
 const TEAL := Color("#1e6f7c")           # the panel
 const TEAL_HI := Color("#2f93a2")        # tiles, tabs
 const RIM := Color("#f3c453")            # the golden rim
@@ -29,6 +29,7 @@ var plank: PanelContainer
 var sign_lbl: Label
 var sign_at: Control                    # (a zero-size spot in the head row the plank hangs from)
 var close: Button
+var deco: TextureRect                   # the panel's own picture, big and faint in the corner of a panel with room to spare
 var _old_frame: StyleBox
 var _gloss := {}
 var _bold: Font
@@ -39,7 +40,7 @@ func _init(main) -> void:
 	_off = "--old-look" in OS.get_cmdline_user_args()       # (for before-and-after pictures)
 
 func on() -> bool:
-	return not _off and m._panel_kind in KINDS
+	return not _off
 
 func bold() -> Font:
 	if _bold == null:
@@ -63,7 +64,7 @@ func gloss(col: Color, radius := 13, lip := 4, shine := 0.3) -> StyleBoxTexture:
 		var n := radius * 2 + 8
 		var h := n + lip
 		var img := Image.create(n, h, false, Image.FORMAT_RGBA8)
-		var edge := col.darkened(0.4)
+		var edge := Color("#c79a52") if col.get_luminance() > 0.8 else col.darkened(0.4)       # (cream and white get the cards' golden edge)
 		var top := col.lightened(0.2)
 		var low := col.darkened(0.07)
 		for y in h:
@@ -99,6 +100,15 @@ func _pad(sb: StyleBox, l: float, t: float, r: float, b: float) -> StyleBox:
 
 ## vf_main.btn in the new look: the game's teal becomes the mockup's green, "buy" green becomes gold
 func style_btn(b: Button, color: Color) -> void:
+	if color.is_equal_approx(m.C_NEUTRAL):               # (a quiet button: cream, with dark words)
+		b.add_theme_stylebox_override("normal", _pad(gloss(CREAM, 13, 3, 0.0), 12, 7, 12, 10))
+		b.add_theme_stylebox_override("hover", _pad(gloss(Color.WHITE, 13, 3, 0.0), 12, 7, 12, 10))
+		b.add_theme_stylebox_override("pressed", _pad(gloss(CREAM.darkened(0.1), 13, 3, 0.0), 12, 9, 12, 8))
+		b.add_theme_stylebox_override("disabled", _pad(gloss(Color("#d9d5c8"), 13, 3, 0.0), 12, 7, 12, 10))
+		for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			b.add_theme_color_override(k, INK)
+		b.add_theme_color_override("font_disabled_color", Color(INK, 0.45))
+		return
 	var col := color
 	if color.is_equal_approx(Color("#2f8f9e")): col = GREEN
 	elif color.is_equal_approx(Color("#3fae6a")): col = Color("#f5a623")
@@ -114,6 +124,18 @@ func style_btn(b: Button, color: Color) -> void:
 	b.add_theme_color_override("font_outline_color", Color(0.08, 0.14, 0.14, 0.5))      # (one soft shade: it sits on green, gold and grey)
 	b.add_theme_constant_override("outline_size", 3)
 	b.custom_minimum_size.y = 40
+
+## the pills of the main screen: cream ones to press, deep teal ones that show numbers, both with a golden rim
+func pill_box(light: bool, pad_h: int, pad_v: int) -> StyleBoxFlat:
+	var sb: StyleBoxFlat = m.sbox(Color(CREAM, 0.96) if light else Color(0.07, 0.3, 0.35, 0.86), 999, 2, CARD_RIM if light else Color(RIM, 0.75), 0, 5)
+	sb.content_margin_left = pad_h
+	sb.content_margin_right = pad_h
+	sb.content_margin_top = pad_v
+	sb.content_margin_bottom = pad_v
+	return sb
+
+func hud_box(radius: int, pad: int, shadow: int) -> StyleBoxFlat:
+	return m.sbox(Color(CREAM, 0.96), radius, 2, CARD_RIM, pad, shadow)
 
 func card_box() -> StyleBoxFlat:
 	var s: StyleBoxFlat = m.sbox(CREAM, 18, 2, CARD_RIM, 12, 3)
@@ -175,6 +197,23 @@ func build(head: HBoxContainer) -> void:
 	close.pressed.connect(func(): AudioManager.play_click())
 	close.pressed.connect(m._close_panel)
 	head.add_child(close)
+	var holder := Control.new()            # (behind everything in the panel)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.panel_box.add_child(holder)
+	m.panel_box.move_child(holder, 0)
+	deco = TextureRect.new()
+	deco.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	deco.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	deco.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	deco.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	deco.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	deco.offset_left = -236
+	deco.offset_top = -236
+	deco.offset_right = -6
+	deco.offset_bottom = -6
+	deco.modulate = Color(1, 1, 1, 0.3)
+	deco.visible = false
+	holder.add_child(deco)
 	m.panel_box.resized.connect(place_sign)
 	head.sort_children.connect(place_sign)
 
@@ -288,12 +327,40 @@ static func _box_kind(n: Node) -> int:
 
 ## after a panel is filled: old paper cards get the cream look, and text straight on the teal turns light
 func finish() -> void:
+	deco.visible = false
 	if not on(): return
 	_walk(m.panel_body, false)
+	_deco.call_deferred(m._panel_kind)
+
+const DECO := {"guide": "guide", "settings": "settings", "daily": "daily", "aquarium": "fish_book", "store": "shop",
+	"fleet": "shop", "boosts": "buffs", "wanted": "fish_book", "account": "friends", "update": "guide", "radio": "events"}
+
+## a panel with a lot of room left (the Derby, the Leaderboard, Friends) gets its picture in the corner
+func _deco(kind: String) -> void:
+	for i in 2: await m.get_tree().process_frame            # (wrapped text knows its height now)
+	if kind != m._panel_kind or kind == "menu" or m.compact(): return
+	var pic: String = ICONS.get(kind, DECO.get(kind, ""))
+	if pic == "" or m.panel_body.get_combined_minimum_size().y > m.panel_scroll.size.y - 215.0: return
+	deco.texture = m.icon_for("ui", "menu/" + pic)
+	deco.visible = deco.texture != null
+
+## a box to type in, on the teal: cream, with dark words
+func field(e: Control) -> void:
+	e.add_theme_stylebox_override("normal", m.sbox(CREAM, 12, 2, CARD_RIM, 10))
+	var f: StyleBoxFlat = m.sbox(Color.TRANSPARENT, 12, 3, RIM, 10)
+	f.draw_center = false                                  # (drawn over the box: only its rim)
+	e.add_theme_stylebox_override("focus", f)
+	e.add_theme_stylebox_override("read_only", m.sbox(CREAM.darkened(0.08), 12, 2, CARD_RIM, 10))
+	for k in ["font_color", "caret_color", "font_selected_color"]:
+		e.add_theme_color_override(k, INK)
+	e.add_theme_color_override("font_placeholder_color", Color(INK_SOFT, 0.75))
 
 func _walk(n: Node, on_light: bool) -> void:
 	for c in n.get_children():
 		if c is Button: continue                           # (buttons bring their own colours)
+		if c is LineEdit or c is TextEdit:
+			field(c)
+			continue
 		var here := on_light
 		var kind := _box_kind(c)
 		if kind == 1:
@@ -309,6 +376,10 @@ func _walk(n: Node, on_light: bool) -> void:
 				(c as PanelContainer).add_theme_stylebox_override("panel", nb)
 		elif kind == 0:
 			here = false
+		if here and c is Label:                             # (on cream: the old grey-blue inks become the warm ones)
+			var fc: Color = (c as Label).get_theme_color("font_color")
+			if fc.is_equal_approx(m.C_TEXT): (c as Label).add_theme_color_override("font_color", INK)
+			elif fc.is_equal_approx(m.C_MUTED): (c as Label).add_theme_color_override("font_color", INK_SOFT)
 		if not here:
 			if c is Label:
 				var l: Label = c

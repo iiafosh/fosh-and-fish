@@ -66,7 +66,7 @@ var boost_label: Label
 var overlay: Control
 var panel_title: Label
 var panel_close: Button
-var skin                                 # vf_skin.gd: the new look of the panels
+var skin                                 # vf_skin.gd: the look of the panels, the pills and the buttons (1.1)
 var panel_tabs: VBoxContainer
 var panel_body: VBoxContainer
 var _panel_kind := ""
@@ -465,7 +465,7 @@ func btn(text: String, color := Color("#2f8f9e"), size := 15, min_w := 0) -> But
 	b.add_theme_stylebox_override("disabled", sbox(Color("#e4ecef"), 14, 0, Color.TRANSPARENT, 9))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	if min_w > 0: b.custom_minimum_size.x = min_w
-	if skin != null and skin.on() and color != C_NEUTRAL: skin.style_btn(b, color)      # (glossy, in the new look)
+	if skin != null and skin.on(): skin.style_btn(b, color)      # (glossy, in the new look)
 	b.pressed.connect(func(): AudioManager.play_click())
 	return b
 
@@ -595,6 +595,7 @@ func _check_portrait() -> void:
 		_portrait_note.visible = upright
 
 func pill_box(light: bool, pad_h := 12, pad_v := 6) -> StyleBoxFlat:
+	if skin.on(): return skin.pill_box(light, pad_h, pad_v)
 	var sb := sbox(C_LIGHT if light else C_DARK, 999, 1, Color(1, 1, 1, 0.3) if light else Color(1, 1, 1, 0.06), 0, 5)
 	sb.content_margin_left = pad_h
 	sb.content_margin_right = pad_h
@@ -640,6 +641,9 @@ func pill_button(icon_name: String, text: String, key := "", light := true) -> B
 	var hv := sb.duplicate()
 	hv.bg_color = C_LIGHT_HOVER if light else C_DARK.lightened(0.1)
 	hv.border_color = C_TEAL.lightened(0.45) if light else Color(1, 1, 1, 0.2)
+	if skin.on():
+		hv.bg_color = Color.WHITE if light else sb.bg_color.lightened(0.12)
+		hv.border_color = skin.RIM
 	b.add_theme_stylebox_override("hover", hv)
 	var pr := sb.duplicate()
 	pr.bg_color = C_NEUTRAL if light else C_DARK.darkened(0.2)
@@ -694,10 +698,11 @@ func _build() -> void:
 		font.fallbacks = [load("res://assets/third_party/fonts/Cairo.ttf")]   # Arabic glyphs (Fredoka has none)
 	var fv := FontVariation.new()
 	fv.base_font = font
-	fv.variation_opentype = {"wght": 560}
+	fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 500}     # (the axis by its tag: a plain "wght" key did nothing, and the game was drawn at the font's lightest for a year)
 	th.default_font = fv
 	th.set_color("font_color", "Label", C_TEXT)
 	theme = th
+	skin = load("res://scripts/vf/vf_skin.gd").new(self)      # the look of every box and button (1.1)
 	var bg := ColorRect.new()
 	bg.color = C_BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -731,7 +736,13 @@ func _click_through(n: Node) -> void:
 	for c in n.get_children():
 		_click_through(c)
 
+## a light box on the main screen: the wallet, the goal, the catch card, the gear
+func hud_box(radius: int, pad: int, shadow: int, rim := Color(1, 1, 1, 0.3)) -> StyleBoxFlat:
+	if skin.on(): return skin.hud_box(radius, pad, shadow)
+	return sbox(C_LIGHT, radius, 1, rim, pad, shadow)
+
 func _flat(pad := 10, radius := 16) -> StyleBoxFlat:
+	if skin.on(): return skin.hud_box(radius, pad, 8)
 	return sbox(Color(C_PANEL, 0.94), radius, 1, Color("#e3d3b4"), pad, 8)
 
 func _build_hud() -> void:
@@ -798,7 +809,7 @@ func _build_hud() -> void:
 	row.add_child(prestige_label)
 	# wallet popover
 	wallet = PanelContainer.new()
-	wallet.add_theme_stylebox_override("panel", sbox(C_LIGHT, 16, 1, Color.WHITE, 12, 8))
+	wallet.add_theme_stylebox_override("panel", hud_box(16, 12, 8, Color.WHITE))
 	wallet.visible = false
 	var wg := GridContainer.new()
 	wg.columns = 3
@@ -821,7 +832,7 @@ func _build_hud() -> void:
 	col.add_child(wallet)
 	# goal: one quiet line + thin progress, click to jump to it
 	goal_box = PanelContainer.new()
-	goal_box.add_theme_stylebox_override("panel", sbox(C_LIGHT, 14, 1, Color(1, 1, 1, 0.3), 10, 6))
+	goal_box.add_theme_stylebox_override("panel", hud_box(14, 10, 6))
 	var gv := VBoxContainer.new()
 	gv.add_theme_constant_override("separation", 4)
 	goal_label = lbl("", 13)
@@ -889,7 +900,7 @@ func _toggle_wallet() -> void:
 
 func _build_card() -> void:
 	card = PanelContainer.new()
-	card.add_theme_stylebox_override("panel", sbox(C_LIGHT, 18, 1, Color(1, 1, 1, 0.3), 0, 8))
+	card.add_theme_stylebox_override("panel", hud_box(18, 0, 8))
 	card.anchor_left = 1.0
 	card.anchor_right = 1.0
 	card.offset_left = -314
@@ -954,7 +965,7 @@ var gear_box: PanelContainer
 func _build_dock() -> void:
 	# ---- bottom-left: your gear (rod, bait, biome, pet) in one light pill
 	var gear := PanelContainer.new()
-	gear.add_theme_stylebox_override("panel", sbox(C_LIGHT, 20, 1, Color(1, 1, 1, 0.3), 6, 5))
+	gear.add_theme_stylebox_override("panel", hud_box(20, 6, 5))
 	gear_box = gear
 	gear.anchor_top = 1.0
 	gear.anchor_bottom = 1.0
@@ -975,6 +986,10 @@ func _build_dock() -> void:
 	sell_btn.add_theme_color_override("icon_hover_color", Color.WHITE)
 	sell_btn.add_theme_color_override("icon_pressed_color", Color.WHITE)
 	for st in ["normal", "hover", "pressed"]:
+		if skin.on():
+			var g: StyleBoxTexture = skin.gloss(Color("#f5a623").lightened(0.1 if st == "hover" else 0.0).darkened(0.1 if st == "pressed" else 0.0), 22, 5)
+			sell_btn.add_theme_stylebox_override(st, skin._pad(g, 24, 7, 24, 12))
+			continue
 		var sb: StyleBoxFlat = sell_btn.get_theme_stylebox(st).duplicate()
 		sb.set_corner_radius_all(999)
 		sb.content_margin_left = 20
@@ -998,6 +1013,9 @@ func _build_dock() -> void:
 	fish_btn.focus_mode = Control.FOCUS_NONE
 	fish_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var fb := sbox(C_TEAL, 999, 3, Color(1, 1, 1, 0.75), 0, 8)
+	if skin.on():
+		fb.border_color = skin.RIM
+		fb.set_border_width_all(4)
 	fish_btn.add_theme_stylebox_override("normal", fb)
 	var fbh := fb.duplicate()
 	fbh.bg_color = C_TEAL.lightened(0.12)
@@ -1169,7 +1187,6 @@ func _build_overlay() -> void:
 	head.add_child(close)
 	panel_close = close
 	v.add_child(head)
-	skin = load("res://scripts/vf/vf_skin.gd").new(self)      # the new look (the Menu and the Shop so far)
 	skin.build(head)
 	tabs_track = PanelContainer.new()
 	tabs_track.add_theme_stylebox_override("panel", sbox(Color("#e8e1d2"), 999, 0, Color.TRANSPARENT, 4))
@@ -1748,7 +1765,10 @@ func _card(t: Texture2D, title: String, desc: String, right: Control = null, dim
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name_l := lbl(title, 19 if new_look else 17, skin.INK if new_look else C_TEXT)
-	if new_look: name_l.add_theme_font_override("font", skin.bold())
+	if new_look:
+		name_l.add_theme_font_override("font", skin.bold())
+		name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART      # (a long name takes a second line: it must never widen the window)
+		v.custom_minimum_size.x = 100
 	v.add_child(name_l)
 	if desc != "":
 		var d := lbl(desc, 14 if new_look else 13, skin.INK_SOFT if new_look else C_MUTED)
@@ -2534,7 +2554,7 @@ func _check_capture() -> void:
 	var shots := [["menu", ""], ["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""], ["account", "Account"], ["update", ""]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
-		for k in ["menu", "inventory", "shop", "biomes", "charms", "pets", "quests", "leaderboard", "prestige", "stats", "events", "derby", "account", "guide"]:
+		for k in ["menu", "inventory", "shop", "biomes", "charms", "pets", "quests", "leaderboard", "prestige", "stats", "events", "derby", "account", "guide", "settings", "update", "party", "radio", "wanted", "achievements"]:
 			for t in PANEL_TABS.get(k, [""]):
 				if k == "shop" and t == "Pearls":
 					for st in STORE_TABS: shots.append(["store", st[0]])     # (each part of the Store, in the Shop's Pearls tab)
@@ -2557,6 +2577,12 @@ func _check_capture() -> void:
 				wide.sort_custom(func(a, b): return a.get_combined_minimum_size().x > b.get_combined_minimum_size().x)
 				for c in wide.slice(0, 4):
 					print("DOCKPANEL     %s '%s' needs %d px" % [c.get_class(), str(c.get("text")) if c.get("text") != null else c.name, int(c.get_combined_minimum_size().x)])
+		if not compact() and panel_box.size.x > 961.0:           # a window that grew: something in it won't shrink
+			print("WIDEPANEL %s/%s is %d px wide" % [p[0], p[1], int(panel_box.size.x)])
+			var big: Array = panel_body.find_children("*", "Control", true, false).filter(func(c): return c.is_visible_in_tree())
+			big.sort_custom(func(a, b): return a.get_combined_minimum_size().x > b.get_combined_minimum_size().x)
+			for c in big.slice(0, 5):
+				print("WIDEPANEL     %s '%s' needs %d px" % [c.get_class(), str(c.get("text")) if c.get("text") != null else c.name, int(c.get_combined_minimum_size().x)])
 		await _shot(dir + "/panel_%s%s.png" % [p[0], ("_" + p[1].to_lower().replace(" / ", "_")) if p[1] != "" else ""])
 	get_tree().quit()
 
@@ -3099,7 +3125,7 @@ func _next_banner() -> void:
 		card.visible = false
 	var b: Array = _banner_queue.pop_front()
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", sbox(Color(C_PANEL, 0.97), 18, 3, b[3], 14, 10))
+	p.add_theme_stylebox_override("panel", sbox(Color(skin.CREAM if skin.on() else C_PANEL, 0.97), 18, 3, b[3], 14, 10))
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
@@ -3160,7 +3186,7 @@ func _build_coach() -> void:
 	_coach.draw.connect(_draw_coach)
 	add_child(_coach)
 	_coach_bubble = PanelContainer.new()
-	_coach_bubble.add_theme_stylebox_override("panel", sbox(Color.WHITE, 18, 3, C_TEAL, 14, 12))
+	_coach_bubble.add_theme_stylebox_override("panel", sbox(Color.WHITE, 18, 3, Color("#f5a623") if skin.on() else C_TEAL, 14, 12))
 	_coach_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_coach_label = lbl("", 17)
 	_coach_bubble.add_child(_coach_label)
@@ -3221,7 +3247,7 @@ func _process_coach(delta: float) -> void:
 	var bs := _coach_bubble.size
 	var below := VF.tutorial in [2, 4]
 	var bp := tgt + (Vector2(-bs.x * 0.5, 46) if below else Vector2(-bs.x * 0.5, -bs.y - 58))
-	if VF.tutorial == 3: bp = Vector2((vs.x - bs.x) * 0.5, 8)        # above the shop panel, not over its tabs
+	if VF.tutorial == 3: bp = Vector2((vs.x - bs.x) * 0.5, vs.y if skin.on() else 8.0)        # over the foot of the shop panel (its top has the wooden sign)
 	if first: bp = tgt - Vector2(bs.x + 54.0, bs.y * 0.5)            # beside the card, its arrow on the net
 	bp.x = clampf(bp.x, 12, vs.x - bs.x - 12)
 	bp.y = clampf(bp.y, 12, vs.y - bs.y - 12)

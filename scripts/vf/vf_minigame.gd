@@ -317,10 +317,15 @@ func _layer(parent: Control, r: Rect2, cb: Callable) -> Control:
 	parent.add_child(c)
 	return c
 
+## vf_skin while the new look is on, or null (the tests' stand-in for vf_main has none)
+func _skin():
+	var sk = main.get("skin")
+	return sk if sk != null and sk.on() else null
+
 func _build_labels() -> void:
 	# header pill sitting on the card's top edge
 	var head := PanelContainer.new()
-	var hsb: StyleBoxFlat = main.sbox(Color("#1a8a9d"), 999, 3, Color("#f8f4ea"), 0, 8)
+	var hsb: StyleBoxFlat = main.sbox(Color("#1a8a9d"), 999, 3, _skin().RIM if _skin() != null else Color("#f8f4ea"), 0, 8)
 	hsb.content_margin_left = 22
 	hsb.content_margin_right = 26
 	hsb.content_margin_top = 4
@@ -1010,7 +1015,8 @@ func _tick_bubbles(delta: float) -> void:
 
 func _draw_board() -> void:
 	var c := board
-	c.draw_style_box(main.sbox(CARD, 30, 3, Color("#fffdf6"), 0, 14), Rect2(Vector2.ZERO, card.size))
+	if _skin() != null: c.draw_style_box(main.sbox(_skin().CREAM, 30, 4, _skin().RIM, 0, 14), Rect2(Vector2.ZERO, card.size))
+	else: c.draw_style_box(main.sbox(CARD, 30, 3, Color("#fffdf6"), 0, 14), Rect2(Vector2.ZERO, card.size))
 	# reel ring
 	var col := Color("#e9a23b").lerp(Color("#2fb97c"), progress)
 	if in_zone and phase == "play":

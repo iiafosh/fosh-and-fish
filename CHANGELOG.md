@@ -4,7 +4,8 @@
 
 ## Coming next
 
-- **A new look for the Menu and the Shop.** A deep teal panel with a golden rim, a wooden sign for the title, big picture icons on the Menu, glossy buttons, and cream cards with bigger pictures and bolder names. The other panels follow.
+- **A new look for the whole game.** Every panel is a deep teal window with a golden rim, a wooden sign for its title and a round red close button, with glossy tabs and buttons and cream cards with bigger pictures. The Menu has big picture icons. The main screen matches: cream and teal pills with golden rims, a glossy Sell button, and the same look on the Reel it in! card.
+- **Text is easier to read.** The game's letters were always meant to be a little bolder; a mistake kept them at their thinnest. Now they are as bold as intended, everywhere.
 - **A new picture on the enter screen, and a new icon.** The bay you start in is a new painting: the captain on his dock, a lantern, a rowboat and open turquoise water, with the same moving water, swaying leaves and leaping fish. The web version's loading page shows it too, and the game's icon is now a happy orange fish jumping beside a bobber.
 - **Fish with friends, live.** Menu → Friends: make a party and send its 6-letter code to your friends. When they join, their boats sail in your bay with purple name tags, live, wherever they go, and you hear about their new catches and their waves. No account needed, and your party is still there the next time you play, until you leave it.
 - **Other players in your bay.** People who played lately sail into your bay now and then, in their best boat, with their name and level over it. They fish for a while and sail off. Tap one and they call out something friendly, and you see who they are.
