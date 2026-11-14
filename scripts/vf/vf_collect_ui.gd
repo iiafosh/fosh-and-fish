@@ -27,7 +27,7 @@ var wanted_pill: PanelContainer
 var _wanted_lbl: Label
 var _wanted_face: Control
 var _tank: Control
-var _swim := []                       # the aquarium's fish: {f, x, y, v, ph, k, flee}
+var _swim := []                       # the aquarium's fish: {f, name, row, x, y, home, v, face, ph, k, flee, act, act_t, munch}
 var _say := {}                        # what the tapped one's card says: {f, text, t}
 var _tank_ms := 0
 
@@ -344,8 +344,43 @@ func refresh_badges() -> void:
 
 
 # ================================================================ aquarium
-## Menu -> Aquarium: every species you've caught swims here. Tap one: who it is, how many you've caught, something about it.
+## Menu -> Aquarium: every species you've caught swims here, and they're a lively lot. Tap a fish: who it is, how many you've caught,
+## and its party trick (TRICK). Tap the water: a pinch of food, and they race for it. Tap the chest: bubbles. Left alone they chat
+## (about you, mostly), the shark has a go at the small ones, and visitors walk past the glass, take photos and tap on it.
 ## Visitors pay: a bit more on what the crews catch while you're away.
+const TRICK := {"Pufferfish": "puff", "Fiery Pufferfish": "puff", "Dark Puffer": "puff", "Squid": "ink", "Emerald Squid": "ink",
+	"Turtle": "nap", "Dolphin": "flip", "Rainbow Fish": "flip", "Shark": "grin", "Galactic Crab": "snip", "Guardian": "stare"}
+const TRICK_SAYS := {"puff": ["PFFF.", "Do NOT poke me.", "I'm big now. Fear me."], "ink": ["You saw nothing.", "Ink! Everybody run!"],
+	"nap": ["Five more minutes.", "Wake me for lunch."], "flip": ["Ta-da!", "And the crowd goes wild."],
+	"grin": ["Hello, snacks.", "Who's hungry? I am."], "snip": ["Snip snip.", "Shake my claw."],
+	"stare": ["...", "I'm guarding. Go away."], "": ["Hi!", "Oh! Hello.", "That tickles.", "Again, again!"]}
+const CHAT := [["Is it feeding time? It feels like feeding time."], ["Do you ever feel watched?", "Constantly."],
+	["I was promised a castle.", "We were ALL promised a castle."], ["Psst. The captain is looking at us again.", "Act natural."],
+	["Who keeps tapping the glass?", "The big face. Up there."], ["I miss the sea.", "The sea had hooks in it."],
+	["Nice bubbles today.", "Thanks. I made them myself."], ["What day is it?", "Tank day. It's always tank day."],
+	["I'm the captain's favourite.", "You were bait size, mate."], ["Left. Right. Left. Right. What a life."],
+	["If I swim really fast, do I get out?", "You hit the glass. Again."], ["What's in the chest?", "Nothing. We checked."]]
+const CHAT_BY := {"Shark": "I'm on a diet. Mostly.", "Turtle": "I was here before the tank.", "Cod": "I'm just a cod. No pressure.",
+	"Dolphin": "I'm not even a fish. Nobody checks.", "Pufferfish": "One more joke about my size. Go on.",
+	"Squid": "So many arms and nothing to hold.", "Guardian": "I guard this tank. From what? Don't ask.",
+	"Raw Fish": "Why am I called RAW? Who's cooking?", "Hot Cod": "Is it warm in here, or is it me?",
+	"Space Fish": "I've seen the stars. This is fine too.", "Alien Fish": "Take me to your feeder.",
+	"Galactic Crab": "Sideways is the only way.", "Rainbow Fish": "Yes, it's natural.", "Dark Tuna": "It's always night for me.",
+	"Tropical Fish": "I'm on holiday. Forever.", "Raw Salmon": "I swam upstream for THIS?"}
+const POSES := ["My good side, please.", "No flash!", "Is my fin straight?", "Put it on FishTok."]
+const GLASS := Color("#124656")                        # the visitors: dark shapes in front of the glass
+
+var _food := []                       # flakes sinking: {x, y, t}
+var _fx := []                         # {k: heart|ink|flash|ring|pop|z, x, y, t, life}
+var _talks := []                      # what they're saying: {s, text, t (below 0: not yet), life}
+var _vis := []                        # the visitors: {x, v, h (of the tank's height), kid, stop}
+var _hunt := {}                       # the shark's little joke: {shark, prey, t}
+var _chat_t := 4.0
+var _vis_t := 6.0
+var _hunt_t := 16.0
+var _hint := 7.0                      # "tap the water" shows this long, or until you do
+
+
 func panel_aquarium() -> void:
 	var n: int = VF.discovered.size()
 	var pct := int(round(VF.aquarium_income() * 100.0))
@@ -370,6 +405,15 @@ func panel_aquarium() -> void:
 	_tank_ms = Time.get_ticks_msec()
 	_say = {}
 	_swim = []
+	_food = []
+	_fx = []
+	_talks = []
+	_vis = []
+	_hunt = {}
+	_chat_t = 4.0
+	_vis_t = 6.0
+	_hunt_t = 16.0
+	_hint = 7.0
 	var who := []                                      # [picture, name, the outlaw's row or -1]
 	for f in VFData.FISH_ORDER:
 		if VF.discovered.has(f): who.append([f, f, -1])
@@ -377,8 +421,13 @@ func panel_aquarium() -> void:
 		if VF.gerald_info(i).done: who.append([_look(i), String(VFData.GERALD[i].who), i])
 	for w in who:
 		var v := randf_range(0.02, 0.045) * (1.0 if randf() < 0.5 else -1.0)
-		_swim.append({"f": w[0], "name": w[1], "row": w[2], "x": randf_range(0.08, 0.92), "y": randf_range(0.2, 0.78), "v": v, "face": signf(v),
-			"ph": randf() * TAU, "k": randf_range(0.85, 1.15), "flee": 0.0})
+		var y := randf_range(0.2, 0.74)
+		if String(w[1]) == "Galactic Crab": y = 0.86  # (it walks the sand)
+		_swim.append({"f": w[0], "name": w[1], "row": w[2], "x": randf_range(0.08, 0.92), "y": y, "home": y, "v": v, "face": signf(v),
+			"ph": randf() * TAU, "k": randf_range(0.85, 1.15), "flee": 0.0, "act": "", "act_t": 0.0, "munch": 0.0})
+	var crowd := clampi(1 + who.size() / 6, 1, 4)   # the more there is to see, the more come to see it
+	for i in crowd:
+		_vis.append(_visitor((i + randf_range(0.2, 0.8)) / crowd))
 	if _swim.is_empty():
 		var e: Label = m.lbl("Nobody's here yet. Catch a fish and it'll swim here.", 15, Color.WHITE)
 		e.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -386,40 +435,198 @@ func panel_aquarium() -> void:
 		_tank.add_child(e)
 
 
+func _visitor(at: float) -> Dictionary:
+	var kid := randf() < 0.3
+	return {"x": at, "v": randf_range(0.012, 0.03) * (1.0 if randf() < 0.5 else -1.0), "h": randf_range(0.15, 0.18) if kid else randf_range(0.23, 0.29),
+		"kid": kid, "stop": 0.0}
+
+
+func _talk(s: Dictionary, text: String, wait := 0.0) -> void:
+	_talks = _talks.filter(func(t): return t.s != s)
+	_talks.append({"s": s, "text": text, "t": -wait, "life": 2.2 + text.length() * 0.045})
+
+
+func _puff(k: String, at: Vector2, life: float) -> void:
+	_fx.append({"k": k, "x": at.x, "y": at.y, "t": 0.0, "life": life})
+
+
+func _free(s: Dictionary) -> bool:                    # nothing on: it can chat, or be picked on
+	return String(s.act) == "" and float(s.flee) <= 0.0 and (_hunt.is_empty() or (_hunt.shark != s and _hunt.prey != s))
+
+
 func _tick_tank() -> void:
 	if not is_instance_valid(_tank): return
 	var now := Time.get_ticks_msec()
 	var dt := minf((now - _tank_ms) / 1000.0, 0.1)
 	_tank_ms = now
+	var sz := _tank.size
+	_hint = maxf(0.0, _hint - dt)
+	for fd in _food:
+		fd.t += dt
+		fd.y = minf(fd.y + 26.0 * dt, sz.y - 30.0)
+	_food = _food.filter(func(fd): return fd.t < 16.0)
+	for p in _fx: p.t += dt
+	_fx = _fx.filter(func(p): return p.t < p.life)
+	for t in _talks: t.t += dt
+	_talks = _talks.filter(func(t): return t.t < t.life)
+	_tick_hunt(dt)
 	for s in _swim:
 		s.flee = maxf(0.0, s.flee - dt)
-		s.x += s.v * dt * (1.0 + 5.0 * s.flee)
-		if (s.x > 0.93 and s.v > 0.0) or (s.x < 0.07 and s.v < 0.0) or randf() < dt * 0.03: s.v = -s.v     # (the glass, or a change of mind)
-		s.face = move_toward(s.face, signf(s.v), dt * 3.0)     # (it turns round: thin for a moment, then the other way)
+		s.munch = maxf(0.0, s.munch - dt)
+		if s.act != "":
+			s.act_t -= dt
+			if s.act_t <= 0.0: s.act = ""
 		s.ph += dt
+		var speed: float = 1.0 + 5.0 * s.flee
+		var ty: float = s.home
+		var busy: bool = not _hunt.is_empty() and (_hunt.shark == s or _hunt.prey == s)
+		if s.act == "nap" or s.act == "stare":
+			speed = 0.0
+			if s.act == "nap":
+				ty = 0.84
+				if fmod(s.ph, 1.1) < dt: _puff("z", _fish_at(s) + Vector2(18, -22), 1.6)
+		elif busy:
+			speed = 3.4 if _hunt.shark == s else 4.2
+			if _hunt.shark == s: ty = _hunt.prey.y
+		elif s.flee <= 0.0 and not _food.is_empty():
+			var at := _fish_at(s)
+			var best := {}
+			var d := sz.x * 0.42
+			for fd in _food:
+				var dd := at.distance_to(Vector2(fd.x, fd.y))
+				if dd < d:
+					d = dd
+					best = fd
+			if not best.is_empty():
+				if d < 26.0:
+					_food.erase(best)
+					s.munch = 0.35
+					_puff("heart", at + Vector2(0, -26), 1.1)
+					AudioManager.play_fun("pop", -24.0, randf_range(1.3, 1.7))
+					if randf() < 0.22: _talk(s, ["Mine.", "Yum.", "More, please.", "I saw it first."].pick_random())
+				else:
+					if absf(best.x - at.x) > 8.0: s.v = absf(s.v) * signf(best.x - at.x)
+					speed = 3.2
+					if float(s.home) < 0.8: ty = best.y / sz.y
+		s.x += s.v * dt * speed
+		s.y = move_toward(s.y, ty, dt * 0.22 * maxf(speed, 0.7))
+		var mind: bool = speed <= 1.0 and randf() < dt * 0.03          # (a change of mind, when there's nothing better to do)
+		if (s.x > 0.93 and s.v > 0.0) or (s.x < 0.07 and s.v < 0.0) or mind: s.v = -s.v     # (or the glass)
+		s.face = move_toward(s.face, signf(s.v), dt * 3.0)     # (it turns round: thin for a moment, then the other way)
 	if not _say.is_empty():
 		_say.t += dt
 		if _say.t > 4.0: _say = {}
+	_chat_t -= dt
+	if _chat_t <= 0.0 and _talks.is_empty() and _say.is_empty():
+		_chat_t = randf_range(5.0, 9.0)
+		_chat()
+	_tick_visitors(dt)
 	_tank.queue_redraw()
 
 
+## Somebody says something; now and then somebody else answers.
+func _chat() -> void:
+	var idle: Array = _swim.filter(func(s): return _free(s))
+	if idle.is_empty(): return
+	var a: Dictionary = idle.pick_random()
+	var r := randf()
+	var hour := int(Time.get_time_dict_from_system().hour)
+	if int(a.row) >= 0:
+		_talk(a, IN_THE_TANK.get(String(VFData.GERALD[int(a.row)].biome), "Behaving. For now."))
+	elif r < 0.28 and CHAT_BY.has(a.name):
+		_talk(a, CHAT_BY[a.name])
+	elif r < 0.4:
+		_talk(a, "%s of my family caught. I counted." % VF.commas(int(VF.discovered.get(a.f, 0))))
+	elif r < 0.48 and (hour >= 23 or hour < 5):
+		_talk(a, "It's late, captain. Go to bed.")
+	elif r < 0.56 and int(VF.stats.get("glass_taps", 0)) >= 50:
+		_talk(a, "%s taps on the glass. We felt every one." % VF.commas(int(VF.stats.glass_taps)))
+	else:
+		var lines: Array = CHAT.pick_random()
+		_talk(a, lines[0])
+		idle.erase(a)
+		if lines.size() > 1 and not idle.is_empty(): _talk(idle.pick_random(), lines[1], 1.7)
+
+
+## The shark goes for one of the small ones. It never means it.
+func _tick_hunt(dt: float) -> void:
+	if _hunt.is_empty():
+		_hunt_t -= dt
+		if _hunt_t > 0.0: return
+		_hunt_t = randf_range(24.0, 40.0)
+		var sharks: Array = _swim.filter(func(s): return s.name == "Shark" and _free(s))
+		var prey: Array = _swim.filter(func(s): return s.name != "Shark" and int(s.row) < 0 and _free(s) and float(s.home) < 0.8)
+		if sharks.is_empty() or prey.is_empty(): return
+		_hunt = {"shark": sharks[0], "prey": prey.pick_random(), "t": 0.0}
+		_talk(_hunt.prey, ["Not again!", "Help! Shark!", "Why is it always me?"].pick_random())
+		AudioManager.play_fun("dundun", -20.0)
+		return
+	_hunt.t += dt
+	var a: Vector2 = _fish_at(_hunt.shark)
+	var b: Vector2 = _fish_at(_hunt.prey)
+	if absf(b.x - a.x) > 8.0: _hunt.shark.v = absf(_hunt.shark.v) * signf(b.x - a.x)
+	if _hunt.t > 4.5 or a.distance_to(b) < 64.0:
+		_talk(_hunt.shark, ["Just kidding.", "Relax. I had lunch.", "Got you. Again."].pick_random())
+		_talk(_hunt.prey, ["NOT funny.", "Every. Single. Day.", "I'm telling the captain."].pick_random(), 1.2)
+		_hunt.prey.flee = 0.5
+		_hunt = {}
+
+
+## The people at the glass: they wander past; one stops now and then, for a photo, or (the small ones) to tap on it.
+func _tick_visitors(dt: float) -> void:
+	var sz := _tank.size
+	for p in _vis:
+		if p.stop > 0.0:
+			p.stop -= dt
+			continue
+		p.x += p.v * dt
+		if p.x > 1.08 or p.x < -0.08:
+			var q := _visitor(-0.07 if p.v > 0.0 else 1.07)
+			q.v = absf(q.v) * signf(p.v)
+			for key in q: p[key] = q[key]
+	_vis_t -= dt
+	if _vis_t > 0.0 or _vis.is_empty() or _swim.is_empty(): return
+	_vis_t = randf_range(9.0, 16.0)
+	var who: Dictionary = _vis.pick_random()
+	if who.x < 0.1 or who.x > 0.9 or who.stop > 0.0: return
+	who.stop = 2.4
+	var head := Vector2(who.x * sz.x, sz.y - float(who.h) * sz.y * 0.8)
+	var near := {}
+	var d := 1e9
+	for s in _swim:
+		var dd := _fish_at(s).distance_to(head)
+		if dd < d and _free(s):
+			d = dd
+			near = s
+	if who.kid:
+		_puff("ring", head + Vector2(who.h * sz.y * 0.44, 0), 0.7)
+		AudioManager.play_fun("clunk", -24.0, 1.3)
+		for s in _swim:
+			if _fish_at(s).distance_to(head) < 190.0 and String(s.act) == "": s.flee = 0.6
+		if not near.is_empty(): _talk(near, ["Kids.", "Read the sign!", "Every school trip. Every time."].pick_random(), 0.5)
+	else:
+		_puff("flash", head + Vector2(who.h * sz.y * 0.33, -who.h * sz.y * 0.08), 0.35)
+		AudioManager.play_fun("shutter", -24.0)
+		if not near.is_empty(): _talk(near, POSES.pick_random(), 0.3)
+
+
 ## A fish side on, the way the mini-game draws it: its sheet (mini/, made without eyes) and a face (vf_minigame.gd _draw_fish).
-## face: which way it looks, -1..1 (through 0 while it turns round).
-func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float) -> bool:
+## face: which way it looks, -1..1 (through 0 while it turns round). rot: its trick, if it's doing one. asleep: eyes shut.
+func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float, rot := 0.0, asleep := false) -> bool:
 	var mini: Dictionary = m.stage.manifest.get("mini", {})
 	var info: Dictionary = mini.get("fish", {}).get(f, {})
 	var t: Texture2D = m.tex("mini/%s.png" % VFData.slug(f))
 	if t == null or info.is_empty(): return false
 	var cell := float(mini.cell)
 	var fr := int(ph * 7.0) % int(mini.frames)
-	_tank.draw_set_transform(at, sin(ph * 1.1) * 0.05, Vector2(face, 1.0))
+	_tank.draw_set_transform(at, rot + sin(ph * 1.1) * 0.05, Vector2(face, 1.0))
 	_tank.draw_texture_rect_region(t, Rect2(-px * 0.5, -px * 0.5, px, px), Rect2(fr * cell, 0, cell, cell))
 	var k := px / 176.0                                # (the mini-game draws them 176 px across)
 	var e := (Vector2(info.eye[0], info.eye[1]) - Vector2(0.5, 0.5)) * px
 	var mo := (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * px
 	var er := maxf(float(info.er) * px * 1.9, 11.0 * k)
 	var w := maxf(1.2, 2.5 * k)
-	if fmod(ph + float(f.length()), 4.3) < 0.14:      # a blink now and then
+	if asleep or fmod(ph + float(f.length()), 4.3) < 0.14:      # a blink now and then
 		_tank.draw_arc(e + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
 	else:
 		var pr := er * 0.48
@@ -445,7 +652,17 @@ func _sheet(f: String) -> Dictionary:
 
 func _fish_at(s: Dictionary) -> Vector2:
 	var sz := _tank.size
-	return Vector2(s.x * sz.x, s.y * sz.y + sin(s.ph * 1.3) * 6.0)
+	var act := String(s.get("act", ""))
+	var bob: float = 0.0 if act == "nap" else sin(s.ph * 1.3) * 6.0
+	var hop := 0.0                                     # (the flip is a jump too)
+	if act == "flip": hop = -sin(clampf(1.0 - float(s.act_t) / 0.8, 0.0, 1.0) * PI) * 34.0
+	return Vector2(s.x * sz.x, s.y * sz.y + bob + hop)
+
+
+func _chest_rect() -> Rect2:
+	var sz := _tank.size
+	var w := clampf(sz.y * 0.2, 54.0, 84.0)
+	return Rect2(sz.x * 0.78 - w * 0.5, sz.y - w - 8.0, w, w)
 
 
 func _draw_tank() -> void:
@@ -467,36 +684,118 @@ func _draw_tank() -> void:
 		for k in 7:
 			pts.append(Vector2(bx + sin(t * 0.9 + i + k * 0.6) * 4.0 * k / 6.0, sz.y - 20 - k * (14 + (i % 3) * 5)))
 		_tank.draw_polyline(pts, Color("#3e8f62", 0.8), 5.0, true)
+	var chest: Texture2D = m.tex("chests/common.png")  # the chest on the sand: it bubbles, and more when you tap it
+	var cr := _chest_rect()
+	if chest: _tank.draw_texture_rect(chest, cr, false)
+	for i in 3:
+		var cy := fmod(t * 34.0 + i * 61.0, sz.y * 0.6)
+		_tank.draw_arc(Vector2(cr.get_center().x + sin(t * 1.4 + i * 2.0) * 7.0, cr.position.y + 6.0 - cy), 2.5 + i, 0, TAU, 12,
+			Color(1, 1, 1, 0.4 * (1.0 - cy / (sz.y * 0.6))), 1.2, true)
 	for i in 12:                                       # bubbles
 		var bx := sz.x * fmod(i * 0.137 + 0.05, 1.0)
 		var by := sz.y - fmod(t * (22.0 + i * 3.0) + i * 57.0, sz.y + 20.0)
 		_tank.draw_arc(Vector2(bx + sin(t + i) * 5.0, by), 2.0 + (i % 3), 0, TAU, 12, Color(1, 1, 1, 0.35), 1.2, true)
+	for p in _fx:                                      # ink goes behind the fish
+		if p.k != "ink": continue
+		var ia: float = 1.0 - p.t / p.life
+		for i in 5:
+			_tank.draw_circle(Vector2(p.x, p.y) + Vector2.from_angle(i * 1.3 + p.t) * (10.0 + p.t * 16.0), 16.0 + p.t * 12.0 + i * 2.0,
+				Color(0.05, 0.05, 0.12, 0.42 * ia))
+	for fd in _food:
+		var fp := Vector2(fd.x + sin(fd.t * 3.0 + fd.x) * 3.0, fd.y)
+		_tank.draw_circle(fp, 3.2, Color("#e8a23a"))
+		_tank.draw_circle(fp - Vector2(1, 1), 1.2, Color("#ffe0a0"))
 	for s in _swim:
 		var px: float = clampf(_tank.size.y * 0.25, 72.0, 112.0) * s.k      # (a phone's shorter tank: smaller fish, less of a crowd)
-		if _draw_side(s.f, _fish_at(s), px, s.face, s.ph * (1.8 if s.flee > 0.0 else 1.0)): continue
+		var rot := 0.0
+		var sc: float = 1.0 + sin(s.munch / 0.35 * PI) * 0.14
+		var left: float = s.act_t
+		match String(s.act):
+			"puff": sc *= 1.0 + 0.55 * clampf(minf((1.8 - left) / 0.15, left / 0.5), 0.0, 1.0) + sin(s.ph * 22.0) * 0.02
+			"flip": rot = -TAU * clampf(1.0 - left / 0.8, 0.0, 1.0) * signf(s.face)
+			"snip": rot = sin(s.ph * 26.0) * 0.16
+			"grin": sc *= 1.0 + 0.18 * sin(clampf(1.0 - left, 0.0, 1.0) * PI)
+			"hi": rot = sin(s.ph * 24.0) * 0.14 * clampf(left / 0.6, 0.0, 1.0)
+		var fast: float = 1.8 if s.flee > 0.0 else (0.25 if s.act == "nap" else 1.0)
+		if _draw_side(s.f, _fish_at(s), px * sc, s.face, s.ph * fast, rot, s.act == "nap"): continue
 		var sh := _sheet(s.f)                          # (no side view for it: its picture from the stage)
 		if sh.is_empty(): continue
 		var cell: float = sh.cell
 		var fr := int(s.ph * 8.0) % int(sh.frames)
-		_tank.draw_set_transform(_fish_at(s), 0.0, Vector2(s.face * px / cell, px / cell))
+		_tank.draw_set_transform(_fish_at(s), rot, Vector2(s.face * px * sc / cell, px * sc / cell))
 		_tank.draw_texture_rect_region(sh.tex, Rect2(-cell * 0.5, -cell * 0.5, cell, cell), Rect2(fr * cell, sh.row * cell, cell, cell))
 	_tank.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var font: Font = _tank.get_theme_default_font()
+	for p in _fx:
+		var a: float = clampf(1.0 - p.t / p.life, 0.0, 1.0)
+		var at := Vector2(p.x, p.y)
+		match String(p.k):
+			"heart":
+				at.y -= p.t * 30.0
+				_tank.draw_circle(at + Vector2(-4, 0), 5.0, Color("#ff5e7e", a))
+				_tank.draw_circle(at + Vector2(4, 0), 5.0, Color("#ff5e7e", a))
+				_tank.draw_colored_polygon(PackedVector2Array([at + Vector2(-8.6, 2), at + Vector2(8.6, 2), at + Vector2(0, 12)]), Color("#ff5e7e", a))
+			"z":
+				_tank.draw_string(font, at + Vector2(p.t * 8.0, -p.t * 22.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 15 + int(p.t * 5.0), Color(1, 1, 1, a))
+			"pop":
+				for i in 7:
+					var o := Vector2(sin(i * 2.4) * (6.0 + i * 3.0), -p.t * (60.0 + i * 16.0) - i * 5.0)
+					_tank.draw_arc(at + o, 3.0 + (i % 3) * 2.0, 0, TAU, 12, Color(1, 1, 1, 0.75 * a), 1.5, true)
 	_tank.draw_rect(Rect2(Vector2.ZERO, sz), Color(1, 1, 1, 0.35), false, 3.0)      # the glass
+	for i in _vis.size():                              # ... and the people on our side of it
+		var p: Dictionary = _vis[i]
+		var h: float = p.h * sz.y
+		var x: float = p.x * sz.x
+		var step: float = 0.0 if p.stop > 0.0 else sin(t * 7.0 + i * 1.7) * 1.5
+		var r := h * 0.2
+		var head := Vector2(x, sz.y - h + r + step)
+		var w := h * (0.7 if p.kid else 0.62)
+		var sy := head.y + r * 0.8                      # the shoulders: a rounded block down to the sill
+		var body := PackedVector2Array([Vector2(x - w * 0.5, sz.y)])
+		for k in 7: body.append(Vector2(x - w * 0.5 + w * 0.3, sy + w * 0.3) + Vector2.from_angle(PI + k * PI / 12.0) * w * 0.3)
+		for k in 7: body.append(Vector2(x + w * 0.5 - w * 0.3, sy + w * 0.3) + Vector2.from_angle(-PI * 0.5 + k * PI / 12.0) * w * 0.3)
+		body.append(Vector2(x + w * 0.5, sz.y))
+		_tank.draw_colored_polygon(body, GLASS)
+		_tank.draw_circle(head, r, GLASS)
+		if p.stop > 0.0 and not p.kid:                 # the phone, held up
+			_tank.draw_line(Vector2(x + w * 0.4, sy + w * 0.2), Vector2(x + w * 0.52, head.y), GLASS, h * 0.09)
+			_tank.draw_rect(Rect2(x + w * 0.42, head.y - h * 0.13, h * 0.13, h * 0.2), GLASS)
+		elif p.stop > 0.0:                             # a small hand on the glass
+			_tank.draw_line(Vector2(x + w * 0.4, sy + w * 0.25), Vector2(x + w * 0.62, head.y + r * 0.4), GLASS, h * 0.1)
+	for p in _fx:
+		var a: float = clampf(1.0 - p.t / p.life, 0.0, 1.0)
+		if p.k == "flash":
+			_tank.draw_circle(Vector2(p.x, p.y), 14.0 + p.t * 120.0, Color(1, 1, 1, 0.75 * a))
+		elif p.k == "ring":
+			_tank.draw_arc(Vector2(p.x, p.y), 6.0 + p.t * 46.0, 0, TAU, 24, Color(1, 1, 1, 0.8 * a), 2.0, true)
+	if _hint > 0.0 and not _swim.is_empty():
+		_tank.draw_string(font, Vector2(14, 26), "Tap the water to feed them. Tap a fish to say hello.", HORIZONTAL_ALIGNMENT_LEFT, -1, 14,
+			Color(1, 1, 1, 0.85 * clampf(_hint / 0.6, 0.0, 1.0)))
+	for tk in _talks:
+		if tk.t >= 0.0: _draw_bubble(_fish_at(tk.s), tk.text, tk.t, tk.life)
 	if not _say.is_empty():
 		for s in _swim:
-			if s.name == _say.name: _draw_say(_fish_at(s))
+			if s.name == _say.name: _draw_bubble(_fish_at(s), _say.text, _say.t, 4.0)
 
 
-func _draw_say(at: Vector2) -> void:
+## What a fish says, above it. One line: a speech bubble. More: its card (the first line is its name).
+func _draw_bubble(at: Vector2, text: String, t: float, life: float) -> void:
 	var font: Font = _tank.get_theme_default_font()
-	var lines: PackedStringArray = String(_say.text).split("\n")
+	var lines: PackedStringArray = text.split("\n")
+	var one := lines.size() == 1
 	var w := 0.0
-	for li in lines: w = maxf(w, font.get_string_size(li, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x)
+	for li in lines: w = maxf(w, font.get_string_size(li, HORIZONTAL_ALIGNMENT_LEFT, -1, 14 if one else 16).x)
 	var bw := w + 24.0
-	var bh := 22.0 * lines.size() + 14.0
+	var bh := 22.0 * lines.size() + (10.0 if one else 14.0)
 	var p := Vector2(clampf(at.x - bw * 0.5, 6.0, _tank.size.x - bw - 6.0), clampf(at.y - bh - 46.0, 6.0, _tank.size.y - bh - 6.0))
-	var a := clampf(minf(_say.t / 0.15, (4.0 - _say.t) / 0.4), 0.0, 1.0)
+	var a := clampf(minf(t / 0.15, (life - t) / 0.4), 0.0, 1.0)
 	_tank.draw_style_box(m.sbox(Color(1, 1, 1, 0.95 * a), 12, 2, Color(INK, 0.5 * a), 0), Rect2(p, Vector2(bw, bh)))
+	if one:
+		var tx := clampf(at.x, p.x + 14.0, p.x + bw - 14.0)
+		_tank.draw_colored_polygon(PackedVector2Array([Vector2(tx - 6, p.y + bh - 2), Vector2(tx + 6, p.y + bh - 2), Vector2(tx, p.y + bh + 8)]),
+			Color(1, 1, 1, 0.95 * a))
+		_tank.draw_string(font, p + Vector2(12, 21), lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(C_TEXT, a))
+		return
 	for i in lines.size():
 		_tank.draw_string(font, p + Vector2(12, 24 + 22 * i), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 16 if i == 0 else 14,
 			Color(C_TEXT if i == 0 else C_MUTED, a))
@@ -505,6 +804,7 @@ func _draw_say(at: Vector2) -> void:
 func _tank_input(e: InputEvent) -> void:
 	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT): return
 	VF.stat_add("glass_taps")                         # "Please Don't Tap the Glass"
+	_hint = minf(_hint, 0.6)
 	var best := {}
 	var d := 70.0
 	for s in _swim:
@@ -512,19 +812,67 @@ func _tank_input(e: InputEvent) -> void:
 		if dd < d:
 			d = dd
 			best = s
-	for s in _swim:                                   # everyone nearby jumps a bit
-		if _fish_at(s).distance_to(e.position) < 200.0: s.flee = 0.6
 	if not best.is_empty():
+		for s in _swim:                               # everyone nearby jumps a bit
+			if s != best and _fish_at(s).distance_to(e.position) < 200.0 and String(s.act) == "": s.flee = 0.6
 		best.flee = 0.0
+		var trick := ""
+		if int(best.row) < 0: trick = String(TRICK.get(String(best.name), ""))
 		var fact: String = load("res://scripts/vf/vf_minigame.gd").FACTS.pick_random()
 		var text := "%s\nCaught %s  ·  %s" % [best.name, VF.commas(int(VF.discovered.get(best.f, 0))), fact]
 		if int(best.row) >= 0:
 			text = "%s\nWanted no more  ·  %s" % [best.name, IN_THE_TANK.get(String(VFData.GERALD[int(best.row)].biome), "Behaving. For now.")]
+		text += "\n\"%s\"" % String(TRICK_SAYS[trick].pick_random())
 		_say = {"f": best.f, "name": best.name, "text": text, "t": 0.0}
-		AudioManager.play_fun("boing", -14.0, randf_range(0.9, 1.15))
-	else:
+		_talks = _talks.filter(func(tk): return tk.s != best)
+		_do_trick(best, trick)
+	elif _chest_rect().grow(8.0).has_point(e.position):
+		_puff("pop", _chest_rect().get_center() + Vector2(0, -20), 1.4)
+		AudioManager.play_fun("pop", -14.0, randf_range(0.8, 1.0))
+	elif _swim.is_empty():
 		AudioManager.play_fun("clunk", -16.0)
+	else:                                              # the water: a pinch of food
+		if _food.size() < 40:
+			for i in 5:
+				_food.append({"x": clampf(e.position.x + randf_range(-26.0, 26.0), 10.0, _tank.size.x - 10.0),
+					"y": e.position.y + randf_range(-10.0, 10.0), "t": randf_range(0.0, 0.6)})
+		AudioManager.play_fun("pop", -18.0, randf_range(1.5, 1.8))
 	refresh_badges()
+
+
+## What the tapped one does about it (TRICK). Everyone else gets a wiggle.
+func _do_trick(s: Dictionary, trick: String) -> void:
+	match trick:
+		"puff":
+			s.act_t = 1.8
+			AudioManager.play_fun("pfff", -14.0, randf_range(0.9, 1.1))
+		"ink":
+			s.act_t = 0.1
+			s.flee = 1.1
+			_puff("ink", _fish_at(s), 2.6)
+			AudioManager.play_fun("pfff", -16.0, 1.4)
+		"nap":
+			s.act_t = 6.0
+			AudioManager.play_fun("slide_down", -18.0)
+		"flip":
+			s.act_t = 0.8
+			AudioManager.play_fun("whoosh", -14.0, 1.2)
+		"grin":
+			s.act_t = 1.0
+			for o in _swim:
+				if o != s and String(o.act) == "": o.flee = 1.0
+			AudioManager.play_fun("dundun", -14.0)
+		"snip":
+			s.act_t = 0.7
+			AudioManager.play_fun("snip", -12.0)
+		"stare":
+			s.act_t = 2.2
+			AudioManager.play_fun("clunk", -16.0, 0.8)
+		_:
+			trick = "hi"
+			s.act_t = 0.6
+			AudioManager.play_fun("boing", -14.0, randf_range(0.9, 1.15))
+	s.act = trick
 
 
 # =============================================================== the Shop
@@ -643,6 +991,42 @@ func capture_test(dir: String) -> void:
 	await wait.call(0.6)
 	print("COLLECT glass taps %d -> %d, card '%s'" % [taps0, int(VF.stats.get("glass_taps", 0)), String(_say.get("text", "")).replace("\n", " / ")])
 	await m._shot(dir + "/collect7_aquarium.png")
+	for f in VFData.FISH_ORDER: VF.discovered[f] = maxi(int(VF.discovered.get(f, 0)), 12)      # a full tank: feeding, tricks, the shark, the visitors
+	m._open_panel("aquarium")
+	await wait.call(0.6)
+	var spot := Vector2(_tank.size.x * 0.5, _tank.size.y * 0.3)
+	var room := 0.0
+	for i in 24:                                           # (clear water: a tap on a fish is a hello, not lunch)
+		var c := Vector2(_tank.size.x * randf_range(0.15, 0.7), _tank.size.y * randf_range(0.15, 0.6))
+		var near := 1e9
+		for s in _swim: near = minf(near, _fish_at(s).distance_to(c))
+		if near > room:
+			room = near
+			spot = c
+	m._tap(m.get_viewport().get_final_transform() * (_tank.get_global_transform() * spot))
+	await wait.call(0.1)
+	var dropped := _food.size()
+	await wait.call(1.6)
+	print("COLLECT feed: %d flakes dropped, %d left, %d hearts" % [dropped, _food.size(), _fx.filter(func(p): return p.k == "heart").size()])
+	await m._shot(dir + "/collect7b_feed.png")
+	for s in _swim:
+		if s.name == "Pufferfish":
+			m._tap(m.get_viewport().get_final_transform() * (_tank.get_global_transform() * _fish_at(s)))
+			await wait.call(0.5)
+			print("COLLECT trick: %s does '%s', card '%s'" % [s.name, s.act, String(_say.get("text", "")).replace("
+", " / ")])
+	await m._shot(dir + "/collect7c_trick.png")
+	_say = {}
+	_talks = []
+	_hunt_t = 0.0
+	_chat_t = 0.0
+	_vis_t = 0.0
+	for p in _vis: p.x = clampf(p.x, 0.15, 0.85)
+	await wait.call(1.4)
+	print("COLLECT life: hunt=%s talks=%d visitors=%d stopped=%d" % [not _hunt.is_empty(), _talks.size(), _vis.size(), _vis.filter(func(p): return p.stop > 0.0).size()])
+	await m._shot(dir + "/collect7d_life.png")
+	await wait.call(3.0)
+	await m._shot(dir + "/collect7e_life.png")
 	m._open_panel("shop", "Hats")
 	await wait.call(0.4)
 	await m._shot(dir + "/collect8_hats.png")
