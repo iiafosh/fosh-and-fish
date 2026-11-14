@@ -70,6 +70,68 @@ const TIP_COLORS := [["#0f766e", "#22d3ee"], ["#1e3a8a", "#38bdf8"], ["#7c2d12",
 	["#4c1d95", "#c084fc"], ["#14532d", "#4ade80"], ["#831843", "#f472b6"]]
 
 # ------------------------------------------------------------------ helpers
+## Posts about YOU: somebody saw what you just did (vf_phone.gd _on_trip). {me} is your handle, {fish} {n} {biome} {tier} as it
+## happened, {nick} a name for the one that got caught. by: "fish" (an account that species runs), "union", or "npc" (a regular).
+## v: the picture, as in NPC_POSTS. say: the first comments under it.
+const REACTS := {
+	"top": [
+		{"by": "fish", "v": "fish", "cap": "they got {nick}. {nick}!! he owed me money. thanks a lot @{me} #{ftag}tok #gonetoosoon", "sticker": "gone too soon",
+			"say": ["he owed me money too", "press F for {nick}", "@{me} we need to talk"]},
+		{"by": "npc", "v": "fish", "cap": "just watched @{me} land a {fish} like it was nothing. I have been trying for a WEEK #{ftag}tok", "sticker": "how??",
+			"say": ["a week?? rookie numbers", "@{me} drop the setup", "the {fish} didn't stand a chance"]}],
+	"new": [
+		{"by": "fish", "v": "fish", "cap": "the first one of us @{me} ever caught. he always wanted to be famous #{ftag}tok #firsttime", "sticker": "our first",
+			"say": ["he's in the Fish Book now. so proud", "we told him not to bite", "@{me} be nice to him"]}],
+	"haul": [
+		{"by": "npc", "v": "haul", "cap": "@{me} just pulled {n} fish in ONE cast in the {biome}. is that even legal #{btag}tok #fishtok", "sticker": "{n} fish. I counted.",
+			"say": ["calling the fish police", "{n}?? I got 2 and a boot", "@{me} leave some for us"]},
+		{"by": "fish", "v": "haul", "cap": "{n} of us. one cast. the group chat has gone very quiet. @{me} #{ftag}tok", "sticker": "the group chat is quiet",
+			"say": ["I was RIGHT there", "who's going to feed my snail", "moving to another biome"]}],
+	"blank": [
+		{"by": "fish", "v": "scene", "cap": "watched the hook of @{me} go right past me. didn't bite. personal growth #mindful #{ftag}tok", "sticker": "didn't bite. growth.",
+			"say": ["proud of you", "I would have bitten", "@{me} try better bait"]}],
+	"escape": [
+		{"by": "fish", "v": "fish", "cap": "escaped a hook today. feeling blessed. not naming names (@{me}) #survivor #{ftag}tok", "sticker": "still here",
+			"say": ["a legend", "@{me} caught lacking", "teach me that wiggle"]}],
+	"reeled": [
+		{"by": "fish", "v": "fish", "cap": "lost a tug of war with @{me}. I don't have arms. this sport is rigged #{ftag}tok", "sticker": "no arms. unfair.",
+			"say": ["justice for the armless", "you had ONE job", "@{me} pick on someone with hands"]}],
+	"chest": [
+		{"by": "npc", "v": "chest", "cap": "@{me} found a chest. {tier}. I felt that in my soul #treasure #jealous", "sticker": "must be nice",
+			"say": ["I only ever get boots", "@{me} share??", "{tier}!! on a random cast!!"]}],
+	"union": [
+		{"by": "union", "v": "fish", "cap": "that makes {n} {fish} taken by @{me}. we are writing a strongly worded letter #fishrights #{ftag}tok", "sticker": "{n} and counting",
+			"say": ["signed", "signed. twice.", "@{me} your lawyer will hear from our lawyer (a crab)"]}],
+	"level": [
+		{"by": "npc", "v": "scene", "cap": "@{me} just hit level {n}. remember us when you're famous #levelup #{btag}tok", "sticker": "level {n}!",
+			"say": ["I knew them at level 1", "@{me} carry me", "the {biome} isn't ready"]}],
+}
+const NICKS := ["Dave", "Kevin", "Big Steve", "Linda", "Uncle Gary", "Brenda", "Little Tim"]
+const FISH_HANDLES := ["{slug}.daily", "the_real_{slug}", "{slug}_mum", "{slug}s_united", "just_a_{slug}"]
+const UNION := {"handle": "fish.union", "color": Color("#b45309"), "icon": ["ph", "bell"], "verified": true}
+
+## Skits: little videos the fish make themselves (vf_tok_post.gd acts them out, one function each: _skit_<id>). len: seconds.
+const SKITS := [
+	{"id": "grwm", "len": 9.0, "handle": "puffy.glow", "icon": "Pufferfish", "color": "#d4920f", "sound": "that one audio everyone uses",
+		"cap": "get ready with me. it's two steps #grwm #pufftok #selfcare"},
+	{"id": "bait", "len": 10.0, "handle": "wormlife.daily", "icon": "Raw Fish", "color": "#b45f4a", "sound": "morning vlog music",
+		"cap": "a day in my life as bait. it's a short day #dayinmylife #baittok"},
+	{"id": "unbox", "len": 9.0, "handle": "chest_hunter_99", "icon": "Galactic Crab", "color": "#7c3aed", "sound": "suspense (extended)",
+		"cap": "unboxing my first epic chest!! wait for it #unboxing #treasure"},
+	{"id": "story", "len": 9.0, "handle": "kevin.the.shark", "icon": "Shark", "color": "#475569", "sound": "sad piano, but underwater",
+		"cap": "storytime: everyone thinks I'm scary #storytime #sharktok #misunderstood"},
+	{"id": "pov", "len": 10.0, "handle": "pov.fish", "icon": "Raw Salmon", "color": "#e04f45", "sound": "tension (do not bite) remix",
+		"cap": "POV: free food. just hanging there. what could go wrong #pov #fishtok"},
+	{"id": "reacts", "len": 8.0, "handle": "fish.reacts", "icon": "Cod", "color": "#2f8f9e", "sound": "original sound - fish.reacts",
+		"cap": "reacting to today's catches (emotional) #reaction #codtok"},
+	{"id": "dance", "len": 8.0, "handle": "the.shoal", "icon": "Tropical Fish", "color": "#c0367a", "sound": "Sea Shanty No. 5 (sped up)",
+		"cap": "the shoal shuffle. learn it, pass it on #dancetrend #shoaltok"},
+	{"id": "slow", "len": 10.0, "handle": "slow.tv", "icon": "Turtle", "color": "#16a34a", "sound": "epic sports music",
+		"cap": "world record attempt: crossing your screen #speedrun #turtletok"},
+	{"id": "deep", "len": 9.0, "handle": "cod.thoughts", "icon": "Cod", "color": "#334155", "sound": "one long sad note",
+		"cap": "something I've never told anyone #deep #codtok #real"},
+]
+
 static func tag(name: String) -> String:
 	return VFData.slug(name).replace("_", "")
 
@@ -179,7 +241,8 @@ static func tips(vf) -> Array:
 	return out.filter(func(t): return vf.level >= int(t.min) and vf.level <= int(t.max))
 
 # ---------------------------------------------------------------- the feed
-static func feed(vf, salt: int) -> Array:
+## reacts: the posts about you from this session, newest first (vf_phone.gd): the newest opens the feed.
+static func feed(vf, salt: int, reacts: Array = []) -> Array:
 	var day: String = vf._today()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("fishtok-feed:%s:%d" % [day, salt])
@@ -190,11 +253,16 @@ static func feed(vf, salt: int) -> Array:
 	_shuffle(rng, npc_order)
 	var ad_list := ads(vf)
 	var mine: Array = vf.tok_posts
-	var slots := ["trend", "npc", "challenge", "tip", "npc", "ad", "mine", "npc", "tip", "npc", "ad", "tip", "npc", "tip", "npc", "end"]
+	var skit_order := range(SKITS.size())
+	_shuffle(rng, skit_order)
+	var slots := ["react", "trend", "skit", "npc", "challenge", "react", "tip", "skit", "ad", "mine", "npc", "tip", "skit", "npc", "ad", "tip",
+		"npc", "tip", "end"]
 	var out := []
 	var ti := 0
 	var ni := 0
 	var ai := 0
+	var si := 0
+	var ri := 0
 	for i in slots.size():
 		var s: String = slots[i]
 		var id := "%s:%d:%d" % [day, salt, i]
@@ -213,12 +281,19 @@ static func feed(vf, salt: int) -> Array:
 				if ai < ad_list.size():
 					item = ad_post(ad_list[ai], rng)
 					ai += 1
+			"skit":
+				item = skit_post(rng, SKITS[skit_order[si % skit_order.size()]])
+				si += 1
+			"react":
+				if ri < reacts.size():
+					item = reacts[ri]
+					ri += 1
 			"mine":
 				if not mine.is_empty(): item = mine_post(vf, mine[-1])
 			"end": item = {"kind": "end", "who": OFFICIAL, "caption": "", "sound": "", "likes": 0, "comments": 0, "shares": 0, "v": {"type": "end"}}
 		if item.is_empty(): continue
 		if not item.has("id"): item["id"] = id
-		item["seed"] = absi(hash(id)) % 10000
+		if not item.has("seed"): item["seed"] = absi(hash(id)) % 10000
 		out.append(item)
 	return out
 
@@ -281,6 +356,39 @@ static func _biome_of(fish: String) -> String:
 	for b in VFData.BIOME_ORDER:
 		if fish in VFData.BIOMES[b].fish: return b
 	return "River"
+
+static func skit_post(rng: RandomNumberGenerator, sk: Dictionary) -> Dictionary:
+	var who := {"handle": sk.handle, "color": Color(String(sk.color)), "icon": ["fish", sk.icon]}
+	var c := _npc_counts(rng, 4.2, 6.3)
+	return {"kind": "skit", "who": who, "caption": sk.cap, "sound": sk.sound, "likes": c[0], "comments": c[1], "shares": c[2],
+		"v": {"type": "skit", "skit": sk.id, "len": float(sk.len), "fish": sk.icon}}
+
+## The account a species runs.
+static func fish_account(fish: String, rng: RandomNumberGenerator) -> Dictionary:
+	return {"handle": String(_pick(rng, FISH_HANDLES)).replace("{slug}", VFData.slug(fish)), "color": VFData.BIOMES[_biome_of(fish)].accent,
+		"icon": ["fish", fish]}
+
+## A post about you. kind: a REACTS key. ctx: what happened (fish, n, biome, tier). seq: its number this session.
+static func react_post(vf, kind: String, ctx: Dictionary, seq: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("fishtok-react:%d:%s:%d" % [seq, kind, Time.get_ticks_msec()])
+	var tpl: Dictionary = _pick(rng, REACTS[kind])
+	var fish := String(ctx.get("fish", "Cod"))
+	var biome := String(ctx.get("biome", vf.biome))
+	var who: Dictionary = CREATORS[rng.randi() % CREATORS.size()]
+	if tpl.by == "fish": who = fish_account(fish, rng)
+	elif tpl.by == "union": who = UNION
+	var full := {"fish": fish, "ftag": tag(fish), "biome": biome, "btag": tag(biome), "n": VF.commas(int(ctx.get("n", 0))),
+		"tier": String(ctx.get("tier", "rare")), "me": handle_for(vf.player_name), "nick": _pick(rng, NICKS)}
+	var v := {"type": tpl.v, "biome": biome, "fish": fish, "tier": full.tier, "sticker": fill(tpl.sticker, full)}
+	if tpl.v == "haul": v["fish_n"] = 7
+	if tpl.v == "fish": v["accent"] = VFData.BIOMES[_biome_of(fish)].accent
+	var c := _npc_counts(rng, 2.2, 3.4)
+	var say := []
+	for line in tpl.get("say", []): say.append(fill(line, full))
+	return {"kind": "react", "id": "react:%d:%d" % [int(Time.get_unix_time_from_system()), seq], "who": who, "caption": fill(tpl.cap, full),
+		"sound": "original sound - " + String(who.handle), "likes": c[0], "comments": maxi(c[1], say.size()), "shares": c[2], "v": v,
+		"about": true, "say": say, "seed": rng.randi() % 10000, "event": kind}
 
 ## Sponsored parody posts for things you can actually buy next. Tapping the
 ## button opens the matching shop tab.
@@ -357,9 +465,11 @@ static func comments_for(item: Dictionary, n: int) -> Array:
 	var ctx := {"fish": String(v.get("fish", "Cod")) if String(v.get("fish", "")) != "" else "Cod",
 		"biome": String(v.get("biome", "River")) if String(v.get("biome", "")) != "" else "River"}
 	var out := []
+	for line in item.get("say", []):                   # (a post about you: they have things to say)
+		out.append({"who": CREATORS[rng.randi() % CREATORS.size()], "text": line, "ago": "now", "likes": int(pow(10.0, rng.randf_range(0.5, 2.4)))})
 	var order := range(COMMENTS.size())
 	_shuffle(rng, order)
-	for i in mini(n, order.size()):
+	for i in mini(maxi(0, n - out.size()), order.size()):
 		var who: Dictionary = CREATORS[rng.randi() % CREATORS.size()]
 		out.append({"who": who, "text": fill(COMMENTS[order[i]], ctx), "ago": "%dh" % rng.randi_range(1, 23),
 			"likes": int(pow(10.0, rng.randf_range(0.3, 3.4)))})

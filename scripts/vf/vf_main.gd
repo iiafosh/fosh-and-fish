@@ -140,6 +140,9 @@ func _ready() -> void:
 	notify = load("res://scripts/vf/vf_notify.gd").new()
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
+	VF.trip_done.connect(_tok_on_trip)
+	VF.leveled_up.connect(func(lvl: int, _money: int):
+		if lvl % 5 == 0: tok_react("level", {"n": lvl, "biome": VF.biome}))
 	stage.night_changed.connect(func(_on): AudioManager.music_place(VF.biome, stage.night_music()))
 	VF.leveled_up.connect(_on_level_up)
 	VF.toast.connect(_toast)
@@ -227,7 +230,7 @@ func _process(delta: float) -> void:
 	if derby: derby.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
 		_refresh_boosts()
-		pill_badge(phone_btn, VF.tok_badge())     # FishTok: rewards / challenge / new today
+		pill_badge(phone_btn, VF.tok_badge() + tok_react_unseen)     # FishTok: rewards / challenge / new today / posts about you
 		if collect: collect.refresh_badges()       # achievements to claim
 	_process_coach(delta)
 	if _fling != 0.0:
@@ -2356,6 +2359,10 @@ func _check_capture() -> void:
 			await _shot(dir + "/aim%d.png" % i)
 		get_tree().quit()
 		return
+	if "--tok-test" in OS.get_cmdline_user_args():
+		await _tok_test(dir)
+		get_tree().quit()
+		return
 	if "--fish-test" in OS.get_cmdline_user_args():
 		await _fish_test(dir)
 		get_tree().quit()
@@ -2614,6 +2621,69 @@ func _onboarding_round(dir: String, shot := "") -> void:
 		await get_tree().process_frame
 
 ## Reel-it-in mode end to end: toggle, cast, play the mini-game to a WIN and to a LOSS (simulated input)
+## godot --path . --resolution 1280x720 -- --capture=DIR --tok-test : FishTok's posts about you (one of each kind, the comments
+## under one, one arriving while you watch) and every skit at four moments. Never saves.
+func _tok_test(dir: String) -> void:
+	var Tok: GDScript = load("res://scripts/vf/vf_fishtok.gd")
+	VF.autosave = false
+	VF._apply(VF._defaults.duplicate(true))
+	VF.tok_dock = false
+	VF.tutorial = 99
+	VF.player_name = "afosh"
+	_veteran("Ocean")
+	VF.changed.emit()
+	await _wait(1.0)
+	for kind in Tok.REACTS:
+		_react_at = -1000000
+		tok_react(kind, {"fish": "Shark", "n": 500 if kind == "union" else (120 if kind == "level" else 24), "biome": "Ocean", "tier": "epic"})
+		var it: Dictionary = tok_reacts[0]
+		print("TOK react %s: @%s: %s | sticker '%s' | %s" % [kind, it.who.handle, it.caption, it.v.sticker, it.say])
+	print("TOK kept %d, unseen %d" % [tok_reacts.size(), tok_react_unseen])
+	_open_phone()
+	await _wait(1.6)
+	print("TOK feed opens with: %s (unseen now %d)" % [phone.feed.items[0].get("kind", ""), tok_react_unseen])
+	await _shot(dir + "/tok_react_0.png")
+	phone.open_comments(phone.feed.items[0])
+	await _wait(0.6)
+	await _shot(dir + "/tok_react_1_comments.png")
+	phone._close_sheet()
+	phone.feed.go(1, false)
+	await _wait(0.4)
+	_react_at = -1000000
+	tok_react("haul", {"fish": "Cod", "n": 31, "biome": "Ocean"})      # ... while you're watching
+	await _wait(0.9)
+	print("TOK live: next up is %s, the feed stayed on %d" % [phone.feed.items[2].get("kind", ""), phone.feed.index])
+	await _shot(dir + "/tok_react_2_live.png")
+	phone.feed.go(2)
+	await _wait(0.9)
+	await _shot(dir + "/tok_react_3_next.png")
+	var rng := RandomNumberGenerator.new()
+	var items := []
+	for sk in Tok.SKITS:
+		var it: Dictionary = Tok.skit_post(rng, sk)
+		it["id"] = "skit:" + String(sk.id)
+		it["seed"] = 7
+		items.append(it)
+	for i in phone.feed.views: phone.feed.views[i].queue_free()
+	phone.feed.views.clear()
+	phone.feed.items = items
+	phone.feed.index = 0
+	phone.feed.track.position.y = 0
+	phone.feed._sync()
+	for i in items.size():
+		phone.feed.go(i, false)
+		await _wait(0.2)
+		var post = phone.feed.current()
+		var caps := []
+		for k in 4:
+			post._t = float(items[i].v.len) * [0.12, 0.42, 0.68, 0.9][k]
+			await _wait(0.35)
+			caps.append(String(post._cap_now).replace("
+", " "))
+			await _shot(dir + "/tok_skit_%s_%d.png" % [items[i].v.skit, k])
+		print("TOK skit %s: %s" % [items[i].v.skit, " / ".join(caps)])
+
+
 ## godot --path . --resolution 1280x720 -- --capture=DIR --fish-test : the fish made from the owner's picture
 ## (tools/art/make_fish.py) where you meet them: Reel it in!, the Fish Book, the aquarium. Never saves.
 func _fish_test(dir: String) -> void:
@@ -3866,6 +3936,59 @@ func _menu_tile(kind: String, title: String, icon_name: String, key: String, wha
 # ================================================================== phone
 ## The phone + FishTok live in vf_phone.gd (state in VF's FishTok section).
 var phone: Control
+
+# ---- FishTok: posts about you. Somebody saw what you just did, and posted (vf_fishtok.gd REACTS). They last the session,
+# newest first: the newest opens the feed. With the phone up, it slips in as the next video and the phone says so.
+const REACT_GAP := 50000                # ms: not more than one in this long
+const REACT_KEEP := 4
+var tok_reacts: Array = []
+var tok_react_unseen := 0
+var tok_react_n := 0
+var _react_at := -1000000
+
+func tok_react(kind: String, ctx: Dictionary, chance := 1.0) -> void:
+	var now := Time.get_ticks_msec()
+	if kind == "" or now - _react_at < REACT_GAP or randf() > chance or _recording(): return
+	_react_at = now
+	tok_react_n += 1
+	var item: Dictionary = load("res://scripts/vf/vf_fishtok.gd").react_post(VF, kind, ctx, tok_react_n)
+	tok_reacts.push_front(item)
+	if tok_reacts.size() > REACT_KEEP: tok_reacts.resize(REACT_KEEP)
+	if phone != null and phone.visible and not phone._closing: phone.on_react(item)
+	else: tok_react_unseen += 1
+
+## What in this catch would anyone post about? The rarer the thing, the surer the post.
+func _tok_on_trip(res: Dictionary) -> void:
+	if not res.get("ok", false): return
+	var fish: Dictionary = res.get("fish", {})
+	var names: Array = VFData.BIOMES[VF.biome].fish
+	var best: String = VF._tok_best_fish(fish)
+	var n := int(res.get("count", 0))
+	var ctx := {"fish": best if best != "" else String(names[randi() % 3]), "n": n, "biome": VF.biome}
+	var tier := String(res.get("chest", {}).get("tier", ""))
+	for f in fish:                                     # a hundred of them, five hundred, a thousand...
+		var total := int(VF.discovered.get(f, 0))
+		for mark in [100, 500, 1000, 5000, 10000, 50000]:
+			if total >= mark and total - int(fish[f]) < mark:
+				tok_react("union", {"fish": f, "n": mark, "biome": VF.biome})
+				return
+	if not (res.get("new_species", []) as Array).is_empty():
+		tok_react("new", {"fish": String(res.new_species[-1]), "biome": VF.biome})
+	elif tier in ["rare", "epic", "legendary", "artifact", "super"]:
+		ctx["tier"] = tier
+		tok_react("chest", ctx, 0.7)
+	elif String(res.get("reel", "")) == "lose":
+		tok_react("escape", ctx, 0.5)
+	elif n == 0:
+		tok_react("blank", ctx, 0.6)
+	elif best == String(names[-1]):
+		tok_react("top", ctx, 0.6)
+	elif n >= 12:
+		tok_react("haul", ctx, 0.3)
+	elif String(res.get("reel", "")) == "win":
+		tok_react("reeled", ctx, 0.25)
+	elif tok_react_n == 0 and VF.stats.trips >= 8:     # nobody's posted about you yet: somebody ought to
+		tok_react("top", ctx)
 
 func _open_phone() -> void:
 	if phone != null and phone.visible and not phone._closing:

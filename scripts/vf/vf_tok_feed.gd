@@ -73,6 +73,19 @@ func go(i: int, animate := true) -> void:
 	if changed:
 		moved.emit(index)
 
+## A new post, right after the one you're on (a post about you, just made: vf_phone.gd on_react).
+func insert_next(item: Dictionary) -> void:
+	var at := mini(index + 1, items.size())
+	if at > 0 and at == items.size() and String(items[at - 1].get("kind", "")) == "end": at -= 1       # (never after the last card)
+	items.insert(at, item)
+	for i in views.keys():
+		if i >= at:
+			views[i].queue_free()
+			views.erase(i)
+	if at <= index: index += 1
+	track.position.y = -index * size.y
+	_sync()
+
 func next() -> void:
 	if index >= items.size() - 1:
 		_bump(-1.0)

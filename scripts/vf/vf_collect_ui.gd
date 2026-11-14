@@ -611,37 +611,45 @@ func _tick_visitors(dt: float) -> void:
 
 
 ## A fish side on, the way the mini-game draws it: its sheet (mini/, made without eyes) and a face (vf_minigame.gd _draw_fish).
-## face: which way it looks, -1..1 (through 0 while it turns round). rot: its trick, if it's doing one. asleep: eyes shut.
-func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float, rot := 0.0, asleep := false) -> bool:
+## face: which way it looks, -1..1 (through 0 while it turns round). rot: its trick, if it's doing one.
+## mood: "" | "sleep" (eyes shut) | "panic" (eyes wide, mouth open). On any canvas: the aquarium's tank, a FishTok skit.
+func draw_fish(c: CanvasItem, f: String, at: Vector2, px: float, face: float, ph: float, rot := 0.0, mood := "") -> bool:
 	var mini: Dictionary = m.stage.manifest.get("mini", {})
 	var info: Dictionary = mini.get("fish", {}).get(f, {})
 	var t: Texture2D = m.tex("mini/%s.png" % VFData.slug(f))
 	if t == null or info.is_empty(): return false
 	var cell := float(mini.cell)
 	var fr := int(ph * 7.0) % int(mini.frames)
-	_tank.draw_set_transform(at, rot + sin(ph * 1.1) * 0.05, Vector2(face, 1.0))
-	_tank.draw_texture_rect_region(t, Rect2(-px * 0.5, -px * 0.5, px, px), Rect2(fr * cell, 0, cell, cell))
+	c.draw_set_transform(at, rot + sin(ph * 1.1) * 0.05, Vector2(face, 1.0))
+	c.draw_texture_rect_region(t, Rect2(-px * 0.5, -px * 0.5, px, px), Rect2(fr * cell, 0, cell, cell))
 	var k := px / 176.0                                # (the mini-game draws them 176 px across)
 	var e := (Vector2(info.eye[0], info.eye[1]) - Vector2(0.5, 0.5)) * px
 	var mo := (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * px
 	var er := maxf(float(info.er) * px * 1.9, 11.0 * k)
 	var w := maxf(1.2, 2.5 * k)
 	var own: bool = info.get("own", false)             # (its picture has a face: tools/art/make_fish.py)
-	if asleep or fmod(ph + float(f.length()), 4.3) < 0.14:      # a blink now and then
-		if own: _tank.draw_circle(e, er * 1.02, Color(String(info.get("lid", "#888888"))), true, -1.0, true)
-		_tank.draw_arc(e + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
+	var panic := mood == "panic"
+	if panic: er *= 1.35
+	if mood == "sleep" or (not panic and fmod(ph + float(f.length()), 4.3) < 0.14):      # a blink now and then
+		if own: c.draw_circle(e, er * 1.02, Color(String(info.get("lid", "#888888"))), true, -1.0, true)
+		c.draw_arc(e + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
 	elif own:
-		var opr := er * 0.5
-		load("res://scripts/vf/vf_minigame.gd").glossy_eye(_tank, e, er, e + Vector2(er - opr - 1.0, er * 0.08), opr)
+		var opr := er * (0.3 if panic else 0.5)
+		load("res://scripts/vf/vf_minigame.gd").glossy_eye(c, e, er, e + Vector2(er - opr - 1.0, er * 0.08), opr)
 	else:
-		var pr := er * 0.48
+		var pr := er * (0.28 if panic else 0.48)
 		var look := e + Vector2(er - pr - w * 0.6, er * 0.1)      # ahead, where it's going
-		_tank.draw_circle(e, er, Color.WHITE)
-		_tank.draw_circle(look, pr, INK)
-		_tank.draw_circle(look - Vector2(pr, pr) * 0.35, maxf(1.0, pr * 0.3), Color.WHITE)
-		_tank.draw_arc(e, er, 0, TAU, 24, INK, w, true)
-	if not own: _tank.draw_arc(mo + Vector2(-3, -5) * k, 6.0 * k, PI * 0.2, PI * 0.8, 8, INK, w, true)      # quite content, really
+		c.draw_circle(e, er, Color.WHITE)
+		c.draw_circle(look, pr, INK)
+		c.draw_circle(look - Vector2(pr, pr) * 0.35, maxf(1.0, pr * 0.3), Color.WHITE)
+		c.draw_arc(e, er, 0, TAU, 24, INK, w, true)
+	if panic: c.draw_circle(mo, 6.5 * k, Color("#3a1420"), true, -1.0, true)
+	elif not own: c.draw_arc(mo + Vector2(-3, -5) * k, 6.0 * k, PI * 0.2, PI * 0.8, 8, INK, w, true)      # quite content, really
 	return true
+
+
+func _draw_side(f: String, at: Vector2, px: float, face: float, ph: float, rot := 0.0, asleep := false) -> bool:
+	return draw_fish(_tank, f, at, px, face, ph, rot, "sleep" if asleep else "")
 
 
 func _sheet(f: String) -> Dictionary:

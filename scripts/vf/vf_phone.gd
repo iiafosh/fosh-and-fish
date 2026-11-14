@@ -106,7 +106,7 @@ func _fonts() -> void:
 	var mk := func(w: int) -> FontVariation:
 		var f := FontVariation.new()
 		f.base_font = base
-		f.variation_opentype = {"wght": w}
+		f.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): w}      # (the tag, not its name: a plain "wght" key does nothing)
 		return f
 	font_light = mk.call(400)
 	font_reg = mk.call(500)
@@ -341,6 +341,8 @@ func open() -> void:
 	dock_btn.queue_redraw()
 	_layout()
 	_show_app("tok", false)
+	_react_key = main.tok_react_n          # (posts about you that came in while the phone was away: they open the feed)
+	main.tok_react_unseen = 0
 	_ensure_feed()
 	if page in ["discover", "inbox", "profile"]: show_page(page)
 	VF.tok_mark_seen()
@@ -1145,13 +1147,13 @@ func show_page(name: String) -> void:
 
 # ---------------------------------------------------------------- the feed
 func _ensure_feed() -> void:
-	var key := "%s/%d/%d" % [VF._today(), VF.tok_next_id, _salt]
+	var key := "%s/%d/%d/%d" % [VF._today(), VF.tok_next_id, _salt, _react_key]
 	if feed and key == _feed_key: return
 	_feed_key = key
 	if feed: feed.queue_free()
 	for c in feed_page.get_children(): c.queue_free()
 	feed = Feed.new()
-	feed.setup(self, Tok.feed(VF, _salt), Vector2(SCR.x, FEED_H))
+	feed.setup(self, Tok.feed(VF, _salt, main.tok_reacts), Vector2(SCR.x, FEED_H))
 	feed_page.add_child(feed)
 	_feed_header(feed_page, false)
 	feed.set_live(visible and app == "tok" and page == "feed")
@@ -1393,6 +1395,17 @@ func _close_sheet() -> void:
 	if f: f.release_focus()
 
 # ---------------------------------------------------------- notifications
+var _react_key := 0
+
+## Somebody just posted about you (vf_main.gd tok_react), and the phone is up: it's the next video, and here's the word.
+func on_react(item: Dictionary) -> void:
+	if feed and app == "tok" and page == "feed": feed.insert_next(item)
+	else: _react_key = main.tok_react_n    # (off the feed: it will be at the top when you come back)
+	var text := String(item.caption)
+	var cut := text.find(" #")
+	if cut > 0: text = text.substr(0, cut)
+	notify("@%s posted about you" % String(item.who.handle), text, item_tex(item.who.icon))
+
 func notify(title: String, body: String, icon_tex: Texture2D = null) -> void:
 	_notif_queue.append([title, body, icon_tex])
 	if not _notif_busy: _next_notif()

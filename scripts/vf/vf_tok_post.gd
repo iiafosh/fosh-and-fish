@@ -40,6 +40,11 @@ var _cap_open := false
 var ch_text: Label
 var ch_prog: Label
 var ch_btn: Button
+# a skit (the fish act it out: _draw_skit)
+var skit_box: PanelContainer
+var skit_lbl: Label
+var _cap_now := "-"
+var _cues := {}
 
 func setup(p, it: Dictionary, sz: Vector2) -> void:
 	phone = p
@@ -50,6 +55,9 @@ func setup(p, it: Dictionary, sz: Vector2) -> void:
 	_seed = int(it.get("seed", 0))
 	_t = float(_seed % 97) * 0.37
 	_loop = 7.0 + float(_seed % 6)
+	if vtype() == "skit":
+		_t = 0.0
+		_loop = float(v.get("len", 9.0))
 	liked = String(it.get("id", "")) in VF.tok_liked
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -131,7 +139,26 @@ func _build_extras() -> void:
 	var W := size.x
 	var H := size.y
 	var sticker := String(v.get("sticker", ""))
+	if item.get("about", false): _center(phone.chip("ABOUT YOU", phone.C_CORAL, Color.WHITE, "bell"), 76)
 	match vtype():
+		"skit":
+			skit_box = PanelContainer.new()
+			var ksb := StyleBoxFlat.new()
+			ksb.bg_color = Color.WHITE
+			ksb.set_corner_radius_all(9)
+			ksb.content_margin_left = 12
+			ksb.content_margin_right = 12
+			ksb.content_margin_top = 4
+			ksb.content_margin_bottom = 7
+			ksb.shadow_color = Color(0, 0, 0, 0.2)
+			ksb.shadow_size = 6
+			skit_box.add_theme_stylebox_override("panel", ksb)
+			skit_lbl = phone.lbl("", 17, phone.C_INK, "black")
+			skit_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			skit_box.add_child(skit_lbl)
+			skit_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			skit_box.visible = false
+			add_child(skit_box)
 		"trend":
 			_center(phone.chip("TRENDING TODAY", Color(1, 1, 1, 0.16), Color.WHITE, "fire"), 76)
 			var tag := PanelContainer.new()
@@ -480,6 +507,9 @@ func _bb(text: String) -> String:
 
 # ------------------------------------------------------------------ runtime
 func set_active(on: bool) -> void:
+	if on and not active and vtype() == "skit":        # a skit plays from the top when you land on it
+		_t = 0.0
+		_cues.clear()
 	active = on
 	set_process(on)
 	for p in _parts:
@@ -537,6 +567,7 @@ func _draw_vis() -> void:
 		"fish": _draw_spot(phone.item_tex(["fish", String(v.fish)]), v.get("accent", Color("#1d9bb0")), 230.0)
 		"chest": _draw_spot(phone.item_tex(["chest", String(v.tier)]), phone.tier_color(String(v.tier)), 220.0)
 		"trend": _draw_trend()
+		"skit": _draw_skit()
 		"challenge": _draw_challenge()
 		"tip": _draw_tip()
 		"ad": _draw_ad()
@@ -613,6 +644,225 @@ func _hero(tex: Texture2D, c: Vector2, px: float) -> void:
 	vis.draw_set_transform(c + Vector2(0, bob), sin(_t * 1.3) * 0.07 + shake, Vector2(sc, sc))
 	vis.draw_texture(tex, -tex.get_size() * 0.5)
 	vis.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# ==================================================================== skits
+## Little videos the fish make (vf_fishtok.gd SKITS). Each is a function of ts, the seconds into its loop, and c, the middle
+## of the stage (left of the buttons). The fish are the side views with faces (vf_collect_ui.gd draw_fish).
+func _draw_skit() -> void:
+	var fn := "_skit_" + String(v.get("skit", ""))
+	if has_method(fn): call(fn, fmod(_t, _loop), Vector2((size.x - 62.0) * 0.5, size.y * 0.36))
+	vis.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+## the caption of the moment: a white label under the action, as these videos have
+func _cap(text: String) -> void:
+	if text == _cap_now or skit_box == null: return
+	_cap_now = text
+	skit_box.visible = text != ""
+	skit_lbl.text = text
+	skit_box.reset_size()
+	skit_box.position = Vector2((size.x - 62.0 - skit_box.size.x) * 0.5, size.y * 0.6)
+	skit_box.pivot_offset = skit_box.size * 0.5
+	if not active: return
+	skit_box.scale = Vector2(0.8, 0.8)
+	create_tween().tween_property(skit_box, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## a sound at its moment, the first time through only (a video that honks every nine seconds isn't funny twice)
+func _cue(at: float, sound: String, db := -16.0, pitch := 1.0) -> void:
+	if not active or paused or _t < at or _t > at + 0.4 or _cues.has(at): return
+	_cues[at] = true
+	AudioManager.play_fun(sound, db, pitch)
+
+func _fishy(f: String, at: Vector2, px: float, face := 1.0, mood := "", rot := 0.0, speed := 1.0) -> void:
+	phone.main.collect.draw_fish(vis, f, at, px, face, _t * speed + 1.0, rot, mood)
+	vis.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _water(a := Color("#4fc3d4"), b := Color("#0c4458")) -> void:
+	var W := size.x
+	var H := size.y
+	phone.grad(vis, Rect2(0, 0, W, H), a, b)
+	for i in 4:
+		var x := W * (0.1 + 0.27 * i) + sin(_t * 0.3 + i) * 24.0
+		vis.draw_colored_polygon(PackedVector2Array([Vector2(x - 20, 0), Vector2(x + 20, 0), Vector2(x + 80, H), Vector2(x, H)]), Color(1, 1, 1, 0.05))
+	for i in 9:
+		var bx := W * fmod(i * 0.173 + 0.07, 1.0)
+		var by := H - fmod(_t * (24.0 + i * 4.0) + i * 71.0, H + 20.0)
+		vis.draw_arc(Vector2(bx + sin(_t + i) * 5.0, by), 2.0 + (i % 3), 0, TAU, 12, Color(1, 1, 1, 0.3), 1.2, true)
+
+## a line down from the top with a hook on it, and the worm
+func _hook(p: Vector2, bait: bool) -> void:
+	vis.draw_line(Vector2(p.x, 0), p, Color(1, 1, 1, 0.7), 1.5, true)
+	vis.draw_arc(p + Vector2(-6, 0), 6.0, 0.0, PI, 10, Color("#d7dde2"), 2.5, true)
+	if not bait: return
+	var t: Texture2D = phone.item_tex(["bait", "Worms"])
+	if t: vis.draw_texture_rect(t, Rect2(p + Vector2(-30, -8), Vector2(52, 52)), false)
+
+func _skit_grwm(ts: float, c: Vector2) -> void:
+	_water(Color("#f6c177"), Color("#9a3f3a"))
+	var big := clampf((ts - 2.6) / 0.25, 0.0, 1.0) * clampf((8.7 - ts) / 0.5, 0.0, 1.0)
+	var shake := 0.0
+	if ts > 2.6 and ts < 3.5: shake = sin(_t * 40.0) * 3.0
+	_fishy("Pufferfish", c + Vector2(shake, sin(_t * 2.0) * 6.0), 150.0 * (1.0 + 0.55 * big), 1.0, "panic" if ts > 2.6 and ts < 5.0 else "")
+	if ts < 2.6: _cap("get ready with me")
+	elif ts < 5.0: _cap("step 1: panic")
+	elif ts < 7.6: _cap("step 2: there is no step 2")
+	else: _cap("follow for more beauty tips")
+	_cue(2.6, "pfff", -14.0)
+
+func _skit_bait(ts: float, c: Vector2) -> void:
+	_water()
+	var hook := c + Vector2(40, -10.0 + sin(_t * 1.6) * 5.0)
+	var gone := ts >= 7.3
+	_hook(hook, not gone)
+	var x := -120.0                                    # the new friend: in from the left, and closer, and closer
+	if ts > 2.5: x = lerpf(-120.0, c.x - 78.0, ease(clampf((ts - 2.5) / 1.4, 0.0, 1.0), 0.4))
+	if ts > 5.0: x += minf(ts - 5.0, 2.0) * 9.0
+	if ts > 7.0: x += clampf((ts - 7.0) / 0.3, 0.0, 1.0) * 40.0
+	var chew := 1.0
+	if gone and ts < 9.2: chew = 1.0 + 0.06 * sin(_t * 18.0)
+	_fishy("Cod", Vector2(x, hook.y + 16.0), 140.0 * chew)
+	if ts > 7.0 and ts < 7.45: vis.draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.8 * (1.0 - (ts - 7.0) / 0.45)))
+	if ts < 2.5: _cap("6:00  woke up on a hook.
+again.")
+	elif ts < 5.0: _cap("6:05  made a friend")
+	elif ts < 7.0: _cap("6:06  he seems nice")
+	elif ts < 8.4: _cap("6:07")
+	else: _cap("(end of vlog)")
+	_cue(7.0, "pop", -12.0, 0.8)
+
+func _skit_unbox(ts: float, c: Vector2) -> void:
+	var acc: Color = phone.tier_color("epic")
+	phone.grad(vis, Rect2(Vector2.ZERO, size), acc.darkened(0.65), acc.darkened(0.25))
+	phone.rays(vis, c, 520.0, 14, _t * 0.12, Color(1, 1, 1, 0.055))
+	phone.glow(vis, c, 150.0 + 70.0 * clampf((ts - 3.0) / 2.0, 0.0, 1.0), Color(acc.lightened(0.45), 0.6), 16)
+	var up := ease(clampf((ts - 5.0) / 0.35, 0.0, 1.0), 0.4)                # ... and out he comes
+	if up > 0.0: _fishy("Galactic Crab", c + Vector2(0, 20.0 - 100.0 * up), 136.0, 1.0, "", sin(_t * 9.0) * (0.14 if ts < 7.0 else 0.05))
+	var chest: Texture2D = phone.item_tex(["chest", "epic"])
+	if chest:
+		var shake := 0.0
+		if ts > 3.0 and ts < 5.0: shake = sin(_t * 50.0) * 0.07 * (ts - 3.0) / 2.0
+		elif fmod(ts, 1.5) < 0.3 and ts < 3.0: shake = sin(_t * 50.0) * 0.03
+		var sc := 190.0 / maxf(1.0, chest.get_width())
+		vis.draw_set_transform(c + Vector2(0, 46), shake, Vector2(sc, sc))
+		vis.draw_texture(chest, -chest.get_size() * 0.5)
+		vis.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if ts < 3.0: _cap("unboxing my first
+epic chest!!")
+	elif ts < 5.0: _cap("it's...")
+	elif ts < 7.0: _cap("a crab.")
+	else: _cap("it's just a crab.
+he lives here.")
+	_cue(5.0, "snip", -12.0)
+
+func _skit_story(ts: float, c: Vector2) -> void:
+	_water(Color("#5b7fa6"), Color("#101c33"))
+	_fishy("Shark", c + Vector2(-30, sin(_t * 1.4) * 5.0), 170.0)
+	if ts > 3.0 and ts < 6.2:                          # the small one: in from the right, sees who it is, and is gone
+		var k := ts - 3.0
+		var x := c.x + 84.0
+		var scared := k >= 1.3
+		if k < 1.3: x = lerpf(size.x + 40.0, c.x + 84.0, k / 1.3)
+		elif k >= 2.0: x += (k - 2.0) * 420.0
+		_fishy("Tropical Fish", Vector2(x, c.y + 74.0), 84.0, 1.0 if k >= 2.0 else -1.0, "panic" if scared else "", 0.0, 2.0 if k >= 2.0 else 1.0)
+	if ts < 3.0: _cap("storytime: people
+say I'm scary")
+	elif ts < 4.3: _cap("I just want friends")
+	elif ts < 6.2: _cap("oh! hi")
+	else: _cap("...he was probably
+late for something.")
+	_cue(5.0, "squeak", -14.0)
+
+func _skit_pov(ts: float, c: Vector2) -> void:
+	_water()
+	var taken := clampf((ts - 7.6) / 0.5, 0.0, 1.0)   # up they go
+	var hook := c + Vector2(52, -20.0 + sin(_t * 1.6) * 4.0 - taken * taken * 520.0)
+	_hook(hook, ts < 7.45)
+	var x := c.x - 70.0
+	if ts > 3.0 and ts < 5.5: x += sin((ts - 3.0) / 2.5 * PI) * 22.0          # a little closer... and back
+	elif ts >= 5.5 and ts < 7.2: x += (ts - 5.5) / 1.7 * 30.0
+	elif ts >= 7.2: x += 30.0 + clampf((ts - 7.2) / 0.25, 0.0, 1.0) * 48.0
+	var at := Vector2(x, c.y + 4.0)
+	if ts >= 7.45: at = hook + Vector2(-58.0 + 40.0 * taken, 14.0 + 40.0 * taken)
+	if ts < 8.3: _fishy("Raw Salmon", at, 130.0, 1.0, "panic" if ts >= 7.45 else "", -1.2 * taken)
+	if ts < 3.0: _cap("POV: free food.
+just hanging there.")
+	elif ts < 5.5: _cap("don't do it.")
+	elif ts < 7.2: _cap("DON'T.")
+	elif ts < 8.3: _cap("")
+	else: _cap("he did it.")
+	_cue(7.6, "whoosh", -14.0)
+
+func _skit_reacts(ts: float, c: Vector2) -> void:
+	var W := size.x
+	var H := size.y
+	var seen := ts > 2.5
+	phone.grad(vis, Rect2(0, 0, W, H * 0.4), Color("#f6d9a0"), Color("#e9b872"))        # the clip he's watching
+	var pic: Texture2D = phone.item_tex(["fish", "Cod"])
+	if pic: vis.draw_texture_rect(pic, Rect2(c.x - 72.0, H * 0.11, 144, 144), false)
+	if seen:                                           # ... and how it ends
+		var k := 2.0 - clampf((ts - 2.5) / 0.12, 0.0, 1.0)
+		var font: Font = phone.font_black
+		var w := font.get_string_size("CAUGHT", HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
+		vis.draw_set_transform(Vector2(c.x, H * 0.24), -0.2, Vector2(k, k))
+		vis.draw_rect(Rect2(-w * 0.5 - 12.0, -24, w + 24.0, 46), Color("#c0392b"), false, 4.0)
+		vis.draw_string(font, Vector2(-w * 0.5, 10), "CAUGHT", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#c0392b"))
+		vis.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	phone.grad(vis, Rect2(0, H * 0.4, W, H * 0.6), Color("#3fb6c9"), Color("#0c4458"))
+	vis.draw_rect(Rect2(0, H * 0.4 - 2.0, W, 4), Color.WHITE)
+	_fishy("Cod", Vector2(c.x, H * 0.5 + sin(_t * 2.0) * 4.0), 124.0, 1.0, "panic" if seen and ts < 5.5 else "")
+	if not seen: _cap("reacting to
+today's catches")
+	elif ts < 5.5: _cap("that's my cousin.")
+	else: _cap("he still has
+my charger.")
+	_cue(2.5, "clunk", -12.0)
+
+func _skit_dance(_ts: float, c: Vector2) -> void:
+	phone.grad(vis, Rect2(Vector2.ZERO, size), Color("#3b0764"), Color("#be185d"))
+	phone.rays(vis, c, 560.0, 12, _t * 0.5, Color(1, 1, 1, 0.07))
+	var beat := _t * 2.0                               # two a second
+	var step := int(beat) % 8
+	var lean := sin(beat * PI) * 0.3
+	var spin := 0.0
+	if step == 7: spin = TAU * fmod(beat, 1.0)         # and a turn to finish
+	var hop := -absf(sin(beat * PI)) * 14.0
+	var names := ["Tropical Fish", "Pufferfish", "Raw Salmon"]
+	for i in 3:
+		var side := -1.0 if i == 1 else 1.0
+		_fishy(names[i], Vector2(c.x + side * 10.0 * sin(beat * PI), 124.0 + i * 88.0 + hop), 104.0, 1.0, "", lean * side + spin)
+	_cap("the shoal shuffle")
+
+func _skit_slow(ts: float, c: Vector2) -> void:
+	_water(Color("#7dd3c0"), Color("#14532d"))
+	var W := size.x
+	var asleep := ts > 6.8
+	for i in 12:                                       # the finish line, a long way off
+		if i % 2 == 0: vis.draw_rect(Rect2(W - 96.0, c.y - 70.0 + i * 16.0, 6, 16), Color(1, 1, 1, 0.8))
+	var at := Vector2(52.0 + minf(ts, 6.8) * 5.0, c.y + 20.0)
+	_fishy("Turtle", at, 150.0, 1.0, "sleep" if asleep else "", 0.0, 0.4)
+	var font: Font = phone.font_black
+	var clock := "00:%05.2f" % ts
+	vis.draw_string(font, Vector2(c.x - 58.0, 132.0) + Vector2(2, 2), clock, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0, 0, 0, 0.3))
+	vis.draw_string(font, Vector2(c.x - 58.0, 132.0), clock, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color.WHITE)
+	if asleep:
+		for i in 3:
+			var k := fmod(_t * 0.6 + i * 0.33, 1.0)
+			vis.draw_string(font, at + Vector2(44.0 + k * 18.0, -34.0 - k * 46.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 14 + int(k * 10.0), Color(1, 1, 1, 1.0 - k))
+	if ts < 3.5: _cap("world record attempt")
+	elif not asleep: _cap("going great")
+	else: _cap("new personal best.")
+
+func _skit_deep(ts: float, c: Vector2) -> void:
+	var bg: Texture2D = phone.biome_tex("River")
+	if bg:
+		var th := float(bg.get_height()) / 1.5
+		var tw := th * size.x / size.y
+		vis.draw_texture_rect_region(bg, Rect2(Vector2.ZERO, size), Rect2((bg.get_width() - tw) * 0.5, bg.get_height() * 0.6 - th * 0.5, tw, th))
+	vis.draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.07, 0.12, 0.6))
+	_fishy("Cod", c + Vector2(0, 10), 150.0 * (1.0 + ts * 0.035), 1.0, "", 0.0, 0.5)      # the slow push in
+	if ts < 3.2: _cap("they said I'd never
+leave the river.")
+	elif ts < 6.0: _cap("I didn't.")
+	else: _cap("but I thought about it.")
 
 func _draw_trend() -> void:
 	var W := size.x
