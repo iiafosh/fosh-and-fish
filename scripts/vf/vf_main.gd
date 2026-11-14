@@ -2687,7 +2687,7 @@ func _tok_test(dir: String) -> void:
 ## godot --path . --resolution 1280x720 -- --capture=DIR --fish-test : the fish made from the owner's picture
 ## (tools/art/make_fish.py) where you meet them: Reel it in!, the Fish Book, the aquarium. Never saves.
 func _fish_test(dir: String) -> void:
-	var trial := ["Cod", "Pufferfish", "Shark"]
+	var trial := ["Tropical Fish", "Hot Cod", "Squid", "Guardian", "Galactic Crab", "Dark Tuna"]
 	VF._apply(VF._defaults.duplicate(true))
 	VF.tutorial = 99
 	_veteran("Ocean")
@@ -2708,11 +2708,14 @@ func _fish_test(dir: String) -> void:
 	_open_panel("inventory", "Fish")
 	await get_tree().create_timer(0.5).timeout
 	await _shot(dir + "/fish_book.png")
-	VF.discovered = {}
-	for f in trial: VF.discovered[f] = 40
+	for f in VFData.FISH_ORDER: VF.discovered[f] = 40
 	_open_panel("aquarium")
 	await get_tree().create_timer(1.6).timeout
 	await _shot(dir + "/fish_aquarium.png")
+	for s in collect._swim: s.act = "nap"              # everyone asleep: every eyelid where its eye is
+	for s in collect._swim: s.act_t = 5.0
+	await get_tree().create_timer(0.5).timeout
+	await _shot(dir + "/fish_aquarium_asleep.png")
 
 
 func _minigame_test(dir: String) -> void:

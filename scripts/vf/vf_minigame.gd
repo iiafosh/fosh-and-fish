@@ -1176,8 +1176,8 @@ func _draw_top() -> void:
 	if _poster_k > 0.01: _draw_poster(c)
 
 ## the fish and its cartoon face, with the transform left on it (the props are drawn around it)
-## An eye to go over a painted one (a fish whose picture has a face already: "own" in the manifest, tools/art/make_fish.py):
-## shaded like the picture, no ink line round it. pupil: where it looks.
+## An eye to go over a painted one, when it's wide with fright (a fish whose picture has a face already: "own" in the
+## manifest, tools/art/make_fish.py): shaded like the picture, no ink line round it. pupil: where it looks.
 static func glossy_eye(c: CanvasItem, e: Vector2, r: float, pupil: Vector2, pr: float) -> void:
 	c.draw_circle(e, r, Color("#aebbc8"), true, -1.0, true)                 # the shade under the rim
 	c.draw_circle(e + Vector2(r, -r) * 0.07, r * 0.92, Color.WHITE, true, -1.0, true)
@@ -1224,8 +1224,8 @@ func _draw_fish(c: CanvasItem, at: Vector2, rot: float, sq: Vector2, face: Strin
 			var zc := COL.position + Vector2(COL.size.x * 0.5, _col_y(zone_y + _net_h() * 0.5))
 			var dir := (zc - at).rotated(-rot).normalized() if not talking else Vector2(0.9, 0.2)
 			var pr := r2 * (0.26 if face == "panic" else (0.34 if worried else 0.48))
-			if own:
-				glossy_eye(c, e, r2, e + dir * (r2 - pr - 1.5), pr)
+			if own:                                    # (its painted eye stays, until it has something to worry about)
+				if worried: glossy_eye(c, e, r2, e + dir * (r2 - pr - 1.5), pr)
 			else:
 				c.draw_circle(e, r2, Color.WHITE)
 				c.draw_circle(e + dir * (r2 - pr - 1.5), pr, ink)

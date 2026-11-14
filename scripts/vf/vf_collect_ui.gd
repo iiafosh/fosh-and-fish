@@ -627,15 +627,19 @@ func draw_fish(c: CanvasItem, f: String, at: Vector2, px: float, face: float, ph
 	var mo := (Vector2(info.mouth[0], info.mouth[1]) - Vector2(0.5, 0.5)) * px
 	var er := maxf(float(info.er) * px * 1.9, 11.0 * k)
 	var w := maxf(1.2, 2.5 * k)
-	var own: bool = info.get("own", false)             # (its picture has a face: tools/art/make_fish.py)
+	var own: bool = info.get("own", false)             # (its picture has a face: tools/art/make_fish.py. It stays, mostly)
+	var eyes := [e]
+	if info.has("eye2"): eyes.append((Vector2(info.eye2[0], info.eye2[1]) - Vector2(0.5, 0.5)) * px)
 	var panic := mood == "panic"
 	if panic: er *= 1.35
 	if mood == "sleep" or (not panic and fmod(ph + float(f.length()), 4.3) < 0.14):      # a blink now and then
-		if own: c.draw_circle(e, er * 1.02, Color(String(info.get("lid", "#888888"))), true, -1.0, true)
-		c.draw_arc(e + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
+		for q in eyes:
+			if own: c.draw_circle(q, er * 1.02, Color(String(info.get("lid", "#888888"))), true, -1.0, true)
+			c.draw_arc(q + Vector2(0, er * 0.2), er * 0.8, PI * 0.15, PI * 0.85, 10, INK, w, true)
 	elif own:
-		var opr := er * (0.3 if panic else 0.5)
-		load("res://scripts/vf/vf_minigame.gd").glossy_eye(c, e, er, e + Vector2(er - opr - 1.0, er * 0.08), opr)
+		if panic:
+			var opr := er * 0.3
+			for q in eyes: load("res://scripts/vf/vf_minigame.gd").glossy_eye(c, q, er, q + Vector2(er - opr - 1.0, er * 0.08), opr)
 	else:
 		var pr := er * (0.28 if panic else 0.48)
 		var look := e + Vector2(er - pr - w * 0.6, er * 0.1)      # ahead, where it's going

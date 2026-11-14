@@ -5,6 +5,7 @@
 ## Coming next
 
 - **A new look for the whole game.** Every panel is a deep teal window with a golden rim, a wooden sign for its title and a round red close button, with glossy tabs and buttons and cream cards with bigger pictures. The Menu has big picture icons. The main screen matches: cream and teal pills with golden rims, a glossy Sell button, and the same look on the Reel it in! card.
+- **Every fish is new.** All 20 fish have new pictures, glossy and round like the new icons, each with a face of its own: on the catch card, in the Fish Book, in Reel it in!, in the aquarium and on FishTok. They still blink, nap, panic and pull faces. Their shiny versions are new too, each in its own colour with a gold rim.
 - **FishTok talks about you.** Catch something worth a post and somebody posts it: the fish you caught ("lost a tug of war with you. I don't have arms."), a fisher who watched, or the fish union with a strongly worded letter. The newest one opens your feed with an ABOUT YOU badge, and its comments are about you too. With the phone docked beside the game, it arrives as your next video while you fish.
 - **Fish make their own videos.** Nine little skits acted by the fish: a pufferfish's two-step beauty routine, a worm's very short day as bait, an unboxing that goes wrong, a shark who only wants friends, a turtle's world record attempt, and more. Three of them are in every feed.
 - **The phone is easier to read.** Its text was thinner than designed, the same mistake as in the game. Titles and numbers are bold now.
