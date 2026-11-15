@@ -91,6 +91,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var vf = _vf()
 	if vf: vf.changed.connect(_on_vf_changed)
+	_load_play()                                # (the player count: now, before a first cast makes a new player look like an old one)
 	_load_account()
 	_set_state("signed_out")
 	if _web_link():
@@ -454,6 +455,10 @@ func _on_vf_changed() -> void:
 	if not _applying: dirty = true
 
 func _process(delta: float) -> void:
+	_count_t += delta
+	if _count_t >= COUNT_EVERY:
+		_count_t = 0.0
+		_count_tick()
 	if state == "signed_in":
 		_since_sync += delta
 		if dirty and _since_sync >= SYNC_EVERY and conflict.is_empty() and not _uploading:
@@ -494,6 +499,82 @@ func on_quit(and_quit := true) -> void:
 func _finish_quit() -> void:
 	if not get_tree().auto_accept_quit:
 		get_tree().quit()
+
+# ------------------------------------------------------- the anonymous player count
+## Once a day the game adds one to a count on the server: which platform, and how many days it has been since the first day
+## played on this device ("day0" a new player, "day1" back the next day ...). A few firsts are counted once each: finished
+## the tutorial, reached level 10, the first rebirth, opened the Shop. No name, account or device id is sent, and the server
+## keeps only totals (supabase/schema.sql: play_counts, count_play). Nothing is counted in captures, tests and recordings:
+## they have no server. What this device remembers is in PLAY_FILE.
+const PLAY_FILE := "user://play.cfg"
+const COUNT_EVERY := 60.0
+const COUNT_FIRSTS := ["tutorial", "lv10", "rebirth", "shop"]
+var _play_first := ""                    # the first day played here, "YYYY-MM-DD" (UTC)
+var _play_last := ""                     # the last day that was counted
+var _play_done := {}                     # firsts already counted
+var _play_want := {}                     # firsts that happened and aren't counted yet
+var _play_loaded := false
+var _count_t := 50.0                     # (the first look comes ten seconds after the start)
+var _counting := false
+
+## whole days from one "YYYY-MM-DD" to another (0 if one is missing, or the clock went backwards)
+static func days_between(a: String, b: String) -> int:
+	if a.length() != 10 or b.length() != 10: return 0
+	return maxi(0, int(round((Time.get_unix_time_from_datetime_string(b) - Time.get_unix_time_from_datetime_string(a)) / 86400.0)))
+
+## what to count today: "day<N>", N days after the first (at most 365), or "" when today is counted already
+static func play_tag(first: String, last: String, today: String) -> String:
+	if last == today: return ""
+	return "day%d" % mini(days_between(first if first != "" else today, today), 365)
+
+## What this device remembers of the count. Read as the game starts, before anything is played: a save that already has
+## casts in it and no PLAY_FILE is someone who played before the count existed. They're an old hand, not a new player,
+## and their firsts are behind them.
+func _load_play() -> void:
+	_play_loaded = true
+	var vf = _vf()
+	var cfg := ConfigFile.new()
+	if cfg.load(PLAY_FILE) == OK:
+		_play_first = str(cfg.get_value("play", "first", ""))
+		_play_last = str(cfg.get_value("play", "last", ""))
+		for k in COUNT_FIRSTS:
+			if bool(cfg.get_value("done", k, false)): _play_done[k] = true
+	elif vf != null and int(vf.stats.get("trips", 0)) > 0:
+		_play_first = Time.get_date_string_from_unix_time(int(Time.get_unix_time_from_system()) - 30 * 86400)
+		for k in COUNT_FIRSTS: _play_done[k] = true
+	if _play_first == "": _play_first = Time.get_date_string_from_system(true)
+
+## the tutorial is done, level 10, the first rebirth, the Shop was opened: counted once per device
+func count_once(what: String) -> void:
+	if what in COUNT_FIRSTS and not _play_done.has(what): _play_want[what] = true
+
+func _count_tick() -> void:
+	var vf = _vf()
+	if not configured() or _counting or vf == null: return
+	var today := Time.get_date_string_from_system(true)
+	if not _play_loaded: _load_play()
+	if int(vf.tutorial) >= 99: count_once("tutorial")
+	if int(vf.level) >= 10 or int(vf.prestige) > 0: count_once("lv10")
+	if int(vf.prestige) > 0: count_once("rebirth")
+	var todo: Array = _play_want.keys().filter(func(k): return not _play_done.has(k))
+	var tag := play_tag(_play_first, _play_last, today)
+	if tag != "": todo.push_front(tag)
+	if todo.is_empty(): return
+	_counting = true
+	var plat := "web" if OS.has_feature("web") else ("android" if OS.has_feature("android") else "desktop")
+	for what in todo:
+		var r := await _http(POST, "/rest/v1/rpc/count_play", {"p_what": what, "p_platform": plat})
+		if not r.ok:
+			_count_t = -1740.0                   # (no server, or it hasn't got the count yet: look again in half an hour)
+			break
+		if String(what).begins_with("day"): _play_last = today
+		else: _play_done[what] = true
+	_counting = false
+	var out := ConfigFile.new()
+	out.set_value("play", "first", _play_first)
+	out.set_value("play", "last", _play_last)
+	for k in _play_done: out.set_value("done", k, true)
+	out.save(PLAY_FILE)
 
 # ------------------------------------------------------------ leaderboard
 func load_leaderboard() -> void:

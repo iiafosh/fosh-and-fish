@@ -33,6 +33,7 @@ var spots: Array = []             # [{kind, pos, t, life, hits, gone}]
 var rainbow := {}                 # {t, life, end, taken}
 var stars: Array = []             # falling stars [{from, to, t, secs}]
 var wish := false                 # a wish is waiting for your next cast
+var streak := 0                   # bullseyes in a row (a hit that isn't one starts the count again): VFData.streak_mult
 var veil: ColorRect
 var water_layer: Control          # hot spots: on the water, under the boats
 var air_layer: Control            # the rainbow, lightning
@@ -44,6 +45,7 @@ var pill_sub: Label
 var _left := 60.0                 # seconds of this spell, or of clear sky, still to go
 var _ending := false
 var _last := ""
+var _next := ""                   # what the sky does next (picked as it clears): the forecast
 var _spot_wait := 12.0
 var _star_wait := 14.0
 var _wish_cd := 0.0
@@ -126,9 +128,20 @@ func _show_pill() -> void:
 	elif hour != "":
 		title = hour
 		icon = "star" if hour == "Night" else "sun-horizon"
+	var live: bool = VF.tutorial >= 99 and VF.level >= VFData.SPOT_LEVEL and not m.launcher_open()
+	var o: Dictionary = VF.order_today() if live else {}
+	var wanted: bool = not o.is_empty() and not o.paid and String(o.biome) == VF.biome
+	if w == "clear" and _next != "" and _next != "clear" and _left <= 90.0 and live:       # the forecast, a minute and a half ahead
+		var soon: Dictionary = VFData.WEATHER[_next]
+		subs.append("%s in %s%s" % [soon.name, _clock(_left), "  (your order!)" if wanted and String(o.cond) == _next else ""])
+		if title == "":
+			title = "Clear sky"
+			icon = String(soon.icon)
 	var biting: Array = VF.biting_now()
 	if biting.size() > 3: biting = biting.slice(biting.size() - 3)        # (the rarest ones: they're the news)
 	if not biting.is_empty(): subs.append("Biting: " + ", ".join(PackedStringArray(biting)))
+	if wanted and String(o.cond) in VF.conditions():
+		subs.append("Order: %s %s/%s" % [o.fish, VF.commas(int(o.prog)), VF.commas(int(o.goal))])
 	if wish:
 		subs.insert(0, "Wish: +%d%% fish, next cast" % int(VFData.WISH_FISH * 100.0))
 		if title == "": title = "A wish"
@@ -143,11 +156,26 @@ func _show_pill() -> void:
 	pill_sub.visible = not subs.is_empty()
 	pill_icon.texture = m.ph(icon)
 
+static func _clock(secs: float) -> String:
+	var s := maxi(0, int(ceil(secs)))
+	return "%d:%02d" % [s / 60, s % 60]
+
+## the sky now and next, in a sentence (the Fish Book)
+func forecast_text() -> String:
+	if not VFData.BIOME_WEATHER.has(VF.biome): return ""
+	if weather != "clear" and not _ending:
+		var d: Dictionary = VFData.WEATHER[weather]
+		return "Now: %s (%s), for another %s. Then it clears." % [d.name, d.tip, _clock(_left)]
+	if _next != "" and _next != "clear":
+		return "Now: clear. %s in about %s." % [VFData.WEATHER[_next].name, _clock(_left)]
+	return "Now: clear."
+
 ## a new biome: its own sky, clear to begin with
 func _on_scene() -> void:
 	weather = "clear"
 	amount = 0.0
 	_ending = false
+	_next = ""
 	_left = randf_range(45.0, 90.0)
 	spots.clear()
 	stars.clear()
@@ -171,11 +199,11 @@ func tick(delta: float) -> void:
 
 ## what VF's rules read: the weather while it's really on, and the hour
 func _note_world() -> void:
-	var day: bool = stage._fx_on and stage.DAYLIGHT.has(VF.biome)
+	var day: bool = stage.DAYLIGHT.has(VF.biome)       # (a biome with a sun. The hour counts with the scenery effects off too: the pill says it)
 	var d: float = stage.day_t
 	var night: bool = day and stage._day_phase(d).x > 0.5
 	var low: bool = day and not night and ((d > 0.47 and d < 0.62) or d > 0.9 or d < 0.03)
-	VF.world = {"weather": "clear" if _ending else weather, "night": night, "dusk": low}
+	VF.world = {"weather": "clear" if _ending else weather, "night": night, "dusk": low, "clock": day}
 
 # ------------------------------------------------------------ the weather
 func _tick_weather(delta: float, live: bool) -> void:
@@ -186,8 +214,13 @@ func _tick_weather(delta: float, live: bool) -> void:
 	if weather == "clear":
 		amount = 0.0
 		if not live: return
+		if _next == "": _next = _pick()
 		_left -= delta
-		if _left <= 0.0: start(_pick())
+		if _left <= 0.0:
+			var id := _next
+			_next = ""
+			if id == "clear": _left = randf_range(VFData.WEATHER_CLEAR[0], VFData.WEATHER_CLEAR[1])
+			else: start(id)
 		return
 	if _ending:
 		amount = maxf(0.0, amount - delta / 6.0)
@@ -219,6 +252,7 @@ func start(id: String, secs := 0.0) -> void:
 	_bolt_wait = randf_range(4.0, 8.0)
 	_star_wait = 1.5
 	if not stage.talking(): stage.say(String((LINES[id] as Array).pick_random()), 3.6)
+	if id == "storm": m.tok_react("storm", {"biome": VF.biome, "fish": _a_fish()}, 0.6)
 
 ## ... and blows over. After rain, by day, a rainbow
 func stop() -> void:
@@ -286,7 +320,11 @@ func _in_view(q: Vector2, v: Dictionary) -> bool:
 
 func _view(edge := 70.0, hud_gap := 20.0) -> Dictionary:
 	var k: float = stage.root.scale.x
-	return {"rect": Rect2(stage.global_position, stage.size).grow(-edge * k), "hud": stage._hud_rects(hud_gap * k)}
+	var hud: Array = stage._hud_rects(hud_gap * k)
+	# the pills under your level come and go (this one too): what's below them now may be under one in a moment
+	var col: Rect2 = m.hud_col.get_global_rect()
+	hud.append(Rect2(col.position, col.size + Vector2(60.0, 110.0)).grow(hud_gap * k))
+	return {"rect": Rect2(stage.global_position, stage.size).grow(-edge * k), "hud": hud}
 
 # ------------------------------------------------------------ hot spots
 func _tick_spots(delta: float, busy: bool) -> void:
@@ -316,13 +354,32 @@ func spawn_spot(kind: String, at = null) -> void:
 		var shop: Rect2 = stage._shop_rect().grow(120.0)
 		var near := randf() < 0.75
 		at = stage._rand_point(func(q):
-			if not stage.open_water(q, 70.0) or shop.has_point(q): return false
+			if not stage.open_water(q, 70.0) or shop.has_point(q) or not _clear_of_boats(q): return false
 			var d: float = q.distance_to(stage.boat_pos)
 			if d < 240.0 or (near and d > stage.MAX_CAST * 0.9): return false
-			return _in_view(q, v), 400)
+			return _in_view(q, v), 1500)
 		if at == null: return
 	spots.append({"kind": kind, "pos": at, "t": 0.0, "life": VFData.SPOT_LIFE, "hits": int(VFData.SPOTS[kind].hits), "gone": -1.0})
 	if int(VF.stats.get("spots", 0)) == 0 and not stage.talking(): stage.say("Something's stirring out there. Cast right into the ring!", 4.0)
+
+## one of the fish that live here (for a post about what just happened)
+func _a_fish() -> String:
+	var names: Array = VFData.BIOMES[VF.biome].fish
+	return String(names[randi() % names.size()])
+
+## not under somebody's hull, where the ring couldn't be seen: your crews' boats, visitors, your party's friends
+func _clear_of_boats(q: Vector2, gap := 170.0) -> bool:
+	for f in stage._fleet:
+		if q.distance_to(f.home) < gap: return false
+	if m.visitors != null:
+		for v in m.visitors.boats:
+			if q.distance_to(v.a) < gap or q.distance_to(v.b) < gap: return false
+	if m.party != null:
+		for id in m.party.friends:
+			var f: Dictionary = m.party.friends[id]
+			for p in [f.get("shown", Vector2.INF), f.get("beside", Vector2.INF)]:
+				if p is Vector2 and p != Vector2.INF and q.distance_to(p) < gap: return false
+	return true
 
 ## how much of its radius counts as the middle (a fingertip is blunter than a pointer)
 func _bull() -> float:
@@ -349,11 +406,15 @@ func cast_landed(outlaw := false) -> void:
 		bonus = (VFData.SPOTS[s.kind].bull if bull else VFData.SPOTS[s.kind].edge).duplicate()
 		bonus["kind"] = s.kind
 		bonus["bull"] = bull
+		streak = streak + 1 if bull else 0
+		for key in ["fish", "quality", "coins"]:       # bullseyes in a row are worth more (not the chests)
+			if bonus.has(key): bonus[key] = float(bonus[key]) * VFData.streak_mult(streak)
+		bonus["streak"] = streak
 		s.hits -= 1
 		if s.hits <= 0: s.gone = 0.0
 		_spot_hit(bonus, p)
 		break
-	if bonus.is_empty() and tapped != Vector2.INF and not stage.talking():      # you tapped one, but the line doesn't reach
+	if bonus.is_empty() and tapped != Vector2.INF:      # you tapped one, but the line doesn't reach (this is worth interrupting him for)
 		for s in spots:
 			if s.gone < 0.0 and Vector2(tapped.x - s.pos.x, (tapped.y - s.pos.y) / SQUASH).length() <= VFData.SPOT_R:
 				stage.say("Too far. Sail closer!", 2.6)
@@ -366,10 +427,12 @@ func cast_landed(outlaw := false) -> void:
 
 func _spot_hit(bonus: Dictionary, p: Vector2) -> void:
 	var what := ""
-	if bonus.has("fish"): what = "+%d%% fish" % int(float(bonus.fish) * 100.0)
-	elif bonus.has("quality"): what = "rarer fish ×%d" % int(bonus.quality)
+	if bonus.has("fish"): what = "+%d%% fish" % int(round(float(bonus.fish) * 100.0))
+	elif bonus.has("quality"): what = "rarer fish ×%s" % ("%.1f" % float(bonus.quality)).trim_suffix(".0")
 	elif VF.level >= 10: what = "chest chance ×%d" % int(bonus.get("chest", 1.0))
-	var head := "BULLSEYE!" if bonus.bull else "Hot spot!"
+	var head := ("BULLSEYE x%d!" % streak if streak >= 2 else "BULLSEYE!") if bonus.bull else "Hot spot!"
+	if bonus.bull and streak >= 3: m.tok_react("streak", {"biome": VF.biome, "fish": _a_fish(), "n": streak}, 0.8)
+	elif bonus.bull: m.tok_react("bullseye", {"biome": VF.biome, "fish": _a_fish()}, 0.3)
 	m._float_text(("%s %s" % [head, what]).strip_edges(), stage.to_screen(p) + Vector2(-60, -104), m.C_GOLD if bonus.bull else Color.WHITE)
 	if bonus.has("coins"): m.fun._pay(float(bonus.coins), p)
 	stage.burst("sparkle", p)
@@ -411,6 +474,13 @@ func _start_rainbow() -> void:
 	rainbow = {"t": 0.0, "life": RAINBOW_LIFE, "end": end, "taken": false}
 	stage.say("A rainbow! They say there's gold where it ends.", 4.0)
 
+## is this tap inside a hot spot's ring? (then it's a cast there: a gull flying over it isn't poked instead)
+func on_spot(screen: Vector2) -> bool:
+	var p: Vector2 = stage.to_scene(screen)
+	for s in spots:
+		if s.gone < 0.0 and Vector2(p.x - s.pos.x, (p.y - s.pos.y) / SQUASH).length() <= VFData.SPOT_R: return true
+	return false
+
 ## a tap on the scene (vf_main, before a cast): a falling star, or the rainbow's end
 func tap(screen: Vector2) -> bool:
 	var p: Vector2 = stage.to_scene(screen)
@@ -427,6 +497,7 @@ func tap(screen: Vector2) -> bool:
 		rainbow.taken = true
 		rainbow.life = rainbow.t + 2.5
 		VF.stat_add("rainbows")
+		m.tok_react("rainbow", {"biome": VF.biome, "fish": _a_fish()}, 0.7)
 		stage.burst("sparkle", rainbow.end)
 		m.fun._pay(4.0, rainbow.end)
 		stage.say("Gold! Wet gold, but gold.", 3.0)
@@ -444,6 +515,7 @@ func _wished(at: Vector2) -> void:
 	_wish_cd = 20.0
 	_shown = "-"
 	VF.stat_add("wishes")
+	m.tok_react("wish", {"biome": VF.biome, "fish": _a_fish()}, 0.5)
 	AudioManager.play_fun("ding", -8.0, 1.5)
 	m._float_text("Wish made! Next cast: +%d%% fish" % int(VFData.WISH_FISH * 100.0), stage.to_screen(at) + Vector2(-90, -40), m.C_GOLD)
 	if not stage.talking(): stage.say(["Wished for fish. Classic.", "I wished for a bigger boat. We'll see.", "Don't tell anyone what you wished. It was fish."].pick_random(), 3.2)
@@ -533,7 +605,7 @@ func _glow(p: Vector2, r: float, c: Color, a: float, squash := 1.0) -> void:
 ## godot --path . --resolution 1280x720 -- --capture=DIR --world-test : every kind of weather, the three hot spots with a
 ## cast into each, lightning, the rainbow and its gold, a falling star and a wish. Prints WORLD lines. Never saves.
 func capture_test(dir: String) -> void:
-	VF.trip_done.connect(func(res): print("WORLD cast: spot='%s' bull=%s fish=%d chest=%s" % [res.spot, res.bull, res.count, not res.chest.is_empty()]))
+	VF.trip_done.connect(func(res): print("WORLD cast: spot='%s' bull=%s streak=%d fish=%d chest=%s order=%s" % [res.spot, res.bull, res.streak, res.count, not res.chest.is_empty(), res.order]))
 	await m._wait(1.5)
 	stage.set_time_of_day(0.3)
 	start("rain", 999.0)
@@ -544,12 +616,20 @@ func capture_test(dir: String) -> void:
 	await m._shot(dir + "/w01_rain_school.png")
 	await _test_cast(dir + "/w02_bullseye.png", Vector2.ZERO)
 	await m._wait(1.0)
+	spawn_spot("school")                         # a second bullseye in a row
+	await m._wait(0.8)
+	await _test_cast(dir + "/w02a_streak.png", Vector2.ZERO)
+	print("WORLD streak %d (x%.1f); order: '%s'; pill: '%s | %s'" % [streak, VFData.streak_mult(streak), VF.order_text(), pill_title.text, pill_sub.text])
+	spots.clear()
 	VF.discovered["Cod"] = 3
 	m._open_panel("inventory")
 	await m._wait(0.5)
 	m.panel_scroll.scroll_vertical = 100000
 	await m._wait(0.3)
 	await m._shot(dir + "/w02b_fish_book.png")
+	m.panel_scroll.scroll_vertical = maxi(0, m.panel_scroll.scroll_vertical - 260)
+	await m._wait(0.3)
+	await m._shot(dir + "/w02c_order.png")
 	m._close_panel()
 	await m._wait(0.4)
 	spots.clear()
@@ -582,6 +662,13 @@ func capture_test(dir: String) -> void:
 	weather = "clear"
 	amount = 0.0
 	spots.clear()
+	stage.set_time_of_day(0.3)                   # the forecast: a clear day, rain a minute off
+	_next = "rain"
+	_left = 61.0
+	await m._wait(0.8)
+	print("WORLD forecast: pill '%s | %s' (shown: %s); Fish Book says '%s'" % [pill_title.text, pill_sub.text, pill.visible, forecast_text()])
+	await m._shot(dir + "/w08a_forecast.png")
+	_left = 999.0
 	stage.set_time_of_day(0.75)
 	spawn_spot("school")
 	spawn_star(4.0)
@@ -595,7 +682,8 @@ func capture_test(dir: String) -> void:
 	await _test_cast(dir + "/w11_wish_cast.png", Vector2(400, 0))
 	spots.clear()
 	# one the line can't reach: the captain says so
-	var far = stage._rand_point(func(q): return stage.open_water(q, 70.0) and q.distance_to(stage.boat_pos) > stage.MAX_CAST + 140.0, 2000)
+	var seen := _view(60.0)
+	var far = stage._rand_point(func(q): return stage.open_water(q, 70.0) and q.distance_to(stage.boat_pos) > stage.MAX_CAST + 140.0 and _in_view(q, seen), 3000)
 	if far != null:
 		spawn_spot("school", far)
 		stage._say_t = 0.0
@@ -603,7 +691,7 @@ func capture_test(dir: String) -> void:
 		print("WORLD too far: the captain says '%s', the spot is still there: %s" % [stage._say_text, spots.size() == 1])
 		spots.clear()
 	else:
-		print("WORLD too far: no water out of reach in this scene")
+		print("WORLD too far: no water out of reach on this screen")
 	for row in [["Volcanic", "ash", 0.3], ["Ocean", "storm", 0.3], ["Sky", "aurora", 0.75], ["Space", "meteors", 0.3], ["Alien", "aurora", 0.75], ["Alien", "fog", 0.3], ["Abyss", "bloom", 0.3], ["Abyss", "fog", 0.3]]:
 		VF.biome = row[0]
 		VF.changed.emit()

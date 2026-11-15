@@ -96,6 +96,7 @@ shows its odds). Expect "In-Game Purchases (Includes Random Items)".
 | Personal info → User IDs (account ID, fisher name) | Account management, App functionality | Yes | No |
 | Financial info → Purchase history | App functionality (give each purchase once) | No (if you buy) | No |
 | App activity → Other actions (game save, shiny fish) | App functionality | Yes | No |
+| App activity → App interactions (the anonymous player count: played today, days since the first play, four firsts; totals only, no id) | Analytics | No | No |
 
 - Collected by the Google Mobile Ads SDK (AdMob) in the Google Play version:
 

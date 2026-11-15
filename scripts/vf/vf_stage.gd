@@ -122,6 +122,7 @@ var _merchant_t := 0.0
 var merchant: TextureRect
 var merchant_hit: Control
 var merchant_tag: PanelContainer
+var merchant_order: Label
 var _smoke: CPUParticles2D
 var _glints: CPUParticles2D
 signal poked(kind: String, at: Vector2)     # you tapped a crab, a gull, a bottle, a duck, the thief or a find, "find:<id>" (vf_fun.gd)
@@ -1291,10 +1292,10 @@ func _tick_daylight(delta: float) -> void:
 		_apply_daylight()
 		_place_boat()
 		_place_fleet()
+	if DAYLIGHT.has(_biome): day_t = fmod(day_t + delta / DAY_LEN, 1.0)     # (with the effects off too: the hour changes what bites, vf_world.gd)
 	if not _fx_on or not DAYLIGHT.has(_biome):
 		lights_layer.queue_redraw()
 		return
-	day_t = fmod(day_t + delta / DAY_LEN, 1.0)
 	_apply_daylight()
 	lights_layer.queue_redraw()
 
@@ -1693,7 +1694,8 @@ func say_rect() -> Rect2:
 	return Rect2(a, to_screen(_say_box.end) - a)
 
 ## a tap on the scene: if it hit something that's there for poking, it reacts -> true (no cast then)
-func poke(screen: Vector2) -> bool:
+## gulls: false when the tap is on a hot spot (vf_world.gd): there the tap is a cast, whatever is flying over it
+func poke(screen: Vector2, gulls := true) -> bool:
 	var p := to_scene(screen)
 	var main = get_parent()
 	while main != null and not ("visitors" in main): main = main.get_parent()
@@ -1737,7 +1739,7 @@ func poke(screen: Vector2) -> bool:
 			c.dir = 1.0 if c.pos.x >= p.x else -1.0
 			poked.emit("crab", c.pos)
 			return true
-	if night_amount < 0.6:
+	if gulls and night_amount < 0.6:
 		for g in _gulls:
 			if _tap_box(g.tex, u * 0.62 / float(gull.unit_px), wings).has_point(p - g.pos):
 				g.scared = 1.6
@@ -2136,6 +2138,11 @@ func _build_merchant() -> void:
 	sub.add_theme_color_override("font_color", Color("#8c7660"))
 	v.add_child(t)
 	v.add_child(sub)
+	merchant_order = Label.new()                 # today's order (VF.order_today), under the shop's name
+	merchant_order.add_theme_font_size_override("font_size", 16)
+	merchant_order.add_theme_color_override("font_color", Color("#0f766e"))
+	merchant_order.visible = false
+	v.add_child(merchant_order)
 	merchant_tag.add_child(v)
 	merchant_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	merchant_tag.visible = false
@@ -2201,6 +2208,11 @@ func _tick_merchant(delta: float) -> void:
 	merchant.texture = at
 
 func _hover_merchant(on: bool) -> void:
+	if on:
+		var o: Dictionary = VF.order_today()
+		merchant_order.visible = not o.is_empty()
+		if not o.is_empty():
+			merchant_order.text = ("Today's order is filled. Thank you!" if o.paid else "Today's order: %s  (%s/%s)" % [VF.order_text(o), VF.commas(int(o.prog)), VF.commas(int(o.goal))])
 	merchant_tag.visible = on
 	merchant.modulate = Color(1.08, 1.06, 1.0) if on else Color.WHITE
 	if on and _merchant_anim == "idle":

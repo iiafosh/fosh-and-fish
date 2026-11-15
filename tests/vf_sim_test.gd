@@ -271,6 +271,12 @@ func _init() -> void:
 	check(B.is_downgrade({"code": 400, "data": {"code": "P0001", "message": "save_downgrade: the cloud save has more progress"}}), "server downgrade refusal recognised")
 	check(B.validate_email("fisher@example.com") == "" and B.validate_email("fisher@") != "" and B.validate_email("a b@c.d") != "", "email check")
 	check(B.validate_password("12345") != "" and B.validate_password("hunter22") == "", "password needs 6+ characters")
+	# the anonymous player count: what a device reports, once a day
+	check(B.days_between("2026-11-15", "2026-11-16") == 1 and B.days_between("2026-10-31", "2026-11-15") == 15 and B.days_between("2026-11-16", "2026-11-15") == 0 and B.days_between("", "2026-11-15") == 0,
+		"days between two dates (never negative)")
+	check(B.play_tag("", "", "2026-11-15") == "day0" and B.play_tag("2026-11-15", "2026-11-15", "2026-11-15") == "", "a first day is day0, and a day is counted once")
+	check(B.play_tag("2026-11-15", "2026-11-15", "2026-11-16") == "day1" and B.play_tag("2026-11-01", "2026-11-10", "2026-11-15") == "day14", "back the next day is day1; two weeks in, day14")
+	check(B.play_tag("2020-01-01", "", "2026-11-15") == "day365", "an old hand is day365 at most")
 	check(B.validate_name("Marlin Mae") == "" and B.validate_name("Al") != "" and B.validate_name("<script>") != ""
 		and B.validate_name("x".repeat(21)) != "", "fisher name: 3-20 letters, numbers, spaces, _ - .")
 	check(B.validate_name("صياد_سمك") == "" and B.validate_name("Pêcheur") == "", "fisher names may use any alphabet")
@@ -322,6 +328,7 @@ func _init() -> void:
 	_test_hats()
 	_test_world()
 	_test_audit()
+	_test_orders()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -734,7 +741,7 @@ func _test_collecting() -> void:
 		ids[a.id] = true
 		well_formed = well_formed and String(a.name) != "" and String(a.desc) != "" and String(a.stat) != "" and int(a.goal) > 0 and int(a.pearls) > 0 and int(a.pearls) <= 25
 		if a.get("joke", false): jokes += 1
-	check(ids.size() == VFData.ACHIEVEMENTS.size() and ids.size() >= 28 and ids.size() <= 36 and well_formed, "about 30 achievements (%d), each with a goal and a few Pearls" % ids.size())
+	check(ids.size() == VFData.ACHIEVEMENTS.size() and ids.size() >= 34 and ids.size() <= 44 and well_formed, "about 40 achievements (%d), each with a goal and a few Pearls" % ids.size())
 	check(jokes * 2 >= ids.size() - 4, "about half of them are jokes (%d)" % jokes)
 	check(g.ach_ready().is_empty(), "a new game has nothing to claim")
 	check(g.ach_claim("first_fish") == 0 and g.pearls == 0, "you can't claim what you haven't done")
@@ -933,7 +940,8 @@ func _test_counters(v) -> void:
 	v.tutorial = 99
 	v.biome = "River"
 	var known := ["level", "prestige", "species", "finds", "books", "crews", "ducks", "hats", "gerald_losses", "gerald_caught", "mum_caught",
-		"fish", "trips", "chests", "money_earned", "honks", "robbed", "thieves", "crab_pokes", "gull_pokes", "bottles", "reel_wins", "reel_losses", "perfect_rounds", "blanks", "glass_taps", "voyages"]
+		"fish", "trips", "chests", "money_earned", "honks", "robbed", "thieves", "crab_pokes", "gull_pokes", "bottles", "reel_wins", "reel_losses", "perfect_rounds", "blanks", "glass_taps", "voyages",
+		"bullseyes", "best_streak", "orders", "wishes", "rainbows"]      # (vf_world.gd and the merchant's order: see _test_orders)
 	var all_known := true
 	for a in VFData.ACHIEVEMENTS:
 		if not a.stat in known:
@@ -1660,3 +1668,75 @@ func _test_saves(g) -> void:
 	g.reset_save()
 	check(not FileAccess.file_exists(path) and not FileAccess.file_exists(path + ".bak"), "a reset takes the backup with it")
 	g.save_file = g.SAVE_PATH
+
+## The merchant's order of the day, bullseyes in a row, and the achievements that came with them.
+func _test_orders() -> void:
+	print("== the merchant's order, bullseye streaks")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g.rng.seed = 2026
+	g._apply(g._defaults.duplicate(true))
+	g.tutorial = 99
+	g.level = 3
+	check(g.order_today().is_empty() and g.order_text() == "", "no order before level %d" % VFData.ORDER_LEVEL)
+	g.level = 30
+	g.owned_rods.append("Steel Rod")
+	g.rod = "Steel Rod"                                  # River: Raw Salmon likes rain, Cod likes fog
+	var news := [0]
+	g.order_new.connect(func(_o): news[0] += 1)
+	var o: Dictionary = g.order_today()
+	check(not o.is_empty() and o.fish in ["Raw Salmon", "Cod"] and o.cond in ["rain", "fog"] and o.cond in VFData.FISH_LIKES[o.fish] and int(o.goal) >= 1 and news[0] == 1,
+		"today's order: %s" % g.order_text())
+	check(g.order_today() == o and news[0] == 1 and g._make_order(o.day).fish == o.fish, "the same day asks for the same thing, and says so once")
+	for _i in 30:
+		g._last_cast_ms = -100000
+		g.cast()
+	check(int(o.prog) == 0 and not o.paid, "caught in the wrong weather: none of them count")
+	g.world = {"weather": o.cond, "night": false, "dusk": false}
+	var money0: int = g.money
+	var stars0: int = g.stars
+	var paid := []
+	g.order_done.connect(func(_o, pay): paid.append(pay))
+	var casts := 0
+	var seen_prog := false
+	while not o.paid and casts < 400:
+		g._last_cast_ms = -100000
+		var r: Dictionary = g.cast()
+		casts += 1
+		if not r.order.is_empty() and int(r.order[1]) == int(o.goal): seen_prog = true
+	check(o.paid and seen_prog and paid.size() == 1 and int(paid[0]) > 0 and g.money >= money0 + int(paid[0]) and g.stars == stars0 + VFData.ORDER_STARS and int(g.stats.get("orders", 0)) == 1,
+		"filled in %d casts in the %s: paid once (%d, about %d casts' worth), +%d Event Stars" % [casts, o.cond, int(paid[0]) if not paid.is_empty() else 0, int(VFData.ORDER_PAY), VFData.ORDER_STARS])
+	var prog: int = o.prog
+	for _i in 20:
+		g._last_cast_ms = -100000
+		g.cast()
+	check(int(o.prog) == prog and paid.size() == 1 and "orders_7" not in g.ach_ready(), "a filled order pays no more that day")
+	var d: Dictionary = g.to_dict().duplicate(true)
+	g._apply(d)
+	check(g.order_today().fish == o.fish and g.order_today().paid and news[0] == 1, "it's in the save: filled stays filled")
+	d.order = {"day": "2020-01-01", "fish": "Moon Fish", "biome": "River", "cond": "rain", "goal": 3}
+	g._apply(d)
+	check(g.order.is_empty() and not g.order_today().is_empty(), "an order for a fish this game doesn't have is dropped, and today's is made")
+	g.world = {"weather": "clear", "night": false, "dusk": false, "clock": false}
+	g.order = {}
+	g.biome = "Ocean"
+	var o2: Dictionary = g._make_order("2026-11-16")
+	check(String(o2.cond) not in ["night", "dusk"], "with no day and night to wait for, an order never asks for one (%s)" % String(o2.cond))
+	g.biome = "River"
+	g.world = {"weather": "clear", "night": false, "dusk": false}
+	# bullseyes in a row
+	check(VFData.streak_mult(0) == 1.0 and VFData.streak_mult(1) == 1.0 and is_equal_approx(VFData.streak_mult(2), 1.1) and is_equal_approx(VFData.streak_mult(6), 1.5) and is_equal_approx(VFData.streak_mult(40), 1.5),
+		"a streak adds 10%% a bullseye from the second, up to +50%%")
+	g.cast_bonus = {"kind": "school", "bull": true, "fish": 1.3, "streak": 4}
+	g._last_cast_ms = -100000
+	var r4: Dictionary = g.cast()
+	g.cast_bonus = {"kind": "school", "bull": true, "fish": 1.0, "streak": 1}
+	g._last_cast_ms = -100000
+	g.cast()
+	check(r4.streak == 4 and int(g.stats.get("best_streak", 0)) == 4, "the best streak is remembered (4), a shorter one doesn't lower it")
+	var known := true
+	for id in ["bull_1", "bull_50", "streak_5", "orders_7", "wish_10", "rainbow_5"]:
+		if VFData.ach_def(id).is_empty(): known = false
+	check(known and "bull_1" in g.ach_ready() and not "streak_5" in g.ach_ready(), "the new achievements: a first bullseye is ready to claim, five in a row isn't yet")
+	g.queue_free()

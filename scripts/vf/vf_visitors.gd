@@ -102,6 +102,9 @@ func _spot(rng: RandomNumberGenerator) -> Vector2:
 			if p.distance_to(f.home) < 230.0: ok = false
 		for v in boats:
 			if p.distance_to(v.a) < 250.0 or p.distance_to(v.b) < 250.0: ok = false
+		if m.world != null:                                # (not on a hot spot: you'd want to cast there)
+			for s in m.world.spots:
+				if p.distance_to(s.pos) < 230.0: ok = false
 		if m.party != null:                                # (and clear of your party's boats)
 			for id in m.party.friends:
 				var f: Dictionary = m.party.friends[id]
@@ -142,6 +145,7 @@ func build_boat(bname: String, text: String, tag_col: Color, flip: bool, seed :=
 	var k := r.size / t.get_size()
 	var cx := (u.position.x + u.size.x * 0.5) * k.x
 	var top := Vector2(r.size.x - cx if r.flip_h else cx, u.position.y * k.y)
+	var box := Rect2(Vector2((t.get_size().x - u.end.x) if r.flip_h else u.position.x, u.position.y) * k, u.size * k)    # the boat itself, in the node
 	_layer().add_child(r)
 	var mirror: TextureRect = st._reflect_rect()
 	r.add_child(mirror)
@@ -160,7 +164,7 @@ func build_boat(bname: String, text: String, tag_col: Color, flip: bool, seed :=
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tag.add_child(label)
 	layer.add_child(tag)
-	return {"node": r, "tag": tag, "label": label, "top": top}
+	return {"node": r, "tag": tag, "label": label, "top": top, "box": box}
 
 func _arrive(who: Dictionary) -> void:
 	var rng := RandomNumberGenerator.new()
@@ -180,7 +184,7 @@ func _arrive(who: Dictionary) -> void:
 	if bb.is_empty(): return
 	(bb.node as Control).modulate.a = 0.0
 	(bb.tag as Control).modulate.a = 0.0
-	boats.append({"who": who, "node": bb.node, "tag": bb.tag, "label": bb.label, "a": a, "b": b, "t": 0.0, "top": bb.top,
+	boats.append({"who": who, "node": bb.node, "tag": bb.tag, "label": bb.label, "a": a, "b": b, "t": 0.0, "top": bb.top, "box": bb.box,
 		"stay": rng.randf_range(STAY[0], STAY[1]), "ph": rng.randf() * TAU, "splash": rng.randf_range(4.0, 9.0), "said": 0.0})
 	st._add_ripple(a, 60.0, 2.4)
 
@@ -232,7 +236,8 @@ func tap(p: Vector2) -> bool:
 	for v in boats:
 		var r: TextureRect = v.node
 		if not is_instance_valid(r) or r.modulate.a < 0.5: continue
-		var box := Rect2(r.position, r.size).grow(16.0)
+		var hull: Rect2 = v.get("box", Rect2(Vector2.ZERO, r.size))      # (the boat, not its picture's empty edges: a tap beside it still casts)
+		var box := Rect2(r.position + hull.position, hull.size).grow(16.0)
 		var tbox := Rect2((v.tag as Control).position, (v.tag as Control).size).grow(8.0)
 		if box.has_point(p) or tbox.has_point(p):
 			var who: Dictionary = v.who

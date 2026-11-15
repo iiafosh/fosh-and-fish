@@ -105,6 +105,28 @@ const REACTS := {
 	"level": [
 		{"by": "npc", "v": "scene", "cap": "@{me} just hit level {n}. remember us when you're famous #levelup #{btag}tok", "sticker": "level {n}!",
 			"say": ["I knew them at level 1", "@{me} carry me", "the {biome} isn't ready"]}],
+	"bullseye": [
+		{"by": "npc", "v": "scene", "cap": "@{me} just dropped a hook dead centre of a hot spot in the {biome}. from a moving boat. I can't hit my own bucket #{btag}tok #bullseye", "sticker": "dead centre",
+			"say": ["they do this every time", "@{me} teach me", "I missed the WATER once"]},
+		{"by": "fish", "v": "fish", "cap": "we had a nice quiet circle going. then @{me} put a hook right in the middle of it #{ftag}tok #rude", "sticker": "right in the middle",
+			"say": ["the circle was sacred", "who invited them", "@{me} there was a whole ocean"]}],
+	"streak": [
+		{"by": "npc", "v": "scene", "cap": "that's {n} bullseyes in a row for @{me}. at this point the fish should just get in the boat #{btag}tok #streak", "sticker": "{n} in a row",
+			"say": ["{n}?? I'm on zero", "the fish are filing a complaint", "@{me} blink if you're a robot"]}],
+	"storm": [
+		{"by": "npc", "v": "scene", "cap": "storm over the {biome} and @{me} is STILL out there fishing. respect. or concern #{btag}tok #storm", "sticker": "still fishing",
+			"say": ["the big ones come up in a storm", "someone bring them a towel", "@{me} wave if you need help"]},
+		{"by": "fish", "v": "fish", "cap": "lightning. thunder. and somehow @{me} is the scariest thing out here #{ftag}tok #stormwatch", "sticker": "not the weather",
+			"say": ["the weather doesn't have a hook", "staying deep today", "tell my mum I said hi"]}],
+	"wish": [
+		{"by": "npc", "v": "scene", "cap": "saw @{me} wish on a falling star and then catch double. I've been wishing wrong my whole life #{btag}tok #wish", "sticker": "wishing wrong",
+			"say": ["what did they wish for", "fish. it's always fish", "@{me} wish me a boat"]}],
+	"rainbow": [
+		{"by": "npc", "v": "scene", "cap": "@{me} found the end of the rainbow in the {biome}. there WAS gold. my whole childhood was true #{btag}tok #rainbow", "sticker": "there was gold",
+			"say": ["wet gold still counts", "I always stop one field short", "@{me} was there a leprechaun"]}],
+	"order": [
+		{"by": "market", "v": "fish", "cap": "order filled: {n} {fish}, right on time. thank you @{me}. five stars, would order again #{ftag}tok #fishmarket", "sticker": "order filled",
+			"say": ["fresh as they come", "@{me} same again tomorrow?", "the {fish} did not give five stars"]}],
 }
 const NICKS := ["Dave", "Kevin", "Big Steve", "Linda", "Uncle Gary", "Brenda", "Little Tim"]
 const FISH_HANDLES := ["{slug}.daily", "the_real_{slug}", "{slug}_mum", "{slug}s_united", "just_a_{slug}"]
@@ -378,6 +400,9 @@ static func react_post(vf, kind: String, ctx: Dictionary, seq: int) -> Dictionar
 	var who: Dictionary = CREATORS[rng.randi() % CREATORS.size()]
 	if tpl.by == "fish": who = fish_account(fish, rng)
 	elif tpl.by == "union": who = UNION
+	elif tpl.by == "market":                       # (the fish market itself, not one of its adverts)
+		who = MARKET.duplicate()
+		who.erase("sponsored")
 	var full := {"fish": fish, "ftag": tag(fish), "biome": biome, "btag": tag(biome), "n": VF.commas(int(ctx.get("n", 0))),
 		"tier": String(ctx.get("tier", "rare")), "me": handle_for(vf.player_name), "nick": _pick(rng, NICKS)}
 	var v := {"type": tpl.v, "biome": biome, "fish": fish, "tier": full.tier, "sticker": fill(tpl.sticker, full)}

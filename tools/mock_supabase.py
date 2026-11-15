@@ -14,6 +14,7 @@ It implements exactly what scripts/net/backend.gd calls:
   GET|POST(upsert: Prefer: resolution=merge-duplicates)|PATCH /rest/v1/saves
   GET|PATCH /rest/v1/profiles                  GET /rest/v1/leaderboard   POST /rest/v1/rpc/delete_my_account
   POST /rest/v1/rpc/try_shiny   GET /rest/v1/shinies   GET /rest/v1/shiny_board   GET /rest/v1/shiny_feed
+  POST /rest/v1/rpc/count_play (the anonymous player count)
 and mirrors supabase/schema.sql: row level security (players only see / write their own rows), unique
 case-insensitive names ("#1234" suffix when a new player's name is taken), and the saves guard (level /
 prestige / money_earned are copied from the save, no downgrades unless "overwrite": true, prestige speed
@@ -62,6 +63,7 @@ SHINIES = []      # {owner, species, serial, caught_at, _ts}
 ROLLS = {}        # user id -> time of the last roll
 DERBY_RUNS = []   # {id, owner, week, started, finished, score, wins, rounds, perfect} (schema.sql derby_runs)
 DERBY_CLAIMS = set()   # (owner, week)
+PLAYS = {}        # (platform, what) -> how many (schema.sql play_counts, without the day)
 CLOCK = {"offset": 0.0}  # /__mock/advance?days=N moves the derby's clock (weeks end without waiting)
 
 
@@ -547,6 +549,11 @@ class Handler(BaseHTTPRequestHandler):
             rows = [r for r in order_rows(leaderboard_rows(), q.get("order")) if matches(r, filters(params))]
             rows = rows[int(q.get("offset", 0)):][:int(q.get("limit", 1000))]
             return 200, [project(r, q.get("select")) for r in rows]
+        if path == "/rest/v1/rpc/count_play" and m == "POST":       # the anonymous player count: totals only, no login
+            what, plat = str(body.get("p_what", "")), str(body.get("p_platform", ""))
+            if plat in ("web", "android", "desktop") and re.fullmatch(r"day[0-9]{1,3}|tutorial|lv10|rebirth|shop", what):
+                PLAYS[(plat, what)] = PLAYS.get((plat, what), 0) + 1
+            return 204, None
         if path == "/rest/v1/rpc/delete_my_account" and m == "POST":
             uid = self._uid()
             revoke(uid)

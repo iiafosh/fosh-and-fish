@@ -389,11 +389,12 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	var res := {"ok": true, "fish": {}, "count": 0, "xp": 0, "chest": {}, "pet": "", "bait_used": "",
 		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0, "reel": reel_result,
 		"stars": 0, "event_fish": "", "event_money": 0, "boss_hp": -1, "boss_caught": false, "shiny_ticket": "",
-		"spot": "", "bull": false}
+		"spot": "", "bull": false, "streak": 0, "order": [], "order_pay": 0}
 	var spot: Dictionary = cast_bonus              # a hot spot or a wish (vf_world.gd): this cast's, and only this cast's
 	cast_bonus = {}
 	res.spot = String(spot.get("kind", ""))
 	res.bull = bool(spot.get("bull", false))
+	res.streak = int(spot.get("streak", 0))       # bullseyes in a row, this one included
 	var used_bait := has_bait()
 	var n := _fish_count(false, fish_bonus + float(spot.get("fish", 0.0)))
 	var caught := _distribute(n, float(spot.get("quality", 1.0)))
@@ -454,6 +455,8 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_gerald_cast()
 	if res.spot != "": stat_add("spots")
 	if res.bull: stat_add("bullseyes")
+	if res.bull and int(res.streak) > int(stats.get("best_streak", 0)): stats["best_streak"] = int(res.streak)
+	_order_catch(caught, res)
 	trip_done.emit(res)
 	check_goals()
 	changed.emit()
@@ -492,6 +495,67 @@ func biting_now() -> Array:
 	for k in range(1, names.size()):
 		if float(odds[k]) > 0.0 and bites_best(names[k]): out.append(names[k])
 	return out
+
+# ---- the merchant's order of the day (data: VFData.ORDER_*). The Fish Book shows it, the weather pill counts it.
+signal order_new(o: Dictionary)
+signal order_done(o: Dictionary, pay: int)
+var order := {}                           # {day, biome, fish, cond, goal, prog, paid}; fish "": nothing to order here today
+
+## today's order, or {}: before ORDER_LEVEL, in the tutorial, or when no fish here has a favourite hour or weather
+func order_today() -> Dictionary:
+	if (level < VFData.ORDER_LEVEL and prestige == 0) or tutorial < 99: return {}
+	var t := _today()
+	if String(order.get("day", "")) != t:
+		order = _make_order(t)
+		if String(order.fish) != "": order_new.emit(order)
+	return order if String(order.get("fish", "")) != "" else {}
+
+## One of the fish your rod can catch here (not the commonest), with one of the things it likes that can happen here.
+## The same day gives the same pick; how many depends on your gear, like the FishTok challenge.
+func _make_order(day: String) -> Dictionary:
+	var names: Array = VFData.BIOMES[biome].fish
+	var odds := species_odds("", "", -1.0, 1.0, true)
+	var clock: bool = biome in VFData.DAY_BIOMES and bool(world.get("clock", true))     # (no day and night with the scenery effects off)
+	var picks := []
+	for k in range(1, names.size()):
+		if float(odds[k]) <= 0.0: continue
+		for c in VFData.FISH_LIKES.get(names[k], []):
+			if c in VFData.BIOME_WEATHER.get(biome, []) or (clock and c in ["night", "dusk"]): picks.append([k, c])
+	if picks.is_empty(): return {"day": day, "biome": biome, "fish": "", "cond": "", "goal": 0, "prog": 0, "paid": true}
+	var p: Array = picks[absi(hash("order:" + day)) % picks.size()]
+	var per_cast: float = _tok_avg_fish() * float(odds[p[0]]) * VFData.LIKE_BOOST
+	return {"day": day, "biome": biome, "fish": names[p[0]], "cond": p[1], "goal": _tok_nice(per_cast * VFData.ORDER_CASTS, 1), "prog": 0, "paid": false}
+
+## "5 Pufferfish, caught at night (the River)"
+func order_text(o: Dictionary = {}) -> String:
+	if o.is_empty(): o = order_today()
+	if o.is_empty(): return ""
+	return "%s (%s)" % [VFData.order_words(String(o.fish), String(o.cond), int(o.goal)), VFData.GERALD_PLACES.get(String(o.biome), String(o.biome))]
+
+## your own cast landed these: the ones the order asks for count while its hour or weather is on, in its biome
+func _order_catch(caught: Dictionary, res: Dictionary) -> void:
+	var o := order_today()
+	if o.is_empty() or o.paid or String(o.biome) != biome or not String(o.cond) in conditions(): return
+	var n := int(caught.get(o.fish, 0))
+	if n <= 0: return
+	o.prog = mini(int(o.goal), int(o.prog) + n)
+	res.order = [int(o.prog), int(o.goal)]
+	if int(o.prog) < int(o.goal): return
+	o.paid = true
+	res.order_pay = pay_find(VFData.ORDER_PAY)
+	stars += VFData.ORDER_STARS
+	stat_add("orders")
+	order_done.emit(o, int(res.order_pay))
+
+func _order_apply(d) -> void:
+	order = {}
+	if typeof(d) != TYPE_DICTIONARY or String(d.get("day", "")) == "": return
+	var f := String(d.get("fish", ""))
+	var b := String(d.get("biome", ""))
+	var c := String(d.get("cond", ""))
+	if f != "" and not (VFData.FISH.has(f) and VFData.BIOMES.has(b) and VFData.LIKE_WORDS.has(c)): return
+	order = {"day": String(d.day), "biome": b, "fish": f, "cond": c, "goal": maxi(0, int(d.get("goal", 0))),
+		"prog": maxi(0, int(d.get("prog", 0))), "paid": bool(d.get("paid", false)) or f == ""}
 
 ## "Reel it in!" mode: the catch after the mini-game (the mini-game already waited, so the
 ## cooldown is not checked again). Win: +MINIGAME_FISH_BONUS fish and the next cast is ready
@@ -1035,6 +1099,7 @@ func do_prestige() -> String:
 	specials = {}
 	charms = {}
 	boosts = {"fish": 0.0, "treasure": 0.0, "worker": 0.0}
+	order = {}                                 # (it was for a biome you can't sail to yet: the River gets one)
 	_rebirth_told = false
 	toast.emit("Welcome to Prestige %d! +1 Azure Fish. Guide pick: %s" % [prestige, VFData.prestige_guide(prestige).main], "prestige")
 	check_goals()
@@ -1068,6 +1133,7 @@ func to_dict() -> Dictionary:
 		"hat": hat,
 		"finds": finds,
 		"ach_claimed": ach_claimed,
+		"order": order,
 	}
 
 var autosave := true
@@ -1158,6 +1224,7 @@ func _apply(d: Dictionary) -> void:
 	_hats_apply(d.get("hats_owned", []), d.get("hat", "straw"))
 	_finds_apply(d.get("finds", {}))
 	_ach_apply(d.get("ach_claimed", {}))
+	_order_apply(d.get("order", {}))
 	offline_check()                        # what the crews caught since this save was written
 
 ## A save can name things this copy of the game doesn't have: made by a newer version on another device, or edited by hand.

@@ -7,6 +7,7 @@
 --   profiles     one row per account: the public fisher name (unique, case-insensitive)
 --   saves        one row per account: the whole save (jsonb) + level / prestige / money_earned copied from it
 --   leaderboard  a public, read-only view: name, level, prestige, money earned. Never emails, ids or saves.
+--   play_counts  the anonymous player count: totals per day (at the end of this file). No accounts, names or ids.
 --
 -- Security: Row Level Security on both tables: a player can read and write only their own rows.
 -- The game is client-authoritative (the save is made on the player's device), so the leaderboard can be
@@ -557,3 +558,59 @@ drop view if exists public.players_public;
 create view public.players_public with (security_invoker = true) as select * from private.players_public_rows();
 revoke all on public.players_public from anon, authenticated;
 grant select on public.players_public to anon, authenticated;
+
+
+-- ================================================================ the anonymous player count (1.2)
+-- How many people play, how many are new, and how many come back. The game (scripts/net/backend.gd, _count_tick) calls
+-- count_play() once a day per device with "day<N>": N days since that device first played (day0 = a new player, day1 =
+-- back the next day ...), and once ever for a few firsts: tutorial (finished it), lv10, rebirth, shop (opened it).
+-- Only totals are kept: no account, no name, no device id, nothing that tells one player from another. It needs no
+-- login, so anyone with the public key can add to a total: read the numbers as a guide, not as accounting.
+-- To read them: Supabase Dashboard -> SQL Editor ->   select * from public.play_stats;
+create table if not exists public.play_counts (
+  day      date   not null,
+  platform text   not null,
+  what     text   not null,
+  n        bigint not null default 0,
+  primary key (day, platform, what)
+);
+alter table public.play_counts enable row level security;          -- no policies: nobody reads or writes it directly
+revoke all on public.play_counts from anon, authenticated;
+
+create or replace function public.count_play(p_what text, p_platform text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_platform is null or p_platform not in ('web', 'android', 'desktop') then return; end if;
+  if p_what is null or p_what !~ '^(day[0-9]{1,3}|tutorial|lv10|rebirth|shop)$' then return; end if;
+  if p_what like 'day%' and substr(p_what, 4)::int > 365 then return; end if;     -- (the game stops at day365)
+  insert into play_counts (day, platform, what, n)
+  values ((now() at time zone 'utc')::date, p_platform, p_what, 1)
+  on conflict (day, platform, what) do update set n = play_counts.n + 1;
+end;
+$$;
+revoke all on function public.count_play(text, text) from public;
+grant execute on function public.count_play(text, text) to anon, authenticated;
+
+-- a day per row, newest first. For the owner only: the dashboard reads it as the database owner, players have no
+-- right to it (and play_counts has row level security with no policy, so it would show them nothing anyway).
+create or replace view public.play_stats with (security_invoker = true) as
+select day,
+       coalesce(sum(n) filter (where what ~ '^day'), 0)     as players,
+       coalesce(sum(n) filter (where what = 'day0'), 0)     as new_players,
+       coalesce(sum(n) filter (where what = 'day1'), 0)     as back_next_day,
+       coalesce(sum(n) filter (where what = 'day7'), 0)     as back_after_a_week,
+       coalesce(sum(n) filter (where what = 'tutorial'), 0) as finished_tutorial,
+       coalesce(sum(n) filter (where what = 'lv10'), 0)     as reached_level_10,
+       coalesce(sum(n) filter (where what = 'rebirth'), 0)  as first_rebirth,
+       coalesce(sum(n) filter (where what = 'shop'), 0)     as opened_shop,
+       coalesce(sum(n) filter (where what ~ '^day' and platform = 'web'), 0)     as on_web,
+       coalesce(sum(n) filter (where what ~ '^day' and platform = 'android'), 0) as on_android,
+       coalesce(sum(n) filter (where what ~ '^day' and platform = 'desktop'), 0) as on_pc
+from public.play_counts
+group by day
+order by day desc;
+revoke all on public.play_stats from anon, authenticated;

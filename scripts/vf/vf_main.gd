@@ -143,6 +143,7 @@ func _ready() -> void:
 	VF.changed.connect(_refresh)
 	VF.trip_done.connect(_on_trip)
 	VF.trip_done.connect(_tok_on_trip)
+	VF.order_new.connect(func(o: Dictionary): _toast("The merchant's order today: %s. It's in the Fish Book." % VF.order_text(o), "quest"))
 	VF.leveled_up.connect(func(lvl: int, _money: int):
 		if lvl % 5 == 0: tok_react("level", {"n": lvl, "biome": VF.biome}))
 	stage.night_changed.connect(func(_on): AudioManager.music_place(VF.biome, stage.night_music()))
@@ -326,7 +327,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible \
 			and get_global_rect().has_point(event.position):          # (not on the strip the docked phone stands in)
 		if VF.tutorial >= 99 and world.tap(event.position): return   # a falling star, a rainbow's end (vf_world.gd)
-		if VF.tutorial >= 99 and stage.poke(event.position): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
+		if VF.tutorial >= 99 and stage.poke(event.position, not world.on_spot(event.position)): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
 		_do_cast()
@@ -1301,6 +1302,14 @@ func _reveal_trip(res: Dictionary) -> void:
 		_banner("New fish discovered!", "%s  ·  %d / %d in your collection" % [f, VF.discovered.size(), VFData.FISH_ORDER.size()],
 			icon_for("fish", f), Color("#2f8f9e"))
 		stage.burst("sparkle", stage._bobber)
+	if int(res.get("order_pay", 0)) > 0:           # the merchant's order is filled (VF._order_catch)
+		var o: Dictionary = VF.order
+		_banner("Order filled!", "%s\n+%s and %d Event Stars" % [VF.order_text(o), money_str(int(res.order_pay)), VFData.ORDER_STARS],
+			icon_for("fish", String(o.get("fish", ""))), C_GOLD)
+		AudioManager.play_success()
+		tok_react("order", {"fish": String(o.get("fish", "Cod")), "n": int(o.get("goal", 1)), "biome": String(o.get("biome", VF.biome))})
+	elif not (res.get("order", []) as Array).is_empty():
+		_float_text("Order %s/%s" % [VF.commas(int(res.order[0])), VF.commas(int(res.order[1]))], stage.deck_screen() + Vector2(0, -78), C_GOLD)
 	if int(res.get("lucky", 0)) > 0:
 		_float_text("Lucky splash!  +%s" % money_str(res.lucky), stage.bobber_screen() + Vector2(0, -70), C_GOLD)
 		stage.burst("sparkle", stage._bobber)
@@ -1464,7 +1473,9 @@ func _show_catch(res: Dictionary) -> void:
 	elif res.get("reel", "") == "lose":
 		card_body.add_child(lbl("It got away... normal catch", 13, C_MUTED))
 	if String(res.get("spot", "")) != "":          # a hot spot (vf_world.gd)
-		card_body.add_child(lbl("Hot spot: %s%s" % [VFData.SPOTS[res.spot].name, "  ·  bullseye!" if res.get("bull", false) else ""], 13, C_TEAL))
+		var bull := ""
+		if res.get("bull", false): bull = "  ·  bullseye!" if int(res.get("streak", 0)) < 2 else "  ·  bullseye x%d!" % int(res.streak)
+		card_body.add_child(lbl("Hot spot: %s%s" % [VFData.SPOTS[res.spot].name, bull], 13, C_TEAL))
 	if not res.chest.is_empty():
 		var c: Dictionary = res.chest
 		var row := HBoxContainer.new()
@@ -1662,6 +1673,7 @@ func _open_panel(kind: String, tab: String = "") -> void:
 	tab = home[1]
 	if VF.tutorial == 2 and kind == "shop":
 		_coach_next(3)
+	if kind == "shop": Backend.count_once("shop")       # (the anonymous count: has this player ever opened the Shop)
 	var opening := not overlay.visible
 	var fresh := opening or kind != _panel_kind or (tab != "" and tab != _panel_tab)
 	_panel_kind = kind
@@ -1860,8 +1872,18 @@ func _panel_inventory() -> void:
 			ic.tooltip_text += "\nTrending on FishTok today: sells for +50%"
 		if known and VFData.likes_text(f) != "": ic.tooltip_text += "\nBites best " + VFData.likes_text(f)
 		dex.add_child(ic)
+	# the merchant's order of the day (VF.order_today): filled by catching the fish while it's biting best
+	var o: Dictionary = VF.order_today()
+	if not o.is_empty():
+		panel_body.add_child(lbl("The merchant's order", 18))
+		var how := "Filled! A new order comes tomorrow." if o.paid else "%s / %s  ·  pays about %s and %d Event Stars. Only your own catches count, and only then." % [
+			VF.commas(int(o.prog)), VF.commas(int(o.goal)), money_str(VF.find_value(VFData.ORDER_PAY)), VFData.ORDER_STARS]
+		var og := _grid(1)
+		_add_to(og, _card(icon_for("fish", String(o.fish)), VF.order_text(o), how, null, bool(o.paid), 56))
 	# when each fish bites best: the weather and the hour (vf_world.gd). A fish you haven't caught keeps its secret
 	panel_body.add_child(lbl("When they bite best", 18))
+	var sky: String = world.forecast_text() if world else ""
+	if sky != "": panel_body.add_child(lbl(sky, 13, C_MUTED))
 	var here: Array = VF.biting_now()
 	var habits := _grid(3)
 	for f in VFData.FISH_ORDER:
@@ -2290,6 +2312,12 @@ func _check_capture() -> void:
 		if a.begins_with("--demo="): demo = a.substr(7)
 	if dir == "": return
 	VF.autosave = false
+	# A capture run is a real window. On a PC somebody is using it would take the keyboard, and their keys and clicks would
+	# land in the test (a stray cast, a poked gull, a closed panel). So it can't be focused and it stands off the screen;
+	# the pictures come out the same. --watch keeps it where you can see it.
+	if not "--watch" in OS.get_cmdline_user_args():
+		get_window().unfocusable = true
+		get_window().position = Vector2i(-8000, -8000)
 	if "--update-test" in OS.get_cmdline_user_args():
 		# exported-build test of in-game updates (tools/release.py --local + a local web server):
 		# download -> verify -> restart, then report what is running. Writes user://update_test.txt

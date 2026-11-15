@@ -231,6 +231,26 @@ const SPOT_EVERY := [22.0, 40.0]   # seconds from one going to the next turning 
 const SPOT_LIFE := 34.0
 const SPOT_LEVEL := 2           # (not in the very first minutes)
 const WISH_FISH := 1.0          # a wish on a falling star: +100% fish on your next cast
+## Bullseyes in a row: every one after the first adds STREAK_STEP to what a hot spot gives (fish, rarer fish, coins; not its
+## chests), up to STREAK_MAX steps. A hit that isn't a bullseye starts the count again.
+const STREAK_STEP := 0.1
+const STREAK_MAX := 5
+
+static func streak_mult(n: int) -> float:
+	return 1.0 + STREAK_STEP * clampi(n - 1, 0, STREAK_MAX)
+
+## The merchant's order of the day: so many of one fish, caught while it's biting best (one of its FISH_LIKES that can come
+## true in the biome the order was made in). Filled: ORDER_PAY casts' worth of money, like a find, and ORDER_STARS Event Stars.
+const ORDER_LEVEL := 5
+const ORDER_CASTS := 12.0       # the goal is about what this many casts bring while the fish is biting best
+const ORDER_PAY := 12.0
+const ORDER_STARS := 3
+const DAY_BIOMES := ["River", "Volcanic", "Ocean", "Sky", "Alien"]      # the biomes with a sun (vf_stage.DAYLIGHT): night and dusk come there
+
+## "5 Pufferfish, caught at night"
+static func order_words(fish: String, cond: String, goal: int) -> String:
+	var when := "at dawn or dusk" if cond == "dusk" else String(LIKE_WORDS.get(cond, cond))
+	return "%s %s, caught %s" % [_commas(goal), fish, when]
 
 ## "at night, in a storm": when a fish bites best ("" if it doesn't care)
 static func likes_text(f: String) -> String:
@@ -1052,6 +1072,12 @@ const ACHIEVEMENTS := [
 	{"id": "hats_5", "name": "Hat Person", "desc": "Own 5 hats.", "stat": "hats", "goal": 5, "pearls": 5, "joke": true},
 	{"id": "glass_50", "name": "Please Don't Tap the Glass", "desc": "Tap the aquarium 50 times.", "stat": "glass_taps", "goal": 50, "pearls": 3, "joke": true},
 	{"id": "voyages_25", "name": "Are We There Yet?", "desc": "Sail to another biome 25 times.", "stat": "voyages", "goal": 25, "pearls": 5, "joke": true},
+	{"id": "bull_1", "name": "Bullseye", "desc": "Cast into the middle of a hot spot.", "stat": "bullseyes", "goal": 1, "pearls": 2},
+	{"id": "bull_50", "name": "Sharpshooter", "desc": "Hit 50 bullseyes.", "stat": "bullseyes", "goal": 50, "pearls": 10},
+	{"id": "streak_5", "name": "On a Roll", "desc": "Hit 5 bullseyes in a row.", "stat": "best_streak", "goal": 5, "pearls": 10},
+	{"id": "orders_7", "name": "Regular Customer", "desc": "Fill 7 of the merchant's orders.", "stat": "orders", "goal": 7, "pearls": 10},
+	{"id": "wish_10", "name": "Starry-Eyed", "desc": "Wish on 10 falling stars. It was fish every time.", "stat": "wishes", "goal": 10, "pearls": 5, "joke": true},
+	{"id": "rainbow_5", "name": "Wet Gold", "desc": "Find the end of 5 rainbows.", "stat": "rainbows", "goal": 5, "pearls": 5, "joke": true},
 ]
 const BOOK_BONUS := 0.05          # every fish of a biome in the Fish Book: this much more money there, for good
 const AQUARIUM_MAX := 0.30        # every species in the aquarium: visitors add this much to the catch while you're away

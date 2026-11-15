@@ -109,6 +109,16 @@ Open **Authentication**.
   select p.display_name, s.level, s.prestige, s.updated_at    -- most recently active
     from saves s join profiles p on p.id = s.user_id order by s.updated_at desc limit 20;
   ```
+- **How many people play** (the anonymous player count): SQL Editor → `select * from play_stats;`
+  One row a day, newest first: `players` (everyone who opened the game that day), `new_players`,
+  `back_next_day` and `back_after_a_week` (people on the first and seventh day after their first),
+  `finished_tutorial`, `reached_level_10`, `first_rebirth`, `opened_shop` (each counted once per
+  device, on the day it happened), and `on_web` / `on_android` / `on_pc`. To see how many of one
+  day's new players came back, compare `back_next_day` with `new_players` of the day before.
+  Players who had already played before the count was added show up as returning, never as new.
+  It keeps totals only (no accounts, names or ids), and it isn't protected against someone
+  inflating it: read it as a guide. It starts counting once the SQL at the end of
+  `supabase/schema.sql` ("the anonymous player count") has been run.
 - **Restoring a save by hand**: edit `data` in the Table Editor. The guard also checks your own
   edits. To *lower* someone's progress, set `overwrite` to `true` in the same edit.
 - **Free plan limits**: 500 MB database (a save is a few KB, enough for tens of thousands of

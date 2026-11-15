@@ -1255,14 +1255,8 @@ func on_claim_challenge(post) -> void:
 
 func _chest_text(c: Dictionary) -> String:
 	if c.is_empty(): return ""
-	var bits := []
-	for k in c.get("items", {}):
-		var val = c.items[k]
-		if k == "money": bits.append("$" + VF.fmt(val))
-		elif k == "xp": bits.append("%s XP" % VF.fmt(val))
-		elif k == "charms": bits.append("%d charms" % val.size())
-		elif VFData.EXOTICS.has(k): bits.append("%d %s" % [val, VFData.EXOTICS[k].name])
-	return "  (chest: %s)" % ", ".join(bits) if bits else ""
+	var what: String = VF.chest_text(c)          # (the game's own words: "4 Haste Charms", not how many kinds there were)
+	return "  (chest: %s)" % what if what != "" else ""
 
 func _confetti() -> void:
 	var p := particles("confetti", Rect2(0, -10, SCR.x, 20), notif_layer)
@@ -1672,7 +1666,7 @@ func _page_inbox() -> Control:
 	if fans > 0:
 		var c: Dictionary = Tok.CREATORS[fans % Tok.CREATORS.size()]
 		v.add_child(_inbox_row("user-circle", Color("#8b5cf6"), "New followers",
-			"%s%s followed you" % [c.handle, (" and %s others" % Tok.count(fans - 1)) if fans > 1 else ""], func(): show_page("profile")))
+			"%s%s followed you" % [c.handle, (" and 1 other" if fans == 2 else " and %s others" % Tok.count(fans - 1)) if fans > 1 else ""], func(): show_page("profile")))
 	var posts: Array = VF.tok_posts.duplicate()
 	posts.reverse()
 	for i in mini(12, posts.size()):
@@ -1962,10 +1956,8 @@ func _on_vf_changed() -> void:
 	if not visible or _closing: return
 	if app == "home": _refresh_home()
 	elif page == "discover" or page == "inbox":
-		if not docked:
-			show_page(page)
-			return
-		# Beside the game this fires with every catch: rebuild the page at most every few seconds, and keep where you were.
+		# This fires with every catch (auto-fish and the crews keep going behind a full-screen phone too): rebuild the page
+		# at most every few seconds, and keep where you were. (What you tap on these pages redraws them itself.)
 		var now := Time.get_ticks_msec()
 		if now < _refresh_at: return
 		_refresh_at = now + 6000
