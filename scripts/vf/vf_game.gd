@@ -16,6 +16,13 @@ signal charms_found(got: Dictionary, chest: String)   # charms came in (kind -> 
 signal chest_found(out: Dictionary, from: String)     # a chest opened that wasn't your cast's (worker | reward): the banner says what
 
 const SAVE_PATH := "user://vf_save.json"
+var save_file := SAVE_PATH                # where this game saves (tests save somewhere else). Beside it: .tmp, a save
+                                          # being written, and .bak, the save before the last one
+## what every save has (Backend.save_valid checks a cloud save for the same)
+const SAVE_KEYS := ["name", "prestige", "level", "xp", "money", "biome", "rod", "bait", "pet", "owned_rods", "boats_owned",
+	"bait_stock", "inventory", "exotics", "hooks", "upgrades", "specials", "league", "perks", "charms", "pets",
+	"trips_without_pet", "boosts", "personal_boosters", "personal_until", "stats", "quest_day", "quest_progress",
+	"quest_claimed", "week_key", "week_trips", "week_hooks", "daily_last", "daily_streak"]
 const SAVE_VERSION := 1
 const MAX_LEVEL := 25000
 
@@ -72,9 +79,11 @@ var worker_fish_total := 0
 var _last_cast_ms := -100000
 var _cd_override := -1.0                  # cooldown of the last cast when it was not the normal one (mini-game win)
 var reel_result := ""                     # "win" / "lose" while cast_reel() runs (-> result "reel")
+var _reel_biter := ""                     # the fish you beat, while cast_reel() runs
 var world := {"weather": "clear", "night": false, "dusk": false}     # the sky over the biome now (vf_world.gd keeps it; never saved)
 var cast_bonus := {}                      # for the next cast only: a hot spot or a wish {kind, bull, fish, quality, chest} (vf_world.gd)
 var _worker_accum := 0.0
+var _day_tick := 0.0
 var _rebirth_told := false                # the "Rebirth ready!" toast was shown (once a run, once a session)
 
 var _defaults := {}
@@ -93,6 +102,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_ev_tick(delta)
 	_idle_tick(delta)
+	_day_tick += delta
+	if _day_tick >= 30.0:                      # a new day (UTC) with the game open: the quests start over without waiting for a cast
+		_day_tick = 0.0
+		var day := quest_day
+		_roll_quest_day()
+		if quest_day != day: changed.emit()
 	if is_boost_active("worker"):
 		_worker_accum += delta
 		var cd := worker_cooldown()
@@ -280,12 +295,15 @@ func _rod_table(r: String, b: String) -> Array:
 	return best if not best.is_empty() else cheapest
 
 ## Wiki fish-quality rule: from the top tier down, E_n = min(Q_n * fq, 1 - sum(higher)).
-func species_odds(r: String = "", b: String = "", fq: float = -1.0) -> Array:
+## lure: a hot spot's pull on rarer fish, for that one cast (x fish quality). calm: as on a clear day at noon, whatever the
+## sky is doing (prices and goals that shouldn't move with the weather).
+func species_odds(r: String = "", b: String = "", fq: float = -1.0, lure := 1.0, calm := false) -> Array:
 	if r == "": r = rod
 	if b == "": b = biome
 	if fq < 0.0: fq = fish_quality_mult()
-	var here := b == biome                     # the weather and the hour are over the biome you're in
-	if here: fq *= world_mult("quality") * float(cast_bonus.get("quality", 1.0))
+	var here := b == biome and not calm        # the weather and the hour are over the biome you're in
+	fq *= lure
+	if here: fq *= world_mult("quality")
 	var names: Array = VFData.BIOMES[b].fish
 	var q: Array = _rod_table(r, b)
 	var total := 0.0
@@ -328,8 +346,8 @@ func _fish_count(for_worker: bool = false, fish_bonus: float = 0.0) -> int:
 		n *= 2
 	return n
 
-func _distribute(n: int) -> Dictionary:
-	var odds := species_odds()
+func _distribute(n: int, lure := 1.0) -> Dictionary:
+	var odds := species_odds("", "", -1.0, lure)
 	var names: Array = VFData.BIOMES[biome].fish
 	var out := {}
 	if n <= 0: return out
@@ -371,10 +389,22 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	var res := {"ok": true, "fish": {}, "count": 0, "xp": 0, "chest": {}, "pet": "", "bait_used": "",
 		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0, "reel": reel_result,
 		"stars": 0, "event_fish": "", "event_money": 0, "boss_hp": -1, "boss_caught": false, "shiny_ticket": "",
-		"spot": String(cast_bonus.get("kind", "")), "bull": bool(cast_bonus.get("bull", false))}
+		"spot": "", "bull": false}
+	var spot: Dictionary = cast_bonus              # a hot spot or a wish (vf_world.gd): this cast's, and only this cast's
+	cast_bonus = {}
+	res.spot = String(spot.get("kind", ""))
+	res.bull = bool(spot.get("bull", false))
 	var used_bait := has_bait()
-	var n := _fish_count(false, fish_bonus + float(cast_bonus.get("fish", 0.0)))
-	var caught := _distribute(n)
+	var n := _fish_count(false, fish_bonus + float(spot.get("fish", 0.0)))
+	var caught := _distribute(n, float(spot.get("quality", 1.0)))
+	# Reel it in!: the fish you just beat is in the catch (it takes the place of one of the commonest)
+	if _reel_biter != "" and n > 0 and not caught.has(_reel_biter) and _reel_biter in VFData.BIOMES[biome].fish:
+		for f in VFData.BIOMES[biome].fish:
+			if int(caught.get(f, 0)) > 0:
+				caught[f] = int(caught[f]) - 1
+				if int(caught[f]) <= 0: caught.erase(f)
+				break
+		caught[_reel_biter] = 1
 	var xp_gain := 0.0
 	for f in caught:
 		inventory[f] = int(inventory.get(f, 0)) + caught[f]
@@ -387,7 +417,7 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	res.count = n
 	res.xp = int(round(xp_gain))
 	# chest
-	if level >= 10 and rng.randf() < treasure_chance() * (VFData.MINIGAME_CHEST_MULT if fish_bonus > 0.0 else 1.0) * world_mult("chest") * float(cast_bonus.get("chest", 1.0)):
+	if level >= 10 and rng.randf() < treasure_chance() * (VFData.MINIGAME_CHEST_MULT if fish_bonus > 0.0 else 1.0) * world_mult("chest") * float(spot.get("chest", 1.0)):
 		res.chest = _open_chest(_roll_chest_tier())
 		_quest_add("chests", 1)
 	elif lg("super_crates") > 0 and rng.randf() < treasure_quality() * lg("super_crates") / 4000.0:
@@ -424,7 +454,6 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_gerald_cast()
 	if res.spot != "": stat_add("spots")
 	if res.bull: stat_add("bullseyes")
-	cast_bonus = {}
 	trip_done.emit(res)
 	check_goals()
 	changed.emit()
@@ -468,10 +497,13 @@ func biting_now() -> Array:
 ## cooldown is not checked again). Win: +MINIGAME_FISH_BONUS fish and the next cast is ready
 ## after MINIGAME_COOLDOWN. Lose: the normal catch and the normal cooldown, counted from
 ## cast_start_ms (when the line went out), so it is never slower than Relax mode.
-func cast_reel(won: bool, cast_start_ms: int = -1) -> Dictionary:
+## biter: the fish that was on the line. Won: there's one in the catch, whatever the dice say.
+func cast_reel(won: bool, cast_start_ms: int = -1, biter := "") -> Dictionary:
 	_last_cast_ms = -100000
 	reel_result = "win" if won else "lose"           # read by the catch card (trip_done)
+	_reel_biter = biter if won else ""
 	var res := cast(VFData.MINIGAME_FISH_BONUS if won else 0.0)
+	_reel_biter = ""
 	reel_result = ""
 	if res.ok:
 		if won:
@@ -491,7 +523,7 @@ func pay_find(casts: float) -> int:
 
 ## what pay_find would pay now
 func find_value(casts: float) -> int:
-	var odds: Array = species_odds()
+	var odds: Array = species_odds("", "", -1.0, 1.0, true)      # (a hat's price doesn't go up in a storm)
 	var names: Array = VFData.BIOMES[biome].fish
 	var each := 0.0
 	for k in names.size():
@@ -766,8 +798,11 @@ func buy_rod(r: String) -> String:
 	if level < d.level: return "%s needs level %d." % [r, d.level]
 	if not _spend(d.cost): return "Not enough money."
 	owned_rods.append(r)
-	rod = r
-	toast.emit("Bought the %s!" % r, "buy")
+	if rod_usable(r) or not rod_usable():
+		rod = r
+		toast.emit("Bought the %s!" % r, "buy")
+	else:                                      # it can't fish here: the rod that can stays on
+		toast.emit("Bought the %s! It can't fish in %s, so your %s stays on." % [r, VFData.GERALD_PLACES.get(biome, biome), rod], "buy")
 	changed.emit()
 	check_goals()
 	return ""
@@ -950,7 +985,7 @@ func _quest_add(stat: String, n: int) -> void:
 			var gm := int(maxf(500.0, levelup_money(level)) * 0.5 * claimed)
 			var gx := int(xp_to_next() * 0.03 * claimed)
 			money += gm
-			xp += gx
+			add_xp(gx)                         # (it used to sit in the bar, over the top, until the next catch)
 			toast.emit("Quest complete: %s %d (+$%s, +%s XP)" % [q.name, q.goals[claimed - 1], fmt(gm), fmt(gx)], "quest")
 		quest_claimed[q.id] = claimed
 	var sq := special_quest()
@@ -1037,17 +1072,51 @@ func to_dict() -> Dictionary:
 
 var autosave := true
 
+## Written beside the save and then swapped in, so a game that's closed in the middle of writing (phones do that without
+## asking) never leaves half a file. The save before it stays as a backup, and load_game falls back to it.
 func save_game() -> void:
 	if not autosave: return
 	idle_seen = Time.get_unix_time_from_system()
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify(to_dict()))
+	var text := JSON.stringify(to_dict())
+	var f := FileAccess.open(save_file + ".tmp", FileAccess.WRITE)
+	var dir := DirAccess.open(save_file.get_base_dir())
+	var fname := save_file.get_file()
+	if f == null or dir == null:
+		_save_plain(text)
+		return
+	f.store_string(text)
+	f.close()
+	if dir.file_exists(fname):
+		if dir.file_exists(fname + ".bak"): dir.remove(fname + ".bak")
+		dir.rename(fname, fname + ".bak")
+	if dir.rename(fname + ".tmp", fname) != OK: _save_plain(text)
 
+func _save_plain(text: String) -> void:
+	var f := FileAccess.open(save_file, FileAccess.WRITE)
+	if f: f.store_string(text)
+
+## the newest save that's whole: the save, one that was written but not swapped in yet, or the one before
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH): return
-	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
-	if typeof(d) != TYPE_DICTIONARY or int(d.get("v", 0)) != SAVE_VERSION: return
-	_apply(d)
+	for path in [save_file, save_file + ".tmp", save_file + ".bak"]:
+		var d := read_save(path)
+		if not d.is_empty():
+			_apply(d)
+			return
+
+## a save file this game can load, or {}: missing, cut short, damaged, from a newer save format, or not a save at all
+static func read_save(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path): return {}
+	var text := FileAccess.get_file_as_string(path)
+	if text.strip_edges() == "": return {}
+	var json := JSON.new()
+	if json.parse(text) != OK or typeof(json.data) != TYPE_DICTIONARY: return {}
+	var d: Dictionary = json.data
+	var v := int(d.get("v", 0))
+	if v < 1 or v > SAVE_VERSION: return {}
+	for k in SAVE_KEYS:
+		if not d.has(k): return {}
+	if typeof(d.stats) != TYPE_DICTIONARY or typeof(d.pets) != TYPE_DICTIONARY or typeof(d.owned_rods) != TYPE_ARRAY: return {}
+	return d
 
 func _apply(d: Dictionary) -> void:
 	player_name = d.name
@@ -1065,6 +1134,7 @@ func _apply(d: Dictionary) -> void:
 	quest_claimed = d.quest_claimed; week_key = d.week_key; week_trips = int(d.week_trips)
 	week_hooks = int(d.week_hooks); daily_last = float(d.daily_last); daily_streak = int(d.daily_streak)
 	discovered = _ints(d.get("discovered", {}))
+	_clean_ids()
 	tutorial = int(d.get("tutorial", 0))
 	sail_hint = bool(d.get("sail_hint", false))
 	ducks = int(d.get("ducks", 0))
@@ -1090,13 +1160,42 @@ func _apply(d: Dictionary) -> void:
 	_ach_apply(d.get("ach_claimed", {}))
 	offline_check()                        # what the crews caught since this save was written
 
+## A save can name things this copy of the game doesn't have: made by a newer version on another device, or edited by hand.
+## Looking one of them up would stop the game, so they're dropped, and what you hold falls back to something that exists.
+func _clean_ids() -> void:
+	if not VFData.BIOMES.has(biome): biome = "River"
+	owned_rods = owned_rods.filter(func(r): return VFData.RODS.has(r))
+	if not "Plastic Rod" in owned_rods: owned_rods.push_front("Plastic Rod")
+	if not VFData.RODS.has(rod): rod = "Plastic Rod"
+	for k in bait_stock.keys():
+		if not VFData.BAITS.has(k): bait_stock.erase(k)
+	if bait != "" and not VFData.BAITS.has(bait): bait = ""
+	for k in inventory.keys():
+		if not VFData.FISH.has(k): inventory.erase(k)
+	for k in discovered.keys():
+		if not VFData.FISH.has(k): discovered.erase(k)
+	for k in pets.keys():
+		if not VFData.PETS.has(k): pets.erase(k)
+	if pet != "" and not pets.has(pet): pet = ""
+	for k in ["gold", "emerald", "lava", "diamond", "azure"]:
+		if not exotics.has(k): exotics[k] = 0
+	for k in ["trips", "fish", "chests", "charms", "money_earned"]:
+		if not stats.has(k): stats[k] = 0
+	if typeof(boosts) != TYPE_DICTIONARY: boosts = {}
+	for k in ["fish", "treasure", "worker"]:
+		if not boosts.has(k): boosts[k] = 0.0
+	boats_owned = clampi(boats_owned, 0, VFData.BOAT_ORDER.size())
+	level = clampi(level, 1, MAX_LEVEL)
+	prestige = maxi(prestige, 0)
+
 func _ints(src: Dictionary) -> Dictionary:
 	var out := {}
 	for k in src: out[k] = int(src[k])
 	return out
 
 func reset_save() -> void:
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	for path in [save_file, save_file + ".tmp", save_file + ".bak"]:        # (the backup too, or the old game would come back)
+		if FileAccess.file_exists(path): DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	_apply(_defaults.duplicate(true))
 	_roll_quest_day()
 	changed.emit()
@@ -1172,7 +1271,7 @@ func check_goals() -> void:
 ## The game was called "Virtual Fisher", then "fosh_fish"; desktop saves live in a
 ## folder named after the game. Copy the newest old save once so progress carries over.
 func _migrate_old_user_dir() -> void:
-	if FileAccess.file_exists(SAVE_PATH): return
+	if FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(SAVE_PATH + ".bak") or FileAccess.file_exists(SAVE_PATH + ".tmp"): return
 	var base := ProjectSettings.globalize_path("user://").trim_suffix("/").get_base_dir()
 	for name in ["fosh_fish", "Virtual Fisher"]:
 		var old: String = base + "/" + name + "/"
@@ -1500,7 +1599,7 @@ func _tok_make_challenge(day: String) -> Dictionary:
 	var avg := _tok_avg_fish()
 	var c := {"day": day, "kind": kind, "fish": "", "goal": 0, "biome": biome}
 	if kind == "species":
-		var odds := species_odds()
+		var odds := species_odds("", "", -1.0, 1.0, true)        # (the day's goal doesn't depend on the weather when it was made)
 		var names: Array = VFData.BIOMES[biome].fish
 		var pick := 0
 		for i in range(4, 0, -1):          # the rarest fish you land about once every 12 casts
@@ -1859,7 +1958,7 @@ func _give_item(d: Dictionary) -> Dictionary:
 		shiny_lure += int(d.lure)
 	if d.has("rod"):
 		if not d.rod in owned_rods: owned_rods.append(d.rod)
-		rod = d.rod
+		if rod_usable(d.rod) or not rod_usable(): rod = d.rod
 		got["rods"] = [d.rod]
 	if d.has("money2x"):
 		var now := Time.get_unix_time_from_system()
@@ -2267,6 +2366,7 @@ func gerald_result(won: bool) -> Dictionary:
 	var s: Dictionary = VFData.GERALD[i]
 	out.who = s.who
 	gerald.casts = 0
+	cast_bonus = {}                            # (an outlaw isn't a catch: a hot spot's bonus doesn't wait for the next cast)
 	_last_active = Time.get_unix_time_from_system()
 	_cd_override = -1.0
 	if won:

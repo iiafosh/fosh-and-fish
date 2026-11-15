@@ -53,6 +53,7 @@ var _flash := 0.0
 var _drops := 0.0
 var _t := 0.0
 var _shown := "-"
+var _tap_at := Vector2.INF        # where the scene was last tapped (a tap on a hot spot the line can't reach gets a word)
 
 func _init(main) -> void:
 	m = main
@@ -159,7 +160,7 @@ func tick(delta: float) -> void:
 	var live: bool = VF.tutorial >= 99 and VF.level >= VFData.SPOT_LEVEL and not m.launcher_open()
 	_tick_weather(delta, live)
 	_note_world()
-	var busy: bool = not live or m.overlay.visible or m.minigame != null or m._phone_open()
+	var busy: bool = not live or m.overlay.visible or m.minigame != null or m._phone_open() or (m.derby != null and m.derby.running)
 	_tick_spots(delta, busy)
 	_tick_secrets(delta, busy)
 	_show_veil()
@@ -334,7 +335,10 @@ func _spot_alpha(s: Dictionary) -> float:
 	return a
 
 ## the float just landed (vf_main, every cast): in a hot spot? Then this cast gets its bonus (VF.cast_bonus), and a wish too
-func cast_landed() -> void:
+func cast_landed(outlaw := false) -> void:
+	var tapped := _tap_at
+	_tap_at = Vector2.INF
+	if outlaw: return
 	var p: Vector2 = stage._bobber
 	var bonus := {}
 	for s in spots:
@@ -349,6 +353,11 @@ func cast_landed() -> void:
 		if s.hits <= 0: s.gone = 0.0
 		_spot_hit(bonus, p)
 		break
+	if bonus.is_empty() and tapped != Vector2.INF and not stage.talking():      # you tapped one, but the line doesn't reach
+		for s in spots:
+			if s.gone < 0.0 and Vector2(tapped.x - s.pos.x, (tapped.y - s.pos.y) / SQUASH).length() <= VFData.SPOT_R:
+				stage.say("Too far. Sail closer!", 2.6)
+				break
 	if wish:
 		wish = false
 		bonus["fish"] = float(bonus.get("fish", 0.0)) + VFData.WISH_FISH
@@ -405,6 +414,7 @@ func _start_rainbow() -> void:
 ## a tap on the scene (vf_main, before a cast): a falling star, or the rainbow's end
 func tap(screen: Vector2) -> bool:
 	var p: Vector2 = stage.to_scene(screen)
+	_tap_at = p
 	var slack: float = stage.TAP_MIN / stage.root.scale.x if m.is_touch() else 0.0
 	for s in stars:
 		var head: Vector2 = (s.from as Vector2).lerp(s.to, s.t)
@@ -584,6 +594,16 @@ func capture_test(dir: String) -> void:
 	await m._shot(dir + "/w10_wish.png")
 	await _test_cast(dir + "/w11_wish_cast.png", Vector2(400, 0))
 	spots.clear()
+	# one the line can't reach: the captain says so
+	var far = stage._rand_point(func(q): return stage.open_water(q, 70.0) and q.distance_to(stage.boat_pos) > stage.MAX_CAST + 140.0, 2000)
+	if far != null:
+		spawn_spot("school", far)
+		stage._say_t = 0.0
+		await _test_cast(dir + "/w12_too_far.png", Vector2.ZERO)
+		print("WORLD too far: the captain says '%s', the spot is still there: %s" % [stage._say_text, spots.size() == 1])
+		spots.clear()
+	else:
+		print("WORLD too far: no water out of reach in this scene")
 	for row in [["Volcanic", "ash", 0.3], ["Ocean", "storm", 0.3], ["Sky", "aurora", 0.75], ["Space", "meteors", 0.3], ["Alien", "aurora", 0.75], ["Alien", "fog", 0.3], ["Abyss", "bloom", 0.3], ["Abyss", "fog", 0.3]]:
 		VF.biome = row[0]
 		VF.changed.emit()

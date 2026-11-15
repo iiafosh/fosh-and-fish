@@ -21,8 +21,10 @@
 - **Share cards.** "Share it" on a shiny fish and "Share" on your Derby score make a picture to post anywhere: your biome, the shiny (or the gold Derby Cup), your name and the link to the game. On a phone the share menu opens; on a computer it's saved in Pictures/fosh&fish with the text copied.
 - **The web version starts much faster.** The first visit downloads a third less (about 33 MB instead of 50), and a loading screen with the bay, the logo and a progress bar shows at once instead of a blank page.
 - **A rebirth needs every charm maxed again, as on Discord.** With the treasure gear (Magnet and Artifact Magnet bait, the More Chests and Better Chests upgrades, a Treasure boost) a run's charms fill in about 5 to 6 hours, around when your level and money are there. The Charms and Prestige panels now say what finds more and better chests, with your own odds.
+- **The fish you beat is yours.** Win a Reel it in! round and that fish is always in the catch. Before, the dice could leave it out, so you could beat a Pufferfish and find none in your bucket.
+- **Safer saves.** The game now keeps a backup of your save and never leaves a half-written one, so a phone that closes the game at the wrong moment can't cost you your progress. A save from a newer version of the game no longer stops an older one from starting.
 - **A fairer Derby board.** The server now checks every score against the best a run could really make, so nobody can post an impossible score.
-- **Small fixes.** On small phones FishTok no longer squeezes the Calendar, Pets, Biomes and Spin panels off the screen. In a party, a friend's waves and catches show one line every few seconds instead of a flood, and resetting your save no longer leaves a ghost of your boat in your friends' bays.
+- **Small fixes.** Quest XP now levels you up at once instead of overfilling the bar. Buying a rod that can't fish where you are no longer puts it on. Daily quests start over at midnight without waiting for a cast. On small phones FishTok no longer squeezes the Calendar, Pets, Biomes and Spin panels off the screen. In a party, a friend's waves and catches show one line every few seconds instead of a flood, and resetting your save no longer leaves a ghost of your boat in your friends' bays.
 
 ## 1.0.0 — the Fishing Derby, one Shop, and charms you can fill (12 November 2026)
 

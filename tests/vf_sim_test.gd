@@ -321,6 +321,7 @@ func _init() -> void:
 	_test_collecting()
 	_test_hats()
 	_test_world()
+	_test_audit()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -1568,3 +1569,94 @@ func _world_casts(g, bonus: Dictionary, n: int) -> Dictionary:
 		out.top += int(r.fish.get(names[2], 0))
 		if not r.chest.is_empty(): out.chests += 1
 	return out
+
+## What the audit of 2026-11-15 fixed: a hot spot's bonus stays in its own cast, prices don't follow the weather, the fish you
+## beat is in the catch, quest XP levels you up, a rod that can't fish here isn't put on, and a save that's cut short or
+## names things this game doesn't have still loads.
+func _test_audit() -> void:
+	print("== audit fixes")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g.rng.seed = 99
+	g._apply(g._defaults.duplicate(true))
+	g.level = 30
+	var base: Array = g.species_odds()
+	var price: int = g.find_value(10.0)
+	g.cast_bonus = {"kind": "shadow", "quality": 3.0}
+	check(g.species_odds() == base, "a hot spot waiting for its cast changes nobody else's odds (the crews', a hat's price)")
+	g.cast_bonus = {}
+	g.world = {"weather": "storm", "night": true, "dusk": false}
+	check(g.find_value(10.0) == price and g.species_odds() != base, "a storm changes what bites, not what things cost")
+	g.world = {"weather": "clear", "night": false, "dusk": false}
+	var missing := 0
+	var wrong := 0
+	for _i in 200:
+		var r: Dictionary = g.cast_reel(true, -1, "Cod")
+		if int(r.fish.get("Cod", 0)) < 1: missing += 1
+		var total := 0
+		for f in r.fish: total += int(r.fish[f])
+		if total != int(r.count): wrong += 1
+	var lost_has := 0
+	for _i in 200:
+		if int(g.cast_reel(false, -1, "Cod").fish.get("Cod", 0)) > 0: lost_has += 1
+	check(missing == 0 and wrong == 0 and lost_has < 150, "win Reel it in! against a Cod and there's a Cod in the catch, every time (lost: %d of 200 had one anyway)" % lost_has)
+	check(int(g.cast_reel(true, -1, "Dark Tuna").fish.get("Dark Tuna", 0)) == 0, "... but never a fish that doesn't live here")
+	g.level = 5
+	g.xp = g.xp_to_next() - 1
+	g.quest_progress = {}
+	g.quest_claimed = {}
+	g._quest_add("fish", 10000000)
+	check(g.xp < g.xp_to_next() and g.level > 5, "quest XP levels you up at once instead of overfilling the bar (level %d)" % g.level)
+	var sea := ""
+	for r in VFData.ROD_ORDER:
+		if sea == "" and "Ocean" in VFData.RODS[r].biomes and not VFData.is_exclusive_rod(r): sea = r
+	g.level = 200
+	g.money = 100000000
+	g.owned_rods = ["Plastic Rod", sea]
+	g.rod = sea
+	g.biome = "Ocean"
+	check(g.buy_rod("Improved Rod") == "" and g.rod == sea and "Improved Rod" in g.owned_rods, "buying a rod that can't fish here keeps the %s on" % sea)
+	g.biome = "River"
+	g.rod = "Plastic Rod"
+	check(g.buy_rod("Steel Rod") == "" and g.rod == "Steel Rod", "... and one that can goes straight on")
+	_test_saves(g)
+	g.queue_free()
+
+func _test_saves(g) -> void:
+	var path := "user://vf_audit_test.json"
+	for sfx in ["", ".tmp", ".bak"]:
+		if FileAccess.file_exists(path + sfx): DirAccess.remove_absolute(ProjectSettings.globalize_path(path + sfx))
+	g.save_file = path
+	g.autosave = true
+	g.money = 111
+	g.save_game()
+	g.money = 222
+	g.save_game()
+	check(int(g.read_save(path).get("money", 0)) == 222 and int(g.read_save(path + ".bak").get("money", 0)) == 111 and not FileAccess.file_exists(path + ".tmp"),
+		"a save is swapped in whole, and the one before it is kept")
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string('{"v": 1, "name": "cut sh')
+	f.close()
+	g.money = 0
+	g.load_game()
+	check(g.money == 111 and g.read_save(path).is_empty(), "a save that was cut short: the one before it loads instead")
+	g.autosave = false
+	var d: Dictionary = g.to_dict().duplicate(true)
+	d.rod = "Rod From The Future"
+	d.biome = "The Moon"
+	d.bait = "Glitter"
+	d.pet = "Dragon"
+	d.owned_rods = ["Plastic Rod", "Rod From The Future"]
+	d.inventory = {"Cod": 2, "Moon Fish": 5}
+	d.bait_stock = {"Worms": 3, "Glitter": 9}
+	d.pets = {"Dragon": {"level": 3, "xp": 0}}
+	g._apply(d)
+	check(g.rod == "Plastic Rod" and g.biome == "River" and g.bait == "" and g.pet == "" and g.owned_rods == ["Plastic Rod"]
+		and g.inventory == {"Cod": 2} and g.bait_stock == {"Worms": 3} and g.pets.is_empty(),
+		"a save from a newer game: what this one doesn't know is dropped")
+	g._last_cast_ms = -100000
+	check(g.inventory_value() > 0 and g.can_cast() == "" and g.cast().ok, "... and the game goes on: sell, cast")
+	g.reset_save()
+	check(not FileAccess.file_exists(path) and not FileAccess.file_exists(path + ".bak"), "a reset takes the backup with it")
+	g.save_file = g.SAVE_PATH

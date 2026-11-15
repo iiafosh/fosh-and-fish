@@ -182,7 +182,7 @@ var _hit_t := 9.0
 
 ## which fish bit: rolled with the real species odds, so rare fish are rare here too
 static func pick_biter() -> Array:
-	var odds: Array = VF.species_odds()
+	var odds: Array = VF.species_odds("", "", -1.0, float(VF.cast_bonus.get("quality", 1.0)))     # (a big shadow: a rarer one bites)
 	var names: Array = VFData.BIOMES[VF.biome].fish
 	var roll := randf()
 	var acc := 0.0

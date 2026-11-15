@@ -1238,7 +1238,7 @@ func _do_cast(auto := false) -> void:
 	if reel: _reel_wait_until = cast_start + 3000
 	stage.cast(func():
 		AudioManager.play_splash()
-		world.cast_landed()                    # in a hot spot? (vf_world.gd)
+		world.cast_landed(reel and rival)      # in a hot spot? (vf_world.gd; an outlaw's bite isn't a catch, the spot waits)
 		if reel:
 			_reel_wait_until = 0
 			_start_minigame(cast_start, rival)
@@ -1265,7 +1265,7 @@ func _start_minigame(cast_start: int, rival := false) -> void:
 		mg.setup(self, biter[0], biter[1])
 		mg.resolved.connect(func(won: bool):
 			_reel_ask = VF.reel_rounds == VFData.ROOKIE_ROUNDS      # (it's been counted: the last easy round ends with a question, after the catch)
-			VF.cast_reel(won, cast_start))
+			VF.cast_reel(won, cast_start, String(biter[0])))        # (won: the one you fought is in the catch)
 	mg.tree_exited.connect(func():
 		if minigame == mg: minigame = null
 		if is_instance_valid(stage): stage.reel_in())   # the catch comes in once the card closes
@@ -1463,6 +1463,8 @@ func _show_catch(res: Dictionary) -> void:
 		card_body.add_child(lbl("Reeled it in!  +%d%% fish" % int(round(VFData.MINIGAME_FISH_BONUS * 100.0)), 14, C_TEAL))
 	elif res.get("reel", "") == "lose":
 		card_body.add_child(lbl("It got away... normal catch", 13, C_MUTED))
+	if String(res.get("spot", "")) != "":          # a hot spot (vf_world.gd)
+		card_body.add_child(lbl("Hot spot: %s%s" % [VFData.SPOTS[res.spot].name, "  ·  bullseye!" if res.get("bull", false) else ""], 13, C_TEAL))
 	if not res.chest.is_empty():
 		var c: Dictionary = res.chest
 		var row := HBoxContainer.new()

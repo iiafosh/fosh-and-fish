@@ -188,7 +188,8 @@ const FISH_ORDER := ["Raw Fish", "Raw Salmon", "Cod", "Tropical Fish", "Pufferfi
 	"Alien Fish", "Artifact Fish", "Dark Puffer", "Dark Tuna"]
 
 # ---- the world (vf_world.gd): weather, what each fish likes, and hot spots on the water
-## A spell of weather and what it does to your own casts while it lasts (auto-fish casts get it too; the crews don't)
+## A spell of weather and what it does while it lasts. More fish and more chests are for your own casts (auto-fish too);
+## rarer fish, and what each fish likes (FISH_LIKES), hold for the crews' catch as well.
 const WEATHER := {
 	"clear":   {"name": "Clear", "icon": "", "tip": ""},
 	"rain":    {"name": "Rain", "icon": "drop", "fish": 1.15, "tip": "+15% fish"},

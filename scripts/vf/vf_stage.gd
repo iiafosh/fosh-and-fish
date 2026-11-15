@@ -1429,7 +1429,7 @@ func _show_level(res: Dictionary, best: String) -> int:
 	if not res.get("new_species", []).is_empty() or String(res.get("event_fish", "")) != "" or res.get("boss_caught", false) or String(res.get("pet", "")) != "":
 		return 2
 	var tiers: Array = VFData.BIOMES.get(_biome, {}).get("fish", [])
-	if (best == tiers.back() if not tiers.is_empty() else false) or not res.get("chest", {}).is_empty():
+	if (best == tiers.back() if not tiers.is_empty() else false) or not res.get("chest", {}).is_empty() or res.get("bull", false):     # (bull: a hot spot's bullseye, vf_world.gd)
 		if _t - _last_big_show > 22.0: return 1
 	return 0
 

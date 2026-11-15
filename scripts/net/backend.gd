@@ -946,7 +946,8 @@ static func is_newer_save(d: Variant) -> bool:
 
 static func save_valid(d: Variant) -> bool:
 	if not (d is Dictionary): return false
-	if int(float(d.get("v", 0))) != SAVE_VERSION: return false
+	var v := int(float(d.get("v", 0)))
+	if v < 1 or v > SAVE_VERSION: return false       # (an older format is fine: VF._apply fills in what it didn't have)
 	for k in ["name", "prestige", "level", "xp", "money", "biome", "rod", "bait", "pet", "owned_rods", "boats_owned",
 			"bait_stock", "inventory", "exotics", "hooks", "upgrades", "specials", "league", "perks", "charms", "pets",
 			"trips_without_pet", "boosts", "personal_boosters", "personal_until", "stats", "quest_day", "quest_progress",
