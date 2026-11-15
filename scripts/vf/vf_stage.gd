@@ -105,6 +105,7 @@ var day_t := 0.08                 # the time of day, 0..1 (starts in the morning
 var night_amount := 0.0           # 0 by day .. 1 at night (the lights come on)
 var _is_night := false
 var _fx_on := true
+var gust := 0.0                   # more wind in the trees: rain, a storm (vf_world.gd)
 var _reflect_mat: ShaderMaterial
 var lights_layer: Control
 var _glow_tex: Texture2D
@@ -1304,7 +1305,7 @@ func _apply_daylight() -> void:
 	var sky: Dictionary = DAYLIGHT.get(_biome, {})
 	var clouds: float = ATMOS.get(_biome, [1.0, 0.0])[1]
 	water_mat.set_shader_parameter("mirror", 0.42 if _fx_on else 0.0)
-	(backdrop.material as ShaderMaterial).set_shader_parameter("wind", 1.0 if _fx_on else 0.0)
+	(backdrop.material as ShaderMaterial).set_shader_parameter("wind", 1.0 + gust if _fx_on else 0.0)
 	atmos.visible = _fx_on
 	if not _fx_on or sky.is_empty():
 		night_amount = 1.0 if sky.is_empty() and _biome != "" else 0.0

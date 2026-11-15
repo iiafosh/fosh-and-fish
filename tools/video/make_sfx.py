@@ -259,9 +259,19 @@ def hat_on():
     return fade(x + low(rng.normal(0, 1, len(t)), 1400) * np.exp(-t / 0.012) * 0.6, 0.003, 0.02)
 
 
+def thunder():
+    """far-off thunder (vf_world.gd, a storm): a soft crack, then a long low roll. Quiet on purpose, and never a loop"""
+    n = int(2.4 * SR)
+    t = np.arange(n) / SR
+    x = rng.normal(0, 1, n)
+    roll = low(x, 110) * np.exp(-t * 1.5) * (0.6 + 0.4 * np.sin(2 * np.pi * 2.3 * t + 1.0) ** 2) * 9.0
+    crack = band(x, 180, 900) * np.exp(-t * 16.0) * 0.5
+    return fade(roll + crack, 0.01, 0.5)
+
+
 SOUNDS = {"boing": boing, "squeak": squeak, "quack": quack, "slide_up": lambda: slide(320, 1300, 0.42), "slide_down": lambda: slide(1300, 260, 0.5),
           "pop": pop, "horn": horn, "shutter": shutter, "dundun": dundun, "whoosh": whoosh, "clunk": clunk, "squawk": squawk, "pfff": pfff,
-          "ding": ding, "snip": snip, "laugh": laugh, "sting": sting, "fanfare": fanfare, "find_new": find_new, "ach": ach, "hat_on": hat_on}
+          "ding": ding, "snip": snip, "laugh": laugh, "sting": sting, "fanfare": fanfare, "find_new": find_new, "ach": ach, "hat_on": hat_on, "thunder": thunder}
 
 
 def main():

@@ -94,7 +94,7 @@ func _ready() -> void:
 			var s = load(SFX + n + ".ogg")
 			if s: sounds[k].append(s)
 	# the cartoon sounds (tools/video/make_sfx.py)
-	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip", "laugh", "sting", "fanfare", "find_new", "ach", "hat_on"]:
+	for n in ["boing", "squeak", "quack", "slide_up", "slide_down", "pop", "horn", "shutter", "dundun", "whoosh", "clunk", "squawk", "pfff", "ding", "snip", "laugh", "sting", "fanfare", "find_new", "ach", "hat_on", "thunder"]:
 		var s = load("res://assets/audio/fun/%s.ogg" % n)
 		if s: sounds["fun_" + n] = [s]
 	for i in 2:

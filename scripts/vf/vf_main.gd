@@ -106,6 +106,7 @@ var _sim_dp := 0.0             # --ui-dp=N: pretend the screen's short side is N
 var _portrait_note: CanvasLayer
 var launcher: Control          # the title screen (vf_launcher.gd) until the player presses Play
 var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
+var world                      # vf_world.gd: the weather, hot spots on the water, a rainbow's end, falling stars
 var collect                    # vf_collect_ui.gd: the WANTED board, finds, achievements, the aquarium, hats
 var derby                      # vf_derby.gd: the Fishing Derby (3-minute runs, the weekly board)
 var visitors                   # vf_visitors.gd: real players' boats sailing through your bay
@@ -131,6 +132,7 @@ func _ready() -> void:
 	idle.build_hud()
 	radio.build_hud()
 	fun = load("res://scripts/vf/vf_fun.gd").new(self)
+	world = load("res://scripts/vf/vf_world.gd").new(self)
 	collect = load("res://scripts/vf/vf_collect_ui.gd").new(self)
 	derby = load("res://scripts/vf/vf_derby.gd").new(self)
 	visitors = load("res://scripts/vf/vf_visitors.gd").new(self)
@@ -226,6 +228,7 @@ func _process(delta: float) -> void:
 	_process_hold()
 	if v1: v1.tick(delta)
 	if fun: fun.tick(delta)
+	if world: world.tick(delta)
 	if idle: idle.tick(delta)
 	if derby: derby.tick(delta)
 	if Engine.get_process_frames() % 30 == 0:
@@ -322,6 +325,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# tap / click anywhere on the scene to cast (mobile friendly)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not overlay.visible \
 			and get_global_rect().has_point(event.position):          # (not on the strip the docked phone stands in)
+		if VF.tutorial >= 99 and world.tap(event.position): return   # a falling star, a rainbow's end (vf_world.gd)
 		if VF.tutorial >= 99 and stage.poke(event.position): return  # a crab, a gull, a bottle... (in the tutorial a tap is a cast)
 		_hold_water = true
 		stage.set_aim(event.position)          # the line lands where you tap
@@ -1234,6 +1238,7 @@ func _do_cast(auto := false) -> void:
 	if reel: _reel_wait_until = cast_start + 3000
 	stage.cast(func():
 		AudioManager.play_splash()
+		world.cast_landed()                    # in a hot spot? (vf_world.gd)
 		if reel:
 			_reel_wait_until = 0
 			_start_minigame(cast_start, rival)
@@ -1851,7 +1856,28 @@ func _panel_inventory() -> void:
 			fl.position = Vector2(34, -2)
 			ic.add_child(fl)
 			ic.tooltip_text += "\nTrending on FishTok today: sells for +50%"
+		if known and VFData.likes_text(f) != "": ic.tooltip_text += "\nBites best " + VFData.likes_text(f)
 		dex.add_child(ic)
+	# when each fish bites best: the weather and the hour (vf_world.gd). A fish you haven't caught keeps its secret
+	panel_body.add_child(lbl("When they bite best", 18))
+	var here: Array = VF.biting_now()
+	var habits := _grid(3)
+	for f in VFData.FISH_ORDER:
+		var likes: String = VFData.likes_text(f)
+		if likes == "": continue
+		var known: bool = VF.discovered.has(f)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var fi := icon(icon_for("fish", f), 30)
+		fi.modulate = Color.WHITE if known else Color(0.1, 0.12, 0.18, 0.55)
+		row.add_child(fi)
+		var biting: bool = known and f in here
+		var t := lbl(("%s: %s%s" % [f, likes, "  (now!)" if biting else ""]) if known else "???", 13, C_GOOD if biting else C_MUTED)
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(t)
+		habits.add_child(row)
 
 func _panel_shop() -> void:
 	match _panel_tab:
@@ -2298,6 +2324,16 @@ func _check_capture() -> void:
 		VF.changed.emit()
 		_coach_show()
 		await fun.capture_test(dir)
+		get_tree().quit()
+		return
+	if "--world-test" in OS.get_cmdline_user_args():
+		VF._apply(VF._defaults.duplicate(true))
+		VF.catch_mode = "relax"
+		VF.tutorial = 99
+		VF.level = 40
+		VF.changed.emit()
+		_coach_show()
+		await world.capture_test(dir)
 		get_tree().quit()
 		return
 	if "--gerald-test" in OS.get_cmdline_user_args():

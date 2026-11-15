@@ -187,6 +187,57 @@ const FISH_ORDER := ["Raw Fish", "Raw Salmon", "Cod", "Tropical Fish", "Pufferfi
 	"Emerald Squid", "Rainbow Fish", "Space Fish", "Galactic Crab", "Shark",
 	"Alien Fish", "Artifact Fish", "Dark Puffer", "Dark Tuna"]
 
+# ---- the world (vf_world.gd): weather, what each fish likes, and hot spots on the water
+## A spell of weather and what it does to your own casts while it lasts (auto-fish casts get it too; the crews don't)
+const WEATHER := {
+	"clear":   {"name": "Clear", "icon": "", "tip": ""},
+	"rain":    {"name": "Rain", "icon": "drop", "fish": 1.15, "tip": "+15% fish"},
+	"storm":   {"name": "Storm", "icon": "lightning", "quality": 1.25, "tip": "rare fish bite more"},
+	"fog":     {"name": "Fog", "icon": "drop", "chest": 1.5, "tip": "+50% chests"},
+	"ash":     {"name": "Ash fall", "icon": "fire", "quality": 1.25, "tip": "rare fish bite more"},
+	"meteors": {"name": "Meteor shower", "icon": "shooting-star", "chest": 1.5, "tip": "+50% chests"},
+	"aurora":  {"name": "Aurora", "icon": "sparkle", "xp": 1.25, "tip": "+25% XP"},
+	"bloom":   {"name": "Glow bloom", "icon": "sparkle", "fish": 1.15, "tip": "+15% fish"},
+}
+## what the sky can do in each biome
+const BIOME_WEATHER := {"River": ["rain", "fog", "storm"], "Volcanic": ["ash", "storm"], "Ocean": ["rain", "storm", "fog"],
+	"Sky": ["rain", "aurora", "storm"], "Space": ["meteors", "aurora"], "Alien": ["aurora", "rain", "fog"], "Abyss": ["bloom", "fog"]}
+const WEATHER_CLEAR := [110.0, 200.0]     # seconds of clear sky between spells
+const WEATHER_SPELL := [70.0, 120.0]      # ... and how long a spell lasts
+## When each fish bites best: a time of day (night, dusk = dawn and dusk) or a kind of weather. While one of them is on, the fish
+## is LIKE_BOOST times as likely (taken from the biome's commonest fish, so it only matters where the fish isn't the commonest).
+const FISH_LIKES := {
+	"Raw Salmon": ["rain", "meteors"], "Cod": ["fog", "ash"], "Tropical Fish": ["dusk"], "Pufferfish": ["night", "storm"],
+	"Fiery Pufferfish": ["ash", "night"], "Hot Cod": ["storm", "dusk"], "Squid": ["night", "fog"], "Turtle": ["rain", "dusk"],
+	"Dolphin": ["dusk", "storm"], "Guardian": ["storm", "night"], "Emerald Squid": ["aurora", "night"], "Rainbow Fish": ["rain", "aurora"],
+	"Space Fish": ["meteors", "night"], "Galactic Crab": ["aurora"], "Shark": ["night", "fog"], "Alien Fish": ["aurora", "dusk"],
+	"Artifact Fish": ["fog"], "Dark Puffer": ["bloom"], "Dark Tuna": ["bloom"],
+}
+const LIKE_BOOST := 1.5
+const LIKE_WORDS := {"night": "at night", "dusk": "at dawn and dusk", "rain": "in the rain", "storm": "in a storm", "fog": "in fog",
+	"ash": "when ash falls", "meteors": "in a meteor shower", "aurora": "under an aurora", "bloom": "in a glow bloom"}
+## Hot spots: cast into one. edge = anywhere inside it, bull = near the middle (SPOT_BULL of its radius).
+## school: more fish, twice. shadow: rarer fish. gold: coins (casts' worth, like a find) and a better chance of a chest.
+const SPOTS := {
+	"school": {"name": "School of fish", "weight": 55, "hits": 2, "edge": {"fish": 0.5}, "bull": {"fish": 1.0}},
+	"shadow": {"name": "Big shadow", "weight": 30, "hits": 1, "edge": {"quality": 2.0}, "bull": {"quality": 3.0}},
+	"gold":   {"name": "Something shiny", "weight": 15, "hits": 1, "edge": {"chest": 3.0, "coins": 2.0}, "bull": {"chest": 6.0, "coins": 4.0}},
+}
+const SPOT_ORDER := ["school", "shadow", "gold"]
+const SPOT_R := 96.0            # scene px
+const SPOT_BULL := 0.36
+const SPOT_EVERY := [22.0, 40.0]   # seconds from one going to the next turning up
+const SPOT_LIFE := 34.0
+const SPOT_LEVEL := 2           # (not in the very first minutes)
+const WISH_FISH := 1.0          # a wish on a falling star: +100% fish on your next cast
+
+## "at night, in a storm": when a fish bites best ("" if it doesn't care)
+static func likes_text(f: String) -> String:
+	var out := PackedStringArray()
+	for c in FISH_LIKES.get(f, []):
+		out.append(String(LIKE_WORDS.get(c, c)))
+	return ", ".join(out)
+
 ## Exotic fish are currencies, not sellable fish.
 const EXOTICS := {
 	"gold":    {"name": "Gold Fish",    "level": 10,  "color": Color("#f5c542")},

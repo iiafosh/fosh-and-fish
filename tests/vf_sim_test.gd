@@ -320,6 +320,7 @@ func _init() -> void:
 	_test_finds()
 	_test_collecting()
 	_test_hats()
+	_test_world()
 	process_frame.connect(_with_autoloads, CONNECT_ONE_SHOT)
 
 
@@ -1484,3 +1485,86 @@ func _test_idle() -> void:
 ## every charm maxed for g's prestige (1.1: a rebirth needs them all, as on Discord)
 func _fill_charms(g) -> void:
 	for id in VFData.CHARM_ORDER: g.charms[id] = VFData.charm_total_cap(g.prestige) / 8
+
+## The world (vf_world.gd): weather, what each fish likes, hot spots. The rules live in VFData and vf_game.gd.
+func _test_world() -> void:
+	print("== the world: weather, what fish like, hot spots")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g.rng.seed = 4242
+	g._apply(g._defaults.duplicate(true))
+	g.level = 30
+	g.owned_rods.append("Steel Rod")
+	g.rod = "Steel Rod"                                  # River: 20 / 35 / 45
+	var base: Array = g.species_odds()
+	check(g.conditions().is_empty() and g.biting_now().is_empty() and g.world_mult("fish") == 1.0, "a clear day: nothing special, nothing biting better")
+	var days := ["River", "Volcanic", "Ocean", "Sky", "Alien"]          # the biomes with a sun (vf_stage.DAYLIGHT)
+	var bad := []
+	for b in VFData.BIOME_ORDER:
+		var sky: Array = VFData.BIOME_WEATHER.get(b, [])
+		if sky.is_empty(): bad.append(b)
+		for w in sky:
+			if not VFData.WEATHER.has(w) or String(VFData.WEATHER[w].tip) == "": bad.append(w)
+	check(bad.is_empty(), "every biome has weather of its own, and every kind says what it does %s" % [bad])
+	var lost := []
+	for f in VFData.FISH_LIKES:
+		for c in VFData.FISH_LIKES[f]:
+			if not VFData.LIKE_WORDS.has(c): lost.append(c)
+		for b in VFData.BIOME_ORDER:
+			if VFData.BIOMES[b].fish.find(f) < 1: continue
+			var can := false
+			for c in VFData.FISH_LIKES[f]:
+				if c in VFData.BIOME_WEATHER[b] or (c in ["night", "dusk"] and b in days): can = true
+			if not can: lost.append(f + " in " + b)
+	check(lost.is_empty(), "wherever a fish isn't the commonest, something it likes can happen there %s" % [lost])
+	check(VFData.likes_text("Pufferfish") == "at night, in a storm" and VFData.likes_text("Raw Fish") == "", "the Fish Book's words: Pufferfish bites best at night, in a storm")
+	g.world = {"weather": "rain", "night": false, "dusk": false}
+	var rain: Array = g.species_odds()
+	check(g.biting_now() == ["Raw Salmon"] and absf(rain[1] - base[1] * 1.5) < 1e-6 and absf(rain[2] - base[2]) < 1e-6 and absf(rain[0] + rain[1] + rain[2] - 1.0) < 1e-6,
+		"rain: Raw Salmon bites x1.5 (%.3f -> %.3f), Cod as before, and the odds still add up" % [base[1], rain[1]])
+	check(absf(g.world_mult("fish") - 1.15) < 1e-6 and g.world_mult("chest") == 1.0, "rain is +15% fish and nothing else")
+	g.world.weather = "storm"
+	check(absf(g.species_odds()[2] - base[2] * 1.25) < 1e-6 and g.biting_now().is_empty(), "a storm: rarer fish x1.25")
+	g.world = {"weather": "clear", "night": true, "dusk": false}
+	check(g.conditions() == ["night"] and g.biting_now().is_empty(), "night in the River with a Steel Rod: the Pufferfish likes it, but this rod can't catch one")
+	g.world = {"weather": "clear", "night": false, "dusk": false}
+	# a hot spot's bonus is for one cast
+	g.cast_bonus = {"kind": "school", "bull": true, "fish": 1.0}
+	g._last_cast_ms = -100000
+	var r1: Dictionary = g.cast()
+	g._last_cast_ms = -100000
+	var r2: Dictionary = g.cast()
+	check(r1.spot == "school" and r1.bull and r2.spot == "" and not r2.bull and g.cast_bonus.is_empty() and int(g.stats.get("spots", 0)) == 1 and int(g.stats.get("bullseyes", 0)) == 1,
+		"a cast into a hot spot gets its bonus, the next cast is an ordinary one")
+	var plain := _world_casts(g, {}, 300)
+	var school := _world_casts(g, VFData.SPOTS.school.bull, 300)
+	var edge := _world_casts(g, VFData.SPOTS.school.edge, 300)
+	check(school.fish > plain.fish * 1.8 and school.fish < plain.fish * 2.2 and edge.fish > plain.fish * 1.35 and edge.fish < plain.fish * 1.65,
+		"a school: +100%% fish in the middle, +50%% at its edge (%.1f, %.1f, plain %.1f a cast)" % [school.fish / 300.0, edge.fish / 300.0, plain.fish / 300.0])
+	g.rod = "Improved Rod"                               # 56 / 30 / 14: room for rarer fish
+	g.owned_rods.append("Improved Rod")
+	var plain2 := _world_casts(g, {}, 300)
+	var shadow := _world_casts(g, VFData.SPOTS.shadow.bull, 300)
+	check(shadow.top > plain2.top * 2.4 and absf(shadow.fish - plain2.fish) < plain2.fish * 0.15, "a big shadow: three times the rare fish, no more fish than usual (%d Cod against %d)" % [shadow.top, plain2.top])
+	var gold := _world_casts(g, VFData.SPOTS.gold.bull, 300)
+	check(gold.chests > plain2.chests * 3.0 and gold.chests < 300 * 0.5, "gold glints: many more chests, still not every time (%d against %d in 300 casts)" % [gold.chests, plain2.chests])
+	g.world.weather = "fog"
+	var fog := _world_casts(g, {}, 4000)
+	g.world.weather = "clear"
+	var clear := _world_casts(g, {}, 4000)
+	check(fog.chests > clear.chests * 1.25 and fog.chests < clear.chests * 1.8, "fog: about half as many chests again (%d against %d in 4,000 casts)" % [fog.chests, clear.chests])
+	g.queue_free()
+
+## n casts, each with the same one-cast bonus: how many fish, how many of the rod's best fish, how many chests
+func _world_casts(g, bonus: Dictionary, n: int) -> Dictionary:
+	var out := {"fish": 0.0, "top": 0, "chests": 0}
+	var names: Array = VFData.BIOMES[g.biome].fish
+	for _i in n:
+		g.cast_bonus = bonus.duplicate()
+		g._last_cast_ms = -100000
+		var r: Dictionary = g.cast()
+		out.fish += r.count
+		out.top += int(r.fish.get(names[2], 0))
+		if not r.chest.is_empty(): out.chests += 1
+	return out

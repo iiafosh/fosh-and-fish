@@ -72,6 +72,8 @@ var worker_fish_total := 0
 var _last_cast_ms := -100000
 var _cd_override := -1.0                  # cooldown of the last cast when it was not the normal one (mini-game win)
 var reel_result := ""                     # "win" / "lose" while cast_reel() runs (-> result "reel")
+var world := {"weather": "clear", "night": false, "dusk": false}     # the sky over the biome now (vf_world.gd keeps it; never saved)
+var cast_bonus := {}                      # for the next cast only: a hot spot or a wish {kind, bull, fish, quality, chest} (vf_world.gd)
 var _worker_accum := 0.0
 var _rebirth_told := false                # the "Rebirth ready!" toast was shown (once a run, once a session)
 
@@ -282,13 +284,18 @@ func species_odds(r: String = "", b: String = "", fq: float = -1.0) -> Array:
 	if r == "": r = rod
 	if b == "": b = biome
 	if fq < 0.0: fq = fish_quality_mult()
+	var here := b == biome                     # the weather and the hour are over the biome you're in
+	if here: fq *= world_mult("quality") * float(cast_bonus.get("quality", 1.0))
+	var names: Array = VFData.BIOMES[b].fish
 	var q: Array = _rod_table(r, b)
 	var total := 0.0
 	for v in q: total += v
 	var e := [0.0, 0.0, 0.0, 0.0, 0.0]
 	var used := 0.0
 	for i in range(4, 0, -1):
-		e[i] = minf(q[i] / total * fq, 1.0 - used)
+		var want: float = q[i] / total * fq
+		if here and bites_best(names[i]): want *= VFData.LIKE_BOOST
+		e[i] = minf(want, 1.0 - used)
 		used += e[i]
 	e[0] = maxf(0.0, 1.0 - used)
 	return e
@@ -305,6 +312,7 @@ func _fish_count(for_worker: bool = false, fish_bonus: float = 0.0) -> int:
 	cnt += boats_owned
 	if not for_worker:
 		cnt += round(float(VFData.BAITS[bait].get("fish", 0)) * bait_eff()) if has_bait() else 0.0
+		cnt *= world_mult("fish")                  # rain, a glow bloom
 	var sr: float = r.get("biome_mult", {}).get(biome, 1.0)
 	cnt *= bm.catch_rate * sr * booster_buff()
 	if is_boost_active("fish"):
@@ -362,9 +370,10 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_roll_quest_day()
 	var res := {"ok": true, "fish": {}, "count": 0, "xp": 0, "chest": {}, "pet": "", "bait_used": "",
 		"levels": 0, "duplicated": false, "new_species": [], "lucky": 0, "reel": reel_result,
-		"stars": 0, "event_fish": "", "event_money": 0, "boss_hp": -1, "boss_caught": false, "shiny_ticket": ""}
+		"stars": 0, "event_fish": "", "event_money": 0, "boss_hp": -1, "boss_caught": false, "shiny_ticket": "",
+		"spot": String(cast_bonus.get("kind", "")), "bull": bool(cast_bonus.get("bull", false))}
 	var used_bait := has_bait()
-	var n := _fish_count(false, fish_bonus)
+	var n := _fish_count(false, fish_bonus + float(cast_bonus.get("fish", 0.0)))
 	var caught := _distribute(n)
 	var xp_gain := 0.0
 	for f in caught:
@@ -373,12 +382,12 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 		if not discovered.has(f):
 			res.new_species.append(f)
 		discovered[f] = int(discovered.get(f, 0)) + caught[f]
-	xp_gain *= xp_mult()
+	xp_gain *= xp_mult() * world_mult("xp")
 	res.fish = caught
 	res.count = n
 	res.xp = int(round(xp_gain))
 	# chest
-	if level >= 10 and rng.randf() < treasure_chance() * (VFData.MINIGAME_CHEST_MULT if fish_bonus > 0.0 else 1.0):
+	if level >= 10 and rng.randf() < treasure_chance() * (VFData.MINIGAME_CHEST_MULT if fish_bonus > 0.0 else 1.0) * world_mult("chest") * float(cast_bonus.get("chest", 1.0)):
 		res.chest = _open_chest(_roll_chest_tier())
 		_quest_add("chests", 1)
 	elif lg("super_crates") > 0 and rng.randf() < treasure_quality() * lg("super_crates") / 4000.0:
@@ -413,6 +422,9 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	_week_trip()
 	_v1_on_catch(res, caught)                  # 1.0: active play, event stars / fish / boss, shiny tickets
 	_gerald_cast()
+	if res.spot != "": stat_add("spots")
+	if res.bull: stat_add("bullseyes")
+	cast_bonus = {}
 	trip_done.emit(res)
 	check_goals()
 	changed.emit()
@@ -421,6 +433,36 @@ func cast(fish_bonus: float = 0.0) -> Dictionary:
 	if res.shiny_ticket != "":
 		shiny_ticket.emit(res.shiny_ticket)
 	return res
+
+# ---- the world: the weather, the hour, and what the fish make of it (data: VFData.WEATHER, FISH_LIKES)
+## what's on now, in the words FISH_LIKES uses
+func conditions() -> Array:
+	var out := []
+	if world.get("night", false): out.append("night")
+	if world.get("dusk", false): out.append("dusk")
+	var w := String(world.get("weather", "clear"))
+	if w != "clear": out.append(w)
+	return out
+
+func bites_best(f: String) -> bool:
+	var likes: Array = VFData.FISH_LIKES.get(f, [])
+	if likes.is_empty(): return false
+	for c in conditions():
+		if c in likes: return true
+	return false
+
+## the weather's part in a cast: fish, quality, chest, xp (1 when it has none)
+func world_mult(key: String) -> float:
+	return float(VFData.WEATHER.get(String(world.get("weather", "clear")), {}).get(key, 1.0))
+
+## the fish biting better than usual here, right now (never the biome's commonest: it has nothing to gain)
+func biting_now() -> Array:
+	var out := []
+	var names: Array = VFData.BIOMES[biome].fish
+	var odds := species_odds()
+	for k in range(1, names.size()):
+		if float(odds[k]) > 0.0 and bites_best(names[k]): out.append(names[k])
+	return out
 
 ## "Reel it in!" mode: the catch after the mini-game (the mini-game already waited, so the
 ## cooldown is not checked again). Win: +MINIGAME_FISH_BONUS fish and the next cast is ready
