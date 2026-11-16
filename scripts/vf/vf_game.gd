@@ -61,6 +61,7 @@ var discovered := {}                      # species -> total ever caught (fishde
 var goals_done := 0                       # STARTER_GOALS completed (in order)
 var tutorial := 0                         # onboarding step (UI)
 var ducks := 0                            # rubber ducks found (vf_fun.gd). Nobody knows why.
+var story_seen: Array = []                # the story's pages (biomes) that have been read (vf_story.gd)
 var sail_hint := false                    # the one-time "drag the boat / WASD to sail" hint was shown
 var catch_mode := "reel"                  # "reel" (mini-game, VFData.MINIGAME_*) | "relax" (wait the cooldown). Saves without it: relax
 var reel_rounds := 0                      # rounds of Reel it in! played: the first few are easier (VFData.ROOKIE_ROUNDS)
@@ -896,6 +897,23 @@ func select_biome(b: String) -> String:
 	changed.emit()
 	return ""
 
+## The story has a page for every biome (vf_story.gd). A page can be read once you can sail there, and a page you have
+## read stays yours after a prestige takes your level away.
+func story_open(b: String) -> bool:
+	return b in story_seen or (VFData.BIOMES.has(b) and level >= int(VFData.BIOMES[b].level))
+
+## pages waiting to be read (none during the tutorial: its first page comes when the tutorial ends)
+func story_unread() -> int:
+	if tutorial < 99: return 0
+	var n := 0
+	for b in VFData.BIOME_ORDER:
+		if story_open(b) and not b in story_seen: n += 1
+	return n
+
+## (no `changed` here: the Story panel calls this while it is being built)
+func story_read(b: String) -> void:
+	if VFData.BIOMES.has(b) and not b in story_seen: story_seen.append(b)
+
 func select_pet(p: String) -> void:
 	if p == "" or pets.has(p):
 		pet = p
@@ -1126,6 +1144,7 @@ func to_dict() -> Dictionary:
 		"catch_mode": catch_mode,
 		"reel_rounds": reel_rounds,
 		"ducks": ducks,
+		"story": story_seen.duplicate(),
 		"v1": _v1_dict(),
 		"idle": _idle_dict(),
 		"gerald": gerald,
@@ -1204,6 +1223,11 @@ func _apply(d: Dictionary) -> void:
 	tutorial = int(d.get("tutorial", 0))
 	sail_hint = bool(d.get("sail_hint", false))
 	ducks = int(d.get("ducks", 0))
+	story_seen = []
+	var pages = d.get("story", [])
+	if pages is Array:
+		for b in pages:
+			if VFData.BIOMES.has(str(b)) and not str(b) in story_seen: story_seen.append(str(b))
 	catch_mode = str(d.get("catch_mode", "relax"))
 	if not catch_mode in VFData.CATCH_MODES: catch_mode = "relax"
 	# (a save from before rounds were counted, already on Reel it in!, has played plenty: past the coach and the card too)

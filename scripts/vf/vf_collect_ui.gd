@@ -340,7 +340,7 @@ func claim(id: String) -> void:
 
 ## the Menu's badge: achievements waiting to be claimed (FishTok's goes on the Phone)
 func refresh_badges() -> void:
-	if m.menu_btn: m.pill_badge(m.menu_btn, VF.ach_ready().size())
+	if m.menu_btn: m.pill_badge(m.menu_btn, VF.ach_ready().size() + VF.story_unread())      # (things to claim, and a new page of the story)
 
 
 # ================================================================ aquarium

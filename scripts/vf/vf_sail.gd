@@ -482,6 +482,7 @@ func _voyage(b: String, side: int, from_map: bool) -> void:
 	wipe_k = 0.0
 	if err == "" and not VF.rod_usable():
 		main._toast("Your %s can't fish in %s. Equip another rod in the Shop." % [VF.rod, b], "warn")
+	if err == "" and main.get("story") != null: main.story.offer(b)      # somewhere new: its page of the story opens, once
 
 func _offscreen(side: int) -> bool:
 	return (stage.boat_pos.x - side * _hull(0).r.x * 0.9 - _edge_x(side)) * side > 0.0

@@ -348,6 +348,7 @@ func _with_autoloads() -> void:
 	_test_lose_streak(v)
 	_test_resident_timing(v)
 	_test_counters(v)
+	_test_story()                       # (vf_story.gd names the autoloads: it can only be loaded here)
 	print("\n%s (%d failures)" % ["PASS" if failures == 0 else "FAILED", failures])
 	quit(1 if failures else 0)
 
@@ -1744,4 +1745,41 @@ func _test_orders() -> void:
 	for id in ["bull_1", "bull_50", "streak_5", "orders_7", "wish_10", "rainbow_5"]:
 		if VFData.ach_def(id).is_empty(): known = false
 	check(known and "bull_1" in g.ach_ready() and not "streak_5" in g.ach_ready(), "the new achievements: a first bullseye is ready to claim, five in a row isn't yet")
+	g.queue_free()
+
+func _test_story() -> void:
+	print("== the story: a page for every biome")
+	var S = load("res://scripts/vf/vf_story.gd")
+	var biomes: Array = S.CHAPTERS.map(func(c): return c.biome)
+	check(biomes == VFData.BIOME_ORDER, "one page for every biome, in sailing order")
+	var fine := true
+	for c in S.CHAPTERS:
+		if String(c.title) == "" or String(c.where) == "" or c.lines.size() < 4 or c.lines.size() > 6: fine = false
+		for ln in c.lines:
+			if String(ln).length() < 12 or String(ln).length() > 130: fine = false
+	check(fine, "every page has a title and four to six lines that fit its card")
+	var g = load("res://scripts/vf/vf_game.gd").new()
+	g.autosave = false
+	root.add_child(g)
+	g._apply(g._defaults.duplicate(true))
+	check(g.story_unread() == 0 and g.story_open("River") and not g.story_open("Volcanic"),
+		"during the tutorial no page is waiting, and the River's is the only one within reach")
+	g.tutorial = 99
+	check(g.story_unread() == 1, "the tutorial is over: the first page waits")
+	g.story_read("River")
+	g.story_read("River")
+	g.story_read("The Moon")
+	check(g.story_seen == ["River"] and g.story_unread() == 0, "a page is read once, and only a page that exists")
+	g.level = 100
+	check(g.story_unread() == 2 and g.story_open("Ocean") and not g.story_open("Sky"), "level 100: the Volcanic and the Ocean pages have come within reach")
+	g.story_read("Ocean")
+	g.level = 1
+	check(g.story_open("Ocean") and not g.story_open("Volcanic"), "after a prestige a page you read stays yours, and one you never opened waits again")
+	var d: Dictionary = g.to_dict().duplicate(true)
+	d.story = ["Ocean", "River", "Atlantis", "River", 7]
+	g._apply(d)
+	check(g.story_seen == ["Ocean", "River"], "the save keeps the pages read, and drops what isn't a page")
+	d.story = "all of them"
+	g._apply(d)
+	check(g.story_seen.is_empty(), "a save with nonsense where the story should be: no pages read, and no crash")
 	g.queue_free()

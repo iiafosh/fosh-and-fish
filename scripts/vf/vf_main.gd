@@ -108,6 +108,7 @@ var launcher: Control          # the title screen (vf_launcher.gd) until the pla
 var fun                        # vf_fun.gd: what's there to poke, what floats by, what the captain mutters
 var world                      # vf_world.gd: the weather, hot spots on the water, a rainbow's end, falling stars
 var collect                    # vf_collect_ui.gd: the WANTED board, finds, achievements, the aquarium, hats
+var story                      # vf_story.gd: the fisherman's story, a page for every biome (Menu -> Story)
 var derby                      # vf_derby.gd: the Fishing Derby (3-minute runs, the weekly board)
 var visitors                   # vf_visitors.gd: real players' boats sailing through your bay
 var share                      # vf_share.gd: share cards (a shiny, a Derby score) to post anywhere
@@ -134,6 +135,7 @@ func _ready() -> void:
 	fun = load("res://scripts/vf/vf_fun.gd").new(self)
 	world = load("res://scripts/vf/vf_world.gd").new(self)
 	collect = load("res://scripts/vf/vf_collect_ui.gd").new(self)
+	story = load("res://scripts/vf/vf_story.gd").new(self)
 	derby = load("res://scripts/vf/vf_derby.gd").new(self)
 	visitors = load("res://scripts/vf/vf_visitors.gd").new(self)
 	share = load("res://scripts/vf/vf_share.gd").new(self)
@@ -1697,7 +1699,7 @@ func _render_panel() -> void:
 		"boosts": "Boosts", "quests": "Quests & Daily", "prestige": "Prestige", "stats": "Buffs & Odds", "guide": "Guide", "settings": "Settings", "update": "Updates", "menu": "Menu", "account": "Account",
 		"store": "Store", "events": "Events", "fleet": "Fleet", "daily": "Daily Rewards", "radio": "Radio", "wanted": "Wanted",
 		"achievements": "Achievements", "aquarium": "Aquarium", "derby": "Fishing Derby", "leaderboard": "Leaderboard",
-		"party": "Fish with friends"}
+		"party": "Fish with friends", "story": "The Story"}
 	panel_title.text = titles.get(_panel_kind, "")
 	skin.frame()
 	var new_look: bool = skin.on()
@@ -1764,6 +1766,7 @@ func _render_panel() -> void:
 		"aquarium": collect.panel_aquarium()
 		"derby": derby.panel()
 		"party": party.panel()
+		"story": story.panel()
 	skin.finish()
 
 ## Menu -> Account: sign in, cloud save (built by scripts/net/account_ui.gd)
@@ -2352,6 +2355,10 @@ func _check_capture() -> void:
 			await fun.shorts(a.substr(9).split(",", false))
 			get_tree().quit()
 			return
+	if "--story-test" in OS.get_cmdline_user_args():
+		await story.capture_test(dir)
+		get_tree().quit()
+		return
 	if "--fun-test" in OS.get_cmdline_user_args():
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 99
@@ -2636,7 +2643,7 @@ func _check_capture() -> void:
 	var shots := [["menu", ""], ["shop", "Rods"], ["biomes", ""], ["prestige", "Guide"], ["stats", ""], ["charms", ""], ["guide", "Basics"], ["guide", "Credits"], ["guide", "Feedback"], ["settings", ""], ["account", "Account"], ["update", ""]]
 	if "--all-panels" in OS.get_cmdline_user_args():
 		shots = []
-		for k in ["menu", "inventory", "shop", "biomes", "charms", "pets", "quests", "leaderboard", "prestige", "stats", "events", "derby", "account", "guide", "settings", "update", "party", "radio", "wanted", "achievements"]:
+		for k in ["menu", "inventory", "shop", "biomes", "charms", "pets", "quests", "leaderboard", "prestige", "stats", "events", "derby", "account", "guide", "settings", "update", "party", "radio", "wanted", "achievements", "story"]:
 			for t in PANEL_TABS.get(k, [""]):
 				if k == "shop" and t == "Pearls":
 					for st in STORE_TABS: shots.append(["store", st[0]])     # (each part of the Store, in the Shop's Pearls tab)
@@ -3378,6 +3385,7 @@ func _coach_next(step: int) -> void:
 	VF.tutorial = step
 	VF.save_game()
 	_coach_show()
+	if step == 99: story.offer("River")           # the tutorial is over: the first page of the story
 	if step == 4:
 		while _banner_busy: await get_tree().process_frame      # (the bubble waits for them: its 7 s start after)
 		await get_tree().create_timer(7.0).timeout
@@ -3896,6 +3904,7 @@ const MENU_TILES := [      # [panel, name, icon, key, what it is]
 	["shop", "Shop", "storefront", "1", "Rods, bait, boats, boosts, your fleet, upgrades, hats and Pearls"],
 	["biomes", "Map", "map-trifold", "2", "Travel to other waters"],
 	["inventory", "Fish Book", "book-open-text", "Tab", "Your hold, your collection and the aquarium"],
+	["story", "Story", "book-bookmark", "", "How a fisherman got hooked, one water at a time"],
 	["charms", "Charms", "sparkle", "4", "Boosts from chests that last until you prestige"],
 	["quests", "Quests", "target", "7", "Quests, the daily calendar and the spin"],
 	["leaderboard", "Leaderboard", "ranking", "L", "The top fishers, and this week's Derby"],
@@ -3920,7 +3929,7 @@ const MENU_COLORS := {
 	"shop": Color("#1d9bb0"), "biomes": Color("#f08a24"), "inventory": Color("#3b82f6"), "charms": Color("#8b5cf6"),
 	"pets": Color("#ec4899"), "quests": Color("#22a06b"), "prestige": Color("#d4920f"), "stats": Color("#0ea5e9"),
 	"events": Color("#f59e0b"), "leaderboard": Color("#0e7490"), "achievements": Color("#c98b1c"),
-	"wanted": Color("#a8854d"), "derby": Color("#d4920f"), "party": Color("#7c5cd6"),
+	"wanted": Color("#a8854d"), "derby": Color("#d4920f"), "party": Color("#7c5cd6"), "story": Color("#b4532a"),
 }
 
 ## what a tile or a small button says beside its name, if anything: [text, color], or []
@@ -3931,6 +3940,8 @@ func _menu_note(kind: String) -> Array:
 			if n > 0: return ["%d to claim!" % n, C_GOOD]
 		"charms":
 			if VF.level >= 20: return ["%d / %d" % [VF.charms_total(), VFData.charm_total_cap(VF.prestige)], Color("#7c3aed")]
+		"story":
+			if VF.story_unread() > 0: return ["new page!", C_GOOD]
 		"update":
 			if Updater.state in ["available", "full_needed", "ready"]: return ["new!", C_GOOD]
 		"party":
