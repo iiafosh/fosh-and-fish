@@ -543,3 +543,144 @@ func tour() -> void:
 	await wait.call(2.2)
 	honk()
 	await wait.call(3.0)
+
+## godot --path . --write-movie OUT.avi --fixed-fps 30 -- --capture=DIR --shorts[=name,name] : the short clips for social
+## media, one after another: every trick a fish pulls in Reel it in! (gag_<name>), a shiny, a big catch, a calm sunset, and
+## FishTok's skits (tok_<id>). Each is printed as "SHORT name first_frame last_frame what | music track", and
+## tools/video/shorts.py cuts them into 9:16 videos with a caption. Never saves.
+const SHORT_GAGS := [["Cod", "disguise", "Never seen that fish."], ["Raw Salmon", "selfie", "For my FishTok!"],
+	["Tropical Fish", "dead", "I'm dead. Totally dead."], ["Raw Fish", "nap", "Five more minutes..."], ["Rainbow Fish", "shark", "TAKE ME! TAKE ME!"],
+	["Hot Cod", "banana", "Mind the peel!"], ["Space Fish", "rocket", "Can't catch a rocket!"], ["Alien Fish", "boot", "Size 12. Yours?"],
+	["Artifact Fish", "dance", "Too fabulous to catch!"], ["Dark Tuna", "bribe", "Psst. $3 and we never met."],
+	["Pufferfish", "puff", "It's a medical condition!"], ["Squid", "ink", "That wasn't me. That was ink."], ["Turtle", "closed", "Nobody's home."],
+	["Dolphin", "flip", "Ten out of ten!"], ["Shark", "chomp", "I'm a vegetarian. Honest."], ["Galactic Crab", "snip", "Oops, was that yours?"]]
+
+func shorts(only: PackedStringArray) -> void:
+	var tree: SceneTree = m.get_tree()
+	# recorded bigger than 1280x720 (an override.cfg with a bigger base size, see shorts.py): the same layout, with more pixels
+	AudioManager.ui_size = float(ProjectSettings.get_setting("display/window/size/viewport_height")) / 720.0
+	m._update_ui_scale()
+	m._react_at = Time.get_ticks_msec() + 86_400_000      # nobody posts about you meanwhile: FishTok would slip that post into the feed
+	var wait := func(t: float): await tree.create_timer(t).timeout
+	var want := func(n: String) -> bool: return only.is_empty() or n in only
+	var place := func(biome: String):          # somebody who has been everywhere, in this biome, with a clean screen
+		VF._apply(VF._defaults.duplicate(true))
+		m._veteran(biome)
+		VF.tutorial = 99
+		VF.sail_hint = true
+		VF.tok_dock = false
+		VF.player_name = "afosh"
+		VF.changed.emit()
+		m._close_panel()
+		m._apply_biome()
+		m.stage.play_anim("idle")
+		m.stage.set_time_of_day(0.3)
+		m.card.visible = false
+		for t in m.toast_box.get_children(): t.free()
+	var done := func(n: String, f0: int, what: String):
+		print("SHORT %s %d %d %s | %s" % [n, f0, Engine.get_frames_drawn(), what, AudioManager.track])
+	# the tricks, each on a fish it suits and in that fish's own waters
+	for p in SHORT_GAGS:
+		var fish := String(p[0])
+		var gag := String(p[1])
+		if not want.call("gag_" + gag): continue
+		var biome := "River"
+		for b in VFData.BIOMES:
+			if fish in VFData.BIOMES[b].fish:
+				biome = b
+				break
+		place.call(biome)
+		m._set_catch_mode("reel")
+		VF.reel_rounds = VFData.ROOKIE_ROUNDS
+		await wait.call(1.6)
+		for t in m.toast_box.get_children(): t.free()
+		var f0 := Engine.get_frames_drawn()
+		VF._last_cast_ms = -100000
+		m._do_cast()
+		while m.minigame == null:
+			await tree.process_frame
+		var mg = m.minigame
+		mg.auto = "win"
+		mg.fish_name = fish                                        # whatever bit, the round is this fish's from its first frame
+		mg._load_fish()
+		for again in 2:
+			for n in mg.find_children("*", "Label", true, false):
+				var lb := n as Label
+				if lb.text.ends_with("is on the line!"): lb.text = "%s the %s is on the line!" % [lb.text.split(" the ")[0], fish]
+			if again == 0: await wait.call(1.1)
+		mg.test_gag(fish, gag)
+		mg._say(String(p[2]))                                      # (of the lines it has, the one the post's text quotes)
+		await wait.call(float(mg.GAGS[gag].len) + 0.6)
+		mg.progress = 0.9
+		while m.minigame != null:
+			await tree.process_frame
+		await wait.call(1.3)
+		done.call("gag_" + gag, f0, fish)
+		m._set_catch_mode("relax")
+	if want.call("shiny"):
+		place.call("Ocean")
+		await wait.call(1.6)
+		var f0 := Engine.get_frames_drawn()
+		VF._last_cast_ms = -100000
+		m._do_cast()
+		await wait.call(1.6)
+		m.v1.celebrate("Rainbow Fish", 42, 2958)
+		await wait.call(5.0)
+		done.call("shiny", f0, "Rainbow Fish")
+		await wait.call(2.5)                                       # (its card is still fading: not into the next clip)
+	if want.call("bigcatch"):
+		place.call("Ocean")
+		await wait.call(1.6)
+		var fishes: Array = VFData.BIOMES["Ocean"].fish
+		var f0 := Engine.get_frames_drawn()
+		m.stage.cast(func():
+			m.stage._last_big_show = -100.0
+			m.stage.show_catch({"fish": {fishes.back(): 1}, "count": 1, "chest": {}, "new_species": [fishes.back()]}))
+		await wait.call(6.0)
+		done.call("bigcatch", f0, String(fishes.back()))
+	if want.call("sunset"):
+		place.call("River")
+		await wait.call(1.2)
+		var f0 := Engine.get_frames_drawn()
+		var left := 15.0
+		var next_cast := 0.3
+		while left > 0.0:
+			await tree.process_frame
+			left -= 1.0 / 30.0
+			next_cast -= 1.0 / 30.0
+			m.stage.set_time_of_day(lerpf(0.5, 0.66, 1.0 - left / 15.0))
+			if next_cast <= 0.0:
+				next_cast = randf_range(2.9, 3.6)
+				VF._last_cast_ms = -100000
+				m._do_cast()
+		done.call("sunset", f0, "River")
+	# FishTok's skits, on the phone
+	var Tok: GDScript = load("res://scripts/vf/vf_fishtok.gd")
+	var items := []
+	var rng := RandomNumberGenerator.new()
+	for sk in Tok.SKITS:
+		if not want.call("tok_" + String(sk.id)): continue
+		var it: Dictionary = Tok.skit_post(rng, sk)
+		it["id"] = "skit:" + String(sk.id)
+		it["seed"] = 7
+		items.append(it)
+	if items.is_empty(): return
+	place.call("Ocean")
+	await wait.call(1.0)
+	m._open_phone()
+	await wait.call(1.8)
+	var feed = m.phone.feed
+	for i in feed.views: feed.views[i].queue_free()
+	feed.views.clear()
+	feed.items = items
+	feed.index = 0
+	feed.track.position.y = 0
+	feed._sync()
+	for i in items.size():
+		feed.go(i, false)
+		await wait.call(0.3)
+		feed.current()._t = 0.0
+		await tree.process_frame
+		var f0 := Engine.get_frames_drawn()
+		await wait.call(float(items[i].v.len))
+		done.call("tok_" + String(items[i].v.skit), f0, String(items[i].who.handle))

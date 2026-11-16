@@ -141,6 +141,14 @@ python tools/video/edit10.py build/ads10 build/ads10/out trailer,shiny,boss,even
 python tools/art/make_ads.py
 ```
 
+**Short clips for social media** (9:16, the real game, one idea a clip): every trick a fish pulls in Reel it in!, a
+shiny, a big catch, a sunset and FishTok's skits. `record` films them at 2560x1440 (`-- --capture=DIR --shorts`, in
+`vf_fun.gd`); `cut` makes the videos, a `posts.md` with the text for every post, and a picture of each to check.
+```bash
+python tools/video/shorts.py record build/social/work
+python tools/video/shorts.py cut build/social/work build/social/out
+```
+
 **Re-render the art** (Blender 4.2)
 ```bash
 python tools/fetch_assets.py          # the source packs, into scratch/downloads

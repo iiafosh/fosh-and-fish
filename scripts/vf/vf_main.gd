@@ -2347,6 +2347,11 @@ func _check_capture() -> void:
 		await fun.tour()
 		get_tree().quit()
 		return
+	for a in OS.get_cmdline_user_args():
+		if a == "--shorts" or a.begins_with("--shorts="):     # the clips for social media (vf_fun.shorts); =a,b records only those
+			await fun.shorts(a.substr(9).split(",", false))
+			get_tree().quit()
+			return
 	if "--fun-test" in OS.get_cmdline_user_args():
 		VF._apply(VF._defaults.duplicate(true))
 		VF.tutorial = 99
