@@ -6,7 +6,8 @@ his lunch. One page for every biome. The words live in `scripts/vf/vf_story.gd` 
 ## In the game
 
 - **Menu → Story** shows one page at a time: a picture, a title and five short lines. The row of numbers turns to any
-  page you have reached; a page still ahead says where it is and at which level.
+  page you have reached; a page still ahead says where it is and at which level. On a phone the Earlier and Next page
+  buttons sit beside the numbers, so no page needs scrolling.
 - A page **opens by itself, once**, the first time you sail into its biome. The first page opens when the tutorial ends.
   If you are busy (a panel, Reel it in!, a Derby run), it waits in the Menu with a "new page!" note and a number on the
   Menu button.
@@ -51,11 +52,13 @@ captain already shouts "Hey! That's my lunch!" at the gull.
 
 ## The pictures (ChatGPT)
 
-Until a page has its painting it shows the biome's own backdrop, so nothing is broken without them.
+All seven pages and the Menu's icon have the owner's paintings, made with the prompts below on 16 November 2026. The
+originals are `tools/art/story_source_1.png` to `story_source_7.png` (1 = river ... 7 = bottom of the sea) and
+`tools/art/story_icon_source.png`. `tools/art/story_spare_river.png` is a second river picture that is not used. A page
+whose painting is missing shows the biome's own backdrop, so nothing breaks without one.
 
-Seven pictures, one a page, **landscape 3:2 (1536x1024)**, plus one small icon for the Menu. Make them in the chat where
-the enter-screen bay was made, or attach that picture (`tools/art/launcher_source_v2.png`) so the fisherman and the look
-stay the same. Send this first:
+To redo one: the pictures are **landscape 3:2 (1536x1024)**, the icon is square. Make it in the chat where the others
+were made, or attach one of them so the fisherman and the look stay the same. Send this first:
 
 ```
 I'm making 7 story pictures for my fishing game. Use exactly the same style and the same fisherman as the attached
@@ -125,10 +128,13 @@ leather storybook with a golden whale on its cover and a red ribbon bookmark, a 
 flat grey background, nothing else, no words.
 ```
 
-Save them as `tools/art/story_source_1.png` to `story_source_7.png` (1 = river ... 7 = bottom of the sea) and the icon
-as `tools/art/story_icon_source.png`. Then:
+Save the new one over its source (`tools/art/story_source_1.png` to `story_source_7.png`, the icon as
+`tools/art/story_icon_source.png`). Then:
 
 ```bash
 python tools/art/make_story.py
 Godot_console.exe --headless --path . --import
 ```
+
+and look at the pages with `--story-test` (above). `make_story.py` also writes `build/story/icon_check.png`: the icon on
+the Menu's teal and on cream, where a grey rim left from its backdrop would show.

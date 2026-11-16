@@ -138,13 +138,46 @@ func panel() -> void:
 			m._render_panel()
 			m.panel_scroll.scroll_vertical = 0)
 		pages.add_child(d)
-	m.panel_body.add_child(pages)
+	var room: Vector2 = m.size                # (the game's own size: a phone held sideways is wide but not tall)
+	var stack: bool = room.x < 700.0
+	var low: bool = not stack and room.y < 560.0
+	# turning the page: a row of its own under the page, or, on a phone held sideways (no room for one), beside the numbers
+	var hint: Label = m.lbl(_hint(i) if open else "", 13 if low else 14, m.C_MUTED)
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint.custom_minimum_size.x = 100
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var back: Button = _turn("Earlier", CHAPTERS[i - 1].biome) if i > 0 else null
+	var on: Button = null
+	if i + 1 < CHAPTERS.size() and VF.story_open(CHAPTERS[i + 1].biome):
+		on = _turn("Next page", CHAPTERS[i + 1].biome)
+	elif not low:
+		on = m.btn("Keep fishing", m.C_GOOD, 15, 130)
+		on.pressed.connect(func(): m._close_panel())
+	if low:
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", 10)
+		var left := HBoxContainer.new()
+		var right := HBoxContainer.new()
+		right.alignment = BoxContainer.ALIGNMENT_END
+		for side in [left, right]:                # (the same width on both sides keeps the numbers in the middle)
+			side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			side.custom_minimum_size.x = 150
+		if back != null: left.add_child(back)
+		if on != null:
+			right.add_child(on)
+			hint.free()                           # (the button says it)
+		else:
+			hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			right.add_child(hint)
+		for part in [left, pages, right]: top.add_child(part)
+		m.panel_body.add_child(top)
+	else:
+		m.panel_body.add_child(pages)
 	# the page: its picture, and the words beside it (under it where there's no room)
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", m.skin.card_box() if new_look else m.sbox(m.C_PANEL2, 12, 0, Color.TRANSPARENT, 12))
-	var room: float = m.size.x                # (the game's own width: a phone held sideways is wide but not tall)
-	var stack: bool = room < 700.0
-	var pw: float = clampf(room * 0.36, 230.0, 390.0)
+	var pw: float = clampf(room.x * 0.37, 230.0, 470.0)
 	var box: BoxContainer = VBoxContainer.new() if stack else HBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
 	card.add_child(box)
@@ -181,22 +214,13 @@ func panel() -> void:
 		col.add_child(p)
 	box.add_child(col)
 	m.panel_body.add_child(card)
-	# turning the page
-	var nav := HBoxContainer.new()
-	nav.add_theme_constant_override("separation", 10)
-	var hint: Label = m.lbl(_hint(i) if open else "", 14, m.C_MUTED)
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.custom_minimum_size.x = 100
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	nav.add_child(hint)
-	if i > 0: nav.add_child(_turn("Earlier", CHAPTERS[i - 1].biome))
-	if i + 1 < CHAPTERS.size() and VF.story_open(CHAPTERS[i + 1].biome):
-		nav.add_child(_turn("Next page", CHAPTERS[i + 1].biome))
-	else:
-		var go: Button = m.btn("Keep fishing", m.C_GOOD, 15, 130)
-		go.pressed.connect(func(): m._close_panel())
-		nav.add_child(go)
-	m.panel_body.add_child(nav)
+	if not low:
+		var nav := HBoxContainer.new()
+		nav.add_theme_constant_override("separation", 10)
+		nav.add_child(hint)
+		if back != null: nav.add_child(back)
+		nav.add_child(on)
+		m.panel_body.add_child(nav)
 
 ## godot --path . --resolution 1280x720 -- --capture=DIR --story-test [--touch --ui-dp=390] : every page, a page still
 ## ahead, and the page that opens by itself on arriving somewhere new (once). Never saves.

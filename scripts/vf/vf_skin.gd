@@ -22,7 +22,7 @@ const GREEN := Color("#58b92f")
 const RED := Color("#e8483b")
 const ICONS := {"shop": "shop", "biomes": "map", "inventory": "fish_book", "charms": "charms", "quests": "quests",
 	"leaderboard": "leaderboard", "derby": "derby", "party": "friends", "events": "events", "prestige": "prestige",
-	"pets": "pets", "stats": "buffs", "achievements": "achievements"}
+	"pets": "pets", "stats": "buffs", "achievements": "achievements", "story": "story"}
 
 var m                                   # vf_main
 var plank: PanelContainer

@@ -148,6 +148,11 @@ shiny, a big catch, a sunset and FishTok's skits. `record` films them at 2560x14
 python tools/video/shorts.py record build/social/work
 python tools/video/shorts.py cut build/social/work build/social/out
 ```
+The story as seven more shorts, a page each: its painting drifting by, its sentences one at a time, the biome's music
+(`story-<n>-<biome>.mp4`, and `story-posts.md` with the text for each post):
+```bash
+python tools/video/story.py build/social/out
+```
 
 **Re-render the art** (Blender 4.2)
 ```bash
