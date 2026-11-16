@@ -153,6 +153,14 @@ The story as seven more shorts, a page each: its painting drifting by, its sente
 ```bash
 python tools/video/story.py build/social/out
 ```
+The paintings can move and a narrator can read each page. Both run on a Google Colab machine (the owner's account and
+compute units: an A100 costs about 9 units an hour) with open models, Wan 2.2 for the motion and Kokoro for the voice:
+```bash
+python tools/video/animate.py run --fast       # build/social/anim: each painting as 5 s of animation, about 4 minutes each
+python tools/video/voice.py                    # build/social/voice: every sentence in three voices, about 3 minutes
+python tools/video/story.py build/social/out --voice=af_heart
+python tools/video/animate.py stop             # release the machine: it uses units until it is released
+```
 
 **Re-render the art** (Blender 4.2)
 ```bash

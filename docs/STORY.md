@@ -138,3 +138,20 @@ Godot_console.exe --headless --path . --import
 
 and look at the pages with `--story-test` (above). `make_story.py` also writes `build/story/icon_check.png`: the icon on
 the Menu's teal and on cream, where a grey rim left from its backdrop would show.
+
+## The story videos
+
+`python tools/video/story.py build/social/out` makes the story as seven short vertical videos for the social accounts,
+a page each: its painting in the middle, the page's sentences one at a time above it, that biome's music, and
+`story-posts.md` with the text for each post. The words come from the game (`CHAPTERS`), so a changed line only needs
+its video made again (about a minute).
+
+The paintings can move. `python tools/video/animate.py run --fast` brings them to life on a Google Colab GPU (the
+owner's account and compute units) with the open Wan 2.2 image-to-video model, into `build/social/anim/story-<n>.mp4`;
+story.py then plays each moving painting forwards and backwards under its page. What moves in each picture is
+`PROMPTS` in animate.py: gentle things that can go back and forth (laughing, blinking, rocking, bubbles). `--fast` (a
+4-step add-on, about 4 minutes a clip) looks as good as the full 40 steps (43 minutes a clip) for these.
+
+A narrator can read each page: `python tools/video/voice.py` speaks every sentence with the open Kokoro voice model on
+the same Colab machine (three voices, about 3 minutes in all), and `story.py ... --voice=af_heart` uses one of them: each
+card stays up while its sentence is read, and the music dips under the voice. Changing voice needs no Colab.

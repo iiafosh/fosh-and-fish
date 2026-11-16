@@ -1,18 +1,26 @@
 """fosh&fish story videos for TikTok, YouTube Shorts and Instagram Reels: the fisherman's story, one short for each page.
 
-    python tools/video/story.py OUT [1,3]     # OUT/story-<n>-<biome>.mp4 (1080x1920), OUT/story-posts.md, OUT/story-sheet.jpg
+    python tools/video/story.py OUT [1,3] [--voice=af_heart]
+                                    # OUT/story-<n>-<biome>.mp4 (1080x1920), OUT/story-posts.md, OUT/story-sheet.jpg
+
+With --voice a narrator reads the page (tools/video/voice.py makes the spoken sentences first): each card stays as long
+as its sentence takes to say, and the music dips under the voice.
 
 A page's painting (tools/art/story_source_<n>.*) fills the square in the middle and drifts slowly across; the page's
 sentences (CHAPTERS in scripts/vf/vf_story.gd) come one at a time above it, in the look of the other clips (shorts.py);
 the biome's own music plays under it (STATIONS in scripts/audio_manager.gd) and the text of each post carries its credit.
+Where build/social/anim/story-<n>.mp4 exists (animate.py makes it, on a Colab GPU), the painting is alive: that clip plays
+in the square, forwards and then backwards, for as long as the page lasts.
 Without numbers it makes all seven (about a minute each). Needs what shorts.py needs, and numpy.
 """
 import glob
+import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
+import wave
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -22,6 +30,11 @@ from shorts import FF, FPS, H, INK, MINT, ROOT, W, font, frame, titles  # noqa: 
 
 BOX = (0, 450, 1080, 1080)             # the painting's square: where the other clips have the game
 SUB_Y = BOX[1] - 76                    # the small line just above it
+CLIP_FPS = 16.0 * 0.85                 # an animated painting is made at 16 pictures a second; played a little slower, it is calmer
+VOICE_DIR = os.path.join(ROOT, "build", "social", "voice")
+VOICE_SPEED = 0.95                     # the narrator, a little slower than Kokoro's own pace: a story, told
+VOICE_AT = 0.15                        # seconds into its card that a sentence starts
+SR = 48000
 SITE = "foshfish.xyz"
 TAGS = "#cozygames #indiegame #fishinggame #storytime #gamedev"
 # how far the square drifts across the painting (0 = at its left edge, 1 = at its right: what matters stays in sight),
@@ -55,6 +68,28 @@ def source(n):
     return found[0] if found else None
 
 
+def moving(n):
+    """the page's painting brought to life (tools/video/animate.py makes build/social/anim/story-<n>.mp4), as frames, or
+    None when there is none: then the painting itself is shown"""
+    mp4 = os.path.join(ROOT, "build", "social", "anim", "story-%d.mp4" % n)
+    if not os.path.exists(mp4):
+        return None
+    size = re.search(r", (\d{3,4})x(\d{3,4})", subprocess.run([FF, "-hide_banner", "-i", mp4], capture_output=True, text=True, errors="replace").stderr)
+    w, h = int(size.group(1)), int(size.group(2))
+    raw = subprocess.run([FF, "-loglevel", "error", "-i", mp4, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+    return np.frombuffer(raw, dtype=np.uint8).reshape(-1, h, w, 3)
+
+
+def there_and_back(u, a=0.12):
+    """0..1 -> 0..1 at a steady pace, easing away from the start and into the end: the clip is played forwards and then
+    backwards for as long as the page lasts, and the turn must not jerk"""
+    if u < a:
+        return u * u / (2.0 * a * (1.0 - a))
+    if u > 1.0 - a:
+        return 1.0 - (1.0 - u) * (1.0 - u) / (2.0 * a * (1.0 - a))
+    return (u - a / 2.0) / (1.0 - a)
+
+
 def sentences(line):
     """a line's sentences, one to a card; what somebody says stays whole"""
     out, start, said = [], 0, False
@@ -70,14 +105,46 @@ def sentences(line):
     return out
 
 
-def timeline(ch, n, total):
-    """(words, big, seconds) for every card: the title, each sentence, the way out"""
-    cards = [(ch["title"], True, 2.4)]
+def cards_of(ch, n, total):
+    """(words, big) for every card: the title, each sentence, the way out"""
+    cards = [(ch["title"], True)]
     for ln in ch["lines"]:
-        cards += [(s, False, max(1.7, 0.95 + 0.048 * len(s))) for s in sentences(ln)]
-    cards[-1] = (cards[-1][0], False, cards[-1][2] + 0.7)
-    cards.append(("To be continued..." if n < total else "The end. He is still out there.", True, 2.6))
-    return cards
+        cards += [(s, False) for s in sentences(ln)]
+    return cards + [("To be continued..." if n < total else "The end. He is still out there.", True)]
+
+
+def said(text):
+    """what the narrator says for a card"""
+    return text.replace("...", ".")
+
+
+def voice_file(voice, text):
+    """where a card's spoken sentence is (tools/video/voice.py makes them): the same words in the same voice, the same file"""
+    key = hashlib.sha1(("%s|%.2f" % (said(text), VOICE_SPEED)).encode("utf-8")).hexdigest()[:12]
+    return os.path.join(VOICE_DIR, voice, key + ".wav")
+
+
+def wav_seconds(path):
+    with wave.open(path, "rb") as w:
+        return w.getnframes() / float(w.getframerate())
+
+
+def timeline(ch, n, total, voice=None):
+    """(words, big, seconds, spoken) for every card. Read: a card stays as long as reading it takes. Spoken (a voice): as long
+    as the narrator takes to say it, and a breath"""
+    cards = cards_of(ch, n, total)
+    out = []
+    for k, (text, big) in enumerate(cards):
+        first, last, end = k == 0, k == len(cards) - 1, k == len(cards) - 2
+        if voice:
+            wav = voice_file(voice, text)
+            sec = VOICE_AT + wav_seconds(wav)
+            d = max(2.2, sec + 0.85) if first else (max(2.8, sec + 1.7) if last else max(1.4, sec + (1.0 if end else 0.4)))
+            out.append((text, big, d, wav))
+        else:
+            d = 2.4 if first else (2.6 if last else max(1.7, 0.95 + 0.048 * len(text)) + (0.7 if end else 0.0))
+            out.append((text, big, d, None))
+    return out
 
 
 def wrap(d, text, f, maxw):
@@ -152,6 +219,19 @@ def scene(n, ch, cards, total):
     dur = float(starts[-1])
     x0, x1 = PAGES[ch["biome"]][0]
     still = {}
+    clip = moving(n)
+
+    def picture(t):
+        """the painting at that second: itself, or its animation (16 pictures a second, each melting into the next)"""
+        if clip is None:
+            return src, 1.0
+        half = (len(clip) - 1) / CLIP_FPS                                 # seconds, one way
+        u = (t / half) % 2.0
+        pos = there_and_back(u if u <= 1.0 else 2.0 - u) * (len(clip) - 1)
+        i0 = min(len(clip) - 2, int(pos))
+        f = pos - i0
+        mix = clip[i0].astype(np.float32) * (1.0 - f) + clip[i0 + 1].astype(np.float32) * f
+        return Image.fromarray(mix.astype(np.uint8)), clip.shape[2] / sw
 
     def at(i):
         t = i / FPS
@@ -167,7 +247,8 @@ def scene(n, ch, cards, total):
         s = sh / (1.0 + 0.07 * p)
         x, y = (sw - s) * (x0 + (x1 - x0) * p), (sh - s) * 0.5
         fr = bg.copy()
-        fr.paste(src.resize((BOX[2], BOX[3]), Image.LANCZOS, box=(x, y, x + s, y + s)), (BOX[0], BOX[1]))
+        pic, z = picture(t)
+        fr.paste(pic.resize((BOX[2], BOX[3]), Image.LANCZOS, box=(x * z, y * z, (x + s) * z, (y + s) * z)), (BOX[0], BOX[1]))
         if a >= 0.999 and sa >= 0.999 and k in still:
             band = still[k]
         else:
@@ -196,33 +277,89 @@ def music(ogg, dur):
     return start, min(14.0, max(-6.0, -18.0 - 20.0 * np.log10(max(float(np.sqrt((part * part).mean())), 1e-4))))
 
 
+def pcm(path, start=None, dur=None):
+    """a sound file as 48 kHz stereo floats"""
+    cut = ["-ss", "%.3f" % start, "-t", "%.3f" % dur] if start is not None else []
+    raw = subprocess.run([FF, "-loglevel", "error"] + cut + ["-i", path, "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True).stdout
+    return np.frombuffer(raw, dtype=np.float32).reshape(-1, 2)
+
+
+def narrated(cards, ogg, a0, dur, out):
+    """the page's sound with a narrator: each sentence as its card comes, and the music under it, a good deal quieter while
+    somebody speaks. Written to out (a WAV)"""
+    n = int(round(dur * SR))
+    voice, talk = np.zeros((n, 2), np.float32), np.zeros(n, np.float32)
+    t = 0.0
+    for c in cards:
+        v = pcm(c[3])
+        i = int((t + VOICE_AT) * SR)
+        j = min(n, i + len(v))
+        voice[i:j] += v[:j - i]
+        talk[max(0, i - int(0.3 * SR)):min(n, j + int(0.4 * SR))] = 1.0
+        t += c[2]
+
+    def level(x):
+        return float(np.sqrt(np.mean(x * x))) + 1e-9
+    voice *= 10.0 ** (-17.0 / 20.0) / level(voice[talk > 0])
+    got = pcm(ogg, a0, dur)
+    tune = np.zeros((n, 2), np.float32)
+    tune[:min(n, len(got))] = got[:n]
+    tune *= 10.0 ** (-23.0 / 20.0) / level(tune)
+    k = int(0.35 * SR)                                              # the music dips and comes back over about a third of a second
+    cs = np.cumsum(np.concatenate([[0.0], np.pad(talk, (k // 2, k - k // 2 - 1), mode="edge")]))
+    duck = (cs[k:] - cs[:-k]) / k
+    fade = np.ones(n, np.float32)
+    fade[:int(0.5 * SR)] = np.linspace(0.0, 1.0, int(0.5 * SR))
+    fade[-int(1.5 * SR):] = np.linspace(1.0, 0.0, int(1.5 * SR))
+    mix = (voice + tune * ((1.0 - duck * (1.0 - 10.0 ** (-10.0 / 20.0))) * fade)[:, None]) * 0.5   # (6 dB of room: render's limiter
+    with wave.open(out, "wb") as w:                                                                 #  gives them back without clipping)
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes((np.clip(mix, -1.0, 1.0) * 32767.0).astype("<i2").tobytes())
+
+
 def render(n, ch, cards, total, track, mp4):
     at, frames = scene(n, ch, cards, total)
     dur = frames / FPS
     ogg = os.path.join(ROOT, "assets", "audio", "music", track + ".ogg")
     a0, gain = music(ogg, dur)
-    p = subprocess.Popen([FF, "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "%dx%d" % (W, H), "-r", str(FPS), "-i", "-",
-                          "-ss", str(a0), "-t", "%.3f" % dur, "-i", ogg, "-map", "0:v", "-map", "1:a",
-                          "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709",
-                          "-af", "volume=%.1fdB,alimiter=limit=0.84:level=false,afade=t=in:d=0.5,afade=t=out:st=%.3f:d=1.5" % (gain, max(0.0, dur - 1.5)),
-                          "-t", "%.3f" % dur, "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
-                          "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
-                          "-movflags", "+faststart", mp4], stdin=subprocess.PIPE)
+    mixed = mp4 + ".wav" if cards[0][3] else None
+    if mixed:                                                       # a narrator: the sound is mixed here
+        narrated(cards, ogg, a0, dur, mixed)
+        # (in floats: the volume filter on 16-bit sound clips before the limiter gets to it)
+        sound, af = ["-i", mixed], ["-af", "aformat=sample_fmts=fltp,volume=6dB,alimiter=limit=0.84:attack=5:release=60:level=false"]
+    else:
+        sound = ["-ss", str(a0), "-t", "%.3f" % dur, "-i", ogg]
+        af = ["-af", "volume=%.1fdB,alimiter=limit=0.84:level=false,afade=t=in:d=0.5,afade=t=out:st=%.3f:d=1.5" % (gain, max(0.0, dur - 1.5))]
+    p = subprocess.Popen([FF, "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "%dx%d" % (W, H), "-r", str(FPS), "-i", "-"]
+                         + sound + ["-map", "0:v", "-map", "1:a",
+                                    "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709"]
+                         + af + ["-t", "%.3f" % dur, "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+                                 "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
+                                 "-movflags", "+faststart", mp4], stdin=subprocess.PIPE)
     for i in range(frames):
         p.stdin.write(at(i).tobytes())
     p.stdin.close()
     if p.wait() != 0:
         sys.exit("ffmpeg failed on " + mp4)
-    print("%s  %.1f s  %d cards  music from %d s (%+.1f dB)" % (os.path.basename(mp4), dur, len(cards), a0, gain), flush=True)
+    if mixed:
+        os.remove(mixed)
+    print("%s  %.1f s  %d cards  music from %d s%s" % (os.path.basename(mp4), dur, len(cards), a0,
+                                                        ", narrated" if mixed else " (%+.1f dB)" % gain), flush=True)
 
 
-def make(out, only):
+def make(out, only, voice=None):
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, ".gdignore"), "a").close()
     chs, names = chapters(), titles()
+    if voice:
+        missing = [t for n, ch in enumerate(chs, 1) for t, _big in cards_of(ch, n, len(chs)) if not os.path.exists(voice_file(voice, t))]
+        if missing:
+            sys.exit("%d sentences have no %s narration yet: python tools/video/voice.py %s" % (len(missing), voice, voice))
     posts = []
     for n, ch in enumerate(chs, 1):
-        cards, track = timeline(ch, n, len(chs)), track_of(ch["biome"])
+        cards, track = timeline(ch, n, len(chs), voice), track_of(ch["biome"])
         mp4 = os.path.join(out, "story-%d-%s.mp4" % (n, ch["biome"].lower()))
         posts.append((n, ch, mp4, sum(c[2] for c in cards), track))
         if only and n not in only:
@@ -253,6 +390,8 @@ def make(out, only):
 
 if __name__ == "__main__":
     arg = sys.argv[1:]
+    told = next((x.split("=", 1)[1] for x in arg if x.startswith("--voice=")), None)
+    arg = [x for x in arg if not x.startswith("--voice=")]
     if not arg:
         sys.exit(__doc__)
-    make(arg[0], [int(x) for x in arg[1].split(",")] if len(arg) > 1 else [])
+    make(arg[0], [int(x) for x in arg[1].split(",")] if len(arg) > 1 else [], told)
