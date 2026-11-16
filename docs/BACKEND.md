@@ -117,8 +117,10 @@ Open **Authentication**.
   day's new players came back, compare `back_next_day` with `new_players` of the day before.
   Players who had already played before the count was added show up as returning, never as new.
   It keeps totals only (no accounts, names or ids), and it isn't protected against someone
-  inflating it: read it as a guide. It starts counting once the SQL at the end of
-  `supabase/schema.sql` ("the anonymous player count") has been run.
+  inflating it: read it as a guide. The SQL at the end of `supabase/schema.sql` ("the anonymous
+  player count") was run on the live project on 2026-11-16. Only versions after 1.0.1 send the
+  count, and only real games do: a run from the Godot editor (every test, capture and sim) and a
+  web build opened from this PC are never counted (`Backend.count_allowed`).
 - **Restoring a save by hand**: edit `data` in the Table Editor. The guard also checks your own
   edits. To *lower* someone's progress, set `overwrite` to `true` in the same edit.
 - **Free plan limits**: 500 MB database (a save is a few KB, enough for tens of thousands of

@@ -122,6 +122,7 @@ func _load_config() -> void:
 	# real session and uploaded its demo save - Lv 120, P1 - over the owner's real cloud save.)
 	if capturing and not url_given:
 		url = ""
+	count_live = count_allowed(OS.has_feature("editor"), _local_web(), url_given)
 
 func _vf():                     # untyped: VF's own methods (to_dict, _apply, ...)
 	return get_node_or_null("/root/VF")
@@ -505,7 +506,7 @@ func _finish_quit() -> void:
 ## played on this device ("day0" a new player, "day1" back the next day ...). A few firsts are counted once each: finished
 ## the tutorial, reached level 10, the first rebirth, opened the Shop. No name, account or device id is sent, and the server
 ## keeps only totals (supabase/schema.sql: play_counts, count_play). Nothing is counted in captures, tests and recordings:
-## they have no server. What this device remembers is in PLAY_FILE.
+## they have no server, and count_allowed keeps every run from the editor out. What this device remembers is in PLAY_FILE.
 const PLAY_FILE := "user://play.cfg"
 const COUNT_EVERY := 60.0
 const COUNT_FIRSTS := ["tutorial", "lv10", "rebirth", "shop"]
@@ -516,6 +517,21 @@ var _play_want := {}                     # firsts that happened and aren't count
 var _play_loaded := false
 var _count_t := 50.0                     # (the first look comes ten seconds after the start)
 var _counting := false
+var count_live := false                  # may this run be counted at all? (count_allowed, set as the config loads)
+
+## Only real players are counted. A game run from the Godot editor program is a test, a capture or a sim (the unit tests
+## have no --capture flag, so they'd reach the live server), and a web build served from this machine is one being tried
+## out. A server named on the command line (tools/mock_supabase.py) is always counted to: that's how the count is tested.
+static func count_allowed(editor: bool, local_web: bool, url_given: bool) -> bool:
+	return url_given or not (editor or local_web)
+
+static func local_host(h: String) -> bool:
+	h = h.to_lower()
+	return h == "" or h == "localhost" or h == "127.0.0.1" or h == "::1" or h == "[::1]" or h.ends_with(".localhost")
+
+func _local_web() -> bool:
+	if not OS.has_feature("web"): return false
+	return local_host(str(JavaScriptBridge.eval("location.hostname", true)))
 
 ## whole days from one "YYYY-MM-DD" to another (0 if one is missing, or the clock went backwards)
 static func days_between(a: String, b: String) -> int:
@@ -550,7 +566,7 @@ func count_once(what: String) -> void:
 
 func _count_tick() -> void:
 	var vf = _vf()
-	if not configured() or _counting or vf == null: return
+	if not count_live or not configured() or _counting or vf == null: return
 	var today := Time.get_date_string_from_system(true)
 	if not _play_loaded: _load_play()
 	if int(vf.tutorial) >= 99: count_once("tutorial")

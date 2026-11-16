@@ -277,6 +277,11 @@ func _init() -> void:
 	check(B.play_tag("", "", "2026-11-15") == "day0" and B.play_tag("2026-11-15", "2026-11-15", "2026-11-15") == "", "a first day is day0, and a day is counted once")
 	check(B.play_tag("2026-11-15", "2026-11-15", "2026-11-16") == "day1" and B.play_tag("2026-11-01", "2026-11-10", "2026-11-15") == "day14", "back the next day is day1; two weeks in, day14")
 	check(B.play_tag("2020-01-01", "", "2026-11-15") == "day365", "an old hand is day365 at most")
+	check(B.count_allowed(false, false, false) and not B.count_allowed(true, false, false) and not B.count_allowed(false, true, false),
+		"the released game is counted; a run from the editor and a web build served from this machine are not")
+	check(B.count_allowed(true, true, true), "a server named on the command line is always counted to (the mock)")
+	check(B.local_host("localhost") and B.local_host("127.0.0.1") and B.local_host("game.localhost") and B.local_host("")
+		and not B.local_host("foshfish.xyz") and not B.local_host("localhost.example.com"), "which web addresses are this machine")
 	check(B.validate_name("Marlin Mae") == "" and B.validate_name("Al") != "" and B.validate_name("<script>") != ""
 		and B.validate_name("x".repeat(21)) != "", "fisher name: 3-20 letters, numbers, spaces, _ - .")
 	check(B.validate_name("صياد_سمك") == "" and B.validate_name("Pêcheur") == "", "fisher names may use any alphabet")
